@@ -11,8 +11,10 @@ import type { CompetitorAd } from "@/lib/competitorAds";
 import { competitorAdsKey } from "@/lib/competitorAds";
 import { competitorsKey, type Competitor } from "@/lib/competitors";
 import type { DraftEntry } from "@/lib/draftHistory";
+import type { SavedImage } from "@/lib/images";
+import type { Slideshow } from "@/lib/slideshow";
 import { brandDevice } from "@/test/brandDevice";
-import HomeRows, { PublishPromote, RecentCreations, RemixCompetitorAd, StartFromFormat, adsLine, bookedWhen, homeFormats, longestRunning, nextBooked } from "./HomeRows";
+import HomeRows, { PublishPromote, RecentCreations, RemixCompetitorAd, StartFromFormat, adsLine, bookedWhen, homeFormats, longestRunning, nextBooked, recentCreations } from "./HomeRows";
 
 vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supabase: {} }));
 
@@ -32,17 +34,62 @@ const entry = (ads: CompetitorAd[]) => ({ checkedAt: "2026-11-10T00:00:00Z", pag
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Recent creations", () => {
-  it("says nothing is made yet, with the Library link, when the brand has no posts", () => {
-    const out = html(<RecentCreations drafts={[]} />);
+  const at = (h: number) => `2026-11-10T${String(h).padStart(2, "0")}:00:00.000Z`;
+  const image = (id: string, h: number, o: Partial<SavedImage> = {}) => ({ id, layout: "headline", size: "4x5", words: { headline: `Ad ${id}` }, updatedAt: at(h), ...o }) as SavedImage;
+  const show = (id: string, h: number) => ({ id, title: `Show ${id}`, slides: [], updatedAt: at(h) }) as unknown as Slideshow;
+  const none = { drafts: [], carousels: [], slideshows: [], projects: [], media: [], designs: [] };
+
+  it("says nothing is made yet, with the Library link, when the brand has made nothing", () => {
+    expect(recentCreations(none, [])).toEqual([]);
+    const out = html(<RecentCreations items={[]} />);
     expect(words(out)).toContain("Nothing made yet.");
     expect(hrefs(out)).toEqual(["/library"]);
   });
 
-  it("shows the latest 5 posts, each opening in Write", () => {
-    const out = html(<RecentCreations drafts={["a", "b", "c", "d", "e", "f", "g"].map((id) => draft(id, id === "b" ? { status: "scheduled" } : {}))} />);
-    expect(hrefs(out)).toEqual(["/library", ...["a", "b", "c", "d", "e"].map((id) => `/generate?draft=${id}`)]);
-    expect(words(out)).toContain("scheduled Hook b");
-    expect(words(out)).not.toContain("Hook f");
+  it("a brand whose only creation is a static ad made on Image shows it, opening in Image", () => {
+    const items = recentCreations(none, [image("img-1", 1)]);
+    expect(items).toEqual([{ key: "img:img-1", kind: "Image", status: "Ready", title: "Ad img-1", to: "/image?image=img-1" }]);
+    expect(words(html(<RecentCreations items={items} />))).not.toContain("Nothing made yet.");
+  });
+
+  it("mixes posts, slideshows, images, designs and carousels newest first, 5 at most, each opening in its own editor", () => {
+    const stores = {
+      ...none,
+      drafts: [
+        draft("post", { createdAt: at(5), status: "scheduled", scheduledFor: "2026-11-20" }),
+        draft("des", { createdAt: at(3) }),
+        draft("old", { createdAt: at(0) }),
+        draft("car", { createdAt: at(2), format: "carousel" }),
+      ],
+      slideshows: [show("s1", 6)],
+      designs: [{ id: "dz1", draftId: "des" }],
+    };
+    const items = recentCreations(stores, [image("img-1", 4), image("img-0", 1)]);
+    expect(items.map((c) => [c.kind, c.to])).toEqual([
+      ["Slideshow", "/slideshow?s=s1"],
+      ["Text", "/generate?draft=post"],
+      ["Image", "/image?image=img-1"],
+      ["Design", "/design/dz1"],
+      ["Carousel", "/carousel?draft=car"],
+    ]);
+    const out = html(<RecentCreations items={items} />);
+    expect(hrefs(out)).toEqual(["/library", ...items.map((c) => c.to)]);
+    expect(words(out)).toContain("Text | Scheduled Hook post");
+    expect(words(out)).toContain("Image | Ready Ad img-1");
+  });
+
+  it("an image with a post is one tile, the post's, opening in Image at the later of the two times", () => {
+    const items = recentCreations({ ...none, drafts: [draft("p1", { createdAt: at(1) }), draft("p2", { createdAt: at(2) })] }, [image("img-1", 3, { draftId: "p1" })]);
+    expect(items.map((c) => [c.key, c.kind, c.to])).toEqual([
+      ["d:p1", "Image", "/image?image=img-1"],
+      ["d:p2", "Text", "/generate?draft=p2"],
+    ]);
+  });
+
+  it("reads the open brand's images on this device", () => {
+    brandDevice("u1");
+    localStorage.setItem("content-studio-images-u1", JSON.stringify([image("img-abc123", 1, { font: "sans", paper: "white", align: "left" } as unknown as Partial<SavedImage>)]));
+    expect(words(html(<HomeRows userId="u1" drafts={[]} />))).not.toContain("Nothing made yet.");
   });
 });
 

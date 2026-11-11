@@ -12,12 +12,19 @@ import { STATIC_FORMATS, staticFormatHref, type StaticFormat } from "@/data/stat
 import { adlStatus, loadLaunches, type AdlStatus } from "@/lib/adlauncher";
 import { type CompetitorAd, type CompetitorAdsState, canReadAds, loadCompetitorAds, runLabel, toAdLike } from "@/lib/competitorAds";
 import { type Competitor, loadCompetitors } from "@/lib/competitors";
+import { loadCarousels } from "@/lib/carousel";
+import { loadDesigns } from "@/lib/design";
 import { draftStatus, postTitle, type DraftEntry } from "@/lib/draftHistory";
 import { keyToDate, localDateKey, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { loadImages, onImagesChanged, type SavedImage } from "@/lib/images";
+import { FORMAT_LABELS, STATUS_LABELS, buildLibrary, type LibraryItem } from "@/lib/library";
 import { links } from "@/lib/links";
+import { loadMedia } from "@/lib/mediaLibrary";
 import { fromAd } from "@/lib/remixSource";
+import { loadSlideshows, onSlideshowsChanged } from "@/lib/slideshow";
 import { useScrollToHash } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
+import { loadProjects } from "@/lib/videoProjects";
 
 const ROW = 5;
 const FORMAT_TILES = 8;
@@ -49,19 +56,58 @@ function Row({ id, title, more, children }: { id: string; title: string; more?: 
 
 // ---- Recent creations ----
 
-export function RecentCreations({ drafts }: { drafts: DraftEntry[] }) {
-  const latest = drafts.slice(0, ROW);
+export interface Creation {
+  key: string;
+  /** "Text", "Carousel", "Slideshow", "Video", "Image", "Design". */
+  kind: string;
+  status: string;
+  title: string;
+  /** Its own editor. */
+  to: string;
+}
+
+type Stores = Omit<Parameters<typeof buildLibrary>[0], "jobs" | "now">;
+
+const kindOf = (it: LibraryItem) => (it.href.startsWith("/design/") ? "Design" : it.href.startsWith("/slideshow") ? "Slideshow" : FORMAT_LABELS[it.format]);
+
+/**
+ * The brand's newest `n` creations: the Library's own merge (posts, carousels, slideshows, designs, videos, AI
+ * pictures) plus the /image designs it leaves out. An image with a post is that post's tile, opening in Image.
+ */
+export function recentCreations(stores: Stores, images: SavedImage[], n = ROW): Creation[] {
+  const imageOf = new Map(images.filter((x) => x.draftId).map((x) => [`d:${x.draftId}`, x]));
+  const made = buildLibrary({ ...stores, jobs: [], now: new Date(0) }).map((it) => {
+    const img = imageOf.get(it.key);
+    const at = img && img.updatedAt > it.at ? img.updatedAt : it.at;
+    return { at, c: { key: it.key, kind: img ? "Image" : kindOf(it), status: STATUS_LABELS[it.status], title: it.title, to: img ? links.image({ image: img.id }) : it.href } };
+  });
+  const tied = new Set(made.map((m) => m.c.key));
+  const stills = images
+    .filter((x) => !x.draftId || !tied.has(`d:${x.draftId}`))
+    .map((x) => ({
+      at: x.updatedAt,
+      c: { key: `img:${x.id}`, kind: "Image", status: STATUS_LABELS.ready, title: (x.words.headline || Object.values(x.words).find(Boolean) || "Image").slice(0, 80), to: links.image({ image: x.id }) },
+    }));
+  return [...made, ...stills]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, n)
+    .map((m) => m.c);
+}
+
+export function RecentCreations({ items }: { items: Creation[] }) {
   return (
     <Row id="recent" title="Recent creations" more={{ to: links.library(), label: "Library" }}>
-      {latest.length === 0 ? (
+      {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nothing made yet.</p>
       ) : (
         <ul className={cn(STRIP, "lg:grid-cols-5")}>
-          {latest.map((d) => (
-            <li key={d.id} className={CELL}>
-              <Link to={links.generate({ draft: d.id })} className={TILE}>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{draftStatus(d)}</span>
-                <span className="line-clamp-3 text-sm font-medium text-foreground">{(d.hook || postTitle(d.draft) || "Untitled post").slice(0, 120)}</span>
+          {items.map((c) => (
+            <li key={c.key} className={CELL}>
+              <Link to={c.to} className={TILE}>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {c.kind} | {c.status}
+                </span>
+                <span className="line-clamp-3 text-sm font-medium text-foreground">{c.title}</span>
               </Link>
             </li>
           ))}
@@ -265,6 +311,20 @@ export default function HomeRows({ userId, drafts, className }: { userId: string
     const list = loadCompetitors(userId).list;
     return { watching: list.length, ads: longestRunning(list, loadCompetitorAds(userId)) };
   }, [userId]);
+  // the stores LibraryPage reads, read again when a picture or slideshow is saved here (posts arrive as props)
+  const [saved, setSaved] = useState(0);
+  useEffect(() => {
+    const offs = [onImagesChanged, onSlideshowsChanged].map((on) => on(() => setSaved((n) => n + 1)));
+    return () => offs.forEach((off) => off());
+  }, []);
+  const recent = useMemo(
+    () =>
+      recentCreations(
+        { drafts, carousels: loadCarousels(userId), slideshows: loadSlideshows(userId), projects: loadProjects(userId), media: loadMedia(userId), designs: loadDesigns(userId) },
+        loadImages(userId),
+      ),
+    [userId, drafts, saved],
+  );
   const sent = useMemo(() => loadLaunches(userId).length, [userId]);
   const [adl, setAdl] = useState<AdlRead>(undefined);
   useEffect(() => {
@@ -280,7 +340,7 @@ export default function HomeRows({ userId, drafts, className }: { userId: string
 
   return (
     <div className={cn("space-y-8", className)}>
-      <RecentCreations drafts={drafts} />
+      <RecentCreations items={recent} />
       <StartFromFormat tiles={tiles} />
       <RemixCompetitorAd {...competitors} />
       <PublishPromote adl={adl} sent={sent} next={nextBooked(drafts)} />
