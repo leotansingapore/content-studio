@@ -5,7 +5,7 @@ import { TEMPLATES, type VideoTemplate } from "../../supabase/functions/ai-video
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 import { EXPLAINER_LOOKS } from "../../supabase/functions/ai-video/logic.ts";
 import {
-  FORMATS, FORMAT_FILTERS, NEED_LINES, SECTIONS, alsoMakeList, bySection, filterFormats, formatBySlug, formatHref, readyStatics, templateFormats,
+  FORMATS, FORMAT_FILTERS, NEED_LINES, SECTIONS, alsoMakeList, bySection, filterFormats, formatBySlug, formatHref, readyStatics, searchFormats, templateFormats,
   usedUpLine, type FormatDef, type FormatNeed,
 } from "./formats";
 import { STATIC_FORMATS, type StaticFormat } from "./staticFormats";
@@ -203,6 +203,24 @@ describe("filterFormats", () => {
     const all = FORMATS.filter((f) => f.ready);
     expect(filterFormats(all, "ready", gone).length + filterFormats(all, "needs", gone).length).toBe(all.length);
     expect(filterFormats(all, "needs", gone).every((f) => !!f.needs)).toBe(true);
+  });
+});
+
+describe("searchFormats", () => {
+  const names = (q: string) => searchFormats(FORMATS, q).map((f) => f.slug);
+  it("keeps the whole list for nothing typed", () => {
+    expect(searchFormats(FORMATS, "  ")).toBe(FORMATS);
+  });
+  it("finds a card by its name, its line or its section, any case, every word needed", () => {
+    expect(names("CLAY")).toEqual(["look-clay"]);
+    expect(names("stops the scroll")).toEqual(["hook-demo"]);
+    expect(names("animated stories").length).toBe(FORMATS.filter((f) => f.section === "animated").length);
+    expect(names("podcast person")).toContain("template-two-host-podcast");
+    expect(names("podcast person")).not.toContain("clips");
+    expect(names("zzzz")).toEqual([]);
+  });
+  it("searches static formats by name and line", () => {
+    expect(searchFormats(STATIC_FORMATS, "whiteboard").map((f) => f.slug)).toEqual(["whiteboard"]);
   });
 });
 

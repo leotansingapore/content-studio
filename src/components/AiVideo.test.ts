@@ -14,7 +14,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => false }));
 
-const { default: AiVideo } = await import("./AiVideo");
+const { default: AiVideo, topicPlaceholder } = await import("./AiVideo");
 const html = (at: string) => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(AiVideo, { onClose: () => undefined })));
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -36,5 +36,14 @@ describe("everyone else's template form", () => {
       expect(sha(form)).toBe(hash);
       expect(html(`${at}&product=pd-lq3k9z`)).toBe(form);
     }
+  });
+});
+
+describe("the topic box's example", () => {
+  it("keeps the adviser's for no profession and names any other work", () => {
+    expect(topicPlaceholder("")).toBe("What it explains, like why a hospital plan has a co-pay");
+    expect(topicPlaceholder("coach")).toBe("What it explains, like the question a coach gets asked most");
+    expect(topicPlaceholder("accountant")).toContain("an accountant");
+    expect(topicPlaceholder("real estate agent")).not.toContain("hospital");
   });
 });

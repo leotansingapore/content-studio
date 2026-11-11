@@ -50,7 +50,13 @@ import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts
 import { editorTemplates } from "../../supabase/functions/ai-video/templates.ts";
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+import { professionFor } from "@/lib/profession";
+import { storedUserId } from "@/lib/socialConnect";
+import { aOrAn } from "../../supabase/functions/_shared/profession.ts";
 const secs = (t: number) => `${Math.round(t)} seconds`;
+/** The topic box's example: an adviser's (or nothing set) keeps the co-pay one, any other work gets its own name in it. */
+export const topicPlaceholder = (profession: string) =>
+  profession ? `What it explains, like the question ${aOrAn(profession)} gets asked most` : "What it explains, like why a hospital plan has a co-pay";
 const cost = (credits: number) => `${credits} Higgsfield credits (about US$${creditsUsd(credits).toFixed(2)})`;
 
 const KINDS = ["template", "montage", "avatar", "explainer"] as const;
@@ -958,6 +964,7 @@ function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
   }, [kept, topic, scenes]);
   const [writing, setWriting] = useState(false);
   const leo = useLeoOnly();
+  const topicHint = topicPlaceholder(professionFor(storedUserId()));
   // Leo's chips say what is left after this run, so his counts are read again after a script too
   const mine = useUsesLeft(busy || writing || !leo);
   const left = leo ? mine : panelLeft;
@@ -985,7 +992,7 @@ function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
     <div className="space-y-3">
       <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); void write(); }}>
         <Input value={topic} maxLength={MAX_TOPIC} onChange={(e) => setTopic(e.target.value)} disabled={busy || writing}
-          placeholder="What it explains, like why a hospital plan has a co-pay" aria-label="What the explainer is about" className="h-11 sm:h-10" />
+          placeholder={topicHint} aria-label="What the explainer is about" className="h-11 sm:h-10" />
         <Button type="submit" variant={scenes ? "outline" : "default"} className="h-11 shrink-0 sm:h-10"
           disabled={busy || writing || topic.trim().length < 5 || left("ai-video-script") === 0}>
           {writing ? "Writing..." : scenes ? "Write it again" : "Write it"}
@@ -1063,6 +1070,7 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
     return onDraft(() => setD(loadDraft(userId)));
   }, [userId]);
   const patch = (c: Parameters<typeof saveDraft>[1]) => saveDraft(userId, c);
+  const topicHint = topicPlaceholder(professionFor(userId));
   const writing = !!w && (w.state === "reading" || w.state === "writing" || w.state === "finding");
   const left = useUsesLeft(busy || writing);
 
@@ -1189,7 +1197,7 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
       <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (canWrite) write(); }}>
         {from === "topic" && (
           <Input value={d.topic} maxLength={MAX_TOPIC} onChange={(e) => patch({ topic: e.target.value })} disabled={off}
-            placeholder="What it explains, like why a hospital plan has a co-pay" aria-label="What the video explains" className="h-11 sm:h-10" />
+            placeholder={topicHint} aria-label="What the video explains" className="h-11 sm:h-10" />
         )}
         {from === "link" && (
           <Input type="url" inputMode="url" value={d.link} maxLength={500} onChange={(e) => patch({ link: e.target.value })} disabled={off}

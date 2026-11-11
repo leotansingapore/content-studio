@@ -467,7 +467,8 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|
 | /make | tab | Leo only. static: the Static ads tab, one card per ready static format (src/data/staticFormats.ts); while none is ready there is no tab and static reads as videos | videos | replace | /make?tab=static |
-| /make | show | Leo only, Videos tab. ready: the formats the open brand has what they need for; needs: the ones still missing a demo video, product photo, face or presenter, or its own footage (read from this device) | all | replace | /make?show=needs |
+| /make | show | Leo only, both tabs. ready: the formats the open brand has what they need for; needs: the ones still missing a demo video, product photo, face or presenter, or its own footage (read from this device); on Static ads, needs is a format that waits for a photo while the brand has none | all | replace | /make?show=needs |
+| /make | q | Leo only, both tabs. Search: every word must be in a format's name, line or section | none | replace | /make?q=clay |
 | /make | kind | Leo only. video, slides, text, image | all | replace | /make?kind=video |
 | /make | needs | Leo only. none: only the formats that need nothing extra | off | replace | /make?kind=video&needs=none |
 | /make/static/<slug> | (path) | Leo only. One static ad format's page (src/pages/StaticFormatPage.tsx): its example, what it works with, an optional note kept on this device (cs-static-note-<slug>) and Make, which opens /image on that layout and writes it. An unknown slug gets the not-found page | none | push | /make/static/text-chat |

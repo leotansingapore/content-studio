@@ -808,7 +808,7 @@ export function narratedSystem(r: { source?: ScriptSource; seconds?: NarratedSec
       ? []
       : [
           biz
-            ? "Open with a line that makes a viewer stop scrolling. End with a soft next step for the business, such as following it or trying what it offers, never asking anyone to message me."
+            ? "Open with a line that makes a viewer stop scrolling. End with a soft next step for the business, such as following us, trying what we offer or messaging us. The business is always we and us, so never write message me."
             : "Open with a line that makes a client stop scrolling. End with a soft next step, such as asking them to message you.",
         ]),
     biz ? "Plain spoken English a viewer understands, no jargon, no hashtags or emoji, no em dashes." : "Plain spoken English a client understands, no jargon, no hashtags or emoji, no em dashes.",

@@ -270,6 +270,23 @@ describe("the write", () => {
   });
 });
 
+describe("a business brand's narrated script", () => {
+  it("asks for the business speaker on an added brand with no person on it, and not on the account's own brand", async () => {
+    explainer.saveDraft(UID, { topic: "Why follow-ups slip", scenes: [] });
+    vi.mocked(callFn).mockResolvedValue({ scenes: [SCENE, SCENE, SCENE], look: null, mas: null });
+    await explainer.writeNarrated(UID, { from: "topic", seconds: 30, stock: false });
+    expect(vi.mocked(callFn).mock.calls.at(-1)?.[1]).not.toHaveProperty("speaker");
+    const { addProfile, setActiveProfile } = await import("./profiles");
+    // brands are read from window.localStorage
+    vi.stubGlobal("window", { localStorage, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => true });
+    setActiveProfile(UID, addProfile(UID, "ActivityTracker").id);
+    explainer.saveDraft(UID, { topic: "Why follow-ups slip", scenes: [] });
+    await explainer.writeNarrated(UID, { from: "topic", seconds: 30, stock: false });
+    expect(vi.mocked(callFn).mock.calls.at(-1)?.[1]).toEqual({ mode: "script", topic: "Why follow-ups slip", seconds: 30, speaker: "business" });
+    vi.stubGlobal("window", undefined);
+  });
+});
+
 describe("the standing notes in the narrated script", () => {
   it("go with the script request once saved, a video learning and not a post one", async () => {
     explainer.saveDraft(UID, { topic: "Why co-pays", scenes: [] });
