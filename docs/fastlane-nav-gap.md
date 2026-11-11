@@ -81,3 +81,9 @@ referral programme.
    audience with no campaign), then Calendar, Plan and Ideas; without Campaigns it opens on Calendar. Done 26 Oct.
 6. Studio overview (/studio, Studio's first tab): "What should the agent make for <brand>?", the agent's composer
    (Leo), jump chips, then rows of formats, ads running now, trending posts and your latest. Done 26 Oct.
+8. Shorter rows (11 Nov, Leo: "quite hard to navigate"). No row of tabs or chips holds more than eight, and none runs
+   off the page at 1440: Studio's Create (11 chips) is Create (All formats, Carousel, Image, Video, Hook + demo) and
+   Write (Post, Batch, Answer, VSL, Hooks, Script); Radar (12 tabs) is Posts, Creators, Remix, Saved and Your market
+   with their pages as chips; Competitors is a Brand tab. Settings lists Post labels and Language as tiles (sections
+   of Post choices, SETTINGS_ANCHORS), names What runs without you as its page does, and an open tab says "New version
+   ready: Later / Refresh" (src/lib/newVersion.ts). Walk and gap table: ~/worktrees.noindex/ff1111/gaps/settings.md.
