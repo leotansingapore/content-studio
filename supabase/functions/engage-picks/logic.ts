@@ -23,6 +23,9 @@ export interface Candidate extends Commenter {
 }
 
 /** Everyone who commented on the adviser's posts in the last 45 days, one each with all their comments (newest first), newest commenter first. */
+/** The first audit of each platform, from rows newest-viewed first: the brand opened last, as when a sign-in kept one audit per platform. */
+export const newestPerPlatform = <T extends { platform: string }>(rows: T[]): T[] => rows.filter((a, i) => rows.findIndex((b) => b.platform === a.platform) === i);
+
 export function candidatesFrom(audits: AuditLike[], now = Date.now()): Candidate[] {
   const own = new Set(audits.map((a) => a.handle));
   const best = new Map<string, Candidate>();

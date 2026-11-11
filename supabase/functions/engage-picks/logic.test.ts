@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { candidatesFrom, jevAsk, pickClients, readable } from "./logic";
+import { candidatesFrom, jevAsk, newestPerPlatform, pickClients, readable } from "./logic";
 
 const NOW = Date.parse("2026-10-08T00:00:00Z");
 const audits = [
@@ -46,5 +46,18 @@ describe("likely clients", () => {
     expect(pickClients(cands, { c3: { type: "noul", noul: 0.9 } }).map((p) => [p.user, p.why])).toEqual([["d", "likely"], ["a", "recent"]]);
     expect(pickClients(cands, null).map((p) => [p.user, p.why])).toEqual([["a", "recent"], ["b", "recent"]]);
     expect(pickClients([], null)).toEqual([]);
+  });
+});
+
+describe("newestPerPlatform", () => {
+  it("keeps the newest-viewed audit of each platform, so another brand's audits stay out", () => {
+    const rows = [
+      { platform: "instagram", handle: "brand_b" },
+      { platform: "instagram", handle: "brand_a" },
+      { platform: "tiktok", handle: "brand_b" },
+      { platform: "tiktok", handle: "brand_a" },
+    ];
+    expect(newestPerPlatform(rows).map((r) => [r.platform, r.handle])).toEqual([["instagram", "brand_b"], ["tiktok", "brand_b"]]);
+    expect(newestPerPlatform([])).toEqual([]);
   });
 });

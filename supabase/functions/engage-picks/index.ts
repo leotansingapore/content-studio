@@ -11,7 +11,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
-import { candidatesFrom, jevAsk, pickClients, type AuditLike } from "./logic.ts";
+import { candidatesFrom, jevAsk, newestPerPlatform, pickClients, type AuditLike } from "./logic.ts";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       .order("last_viewed_at", { ascending: false })
       .limit(4);
     if (error) throw error;
-    const audits = (rows ?? []) as (AuditLike & { stats?: { medianViews?: number | null; medianInteractions?: number } | null })[];
+    const audits = newestPerPlatform((rows ?? []) as (AuditLike & { stats?: { medianViews?: number | null; medianInteractions?: number } | null })[]);
     const usual = audits.map((a) => a.stats?.medianViews).find((v) => typeof v === "number") ?? null;
     if (!audits.length) return json({ clients: [], usualViews: null, audited: false, kept: false });
     // audits read before commenters were kept have none until their next refresh

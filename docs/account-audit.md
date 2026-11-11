@@ -18,7 +18,9 @@ with the post's idea.
 ## How it works
 
 1. The handles come from **Your accounts** on the same page, one per platform.
-   Auditing a new handle replaces the old audit for that platform.
+   Each handle keeps its own audit, so each brand keeps its audit, history and
+   ideas when another brand is opened. Only **Stop auditing** removes one.
+   Engage this week reads the newest-viewed audit of each platform.
 2. Opening Analytics calls `audit-social-account`, which returns the saved
    audit. It starts a refresh in the background when:
    - the audit has never run;

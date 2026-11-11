@@ -5,17 +5,21 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const ROW = { id: "a1", user_id: UID, platform: "instagram", handle: "acmewealth", status: "pending", fetched_at: null, refresh_started_at: null, advice: null };
 
-const hub = vi.hoisted(() => ({ handler: null as null | ((r: Request) => Promise<Response>), runs: [] as Record<string, unknown>[] }));
+const hub = vi.hoisted(() => ({ handler: null as null | ((r: Request) => Promise<Response>), runs: [] as Record<string, unknown>[], calls: [] as string[] }));
 vi.mock("../_shared/auditRunner.ts", () => ({
   claimAudit: async () => ROW,
   runAudit: async (opts: Record<string, unknown>) => void hub.runs.push(opts),
 }));
 // every query chain awaits to the same answer: the audit row, and no runs today
-const chain = (answer: unknown): unknown => new Proxy(() => {}, { get: (_t, k) => (k === "then" ? (done: (v: unknown) => void) => done(answer) : () => chain(answer)), apply: () => chain(answer) });
+const chain = (answer: unknown, table: string): unknown =>
+  new Proxy(() => {}, {
+    get: (_t, k) => (k === "then" ? (done: (v: unknown) => void) => done(answer) : (hub.calls.push(`${table}.${String(k)}`), () => chain(answer, table))),
+    apply: () => chain(answer, table),
+  });
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({
   createClient: () => ({
     auth: { getUser: async () => ({ data: { user: { id: UID } } }) },
-    from: (table: string) => chain(table === "cs_social_audit_runs" ? { count: 0, data: null, error: null } : { data: ROW, error: null }),
+    from: (table: string) => chain(table === "cs_social_audit_runs" ? { count: 0, data: null, error: null } : { data: ROW, error: null }, table),
   }),
 }));
 
@@ -39,5 +43,14 @@ describe("audit-social-account: the profession the refresh writes for", () => {
     expect((await open({ profession: "" })).profession).toBe("");
     expect("profession" in (await open({}))).toBe(false);
     expect("profession" in (await open({ profession: 7 }))).toBe(false);
+  });
+});
+
+describe("audit-social-account: one audit per handle", () => {
+  it("never deletes another handle's audit, so each brand keeps its own audit and history", async () => {
+    hub.calls.length = 0;
+    await open({ handle: "otherbrand" });
+    expect(hub.calls).toContain("cs_social_audits.select");
+    expect(hub.calls.filter((c) => c.endsWith(".delete"))).toEqual([]);
   });
 });

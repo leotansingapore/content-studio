@@ -65,15 +65,6 @@ Deno.serve(async (req) => {
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to audit your account." }, 401);
 
-    // One audited account per platform: a new handle replaces the old one.
-    const cleared = await admin
-      .from("cs_social_audits")
-      .delete()
-      .eq("user_id", uid)
-      .eq("platform", platform)
-      .neq("handle", handle);
-    if (cleared.error) throw cleared.error;
-
     let row = await findRow(admin, uid, platform, handle);
     if (!row) {
       const inserted = await admin
