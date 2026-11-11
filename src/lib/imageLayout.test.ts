@@ -453,6 +453,32 @@ describe("static ad formats (ff1111)", () => {
     expect(texts(dark.nodes).find((t) => t.text.startsWith("i need"))?.fill).toBe("#F5F5F7");
   });
 
+  it("fills us vs them's panel with its rows when there is no photo, and never breaks a word to go bigger", () => {
+    for (const size of MEME_SIZES) {
+      const d = draw("us-vs-them", size);
+      const rects = d.nodes.filter((n): n is Extract<SvgNode, { type: "rect" }> => n.type === "rect");
+      const rows = rects.filter((r) => r.rx === 16);
+      // the closing band is the last full-width dark block
+      const band = rects.filter((r) => r.fill === "#111111" && r.width === d.width).at(-1)!;
+      expect(rows, size).toHaveLength(6);
+      expect(band.y - Math.max(...rows.map((r) => r.y + r.height)), size).toBeLessThanOrEqual(40);
+      expect(Math.min(...rows.map((r) => r.height)), size).toBeGreaterThan(120);
+    }
+    // a long word steps the size down instead of splitting ("NEIGHBOURHOO / D")
+    for (const size of MEME_SIZES) {
+      const shown = texts(layoutImage({ layout: "news-headline", words: { headline: "Straightforwardly simple" }, brand }, size, measure).nodes).map((t) => t.text);
+      expect(shown, size).toContain("STRAIGHTFORWARDLY");
+    }
+  });
+
+  it("draws a forum thread's vote and reply controls with no counts", () => {
+    for (const size of MEME_SIZES) {
+      const shown = texts(draw("forum-thread", size).nodes).map((t) => t.text);
+      expect(shown.filter((t) => /\d/.test(t)), size).toEqual(["12h", "8h"]);
+      expect(shown, size).toEqual(expect.arrayContaining(["Reply", "Share"]));
+    }
+  });
+
   it("runs a whiteboard's four arrows in straight lines that pass no bubble", () => {
     for (const size of MEME_SIZES) {
       const paths = draw("whiteboard", size).nodes.filter((n): n is Extract<SvgNode, { type: "path" }> => n.type === "path" && n.stroke === "#1F2937");

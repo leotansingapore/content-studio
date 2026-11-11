@@ -726,6 +726,8 @@ const initialOf = (name: string) => Array.from(name.trim())[0]?.toUpperCase() ??
 
 const SAMPLE_FADE = 0.55;
 const CHAT_SIZES = [44, 41, 38, 35, 32, 30, 28, 26, 24];
+/** A size ladder with bigger steps in front for a picture made with no photo: the words take the room the photo left. */
+const grow = (sizes: number[], bare: boolean, ...bigger: number[]) => (bare ? [...bigger, ...sizes] : sizes);
 
 /**
  * The static ad formats. The whole picture is the scene (a phone screen, a news photo, a comparison); on a 9:16
@@ -757,8 +759,14 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const v = word(key);
     return v ? [{ ...o, text: upper ? v.text.toUpperCase() : v.text, ...(v.sample ? { opacity: SAMPLE_FADE } : {}) }] : [];
   };
+  /** A block's sizes without the big steps at which its longest word would have to break (its smallest always stays). */
+  const whole = (b: Block, width: number): Block => {
+    const longest = b.text.split(/\s+/).reduce((a, c) => (c.length > a.length ? c : a), "");
+    const sizes = b.sizes.filter((n, i) => i === b.sizes.length - 1 || measure(longest, { family: b.family, weight: b.weight, size: n }) <= (b.width ?? width));
+    return sizes.length === b.sizes.length ? b : { ...b, sizes };
+  };
   const fit = (blocks: Block[], width: number, room: number) => {
-    const r = fitStack(blocks, width, Math.max(0, room), measure);
+    const r = fitStack(blocks.map((b) => whole(b, width)), width, Math.max(0, room), measure);
     overflow ||= r.overflow;
     return r.fitted;
   };
@@ -937,9 +945,9 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const bubbleText = Math.round(w * 0.78) - 2 * 32;
     const p = fitFields(
       [
-        ["question", { family: "sans", weight: 400, sizes: CHAT_SIZES, line: 1.3, fill: ui.ink, gap: 56, width: bubbleText }],
-        ["lead", { family: "sans", weight: 600, sizes: CHAT_SIZES, line: 1.32, fill: ui.ink, gap: 22 }],
-        ["answer", { family: "sans", weight: 400, sizes: CHAT_SIZES, line: 1.38, fill: ui.ink, gap: 0 }],
+        ["question", { family: "sans", weight: 400, sizes: grow(CHAT_SIZES, !hasPhoto, 62, 58, 54, 50, 47), line: 1.3, fill: ui.ink, gap: 56, width: bubbleText }],
+        ["lead", { family: "sans", weight: 600, sizes: grow(CHAT_SIZES, !hasPhoto, 62, 58, 54, 50, 47), line: 1.32, fill: ui.ink, gap: 22 }],
+        ["answer", { family: "sans", weight: 400, sizes: grow(CHAT_SIZES, !hasPhoto, 62, 58, 54, 50, 47), line: 1.38, fill: ui.ink, gap: 0 }],
       ],
       w,
       area.h - 2 * 24 - (picH ? picH + 40 : 0),
@@ -968,14 +976,12 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
       text(ago, at, y + 10, { family: "sans", weight: 400, size: 28 }, ui.muted, { room: 100 });
       nodes.push(dot(W - PAD_X - 30, y, 5, ui.muted), dot(W - PAD_X - 15, y, 5, ui.muted), dot(W - PAD_X, y, 5, ui.muted));
     };
-    const votes = (x: number, y: number, n: string, more: string[]) => {
+    // the vote and reply controls, with no counts: a number here would be an engagement figure nobody earned
+    const votes = (x: number, y: number, more: string[]) => {
       const font: FontSpec = { family: "sans", weight: 600, size: 26 };
-      const down = Math.round(x + 60 + measure(n, font) + 12);
-      const pillW = down + 24 + 22 - x;
+      const pillW = 128;
       nodes.push({ type: "path", d: roundRect(x, y, pillW, 60, 30), stroke: ui.line, strokeWidth: 3 });
-      nodes.push({ type: "path", d: `M${x + 22} ${y + 38}l12 -14l12 14`, stroke: ui.ink, strokeWidth: 4 });
-      text(n, x + 60, y + 40, font, ui.ink);
-      nodes.push({ type: "path", d: `M${down} ${y + 24}l12 14l12 -14`, stroke: ui.ink, strokeWidth: 4 });
+      nodes.push({ type: "path", d: `M${x + 26} ${y + 38}l12 -14l12 14M${x + 64} ${y + 14}v32M${x + 78} ${y + 24}l12 14l12 -14`, stroke: ui.ink, strokeWidth: 4 });
       let at = x + pillW + 20;
       for (const m of more) {
         const mw = Math.round(measure(m, font) + 48);
@@ -1002,13 +1008,13 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     y += 28 + 28;
     y += draw(p.title, PAD_X, y) + (p.title ? p.title.b.gap : 0);
     y += draw(p.body, PAD_X, y) + 28;
-    votes(PAD_X, y, "588", ["24 replies", "Share"]);
+    votes(PAD_X, y, ["Reply", "Share"]);
     y += 60 + 48;
     const threadTop = y;
     meta("replier", "8h", PAD_X, y + 28, mix(brand.color, "#7C3AED", 0.5));
     y += 56 + 28;
     y += draw(p.reply, replyX, y) + 28;
-    votes(replyX, y, "443", ["Reply"]);
+    votes(replyX, y, ["Reply"]);
     nodes.push({ type: "rect", x: PAD_X + 26, y: threadTop + 64, width: 4, height: Math.max(0, y + 60 - threadTop - 64), fill: ui.line });
   } else if (layout === "us-vs-them") {
     // a dark band with the headline, the photo, two labelled columns of paired rows, and the closing line on dark
@@ -1060,7 +1066,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const atSize = (s: number) => rows.map(([a, b]) => [cell(a, s, ui.muted, 400), cell(b, s, ui.ink, 600)] as const).filter(([l, r]) => l || r);
     const rowH = (pair: readonly (Fitted | undefined)[]) => Math.max(...pair.map((c) => c?.height ?? 0)) + 2 * cellPad;
     const total = (rs: ReturnType<typeof atSize>) => rs.reduce((h, r) => h + rowH(r) + 12, 0);
-    const sizes = [40, 37, 34, 32, 30, 28, 26, 24, 22];
+    const sizes = [58, 54, 50, 46, 43, 40, 37, 34, 32, 30, 28, 26, 24, 22];
     let fitted = atSize(sizes[0]);
     for (const s of sizes) if (total((fitted = atSize(s))) <= room) break;
     // still too tall at the smallest size: the longest cell loses its last line into "…"
@@ -1073,8 +1079,10 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
       long.height = long.lines.length * long.lineHeight;
     }
     const tint = mix(ui.screen, brand.color, 0.12);
+    // what the rows leave of the panel (most with no photo) goes into the rows, so they fill it to the closing band
+    const spare = fitted.length ? Math.max(0, Math.floor((room - total(fitted)) / fitted.length)) : 0;
     for (const [left, right] of fitted) {
-      const rh = rowH([left, right]);
+      const rh = rowH([left, right]) + spare;
       nodes.push({ type: "rect", x: PAD_X - 16, y, width: col + 16, height: rh, rx: 16, fill: ui.bar }, { type: "rect", x: rightX, y, width: col + 16, height: rh, rx: 16, fill: tint });
       draw(left, PAD_X + col / 2, y + cellPad + Math.round((rh - 2 * cellPad - (left?.height ?? 0)) / 2), { anchor: "middle" });
       draw(right, rightX + col / 2, y + cellPad + Math.round((rh - 2 * cellPad - (right?.height ?? 0)) / 2), { anchor: "middle" });
@@ -1101,9 +1109,9 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const hand = (sizes: number[], weight: 400 | 600, gap: number): Omit<Block, "text"> => ({ family: "hand", weight, sizes, line: 1.28, fill: ink, gap });
     const p = fitFields(
       [
-        ["title", hand([80, 74, 68, 62, 56, 50, 46, 42, 38, 34], 600, 36), true],
-        ["body", hand([52, 48, 45, 42, 39, 36, 33, 30, 28, 26], 400, 32)],
-        ["last", hand([52, 48, 45, 42, 39, 36, 33, 30, 28, 26], 600, 0)],
+        ["title", hand(grow([80, 74, 68, 62, 56, 50, 46, 42, 38, 34], !hasPhoto, 104, 96, 88), 600, 36), true],
+        ["body", hand(grow([52, 48, 45, 42, 39, 36, 33, 30, 28, 26], !hasPhoto, 76, 70, 64, 60, 56), 400, 32)],
+        ["last", hand(grow([52, 48, 45, 42, 39, 36, 33, 30, 28, 26], !hasPhoto, 76, 70, 64, 60, 56), 600, 0)],
       ],
       w,
       room,
@@ -1133,13 +1141,15 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const area: Box = { x: PAD_X, y: sy + sh + 64, w, h: bottom - 72 - (picH ? picH + 40 : 0) - (sy + sh + 64) };
     const p = fitFields(
       [
-        ["answer", { family: fonts.title, weight: 600, sizes: [118, 108, 98, 88, 80, 72, 64, 58, 52, 46, 42], line: 1.06, fill: onBrand, gap: 36 }],
-        ["fact", { family: fonts.body, weight: 400, sizes: [42, 39, 36, 33, 30, 28, 26, 24], line: 1.4, fill: onBrand, gap: 0, opacity: 0.9 }],
+        ["answer", { family: fonts.title, weight: 600, sizes: grow([118, 108, 98, 88, 80, 72, 64, 58, 52, 46, 42], !hasPhoto, 156, 142, 130), line: 1.06, fill: onBrand, gap: 36 }],
+        ["fact", { family: fonts.body, weight: 400, sizes: grow([42, 39, 36, 33, 30, 28, 26, 24], !hasPhoto, 60, 56, 52, 48, 45), line: 1.4, fill: onBrand, gap: 0, opacity: 0.9 }],
       ],
       w,
       area.h,
     );
-    let y = area.y;
+    // with no photo the answer sits in the middle of the room under the sticker
+    const taken = (p.answer ? p.answer.height + (p.fact ? p.answer.b.gap : 0) : 0) + (p.fact?.height ?? 0);
+    let y = area.y + (hasPhoto ? 0 : Math.max(0, Math.round((area.h - taken) / 2)));
     for (const it of [p.answer, p.fact]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
     if (picH) photo({ x: W - PAD_X - Math.round(picH * 1.2), y: bottom - 72 - picH, w: Math.round(picH * 1.2), h: picH }, "rounded");
   } else if (layout === "story-reply") {
@@ -1160,8 +1170,8 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const picH = hasPhoto ? Math.round((bottom - top) * (size === "1x1" ? 0.24 : 0.3)) : 0;
     const p = fitFields(
       [
-        ["answer", { family: fonts.title, weight: 600, sizes: [104, 96, 88, 80, 72, 64, 58, 52, 46, 42], line: 1.08, fill: big, gap: 28 }],
-        ["detail", { family: "sans", weight: 400, sizes: [42, 39, 36, 33, 30, 28, 26], line: 1.35, fill: ink, gap: 0, opacity: 0.85 }],
+        ["answer", { family: fonts.title, weight: 600, sizes: grow([104, 96, 88, 80, 72, 64, 58, 52, 46, 42], !hasPhoto, 170, 154, 140, 128, 116), line: 1.08, fill: big, gap: 28 }],
+        ["detail", { family: "sans", weight: 400, sizes: grow([42, 39, 36, 33, 30, 28, 26], !hasPhoto, 64, 60, 56, 52, 48, 45), line: 1.35, fill: ink, gap: 0, opacity: 0.85 }],
       ],
       w,
       bottom - 72 - (picH ? picH + 56 : 0) - (sy + sh + 64),
@@ -1518,12 +1528,14 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     nodes.push({ type: "path", d: `M${PAD_X} ${top + navH / 2 - 14}h40M${PAD_X} ${top + navH / 2}h40M${PAD_X} ${top + navH / 2 + 14}h40`, stroke: onBrand, strokeWidth: 5 });
     if (brand.name?.trim()) text(brand.name.trim(), W / 2, top + navH / 2 + 16, { family: fonts.title, weight: 600, size: 46 }, onBrand, { anchor: "middle", room: w - 200 });
     const stageH = bottom - top;
-    const heroMin = Math.round(stageH * (size === "1x1" ? 0.26 : 0.32));
+    const hasPhoto = !!input.picture?.trim();
+    // with no photo there is no hero: the headline and deck take the page
+    const heroMin = hasPhoto ? Math.round(stageH * (size === "1x1" ? 0.26 : 0.32)) : 0;
     const p = fitFields(
       [
         ["kicker", { family: "sans", weight: 600, sizes: [28, 26, 24, 22], line: 1.2, fill: accent, gap: 22 }, true],
-        ["headline", { family: fonts.title, weight: 600, sizes: [96, 88, 80, 72, 66, 60, 54, 48, 44, 40, 36], line: 1.08, fill: ui.ink, gap: 70 }],
-        ["deck", { family: fonts.title, weight: 400, sizes: [40, 37, 34, 32, 30, 28, 26, 24], line: 1.4, fill: ui.body, gap: 0 }],
+        ["headline", { family: fonts.title, weight: 600, sizes: grow([96, 88, 80, 72, 66, 60, 54, 48, 44, 40, 36], !hasPhoto, 136, 124, 112, 104), line: 1.08, fill: ui.ink, gap: 70 }],
+        ["deck", { family: fonts.title, weight: 400, sizes: grow([40, 37, 34, 32, 30, 28, 26, 24], !hasPhoto, 64, 60, 56, 52, 48, 44), line: 1.4, fill: ui.body, gap: 0 }],
       ],
       w,
       stageH - navH - 2 * 52 - heroMin,
@@ -1533,26 +1545,33 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     if (p.headline) nodes.push({ type: "rect", x: PAD_X, y: y - 38, width: w, height: 3, fill: ui.line });
     if (p.deck) y += draw(p.deck, PAD_X, y);
     const heroY = y + 52;
-    if (!photo({ x: 0, y: heroY, w: W, h: H - heroY })) nodes.push({ type: "rect", x: 0, y: heroY, width: W, height: H - heroY, fill: mix(ui.screen, brand.color, 0.3) });
+    if (hasPhoto) photo({ x: 0, y: heroY, w: W, h: H - heroY });
   } else if (layout === "general-ad") {
-    // a clean ad: the headline and its line top left, the photo large under them, the brand's colour without one
+    // a clean ad: the headline and its line top left, the photo large under them
     nodes.push({ type: "rect", x: 0, y: 0, width: W, height: H, fill: mix(ui.screen, "#000000", 0.04) });
     const stageH = bottom - top;
+    const hasPhoto = !!input.picture?.trim();
     const p = fitFields(
       [
-        ["headline", { family: fonts.title, weight: 600, sizes: [104, 96, 88, 80, 72, 66, 60, 54, 48, 44], line: 1.06, fill: ui.ink, gap: 28 }],
-        ["line", { family: fonts.body, weight: 400, sizes: [42, 39, 36, 33, 30, 28, 26, 24], line: 1.38, fill: ui.body, gap: 0 }],
+        ["headline", { family: fonts.title, weight: 600, sizes: grow([104, 96, 88, 80, 72, 66, 60, 54, 48, 44], !hasPhoto, 168, 152, 136, 120), line: 1.06, fill: ui.ink, gap: 28 }],
+        ["line", { family: fonts.body, weight: 400, sizes: grow([42, 39, 36, 33, 30, 28, 26, 24], !hasPhoto, 64, 60, 56, 52, 48, 45), line: 1.38, fill: ui.body, gap: 0 }],
       ],
       w,
-      Math.round(stageH * 0.42),
+      hasPhoto ? Math.round(stageH * 0.42) : stageH - 2 * 80 - 150,
     );
-    let y = top + 80;
-    for (const it of [p.headline, p.line]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
-    const picY = y + 64;
-    const pic: Box = { x: PAD_X, y: picY, w, h: bottom - 80 - picY };
-    if (!photo(pic, "rounded")) {
-      nodes.push({ type: "rect", x: pic.x, y: pic.y, width: pic.w, height: pic.h, rx: 28, fill: brand.color });
-      if (brand.name?.trim()) text(brand.name.trim(), W / 2, pic.y + pic.h / 2 + 20, { family: fonts.title, weight: 600, size: 60 }, onBrand, { anchor: "middle", room: w - 80 });
+    if (hasPhoto) {
+      let y = top + 80;
+      for (const it of [p.headline, p.line]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
+      const picY = y + 64;
+      photo({ x: PAD_X, y: picY, w, h: bottom - 80 - picY }, "rounded");
+    } else {
+      // no photo: the words alone, large, in the middle of the room over a bar in the brand's colour and its name
+      const footY = bottom - 80 - 70;
+      const taken = (p.headline ? p.headline.height + (p.line ? p.headline.b.gap : 0) : 0) + (p.line?.height ?? 0);
+      let y = top + 80 + Math.max(0, Math.round((footY - 80 - (top + 80) - taken) / 2));
+      for (const it of [p.headline, p.line]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
+      nodes.push({ type: "rect", x: PAD_X, y: footY, width: 120, height: 10, fill: accent });
+      if (brand.name?.trim()) text(brand.name.trim(), PAD_X, footY + 62, { family: "sans", weight: 600, size: 36 }, ui.ink);
     }
   } else if (layout === "street-poster") {
     // a lit poster in a street display at night: a dark street, the display's frame and glow on two posts, rain, and
@@ -1584,13 +1603,15 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const picH = hasPhoto ? Math.round(poster.h * 0.34) : 0;
     const p = fitFields(
       [
-        ["headline", { family: "sans", weight: 600, sizes: [72, 66, 60, 55, 50, 46, 42, 38, 34, 30], line: 1.08, fill: "#FFFFFF", gap: 0 }],
-        ["line", { family: "sans", weight: 400, sizes: [32, 30, 28, 26, 24, 22], line: 1.3, fill: "#FFFFFF", gap: 0, opacity: 0.85 }],
+        ["headline", { family: "sans", weight: 600, sizes: grow([72, 66, 60, 55, 50, 46, 42, 38, 34, 30], !hasPhoto, 128, 116, 104, 94, 86, 78), line: 1.08, fill: "#FFFFFF", gap: 0 }],
+        ["line", { family: "sans", weight: 400, sizes: grow([32, 30, 28, 26, 24, 22], !hasPhoto, 44, 40, 36), line: 1.3, fill: "#FFFFFF", gap: 0, opacity: 0.85 }],
       ],
       inW,
       poster.h - stripH - 3 * 40 - (picH ? picH + 40 : 0) - 40,
     );
-    let y = poster.y + 48;
+    // with no photo the headline sits in the middle of the poster's room over its small line
+    const free = poster.h - stripH - 40 - (p.line?.height ?? 0) - 40 - 48 - (p.headline?.height ?? 0);
+    let y = poster.y + 48 + (hasPhoto ? 0 : Math.max(0, Math.round(free / 2)));
     if (p.headline) y += draw(p.headline, poster.x + 40, y) + 40;
     if (picH) {
       photo({ x: poster.x + 40, y, w: inW, h: picH });
@@ -1608,7 +1629,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
       for (let y = 40; y < H; y += 70) grain.push(`M0 ${y}C${W * 0.3} ${y + 14} ${W * 0.6} ${y - 14} ${W} ${y + 6}`);
       nodes.push({ type: "path", d: grain.join(""), stroke: "#000000", strokeWidth: 2, opacity: 0.05 });
     }
-    const side = Math.round(Math.min(W * 0.66, (bottom - top) * 0.64));
+    const side = Math.round(input.picture?.trim() ? Math.min(W * 0.66, (bottom - top) * 0.64) : Math.min(W * 0.82, (bottom - top) * 0.76));
     const cx = W / 2;
     const cy = top + Math.round((bottom - top) / 2);
     const deg = -4;
@@ -1621,7 +1642,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const nx = cx - side / 2;
     const ny = cy - side / 2;
     nodes.push({ type: "path", d: quad(nx, ny, side, side, 14, 20), fill: "#000000", opacity: 0.2 }, { type: "path", d: quad(nx, ny, side, side), fill: "#FDE68A" }, { type: "path", d: quad(nx, ny, side, Math.round(side * 0.16)), fill: "#FCD34D" });
-    const note = fitFields([["note", { family: "hand", weight: 600, sizes: [84, 76, 70, 64, 58, 52, 47, 42, 38, 34], line: 1.2, fill: "#1F2937", gap: 0 }]], side - 2 * 70, side - Math.round(side * 0.16) - 2 * 56).note;
+    const note = fitFields([["note", { family: "hand", weight: 600, sizes: [116, 104, 94, 84, 76, 70, 64, 58, 52, 47, 42, 38, 34], line: 1.2, fill: "#1F2937", gap: 0 }]], side - 2 * 70, side - Math.round(side * 0.16) - 2 * 56).note;
     if (note) {
       const base = Math.round((note.lineHeight - note.font.size) / 2 + note.font.size * 0.8);
       const ty = Math.round(ny + side * 0.16 + (side * 0.84 - note.height) / 2);
@@ -1655,12 +1676,14 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const badgeR = 104;
     const bx = PAD_X + badgeR;
     const by = top + 48 + badgeR;
-    const boxTop = Math.max(by + badgeR + 40, top + Math.round((bottom - top) * 0.36));
+    // with no photo the headline may run up to the badge
+    const boxTop = href ? Math.max(by + badgeR + 40, top + Math.round((bottom - top) * 0.36)) : by + badgeR + 40;
     const foot = fit(block("footer", { family: "sans", weight: 600, sizes: [28, 26, 24, 22], line: 1.25, fill: "#FFFFFF", gap: 0 }, true), w, 76)[0];
     const footTop = bottom - 48 - (foot?.height ?? 0);
     const room = footTop - 28 - boxTop;
-    const head = fit(block("headline", { family: "sans", weight: 600, sizes: [116, 106, 98, 90, 82, 74, 66, 60, 54, 48, 44], line: 1.04, fill: "#FFFFFF", gap: 0 }, true), w, room);
-    const headTop = footTop - 28 - (head[0]?.height ?? 0);
+    const head = fit(block("headline", { family: "sans", weight: 600, sizes: grow([116, 106, 98, 90, 82, 74, 66, 60, 54, 48, 44], !href, 168, 152, 138, 126), line: 1.04, fill: "#FFFFFF", gap: 0 }, true), w, room);
+    // on a photo the headline sits at the foot; with none it sits in the middle of the room under the badge
+    const headTop = href ? footTop - 28 - (head[0]?.height ?? 0) : boxTop + Math.max(0, Math.round((room - (head[0]?.height ?? 0)) / 2));
     const fadeTop = Math.max(0, headTop - 380);
     nodes.push({ type: "fade", x: 0, y: fadeTop, width: W, height: headTop - fadeTop, color: "#000000", opacity: 0.82 }, { type: "rect", x: 0, y: headTop, width: W, height: H - headTop, fill: "#000000", opacity: 0.82 });
     nodes.push(dot(bx, by, badgeR, "#DC2626"));
