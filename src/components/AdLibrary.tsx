@@ -354,8 +354,9 @@ function Card({ ad, onOpen }: { ad: LibraryAd; onOpen(): void }) {
             </Button>
           </RemixButton>
           <SaveButton source={source} />
-          <Button asChild size="sm" variant="ghost" className={`h-9 gap-1.5 px-2 ${TOUCH}`}>
-            <a href={safeExternalUrl(ad.libraryUrl) ?? undefined} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Open on Meta</a>
+          {/* with its words, each of the three actions took its own line in a 5-column card */}
+          <Button asChild size="sm" variant="ghost" className="ml-auto h-9 w-9 px-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
+            <a href={safeExternalUrl(ad.libraryUrl) ?? undefined} target="_blank" rel="noopener noreferrer" aria-label="Open on Meta" title="Open on Meta"><ExternalLink className="h-3.5 w-3.5" /></a>
           </Button>
         </div>
       </div>
