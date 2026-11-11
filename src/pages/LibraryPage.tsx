@@ -2,6 +2,7 @@
 // slideshow, video and AI picture in one grid, filtered by format, status and search, with what is still being made
 // beside it. Read-only apart from its links: each card opens the page that made it. Nothing is stored here.
 
+import { newPostHref } from "@/lib/newPost";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { LibraryBig, Search, X } from "lucide-react";
@@ -117,7 +118,7 @@ function Library({ userId }: { userId: string }) {
               actions={
                 <>
                   <Button asChild className={TOUCH}>
-                    <Link to="/generate">Write a post</Link>
+                    <Link to={newPostHref(userId)}>Write a post</Link>
                   </Button>
                   <Button asChild variant="outline" className={TOUCH}>
                     <Link to={links.swipe()}>Find a post to remix</Link>

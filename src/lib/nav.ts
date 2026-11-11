@@ -245,7 +245,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/activity", label: "Activity", icon: ListChecks, owners: LEO_EMAILS, hint: "Everything that ran, and who ran it." },
       { to: "/skills", label: "Skills", icon: Command, owners: LEO_EMAILS, hint: "Slash commands the agent runs for you." },
       // help is not a place to go every day: it sits here, and in the account menu
-      { to: "/welcome", label: "Getting started", icon: Sparkles, group: "Help", was: "Learn onboarding", hint: "The first steps, ticked off as you do them." },
+      // a new sign-in's first screen: no "back to Settings" over it, it has its own ways on
+      { to: "/welcome", label: "Getting started", icon: Sparkles, group: "Help", bare: true, was: "Learn onboarding", hint: "The first steps, ticked off as you do them." },
       { to: "/academy", label: "Academy", icon: GraduationCap, was: "Learn lessons course", hint: "Short lessons on posting that gets clients." },
       { to: "/create-guide", label: "How to post", icon: BookOpen, was: "Learn guide", hint: "One post from idea to scheduled, step by step." },
       { to: "/tutorial", label: "How it works", title: "How the studio works", icon: CircleHelp, was: "Learn tutorial", hint: "A walk through every part of the studio." },

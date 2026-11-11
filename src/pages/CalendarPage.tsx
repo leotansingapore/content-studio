@@ -1,3 +1,4 @@
+import { newPostHref } from "@/lib/newPost";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1884,9 +1885,16 @@ export default function CalendarPage() {
                 <li key={r.business} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                   {/* the calendar is one business, so the line needs no name ("Me nothing planned" read as broken) */}
                   <span>{r.last ? `Planned to ${dayLabel(r.last)}, then nothing` : `Nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
-                  <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
-                    Write a post
-                  </Link>
+                  {r.last ? (
+                    <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
+                      Write a post
+                    </Link>
+                  ) : (
+                    // an empty calendar's one next step is a button, not a link in a line of small print
+                    <Button asChild size="sm" className="h-9 [@media(pointer:coarse)]:h-11">
+                      <Link to={newPostHref(userId)}>Write a post</Link>
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,3 +1,4 @@
+import { NEW_POST } from "@/lib/newPost";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ const STEPS = [
     title: "Write your first post",
     body: "Answer a few quick questions and the studio drafts a post you can edit and publish. Everything has a sensible default.",
     cta: "Write a post",
-    to: "/generate",
+    to: NEW_POST,
   },
   {
     n: 3,
@@ -93,7 +94,7 @@ export default function WelcomePage() {
   const start = (
     <Button
       size="lg"
-      onClick={() => go("/generate")}
+      onClick={() => go(NEW_POST)}
       className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
     >
       <Pencil className="h-4 w-4" /> Start with my first post

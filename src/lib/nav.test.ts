@@ -206,7 +206,9 @@ describe("nav", () => {
 
   it("lists Settings as tiles, its pages leading back to it instead of tabs, with help among them", () => {
     expect(sectionTabs("/settings", ANYONE)).toEqual({ tabs: [], picker: [] });
-    for (const p of ["/notifications", "/connect", "/links", "/reels/team", "/skills", "/adlauncher", "/welcome", "/academy", "/feedback"]) expect(sectionTabs(p, LEO).back, p).toEqual({ to: "/settings", label: "Settings", active: false });
+    for (const p of ["/notifications", "/connect", "/links", "/reels/team", "/skills", "/adlauncher", "/academy", "/feedback"]) expect(sectionTabs(p, LEO).back, p).toEqual({ to: "/settings", label: "Settings", active: false });
+    // Getting started is a new sign-in's first screen: nothing over it says "back to Settings"
+    expect(sectionTabs("/welcome", ANYONE)).toEqual({ tabs: [], picker: [] });
     expect(section("settings").pages.slice(1).every((p) => p.hint && p.hint.split(" ").length <= 12)).toBe(true);
     // Post labels and Language are sections of Post choices with tiles of their own, Language on Leo's sign-ins only
     const tiles = (email: string) => settingsTiles(visiblePages(groupedPages(section("settings").pages.slice(1)), email), email);
