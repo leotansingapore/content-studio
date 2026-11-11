@@ -5,7 +5,7 @@ vi.mock("@/lib/edgeFn", () => ({ callFn: async (_name: string, body: unknown) =>
 
 import { addOwn, bringBack, keepHook, keptHooks, KEEP_NO, loadDesk, saveDesk, splitOwn, turnDown, writeHooks } from "./hookWriter";
 import { MAX_PER_KIND, saveSnippet } from "./replySnippets";
-import { addFact } from "./voiceMemory";
+import { addFact, setFactOff } from "./voiceMemory";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const mem = () => {
@@ -40,6 +40,18 @@ describe("a batch", () => {
     sent.hooks = batch("a new hook here");
     await writeHooks(UID, "busy weeks", 10, null);
     expect(sent.body).toMatchObject({ topic: "busy weeks", n: 10, format: null, facts: "Tidy is free to download on the App Store", kept: ["POV: Monday ate your plan again"], rejected: ["Plan better today"] });
+  });
+});
+
+describe("what the writer is told", () => {
+  it("never sends a fact the brand removed from its memory as one a hook may state", async () => {
+    addFact(UID, "Tidy is free to download on the App Store");
+    const gone = addFact(UID, "Tidy doubles your output in a week");
+    if (!("item" in gone)) throw new Error("the fact was not saved");
+    setFactOff(UID, gone.item.id, true);
+    sent.hooks = batch("a new hook here");
+    await writeHooks(UID, "busy weeks", 5, null);
+    expect((sent.body as { facts: string }).facts).toBe("Tidy is free to download on the App Store");
   });
 });
 
