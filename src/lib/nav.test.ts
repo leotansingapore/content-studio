@@ -185,10 +185,10 @@ describe("nav", () => {
       expect(labels(sectionTabs("/calendar", LEO).tabs)).toEqual(["Campaigns", "Calendar", "Plans", "Ideas"]);
       // Insights holds what Analytics, Radar and Grow held
       const ins = sectionTabs("/trends", LEO);
-      expect(labels(ins.tabs)).toEqual(["Results", "Coach", "Inspiration", "Creators", "Recruit"]);
+      expect(labels(ins.tabs)).toEqual(["Results", "Coach", "Find posts", "Creators", "Recruit"]);
       expect(ins.tabs.map((t) => t.to)).toEqual(["/analytics", "/coach", "/swipe", "/following", "/recruit"]);
-      expect(labels(ins.picker)).toEqual(["Top posts", "Carousels", "What's working", "Trends", "Examples", "Saved"]);
-      expect(labels(sectionTabs("/research", LEO).picker)).toEqual(["Following", "Creator list", "Research", "Competitors"]);
+      expect(labels(ins.picker)).toEqual(["Top posts", "Carousels", "What's working", "Trends", "Inspiration", "Saved"]);
+      expect(labels(sectionTabs("/research", LEO).picker)).toEqual(["Following", "Creators to follow", "Research", "Competitors"]);
       expect(labels(sectionTabs("/recruit/engage", ANYONE).picker)).toEqual(["Recruit kit", "Conversations", "Reply agent", "Reply drafts"]);
       // Brand: Leo's Audiences tab holds Positioning too; everyone else's tab is Positioning itself
       expect(labels(sectionTabs("/voice", LEO).tabs)).toEqual(["Profile", "Voice", "Brand kit", "Audiences"]);

@@ -55,6 +55,8 @@ export type NavPage = {
   leoAnyLabel?: string;
   /** Shown only while this says so (what this device remembers: an answer from the server, the open brand). */
   show?: () => boolean;
+  /** In its section's tabs only while this says so; its address and Jump to keep working either way (the recruit kit is an adviser brand's). */
+  inTabs?: () => boolean;
   /** Browser tab title when it should differ from the label. */
   title?: string;
   /** Its tile icon on an index page (Settings); falls back to the section's. */
@@ -85,6 +87,8 @@ export type NavSection = {
   /** What it was called before: Jump to finds its pages by these. */
   was?: string;
 };
+
+const adviser = () => adviserBrand();
 
 /** No section shows more tabs than this to any sign-in (nav.test.ts holds it). */
 export const MAX_TABS = 5;
@@ -183,24 +187,25 @@ export const SECTIONS: NavSection[] = [
       { to: "/analytics", label: "Results", title: "Analytics", group: "Results", was: "Analytics numbers" },
       { to: "/coach", label: "Coach", group: "Coach", was: "Analytics" },
       // things to remix. Top posts, Trends and Examples are Singapore personal finance: an adviser brand's only
-      { to: "/swipe", label: "Top posts", anyLabel: "News", leoAnyLabel: "Swipe file", group: "Inspiration", was: "Radar ads" },
+      { to: "/swipe", label: "Top posts", anyLabel: "News", leoAnyLabel: "Swipe file", group: "Find posts", was: "Radar ads inspiration" },
       { to: "/carousels", label: "Carousels", was: "Radar" },
       { to: "/working", label: "What's working", was: "Radar" },
       { to: "/trends", label: "Trends", show: () => adviserBrand(), was: "Radar" },
-      { to: "/inspiration", label: "Examples", title: "Inspiration", show: () => adviserBrand(), was: "Radar" },
+      { to: "/inspiration", label: "Inspiration", show: () => adviserBrand(), was: "Radar" },
       { to: "/saved", label: "Saved", owners: LEO_EMAILS, was: "Radar" },
       { to: "/market", label: "Your market", show: marketShown, was: "Radar" },
       // who to watch. Research is 100 Instagram creators read by Leo's Mac; Following is 5 accounts, for everyone
       { to: "/following", label: "Following", group: "Creators", was: "Radar" },
-      { to: "/profiles", label: "Creator list", title: "Creators", show: () => adviserBrand(), was: "Radar Creators to follow" },
+      { to: "/profiles", label: "Creators to follow", show: () => adviserBrand(), was: "Radar creator list" },
       { to: "/research", label: "Research", owners: LEO_EMAILS, was: "Radar" },
       { to: "/competitors", label: "Competitors", owners: LEO_EMAILS },
-      // the recruit kit: one page with its own parts (/recruit/:tab)
-      { to: "/recruit", label: "Recruit kit", end: true, group: "Recruit", was: "Brand Brain Grow" },
-      { to: "/recruit/conversations", label: "Conversations", was: "Grow" },
-      { to: "/recruit/agent", label: "Reply agent", was: "Grow AI agent" },
-      { to: "/recruit/engage", label: "Reply drafts", was: "Grow" },
-      { to: "/recruit/auto-dm", label: "Auto-DM", show: socialConnectShown, owners: LEO_EMAILS, was: "Grow" },
+      // the recruit kit: one page with its own parts (/recruit/:tab). A tab on an adviser brand only (Leo 11 Nov); any
+      // brand still opens it by address and from Jump to
+      { to: "/recruit", label: "Recruit kit", end: true, group: "Recruit", was: "Brand Brain Grow", inTabs: adviser },
+      { to: "/recruit/conversations", label: "Conversations", was: "Grow", inTabs: adviser },
+      { to: "/recruit/agent", label: "Reply agent", was: "Grow AI agent", inTabs: adviser },
+      { to: "/recruit/engage", label: "Reply drafts", was: "Grow", inTabs: adviser },
+      { to: "/recruit/auto-dm", label: "Auto-DM", show: socialConnectShown, owners: LEO_EMAILS, was: "Grow", inTabs: adviser },
     ],
   },
   {
@@ -325,7 +330,7 @@ export function sectionTabs(pathname: string, email: string): SectionTabs {
   const index = hit.section.index ? hit.section.pages[0] : null;
   if (index) return { tabs: [], picker: [], back: { to: index.to, label: hit.section.label, active: false } };
   const all = groupedPages(hit.section.pages);
-  const pages = visiblePages(all, email);
+  const pages = visiblePages(all, email).filter((p) => !p.inTabs || p.inTabs());
   const tab = (p: NavPage, label = p.label, active = p.to === hit.page.to): Tab => ({ to: p.to, label, end: p.end, active, hint: p.hint });
   const atLeastTwo = (t: Tab[]) => (t.length > 1 ? t : []);
   const open = all.find((p) => p.to === hit.page.to)?.group;

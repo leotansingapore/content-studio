@@ -3,7 +3,7 @@ import AdvisorProfiles from "@/components/AdvisorProfiles";
 
 export default function ProfilesPage() {
   useEffect(() => {
-    document.title = "Creators - Postmosis";
+    document.title = "Creators to follow - Postmosis";
   }, []);
   return <AdvisorProfiles />;
 }

@@ -7,7 +7,8 @@ import { adviserBrand } from "./profession";
 import { addProfile, setActiveProfile } from "./profiles";
 import { BRAND_KEY_PREFIX } from "./carousel";
 import { brandDevice } from "@/test/brandDevice";
-import { pageTitle, section, visiblePages } from "./nav";
+import { pageTitle, section, sectionFor, sectionTabs, visiblePages } from "./nav";
+import { pageItems } from "./jumpTo";
 import { nextAction, type DiagnosisResult } from "./diagnosis";
 import { studioTour } from "./useTourUser";
 import { STUDIO_TOUR } from "./tour";
@@ -61,7 +62,7 @@ describe("the Singapore personal-finance libraries", () => {
   it("stay in an adviser brand's nav and tour, and its ideas mission opens Inspiration", () => {
     for (const p of [undefined, "Financial adviser"]) {
       brandDevice("u1", p);
-      expect(radar()).toEqual(["/swipe Top posts", "/carousels Carousels", "/working What's working", "/trends Trends", "/inspiration Examples", "/following Following", "/profiles Creator list"]);
+      expect(radar()).toEqual(["/swipe Top posts", "/carousels Carousels", "/working What's working", "/trends Trends", "/inspiration Inspiration", "/following Following", "/profiles Creators to follow"]);
       expect(brandPages()).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
       expect(pageTitle("/swipe")).toBe("Top posts - Postmosis");
       expect(studioTour("u1")).toBe(STUDIO_TOUR);
@@ -85,5 +86,21 @@ describe("the Singapore personal-finance libraries", () => {
     expect(leo()).toEqual(["Swipe file", "Remix a post"]);
     brandDevice("u1", "Financial adviser");
     expect(leo()).toEqual(["Top posts", "Remix a post"]);
+  });
+
+  it("keep the recruit kit out of another brand's tabs, and reachable by address and from Jump to all the same", () => {
+    const tabs = (path: string, email: string) => sectionTabs(path, email).tabs.map((t) => t.label);
+    for (const email of ["someone@example.com", "tanjunsing@gmail.com"]) {
+      brandDevice("u1", "Coach");
+      expect(tabs("/analytics", email), email).not.toContain("Recruit");
+      // opened by address it sits under Insights, with the other tabs as the way out and no picker of its own
+      expect(sectionFor("/recruit/agent")?.id).toBe("insights");
+      expect(tabs("/recruit", email).length, email).toBeGreaterThan(1);
+      expect(sectionTabs("/recruit", email).picker, email).toEqual([]);
+      expect(pageItems(email).map((i) => i.to), email).toEqual(expect.arrayContaining(["/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage"]));
+      brandDevice("u1", "Financial adviser");
+      expect(tabs("/analytics", email), email).toContain("Recruit");
+      expect(sectionTabs("/recruit/engage", email).picker.map((t) => t.label), email).toEqual(expect.arrayContaining(["Recruit kit", "Reply drafts"]));
+    }
   });
 });
