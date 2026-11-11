@@ -79,6 +79,11 @@ describe("kept per brand", () => {
   it("reads back what was saved, dropping unknown steps and a bad link", () => {
     saveLaunch(UID, { ...plan, done: ["why", "why", "nope"] });
     expect(loadLaunch(UID)).toEqual({ ...plan, done: ["why"] });
+    // a plan kept by another device or an older version is cleaned the same way on the way in
+    localStorage.setItem(`content-studio-launchplan-${UID}`, JSON.stringify({ ...plan, thing: `  ${"x".repeat(100)}  `, link: "javascript:alert(1)" }));
+    expect(loadLaunch(UID)).toMatchObject({ thing: "x".repeat(80), link: "" });
+    localStorage.setItem(`content-studio-launchplan-${UID}`, JSON.stringify({ ...plan, link: "tidy.app/join" }));
+    expect(loadLaunch(UID)?.link).toBe("https://tidy.app/join");
     localStorage.setItem(`content-studio-launchplan-${UID}`, JSON.stringify({ thing: "x", date: "2026-02-30x", link: "", done: [] }));
     expect(loadLaunch(UID)).toBeNull();
     saveLaunch(UID, null);
