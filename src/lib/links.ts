@@ -705,6 +705,7 @@ export const STATIC_LAYOUT_IDS = [
   "lofi-note", "concern-answer", "story-reply", "page-post", "email-screenshot",
   "playful-apology", "phone-share", "share-popup", "whiteboard", "anti-design",
   "tear-off-flyer", "article-page", "general-ad",
+  "street-poster", "lettered-object", "tshirt-print",
 ] as const;
 /** /image?layout=: four ad layouts, the five meme layouts, then the static ad formats. */
 export const IMAGE_LAYOUTS = ["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction", ...STATIC_LAYOUT_IDS] as const;

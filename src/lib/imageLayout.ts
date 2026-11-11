@@ -197,6 +197,12 @@ const STATIC_FIELDS: Record<StaticLayoutId, ImageField[]> = {
     { key: "headline", label: "Headline", max: 10, unit: "words", sample: "Your headline" },
     { key: "line", label: "Line under it", max: 14, unit: "words", sample: "One line on what they get" },
   ],
+  "street-poster": [
+    { key: "headline", label: "Headline", max: 12, unit: "words", sample: "The poster's headline" },
+    { key: "line", label: "Small line", max: 10, unit: "words", sample: "Your name and what it is" },
+  ],
+  "lettered-object": [{ key: "note", label: "The note", max: 14, unit: "words", sample: "A line in your own hand" }],
+  "tshirt-print": [{ key: "print", label: "The print", max: 20, unit: "words", sample: "What the shirt says" }],
 };
 /** The field a static design is named after, and needs before a download. */
 const STATIC_MAIN: Record<StaticLayoutId, string> = {
@@ -219,6 +225,9 @@ const STATIC_MAIN: Record<StaticLayoutId, string> = {
   "tear-off-flyer": "headline",
   "article-page": "headline",
   "general-ad": "headline",
+  "street-poster": "headline",
+  "lettered-object": "note",
+  "tshirt-print": "print",
 };
 
 /**
@@ -1551,6 +1560,98 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
       nodes.push({ type: "rect", x: pic.x, y: pic.y, width: pic.w, height: pic.h, rx: 28, fill: brand.color });
       if (brand.name?.trim()) text(brand.name.trim(), W / 2, pic.y + pic.h / 2 + 20, { family: fonts.title, weight: 600, size: 60 }, onBrand, { anchor: "middle", room: w - 80 });
     }
+  } else if (layout === "street-poster") {
+    // a lit poster in a street display at night: a dark street, the display's frame and glow on two posts, rain, and
+    // the poster itself (a headline, the photo, a line, the brand on a white strip at its foot)
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: H, fill: "#0B1220" });
+    const ground = bottom - Math.round((bottom - top) * 0.12);
+    nodes.push({ type: "rect", x: 0, y: ground, width: W, height: H - ground, fill: "#1A2230" });
+    const fx = 150;
+    const fw = W - 2 * fx;
+    const fy = top + 56;
+    const fh = ground - 40 - fy;
+    nodes.push({ type: "rect", x: fx - 70, y: fy - 70, width: fw + 140, height: fh + 140, rx: 60, fill: "#FFFFFF", opacity: 0.05 }, { type: "rect", x: fx - 30, y: fy - 30, width: fw + 60, height: fh + 60, rx: 30, fill: "#FFFFFF", opacity: 0.06 });
+    for (const px of [fx + 40, fx + fw - 52]) nodes.push({ type: "rect", x: px, y: fy + fh, width: 12, height: ground - (fy + fh) + 6, fill: "#3F3F46" });
+    nodes.push({ type: "rect", x: fx, y: fy, width: fw, height: fh, rx: 8, fill: "#3F3F46" });
+    const poster: Box = { x: fx + 22, y: fy + 22, w: fw - 44, h: fh - 44 };
+    nodes.push({ type: "rect", x: poster.x, y: poster.y, width: poster.w, height: poster.h, fill: "#0A0A0A" });
+    // the display's light on the wet ground
+    nodes.push({ type: "fade", x: fx, y: ground, width: fw, height: Math.round((H - ground) * 0.8), color: "#FFFFFF", opacity: 0.1 });
+    const rain: string[] = [];
+    for (let i = 0; i < 46; i++) {
+      const rx = (i * 233) % W;
+      const ry = top + ((i * 389) % Math.max(1, ground - top));
+      rain.push(`M${rx} ${ry}l-10 34`);
+    }
+    nodes.push({ type: "path", d: rain.join(""), stroke: "#CBD5E1", strokeWidth: 2, opacity: 0.25 });
+    const stripH = 76;
+    const inW = poster.w - 2 * 40;
+    const hasPhoto = !!input.picture?.trim();
+    const picH = hasPhoto ? Math.round(poster.h * 0.34) : 0;
+    const p = fitFields(
+      [
+        ["headline", { family: "sans", weight: 600, sizes: [72, 66, 60, 55, 50, 46, 42, 38, 34, 30], line: 1.08, fill: "#FFFFFF", gap: 0 }],
+        ["line", { family: "sans", weight: 400, sizes: [32, 30, 28, 26, 24, 22], line: 1.3, fill: "#FFFFFF", gap: 0, opacity: 0.85 }],
+      ],
+      inW,
+      poster.h - stripH - 3 * 40 - (picH ? picH + 40 : 0) - 40,
+    );
+    let y = poster.y + 48;
+    if (p.headline) y += draw(p.headline, poster.x + 40, y) + 40;
+    if (picH) {
+      photo({ x: poster.x + 40, y, w: inW, h: picH });
+      y += picH + 32;
+    }
+    if (p.line) draw(p.line, poster.x + 40, Math.max(y, poster.y + poster.h - stripH - 40 - p.line.height));
+    nodes.push({ type: "rect", x: poster.x, y: poster.y + poster.h - stripH, width: poster.w, height: stripH, fill: "#FFFFFF" });
+    if (brand.name?.trim()) text(brand.name.trim(), poster.x + 40, poster.y + poster.h - stripH / 2 + 11, { family: "sans", weight: 600, size: 30 }, "#111111", { room: inW });
+  } else if (layout === "lettered-object") {
+    // a yellow sticky note stuck on the photo (else a desk in the brand's tint), a little crooked, the line on it in a
+    // marker hand
+    if (!photo({ x: 0, y: 0, w: W, h: H })) {
+      nodes.push({ type: "rect", x: 0, y: 0, width: W, height: H, fill: input.paper === "dark" ? "#1C1917" : mix("#F5EFE6", brand.color, 0.12) });
+      const grain: string[] = [];
+      for (let y = 40; y < H; y += 70) grain.push(`M0 ${y}C${W * 0.3} ${y + 14} ${W * 0.6} ${y - 14} ${W} ${y + 6}`);
+      nodes.push({ type: "path", d: grain.join(""), stroke: "#000000", strokeWidth: 2, opacity: 0.05 });
+    }
+    const side = Math.round(Math.min(W * 0.66, (bottom - top) * 0.64));
+    const cx = W / 2;
+    const cy = top + Math.round((bottom - top) / 2);
+    const deg = -4;
+    const turn = (x: number, y: number): [number, number] => {
+      const a = (deg * Math.PI) / 180;
+      return [Math.round(cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a)), Math.round(cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a))];
+    };
+    const quad = (x: number, y: number, w2: number, h2: number, dx = 0, dy = 0) =>
+      [turn(x, y), turn(x + w2, y), turn(x + w2, y + h2), turn(x, y + h2)].map(([a, b], i) => `${i ? "L" : "M"}${a + dx} ${b + dy}`).join("") + "Z";
+    const nx = cx - side / 2;
+    const ny = cy - side / 2;
+    nodes.push({ type: "path", d: quad(nx, ny, side, side, 14, 20), fill: "#000000", opacity: 0.2 }, { type: "path", d: quad(nx, ny, side, side), fill: "#FDE68A" }, { type: "path", d: quad(nx, ny, side, Math.round(side * 0.16)), fill: "#FCD34D" });
+    const note = fitFields([["note", { family: "hand", weight: 600, sizes: [84, 76, 70, 64, 58, 52, 47, 42, 38, 34], line: 1.2, fill: "#1F2937", gap: 0 }]], side - 2 * 70, side - Math.round(side * 0.16) - 2 * 56).note;
+    if (note) {
+      const base = Math.round((note.lineHeight - note.font.size) / 2 + note.font.size * 0.8);
+      const ty = Math.round(ny + side * 0.16 + (side * 0.84 - note.height) / 2);
+      note.lines.forEach((l, i) => nodes.push({ type: "text", x: cx, y: ty + i * note.lineHeight + base, text: l, font: note.font, fill: "#1F2937", anchor: "middle", rotate: { deg, x: cx, y: cy }, ...(note.b.opacity !== undefined ? { opacity: note.b.opacity } : {}) }));
+    }
+  } else if (layout === "tshirt-print") {
+    // the back of a T-shirt on a street wall: the shirt drawn flat, its collar and seams, the print in capitals
+    const dark = input.paper === "dark";
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: H, fill: dark ? "#18181B" : mix("#E7E5E4", brand.color, 0.14) });
+    const shirt = dark ? "#3F3F46" : "#D4D4D8";
+    const print = dark ? "#FAFAFA" : "#111111";
+    const seam = mix(shirt, "#000000", 0.18);
+    const stageH = bottom - top;
+    const sw = Math.round(Math.min(W - 40, (stageH - 60) / 1.1));
+    const sh = Math.round(sw * 1.1);
+    const sx = Math.round((W - sw) / 2);
+    const sy = top + Math.round((stageH - sh) / 2);
+    const pt = (x: number, y: number) => `${Math.round(sx + (x * sw) / 100)} ${Math.round(sy + (y * sh) / 110)}`;
+    nodes.push({ type: "path", d: `M${pt(37, 3)}Q${pt(50, 10)} ${pt(63, 3)}L${pt(80, 10)}L${pt(100, 30)}L${pt(88, 44)}L${pt(78, 37)}L${pt(80, 108)}L${pt(20, 108)}L${pt(22, 37)}L${pt(12, 44)}L${pt(0, 30)}L${pt(20, 10)}Z`, fill: shirt });
+    nodes.push({ type: "path", d: `M${pt(39, 2)}Q${pt(50, 7)} ${pt(61, 2)}L${pt(63, 3)}Q${pt(50, 10)} ${pt(37, 3)}Z`, fill: mix(shirt, "#000000", 0.08) }, { type: "path", d: `M${pt(37, 3)}Q${pt(50, 10)} ${pt(63, 3)}L${pt(61, 2)}Q${pt(50, 7)} ${pt(39, 2)}Z`, fill: seam });
+    nodes.push({ type: "path", d: `M${pt(22, 37)}L${pt(20, 10)}M${pt(78, 37)}L${pt(80, 10)}M${pt(20, 104)}L${pt(80, 104)}`, stroke: seam, strokeWidth: 3 });
+    const box: Box = { x: Math.round(sx + sw * 0.27), y: Math.round(sy + sh * 0.2), w: Math.round(sw * 0.46), h: Math.round(sh * 0.56) };
+    const words = fitFields([["print", { family: "sans", weight: 600, sizes: [76, 70, 64, 58, 53, 48, 44, 40, 36, 32, 28], line: 1.05, fill: print, gap: 0 }, true]], box.w, box.h).print;
+    if (words) draw(words, W / 2, box.y + Math.round((box.h - words.height) / 2), { anchor: "middle" });
   } else {
     // news-headline: the photo full bleed, a round badge, the headline in capitals, white and yellow, on a dark fade
     // that is solid from the headline's first line down, so it reads on any photo

@@ -68,13 +68,16 @@ describe("the static format page", () => {
     expect(html("text-chat")).not.toContain("Office workers who skip lunch");
   });
 
-  it("says a format isn't drawn yet, with no button", () => {
+  it("says a format the registry gains before its layout is drawn isn't drawn yet, with no button", () => {
     as.user = { id: U, email: "leo@x.sg" };
-    const later = STATIC_FORMATS.find((f) => !f.ready);
-    if (!later) return;
-    const page = html(later.slug);
-    expect(page).toContain("isn&#x27;t drawn yet");
-    expect(page).not.toContain("Make an ad in this format");
+    STATIC_FORMATS.push({ slug: "future-format", name: "Future format", blurb: "Not drawn yet.", ready: false });
+    try {
+      const page = html("future-format");
+      expect(page).toContain("isn&#x27;t drawn yet");
+      expect(page).not.toContain("Make an ad in this format");
+    } finally {
+      STATIC_FORMATS.pop();
+    }
   });
 });
 
