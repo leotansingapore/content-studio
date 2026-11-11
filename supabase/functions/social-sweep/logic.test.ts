@@ -162,6 +162,21 @@ describe("orphans (M6)", () => {
     expect(done).toEqual([]);
   });
 
+  it("reads an orphan's later pages of posts, but at most 10 per status however many pages Zernio claims", async () => {
+    const P_PAGE2 = "66000000000000000000d005";
+    const f = team({
+      "GET /posts": (req?: ZernioRequest) => ({
+        posts: req?.query?.status === "scheduled" && req.query.page === "2" ? [{ _id: P_PAGE2, status: "scheduled", platforms: [{ accountId: O1 }] }] : [],
+        pagination: { pages: 1000 },
+      }),
+    });
+    const out = await runSweep(f.z, { job: "orphans", dryRun: true }, env());
+    expect(out).toMatchObject({ found: [{ profileId: ORPHAN, posts: [P_PAGE2] }] });
+    const pagesRead = f.calls.filter((c) => c.key === "GET /posts" && c.req?.query?.status === "draft").map((c) => c.req?.query?.page);
+    expect(pagesRead).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]);
+    expect(f.calls.filter((c) => c.key === "GET /posts")).toHaveLength(50);
+  });
+
   it("reads Zernio's profiles before the rows, so a brand mapped meanwhile is never taken for an orphan", async () => {
     const order: string[] = [];
     const f = team({ "GET /profiles": () => (order.push("profiles"), { profiles: PROFILES }) });
