@@ -30,12 +30,19 @@ describe("/welcome for everyone else", () => {
   });
 });
 
-describe("/welcome for Leo", () => {
-  it("adds Show me around beside the main button, which stays the one primary", () => {
+describe("/welcome: one way forward", () => {
+  it("has one filled button, before every other path, and no emoji in the heading", () => {
+    const out = html();
+    expect(out.match(/bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95/g)).toHaveLength(1);
+    const main = out.indexOf("Write my first post");
+    for (const quiet of ["Set my voice first", "Plan a week", "Skip to Home"]) expect(out.indexOf(quiet)).toBeGreaterThan(main);
+    expect(out.match(/<button/g)).toHaveLength(4);
+    expect(out).toMatch(/<h1[^>]*>Welcome<\/h1>/);
+  });
+  it("adds Show me around as one more quiet link where there is a tour", () => {
     as.user = { id: "u1", email: "leo@example.com" };
     const out = html();
-    expect(out).toContain("Show me around");
-    expect(out.indexOf("Start with my first post")).toBeLessThan(out.indexOf("Show me around"));
+    expect(out.indexOf("Write my first post")).toBeLessThan(out.indexOf("Show me around"));
     expect(out.match(/bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95/g)).toHaveLength(1);
   });
 });

@@ -8,41 +8,14 @@ import { supabase } from "@/lib/supabase";
 import { markOnboarded } from "@/lib/onboarding";
 import { useTourUser } from "@/lib/useTourUser";
 import { startTour } from "@/lib/tour";
-import {
-  Sparkles,
-  Mic,
-  Pencil,
-  CalendarRange,
-  ArrowRight,
-  Compass,
-} from "lucide-react";
+import { Pencil, Sparkles } from "lucide-react";
 
-const STEPS = [
-  {
-    n: 1,
-    icon: Mic,
-    title: "Set your voice",
-    body: "Paste a few of your past posts once. Every draft then sounds like you, not generic AI. Takes about 2 minutes.",
-    cta: "Set my voice",
-    to: "/voice",
-  },
-  {
-    n: 2,
-    icon: Pencil,
-    title: "Write your first post",
-    body: "Answer a few quick questions and the studio drafts a post you can edit and publish. Everything has a sensible default.",
-    cta: "Write a post",
-    to: NEW_POST,
-  },
-  {
-    n: 3,
-    icon: CalendarRange,
-    title: "Plan your week",
-    body: "Turn your positioning into a full week of posts, then drop them onto your calendar in one click.",
-    cta: "Plan a week",
-    to: "/plan",
-  },
+// The other ways in, as quiet links under the one button (UX law 1: one way forward).
+const OTHER = [
+  { label: "Set my voice first", to: "/voice" },
+  { label: "Plan a week", to: "/plan" },
 ];
+const QUIET = "inline-flex min-h-9 items-center text-sm font-medium text-muted-foreground hover:text-foreground hover:underline [@media(pointer:coarse)]:min-h-11";
 
 /** A tap before the sign-in lookup answers still marks the account, from the session kept on this device, so /home
  * never sends a first-run account back here. */
@@ -91,24 +64,14 @@ export default function WelcomePage() {
     if (userId) saveBrand(userId, { ...(loadBrand(userId) ?? DEFAULT_BRAND), profession: v });
   };
 
-  const start = (
-    <Button
-      size="lg"
-      onClick={() => go(NEW_POST)}
-      className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
-    >
-      <Pencil className="h-4 w-4" /> Start with my first post
-    </Button>
-  );
-
   return (
-    <div className="max-w-2xl space-y-8 py-4">
+    <div className="max-w-2xl space-y-6 py-4">
       <header className="space-y-3 text-center">
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-elegant">
           <Sparkles className="h-7 w-7" />
         </span>
         <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground">
-          Welcome{name ? <span className="capitalize">, {name}</span> : ""} 👋
+          Welcome{name ? <span className="capitalize">, {name}</span> : ""}
         </h1>
       </header>
 
@@ -118,61 +81,33 @@ export default function WelcomePage() {
         </section>
       )}
 
-      <div className="space-y-3">
-        {STEPS.map((s) => {
-          const Icon = s.icon;
-          return (
-            <button
-              key={s.n}
-              type="button"
-              onClick={() => go(s.to)}
-              className="group flex w-full items-center gap-4 rounded-2xl border border-border/70 bg-card p-5 text-left shadow-card transition-colors hover:border-primary/40"
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
-                  <span className="text-muted-foreground">Step {s.n} · </span>
-                  {s.title}
-                </p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{s.body}</p>
-              </div>
-              <span className="hidden shrink-0 items-center gap-1 text-sm font-semibold text-primary group-hover:underline sm:flex">
-                {s.cta} <ArrowRight className="h-4 w-4" />
-              </span>
+      <div className="flex flex-col items-center gap-2">
+        <Button size="lg" onClick={() => go(NEW_POST)} className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 sm:w-auto">
+          <Pencil className="h-4 w-4" /> Write my first post
+        </Button>
+        <nav aria-label="Other ways to start" className="flex flex-wrap justify-center gap-x-5">
+          {OTHER.map((o) => (
+            <button key={o.to} type="button" onClick={() => go(o.to)} className={QUIET}>
+              {o.label}
             </button>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-col items-center gap-3">
-        {tour ? (
-          // the tour (the agent's on Leo's sign-ins): go() marks the account onboarded first, so /home does not send it back here
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            {start}
-            <Button
-              size="lg"
-              variant="outline"
+          ))}
+          {tour && (
+            // the tour (the agent's on Leo's sign-ins): go() marks the account onboarded first, so /home does not send it back here
+            <button
+              type="button"
               onClick={() => {
                 startTour(tour.id, null, tour.steps);
                 go("/home");
               }}
-              className="gap-2"
+              className={QUIET}
             >
-              <Compass className="h-4 w-4" /> Show me around
-            </Button>
-          </div>
-        ) : (
-          start
-        )}
-        <button
-          type="button"
-          onClick={() => go("/home")}
-          className="text-sm font-medium text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11"
-        >
-          Skip, take me to my dashboard
-        </button>
+              Show me around
+            </button>
+          )}
+          <button type="button" onClick={() => go("/home")} className={QUIET}>
+            Skip to Home
+          </button>
+        </nav>
       </div>
     </div>
   );

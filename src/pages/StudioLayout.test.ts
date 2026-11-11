@@ -93,7 +93,7 @@ await import("@/lib/autopilotJob");
 await import("@/lib/ideasInbox");
 // the same for the real RemixSheet: its chain (BreakdownRow and the rest) is cached before any late hand-over
 await vi.importActual("@/components/remix/RemixSheet");
-const { default: StudioLayout } = await import("./StudioLayout");
+const { default: StudioLayout, barPathOf } = await import("./StudioLayout");
 const { logActivity } = await import("@/lib/activity");
 
 // React's dev warnings call a component again outside the render to name it in a stack: that call must not
@@ -142,6 +142,15 @@ afterEach(() => {
   local.clear();
   vi.clearAllMocks();
   jobs.autopilotWaiting.mockReturnValue(0);
+});
+
+describe("the phone bar on Getting started", () => {
+  it("lights Home, not More", async () => {
+    const { mobileTabs } = await import("@/lib/nav");
+    const lit = (path: string) => mobileTabs("someone@example.com").filter((t) => t.active(barPathOf(path))).map((t) => t.to);
+    expect(lit("/welcome")).toEqual(["/home"]);
+    expect(lit("/calendar")).not.toContain("/home");
+  });
 });
 
 describe("StudioLayout for everyone else", () => {

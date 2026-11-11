@@ -326,6 +326,9 @@ function MoreTileLink({ tile, active }: { tile: MoreTile; active: boolean }) {
   );
 }
 
+/** The path the phone bar lights for: Getting started lights Home. */
+export const barPathOf = (pathname: string) => (pathname === "/welcome" ? "/home" : pathname);
+
 export default function StudioLayout() {
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
@@ -557,7 +560,9 @@ export default function StudioLayout() {
   };
 
   const tabs = mobileTabs(email);
-  const moreActive = !tabs.some((t) => t.active(pathname));
+  // Getting started is a new sign-in's Home, though its page is filed under Settings > Help
+  const barPath = barPathOf(pathname);
+  const moreActive = !tabs.some((t) => t.active(barPath));
   const sheet = moreSheet(email);
   const tileActive = (t: MoreTile) => here?.id === t.sectionId;
 
@@ -739,9 +744,9 @@ export default function StudioLayout() {
             <Link
               key={label}
               to={barTo(to)}
-              aria-current={active(pathname) ? "true" : undefined}
+              aria-current={active(barPath) ? "true" : undefined}
               className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
-                active(pathname) ? "text-primary" : "text-muted-foreground"
+                active(barPath) ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <span className="relative">
