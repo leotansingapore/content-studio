@@ -261,6 +261,10 @@ describe("Top posts, the Singapore ads and Trends", () => {
     expect(h1(draw(createElement(SwipeFilePage), "/swipe?tab=foryou"))).toBe("For you");
     device(ADVISER);
     expect(h1(draw(createElement(SwipeFilePage), "/swipe?tab=similar"))).toBe("Top posts to swipe");
+    // Leo's ad library heads itself, without the finance creators line
+    const ads = draw(createElement(SwipeFilePage), "/swipe?tab=ads");
+    expect(h1(ads)).toBe("Ads");
+    expect(ads).not.toContain("SG finance creators");
     as.user = null;
     for (const [brand, path, heading] of [[COACH, "/swipe", "News"], [COACH, "/swipe?tab=ads", "News"], [ADVISER, "/swipe", "Top posts to swipe"], [ADVISER, "/swipe?tab=news", "Top posts to swipe"]]) {
       device(brand);

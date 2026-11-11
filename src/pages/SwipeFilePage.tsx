@@ -270,8 +270,10 @@ export default function SwipeFilePage() {
     ...(leo ? [{ id: "search" as const, label: "Search", n: null }, { id: "hooks" as const, label: "Hooks", n: null }] : []),
   ];
   // another brand's page is whichever tab is open (Leo's open on Apps like yours; everyone else has News alone)
-  const heading = adviser ? "Top posts to swipe" : tabs.find((t) => t.id === tab)?.label ?? "News";
-  const title = adviser ? "Top posts" : heading;
+  // Leo's ad library is its own screen, so it never reads "Top posts to swipe"; an adviser's other tabs keep that heading
+  const adsHead = !!leo && tab === "ads";
+  const heading = adsHead ? "Ads" : adviser ? "Top posts to swipe" : tabs.find((t) => t.id === tab)?.label ?? "News";
+  const title = adsHead ? "Ads" : adviser ? "Top posts" : heading;
   useEffect(() => {
     document.title = `${title} - Postmosis`;
     return () => {
@@ -286,7 +288,7 @@ export default function SwipeFilePage() {
           <TrendingUp className="h-6 w-6 text-primary" />
           {heading}
         </h1>
-        {adviser && <p className="max-w-2xl text-sm text-muted-foreground">
+        {adviser && !adsHead && <p className="max-w-2xl text-sm text-muted-foreground">
           Real high-performing posts from {ADVISOR_COUNT} SG finance creators.
         </p>}
       </header>
