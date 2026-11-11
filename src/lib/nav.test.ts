@@ -67,7 +67,7 @@ describe("nav", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
     expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan", "/launch", "/linkedin"]);
     expect(pages("write", ANYONE)).toEqual(["/studio", "/carousel", "/edit", "/make/hook-demo", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/hooks", "/library", "/drafts", "/board", "/grid", "/media", "/slideshow", "/design", "/design/campaigns", "/design/libraries", "/team"]);
-    expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
+    expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/inspiration", "/following", "/profiles", "/clone"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
@@ -75,8 +75,7 @@ describe("nav", () => {
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/launch", "/linkedin", "/ideas", "/social-north-star"]);
       expect(pages("write", email).slice(0, 13), email).toEqual(["/studio", "/make", "/carousel", "/image", "/edit", "/make/hook-demo", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/hooks", "/script", "/library"]);
       expect(pages("write", email).slice(17, 19), email).toEqual(["/blitz", "/people"]);
-      expect(pages("find", email).slice(4, 6), email).toEqual(["/clone", "/research"]);
-      expect(pages("find", email).slice(9, 11), email).toEqual(["/competitors", "/saved"]);
+      expect(pages("find", email).slice(5), email).toEqual(["/following", "/profiles", "/competitors", "/research", "/clone", "/saved"]);
       expect(pages("settings", email), email).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
     }
   });
@@ -110,11 +109,9 @@ describe("nav", () => {
 
   describe("tab row", () => {
     it("lists a plain section's pages, the open one lit", () => {
-      const { tabs, chips } = sectionTabs("/trends", ANYONE);
-      expect(labels(tabs)).toEqual(["Top posts", "Carousels", "What's working", "Trends", "Clone a reel", "Inspiration", "Creators", "Following"]);
-      // Leo's /clone is Remix a post, so its tab says so
-      expect(sectionTabs("/trends", LEO).tabs.find((t) => t.to === "/clone")?.label).toBe("Remix a post");
-      expect(tabs.filter((t) => t.active).map((t) => t.to)).toEqual(["/trends"]);
+      const { tabs, chips } = sectionTabs("/launch", ANYONE);
+      expect(labels(tabs)).toEqual(["Calendar", "Plan", "Launch", "LinkedIn"]);
+      expect(tabs.filter((t) => t.active).map((t) => t.to)).toEqual(["/launch"]);
       expect(chips).toEqual([]);
       // a detail page has its own way back: no row over a creator, a campaign or a format; F.A.D.S.'s own tabs keep it
       for (const p of ["/profiles/abc", "/campaigns/new", "/campaigns/c1", "/make/slideshow", "/inspiration/i1", "/carousels/c1", "/working/7412345678901234567", "/design/campaigns/c1", "/design/d1"]) expect(sectionTabs(p, LEO), p).toEqual({ tabs: [], chips: [] });
@@ -146,6 +143,22 @@ describe("nav", () => {
       expect(slides.tabs.find((t) => t.active)?.label).toBe("Slideshows");
       expect(labels(slides.chips)).toEqual(["Slideshow", "Design", "Campaigns", "Libraries"]);
       expect(labels(sectionTabs("/grid", ANYONE).chips)).toEqual(["Everything", "All posts", "Board", "Grid", "Media"]);
+    });
+
+    it("gives Radar four tabs, so its row never runs off the page", () => {
+      const leo = sectionTabs("/trends", LEO);
+      expect(labels(leo.tabs)).toEqual(["Posts", "Creators", "Remix", "Saved"]);
+      expect(leo.tabs.map((t) => t.to)).toEqual(["/swipe", "/following", "/clone", "/saved"]);
+      expect(leo.tabs.find((t) => t.active)?.label).toBe("Posts");
+      expect(labels(leo.chips)).toEqual(["Top posts", "Carousels", "What's working", "Trends", "Inspiration"]);
+      expect(labels(sectionTabs("/research", LEO).chips)).toEqual(["Following", "Creators", "Competitors", "Research"]);
+      const anyone = sectionTabs("/following", ANYONE);
+      expect(labels(anyone.tabs)).toEqual(["Posts", "Creators", "Remix"]);
+      expect(labels(anyone.chips)).toEqual(["Following", "Creators"]);
+      // a tab of one page has no chips under it
+      expect(sectionTabs("/clone", ANYONE).chips).toEqual([]);
+      expect(sectionTabs("/clone", ANYONE).tabs.find((t) => t.active)?.label).toBe("Remix");
+      for (const email of [LEO, ANYONE]) for (const p of pages("find", email)) expect(Math.max(sectionTabs(p, email).tabs.length, sectionTabs(p, email).chips.length), p).toBeLessThanOrEqual(6);
     });
 
     it("leaves out a row of one and gives bare pages none", () => {

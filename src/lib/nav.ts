@@ -180,23 +180,25 @@ export const SECTIONS: NavSection[] = [
     icon: Radar,
     to: "/swipe",
     pages: [
+      // Four tabs with their pages as chips under them, as Studio has (Leo 11 Nov, "quite hard to navigate": his row of
+      // 12 ran off the page at 1440). Posts is what to copy, Creators is who to watch.
       // Top posts, the Singapore ads and the trend kits are Singapore personal finance: an adviser brand's only
-      { to: "/swipe", label: "Top posts", anyLabel: "News", leoAnyLabel: "Swipe file", icon: TrendingUp },
+      { to: "/swipe", label: "Top posts", anyLabel: "News", leoAnyLabel: "Swipe file", icon: TrendingUp, group: "Posts" },
       // the carousel library (Top Carousels' outliers, every niche): for every brand
       { to: "/carousels", label: "Carousels", icon: GalleryHorizontalEnd },
       // TikTok slideshows that beat their creator's usual views (Volume's library, every niche): for every brand
       { to: "/working", label: "What's working", icon: Images },
       { to: "/trends", label: "Trends", icon: Flame, show: () => adviserBrand() },
-      { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard },
+      { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },
+      { to: "/following", label: "Following", icon: UserCheck, group: "Creators" },
+      { to: "/profiles", label: "Creators", icon: Users, show: () => adviserBrand() },
+      { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
       // its own page, not Following: 100 Instagram creators read by Leo's Mac and ranked as one feed (Following is
       // 5 accounts on either network, read through Apify, for everyone)
       { to: "/research", label: "Research", icon: Telescope, owners: LEO_EMAILS },
-      { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },
-      { to: "/profiles", label: "Creators", icon: Users, show: () => adviserBrand() },
-      { to: "/following", label: "Following", icon: UserCheck },
-      { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
-      { to: "/saved", label: "Saved", icon: Bookmark, owners: LEO_EMAILS },
-      { to: "/market", label: "Your market", icon: Radar, show: marketShown },
+      { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard, group: "Remix" },
+      { to: "/saved", label: "Saved", icon: Bookmark, owners: LEO_EMAILS, group: "Saved" },
+      { to: "/market", label: "Your market", icon: Radar, show: marketShown, group: "Your market" },
     ],
   },
   {
