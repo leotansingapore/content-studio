@@ -754,3 +754,220 @@ describe("removed data stays removed on every device", () => {
   });
 });
 
+
+describe("what a user would lose or get back at the edges of sync", () => {
+  const LIST = `content-studio-medge-${ME}`;
+  const PLAN = `content-studio-plan-${ME}`;
+  const TOMBS = `content-studio-tombstones-${ME}`;
+  const ids = (v: string | null | undefined) => (v ? (JSON.parse(v) as { id: string }[]).map((x) => x.id) : []);
+  const list = (...posts: string[]) => JSON.stringify(posts.map((id) => ({ id, text: id })));
+  const changed: string[] = [];
+  registerSyncMerge("content-studio-medge-", listMerger({ changed: (key) => void changed.push(key) }));
+  const remove = (storage: SyncStorage, sync: CloudSync, key: string) => {
+    storage.removeItem(key);
+    sync.noteWrite(key);
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-06T10:00:00.000Z"));
+    changed.length = 0;
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("a device synced before the merge existed keeps a post it made but never sent, when it first meets the cloud's list", async () => {
+    const laptop = new MemoryStorage();
+    laptop.setItem(LIST, list("unsent", "a", "b"));
+    laptop.setItem("cs-sync-meta", JSON.stringify({ [LIST]: "2026-11-06T09:00:00.000Z" }));
+    laptop.setItem(`cs-sync-pending-${ME}`, JSON.stringify([LIST]));
+    // the phone added p since
+    const cloud = fakeBackend([{ key: LIST, data: list("p", "a", "b"), updated_at: "2026-11-06T09:30:00.000Z" }]);
+    await createCloudSync(ME, laptop, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(ids(cloud.table.get(LIST)?.data).sort()).toEqual(["a", "b", "p", "unsent"]);
+    expect(ids(laptop.getItem(LIST)).sort()).toEqual(["a", "b", "p", "unsent"]);
+  });
+
+  it("a device that never synced keeps its own posts when it first meets the cloud's list", async () => {
+    const laptop = new MemoryStorage();
+    laptop.setItem(LIST, list("mine"));
+    const cloud = fakeBackend([{ key: LIST, data: list("theirs"), updated_at: "2026-11-06T09:00:00.000Z" }]);
+    await createCloudSync(ME, laptop, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(ids(cloud.table.get(LIST)?.data).sort()).toEqual(["mine", "theirs"]);
+    expect(ids(laptop.getItem(LIST)).sort()).toEqual(["mine", "theirs"]);
+  });
+
+  it("keeps the later of two edits to the same post, on both devices", async () => {
+    const cloud = fakeBackend([{ key: LIST, data: list("a"), updated_at: "2026-11-06T09:00:00.000Z" }]);
+    const laptop = new MemoryStorage();
+    const phone = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    const b = createCloudSync(ME, phone, cloud.backend);
+    await a.start();
+    await b.start();
+    const edit = (text: string) => JSON.stringify([{ id: "a", text }]);
+    const text = (v: string | null | undefined) => (v ? (JSON.parse(v) as { text: string }[])[0].text : null);
+    write(phone, b, LIST, edit("phone's edit"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    // the laptop, not yet holding the phone's edit, edits the same post a moment later
+    write(laptop, a, LIST, edit("laptop's later edit"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(text(cloud.table.get(LIST)?.data)).toBe("laptop's later edit");
+    await vi.advanceTimersByTimeAsync(10_000);
+    await b.refreshMerged();
+    expect(text(phone.getItem(LIST))).toBe("laptop's later edit");
+  });
+
+  it("a save that loses the race twice still lands in the same send; after a third it backs off and lands on the retry", async () => {
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    await a.start();
+    cloud.fail.swap = 2;
+    write(laptop, a, LIST, list("x"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(ids(cloud.table.get(LIST)?.data)).toEqual(["x"]);
+    expect(cloud.calls.swap).toBe(3);
+
+    cloud.fail.swap = 3;
+    write(laptop, a, LIST, list("y", "x"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(ids(cloud.table.get(LIST)?.data)).toEqual(["x"]);
+    expect(cloud.calls.swap).toBe(6);
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(ids(cloud.table.get(LIST)?.data)).toEqual(["y", "x"]);
+  });
+
+  it("a tab coming back twice within 10 seconds reads the cloud once", async () => {
+    const cloud = fakeBackend();
+    const a = createCloudSync(ME, new MemoryStorage(), cloud.backend);
+    await a.start();
+    const before = cloud.calls.pull;
+    await a.refreshMerged();
+    await a.refreshMerged();
+    expect(cloud.calls.pull).toBe(before + 1);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await a.refreshMerged();
+    expect(cloud.calls.pull).toBe(before + 2);
+  });
+
+  it("a stale device drops a deleted plan even when the cloud lists the plan's old row before the removals", async () => {
+    const saved = "2026-11-06T09:00:00.000Z";
+    const stale = new MemoryStorage();
+    stale.setItem(PLAN, "this week's plan");
+    stale.setItem("cs-sync-meta", JSON.stringify({ [PLAN]: saved }));
+    // an old build uploaded the deleted plan again, and the cloud happens to return it first
+    const cloud = fakeBackend([
+      { key: PLAN, data: "this week's plan", updated_at: saved },
+      { key: TOMBS, data: JSON.stringify([{ id: PLAN, at: "2026-11-06T09:30:00.000Z", was: saved }]), updated_at: "2026-11-06T09:30:00.000Z" },
+    ]);
+    await createCloudSync(ME, stale, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(stale.getItem(PLAN)).toBeNull();
+    expect(cloud.table.has(PLAN)).toBe(false);
+  });
+
+  it("a plan written again after the delete but not sent yet survives a reload while the cloud holds the deleted copy again", async () => {
+    const saved = "2026-11-06T09:00:00.000Z";
+    const laptop = new MemoryStorage();
+    laptop.setItem(PLAN, "next week's plan");
+    laptop.setItem("cs-sync-meta", JSON.stringify({ [PLAN]: "2026-11-06T09:45:00.000Z" }));
+    laptop.setItem(`cs-sync-pending-${ME}`, JSON.stringify([PLAN]));
+    const cloud = fakeBackend([
+      { key: TOMBS, data: JSON.stringify([{ id: PLAN, at: "2026-11-06T09:30:00.000Z", was: saved }]), updated_at: "2026-11-06T09:30:00.000Z" },
+      { key: PLAN, data: "this week's plan", updated_at: saved },
+    ]);
+    await createCloudSync(ME, laptop, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(laptop.getItem(PLAN)).toBe("next week's plan");
+    expect(cloud.table.get(PLAN)?.data).toBe("next week's plan");
+  });
+
+  it("remembers a removal for 90 days: a stale copy is still dropped at 89 days, and a removal over 90 days old leaves the list", async () => {
+    const NOTES = `content-studio-notes-${ME}`;
+    const GOALS = `content-studio-goals-${ME}`;
+    const DAY = 86_400_000;
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    await a.start();
+    for (const k of [PLAN, NOTES, GOALS]) write(laptop, a, k, "x");
+    await vi.advanceTimersByTimeAsync(1_000);
+    const planStamp = cloud.table.get(PLAN)!.updated_at;
+    remove(laptop, a, PLAN);
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    vi.setSystemTime(Date.now() + 89 * DAY);
+    remove(laptop, a, NOTES);
+    await vi.advanceTimersByTimeAsync(1_000);
+    const stale = new MemoryStorage();
+    stale.setItem(PLAN, "x");
+    stale.setItem("cs-sync-meta", JSON.stringify({ [PLAN]: planStamp }));
+    await createCloudSync(ME, stale, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(stale.getItem(PLAN)).toBeNull();
+    expect(cloud.table.has(PLAN)).toBe(false);
+
+    vi.setSystemTime(Date.now() + 2 * DAY);
+    remove(laptop, a, GOALS);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(ids(laptop.getItem(TOMBS))).toEqual([GOALS, NOTES]);
+    expect(ids(cloud.table.get(TOMBS)?.data)).toEqual([GOALS, NOTES]);
+  });
+
+  it("keeps the newest 1,000 removals, the one just made among them", async () => {
+    const laptop = new MemoryStorage();
+    const now = Date.now();
+    const gone = (i: number) => `content-studio-gone${i}-${ME}`;
+    laptop.setItem(TOMBS, JSON.stringify(Array.from({ length: 1_000 }, (_, i) => ({ id: gone(i), at: new Date(now - (i + 1) * 60_000).toISOString() }))));
+    const cloud = fakeBackend();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    await a.start();
+    write(laptop, a, PLAN, "plan");
+    await vi.advanceTimersByTimeAsync(1_000);
+    remove(laptop, a, PLAN);
+    await vi.advanceTimersByTimeAsync(1_000);
+    for (const kept of [ids(laptop.getItem(TOMBS)), ids(cloud.table.get(TOMBS)?.data)]) {
+      expect(kept).toHaveLength(1_000);
+      expect(kept[0]).toBe(PLAN);
+      expect(kept).toContain(gone(998));
+      expect(kept).not.toContain(gone(999));
+    }
+  });
+
+  it("a broken entry in the removed list doesn't stop the rest from syncing or a removal from holding", async () => {
+    const saved = "2026-11-06T09:00:00.000Z";
+    const laptop = new MemoryStorage();
+    laptop.setItem(TOMBS, JSON.stringify([null, { id: 7 }, { id: PLAN, at: "2026-11-06T09:30:00.000Z", was: saved }]));
+    laptop.setItem(PLAN, "this week's plan");
+    laptop.setItem("cs-sync-meta", JSON.stringify({ [PLAN]: saved }));
+    laptop.setItem(DRAFTS, "my drafts");
+    const cloud = fakeBackend([{ key: PLAN, data: "this week's plan", updated_at: saved }]);
+    await createCloudSync(ME, laptop, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(laptop.getItem(PLAN)).toBeNull();
+    expect(cloud.table.has(PLAN)).toBe(false);
+    expect(cloud.table.get(DRAFTS)?.data).toBe("my drafts");
+  });
+
+  it("an open page re-reads a list removed on another device when its tab comes back", async () => {
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const phone = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    const b = createCloudSync(ME, phone, cloud.backend);
+    await a.start();
+    await b.start();
+    write(laptop, a, LIST, list("a"));
+    await vi.advanceTimersByTimeAsync(11_000);
+    await b.refreshMerged();
+    expect(ids(phone.getItem(LIST))).toEqual(["a"]);
+    remove(laptop, a, LIST);
+    await vi.advanceTimersByTimeAsync(11_000);
+    changed.length = 0;
+    await b.refreshMerged();
+    expect(phone.getItem(LIST)).toBeNull();
+    expect(changed).toEqual([LIST]);
+  });
+});

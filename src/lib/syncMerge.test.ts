@@ -54,6 +54,11 @@ describe("listMerger", () => {
     expect(m.merge(JSON.stringify([{ text: "no id" }]), JSON.stringify([p("a")]), null, false)).toBeNull();
     expect(m.base("not json")).toBeNull();
   });
+  it("gives up on a list where only some entries have ids, instead of merging the others away", () => {
+    const mixed = JSON.stringify([p("a"), { text: "no id" }, { text: "no id either" }]);
+    expect(m.merge(mixed, JSON.stringify([p("a")]), null, false)).toBeNull();
+    expect(m.merge(JSON.stringify([p("a")]), mixed, null, false)).toBeNull();
+  });
   it("records the posts a value holds by id and content", () => {
     expect(baseOf([p("a")])).toEqual({ a: hashOf(p("a")) });
     expect(hashOf(p("a"))).not.toBe(hashOf(p("a", "changed")));
