@@ -51,7 +51,8 @@ describe("adviserBrand", () => {
 });
 
 describe("the Singapore personal-finance libraries", () => {
-  const radar = () => visiblePages(section("find").pages, "someone@example.com").map((p) => `${p.to} ${p.label}`);
+  // what Radar held: Insights' Inspiration and Creators tabs
+  const radar = () => visiblePages(section("insights").pages, "someone@example.com").filter((p) => !["/analytics", "/coach"].includes(p.to) && !p.to.startsWith("/recruit")).map((p) => `${p.to} ${p.label}`);
   const brandPages = () => visiblePages(section("playbook").pages, "someone@example.com").map((p) => p.to);
   const ideasWeakest: DiagnosisResult = {
     overall: 10, levelLabel: "", areas: [{ id: "ideas", label: "Ideas", score: 10 }], weaknesses: [{ id: "ideas", label: "Ideas", score: 10 }], strengths: [],
@@ -60,7 +61,7 @@ describe("the Singapore personal-finance libraries", () => {
   it("stay in an adviser brand's nav and tour, and its ideas mission opens Inspiration", () => {
     for (const p of [undefined, "Financial adviser"]) {
       brandDevice("u1", p);
-      expect(radar()).toEqual(["/swipe Top posts", "/carousels Carousels", "/working What's working", "/trends Trends", "/inspiration Inspiration", "/following Following", "/profiles Creators", "/clone Clone a reel"]);
+      expect(radar()).toEqual(["/swipe Top posts", "/carousels Carousels", "/working What's working", "/trends Trends", "/inspiration Examples", "/following Following", "/profiles Creator list"]);
       expect(brandPages()).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
       expect(pageTitle("/swipe")).toBe("Top posts - Postmosis");
       expect(studioTour("u1")).toBe(STUDIO_TOUR);
@@ -71,7 +72,7 @@ describe("the Singapore personal-finance libraries", () => {
   it("leave any other brand's nav and tour: Top posts holds only its News, and its ideas mission opens the weekly plan", () => {
     brandDevice("u1", "Coach");
     // the carousel library and What's working cover every niche, so they stay for every brand
-    expect(radar()).toEqual(["/swipe News", "/carousels Carousels", "/working What's working", "/following Following", "/clone Clone a reel"]);
+    expect(radar()).toEqual(["/swipe News", "/carousels Carousels", "/working What's working", "/following Following"]);
     expect(brandPages()).toEqual(["/playbook", "/voice", "/brand"]);
     expect(pageTitle("/swipe")).toBe("News - Postmosis");
     expect(studioTour("u1").map((s) => s.path)).toEqual(["/home", "/generate", "/calendar", "/brand", "/analytics"]);
@@ -79,7 +80,7 @@ describe("the Singapore personal-finance libraries", () => {
   });
 
   it("name /swipe for its six tabs on Leo's sign-ins: Swipe file on another brand, Top posts on an adviser's", () => {
-    const leo = () => visiblePages(section("find").pages, "tanjunsing@gmail.com").filter((p) => ["/swipe", "/clone"].includes(p.to)).map((p) => p.label);
+    const leo = () => [...section("insights").pages, ...section("write").pages].flatMap((p) => visiblePages([p], "tanjunsing@gmail.com")).filter((p) => ["/swipe", "/clone"].includes(p.to)).map((p) => p.label);
     brandDevice("u1", "Coach");
     expect(leo()).toEqual(["Swipe file", "Remix a post"]);
     brandDevice("u1", "Financial adviser");
