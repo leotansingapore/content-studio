@@ -453,6 +453,33 @@ describe("static ad formats (ff1111)", () => {
     expect(texts(dark.nodes).find((t) => t.text.startsWith("i need"))?.fill).toBe("#F5F5F7");
   });
 
+  it("runs a whiteboard's four arrows in straight lines that pass no bubble", () => {
+    for (const size of MEME_SIZES) {
+      const paths = draw("whiteboard", size).nodes.filter((n): n is Extract<SvgNode, { type: "path" }> => n.type === "path" && n.stroke === "#1F2937");
+      const bubbles = paths.filter((p) => p.d.endsWith("Z")).map((p) => {
+        const [, mx, my, hx, r] = /^M([\d.]+) ([\d.]+)H([\d.]+)A([\d.]+)/.exec(p.d)!.map(Number);
+        const v = Number(/V([\d.]+)A/.exec(p.d)![1]);
+        return { left: mx - r, right: hx + r, top: my, bottom: v + r };
+      });
+      const arrows = paths.filter((p) => !p.d.endsWith("Z"));
+      expect(bubbles, size).toHaveLength(4);
+      expect(arrows, size).toHaveLength(1);
+      expect(arrows[0].d, size).not.toMatch(/[QCSA]/);
+      // every run, as a box, stays clear of every bubble
+      let x = 0, y = 0, runs = 0;
+      for (const [, c, a, b] of arrows[0].d.matchAll(/([MHVL])(-?[\d.]+)(?: (-?[\d.]+))?/g)) {
+        const [nx, ny] = c === "H" ? [Number(a), y] : c === "V" ? [x, Number(a)] : [Number(a), Number(b)];
+        if (c !== "M") {
+          runs++;
+          for (const g of bubbles) expect(Math.max(x, nx) < g.left || Math.min(x, nx) > g.right || Math.max(y, ny) < g.top || Math.min(y, ny) > g.bottom, `${size}: ${x},${y} to ${nx},${ny}`).toBe(true);
+        }
+        [x, y] = [nx, ny];
+      }
+      // four shafts (two of them with a turn) and four two-stroke heads
+      expect(runs, size).toBe(14);
+    }
+  });
+
   it("names a static design by its main words, wants them before a download, and a photo only where the format needs one", () => {
     expect(mainWords("ai-chat", { question: "  where do i  start  ", lead: "x" })).toBe("where do i start");
     expect(mainWords("text-chat", { name: "Priya", one: "hi" })).toBe("hi");

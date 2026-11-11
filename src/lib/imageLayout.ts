@@ -725,8 +725,6 @@ const dot = (cx: number, cy: number, r: number, fill: string, opacity?: number):
 const initialOf = (name: string) => Array.from(name.trim())[0]?.toUpperCase() ?? "";
 
 const SAMPLE_FADE = 0.55;
-/** A bubble or pill is this much wider than its measured words: a preview shrunk on screen sets small text wider. */
-const SLACK = 1.06;
 const CHAT_SIZES = [44, 41, 38, 35, 32, 30, 28, 26, 24];
 
 /**
@@ -814,7 +812,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const metaFont = (s: number): FontSpec => ({ family: "sans", weight: 400, size: Math.round(s * 0.55) });
     const maxW = Math.round(box.w * 0.76);
     const plan = (s: number) => {
-      const room = Math.floor((maxW - 2 * padX(s)) / SLACK);
+      const room = maxW - 2 * padX(s);
       const blocks: Block[] = said.map((m) => ({ text: m.v!.text, family: "sans", weight: 400, sizes: [s], line: 1.28, fill: m.mine ? o.mine[1] : o.theirs[1], gap: Math.round(s * 0.5), width: room, ...(m.v!.sample ? { opacity: SAMPLE_FADE } : {}) }));
       // a time takes a line of its own under the words
       const extra = o.meta ? Math.round(metaFont(s).size * 1.3) : 0;
@@ -841,7 +839,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
       const textW = Math.max(...it.lines.map((l) => measure(l, it.font)));
       const metaText = o.meta?.(i) ?? "";
       const metaW = metaText ? measure(metaText, metaFont(s)) + (mine && o.tick ? 44 : 0) : 0;
-      const bw = Math.round(Math.max(textW * SLACK, metaW) + 2 * padX(s));
+      const bw = Math.round(Math.max(textW, metaW) + 2 * padX(s));
       const bh = it.height + 2 * padY + extra;
       const x = mine ? box.x + box.w - bw : box.x;
       const [fill] = mine ? o.mine : o.theirs;
@@ -936,7 +934,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const area: Box = { x: PAD_X, y: top + headH + 30, w, h: barY - 40 - (top + headH + 30) };
     const hasPhoto = !!input.picture?.trim();
     const picH = hasPhoto ? Math.round(Math.min(area.h * 0.36, w * 0.5)) : 0;
-    const bubbleText = Math.floor((Math.round(w * 0.78) - 2 * 32) / SLACK);
+    const bubbleText = Math.round(w * 0.78) - 2 * 32;
     const p = fitFields(
       [
         ["question", { family: "sans", weight: 400, sizes: CHAT_SIZES, line: 1.3, fill: ui.ink, gap: 56, width: bubbleText }],
@@ -949,7 +947,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     let y = area.y;
     const q = p.question;
     if (q) {
-      const qw = Math.round(Math.max(...q.lines.map((l) => measure(l, q.font))) * SLACK + 64);
+      const qw = Math.round(Math.max(...q.lines.map((l) => measure(l, q.font))) + 64);
       nodes.push({ type: "rect", x: W - PAD_X - qw + 24, y, width: qw, height: q.height + 48, rx: Math.min(44, Math.round((q.height + 48) / 2)), fill: ui.bubble });
       draw(q, W - PAD_X - qw + 24 + 32, y + 24);
       y += q.height + 48 + q.b.gap;
@@ -972,7 +970,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     };
     const votes = (x: number, y: number, n: string, more: string[]) => {
       const font: FontSpec = { family: "sans", weight: 600, size: 26 };
-      const down = Math.round(x + 60 + measure(n, font) * SLACK + 12);
+      const down = Math.round(x + 60 + measure(n, font) + 12);
       const pillW = down + 24 + 22 - x;
       nodes.push({ type: "path", d: roundRect(x, y, pillW, 60, 30), stroke: ui.line, strokeWidth: 3 });
       nodes.push({ type: "path", d: `M${x + 22} ${y + 38}l12 -14l12 14`, stroke: ui.ink, strokeWidth: 4 });
@@ -980,7 +978,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
       nodes.push({ type: "path", d: `M${down} ${y + 24}l12 14l12 -14`, stroke: ui.ink, strokeWidth: 4 });
       let at = x + pillW + 20;
       for (const m of more) {
-        const mw = Math.round(measure(m, font) * SLACK + 48);
+        const mw = Math.round(measure(m, font) + 48);
         nodes.push({ type: "path", d: roundRect(at, y, mw, 60, 30), stroke: ui.line, strokeWidth: 3 });
         text(m, at + 24, y + 40, font, ui.ink);
         at += mw + 16;
@@ -1038,14 +1036,14 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const label = (key: string, x: number, fill: string, ink: string, good: boolean) => {
       const v = word(key);
       const cx = x + col / 2;
-      const font: FontSpec = { family: "sans", weight: 600, size: 30 };
+      const font: FontSpec = { family: "sans", weight: 600, size: [30, 27, 24, 22].find((n) => !v || measure(v.text, { family: "sans", weight: 600, size: n }) <= col - 120) ?? 22 };
       const t = v ? (measure(v.text, font) <= col - 120 ? v.text : ellipsize(v.text, col - 120, font, measure)) : "";
-      const pw = Math.min(col, Math.round(measure(t, font) * SLACK + 116));
+      const pw = Math.min(col, Math.round(measure(t, font) + 116));
       nodes.push({ type: "rect", x: Math.round(cx - pw / 2), y: py, width: pw, height: pillH, rx: pillH / 2, fill });
       const ix = Math.round(cx - pw / 2 + 36);
       nodes.push(dot(ix, py + pillH / 2, 20, good ? "#16A34A" : "#DC2626"));
       nodes.push({ type: "path", d: good ? `M${ix - 9} ${py + pillH / 2}l6 7l12 -14` : `M${ix - 7} ${py + pillH / 2 - 7}l14 14M${ix + 7} ${py + pillH / 2 - 7}l-14 14`, stroke: "#FFFFFF", strokeWidth: 4 });
-      if (t) nodes.push({ type: "text", x: ix + 32, y: py + pillH / 2 + 11, text: t, font, fill: ink, ...(v!.sample ? { opacity: SAMPLE_FADE } : {}) });
+      if (t) nodes.push({ type: "text", x: ix + 32, y: py + pillH / 2 + Math.round(font.size * 0.36), text: t, font, fill: ink, ...(v!.sample ? { opacity: SAMPLE_FADE } : {}) });
     };
     label("them", PAD_X, ui.bubble, ui.ink, false);
     label("us", rightX, brand.color, onBrand, true);
@@ -1095,9 +1093,11 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     ["#FF5F57", "#FEBC2E", "#28C840"].forEach((c, i) => nodes.push(dot(win.x + 44 + i * 36, win.y + 42, 12, c)));
     text("Aa", W - PAD_X - 4, win.y + 54, { family: "sans", weight: 600, size: 30 }, ui.muted, { anchor: "end" });
     const hasPhoto = !!input.picture?.trim();
-    const printW = Math.round(W * 0.36);
-    const printH = Math.round(printW * 1.1);
-    const room = win.h - 84 - 56 - 48 - (hasPhoto ? printH + 24 : 0);
+    // the print is a third of the window's height at most, so a square keeps room for the note
+    const printH = Math.round(Math.min(W * 0.36 * 1.1, win.h * 0.28));
+    const printW = Math.round(printH / 1.1);
+    // the print's frame runs 16 over it and 56 under, its tape 36 over that
+    const room = win.h - 84 - 56 - 48 - (hasPhoto ? printH + 16 + 56 + 36 + 24 : 0);
     const hand = (sizes: number[], weight: 400 | 600, gap: number): Omit<Block, "text"> => ({ family: "hand", weight, sizes, line: 1.28, fill: ink, gap });
     const p = fitFields(
       [
@@ -1112,7 +1112,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     for (const it of [p.title, p.body, p.last]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
     if (hasPhoto) {
       const px = W - PAD_X - printW;
-      const py = win.y + win.h - 48 - printH;
+      const py = win.y + win.h - 40 - 56 - printH;
       nodes.push({ type: "rect", x: px - 16, y: py - 16, width: printW + 32, height: printH + 32 + 40, fill: "#FFFFFF" });
       photo({ x: px, y: py, w: printW, h: printH });
       nodes.push({ type: "rect", x: px + printW / 2 - 70, y: py - 36, width: 140, height: 44, fill: "#FDE68A", opacity: 0.85 });
@@ -1342,7 +1342,7 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     nodes.push({ type: "rect", x: board.x + 120, y: board.y + board.h, width: board.w - 240, height: 24, rx: 6, fill: "#9AA1AA" });
     const ink = "#1F2937";
     const pen = contrastRatio(brand.color, "#FAFAF7") >= 3 ? brand.color : "#B91C1C";
-    const gapX = 120;
+    const gapX = 150;
     const col = Math.round((w - gapX) / 2);
     const marker = (sizes: number[], weight: 400 | 600, fill: string, gap: number, width?: number): Omit<Block, "text"> => ({ family: "hand", weight, sizes, line: 1.2, fill, gap, ...(width ? { width } : {}) });
     const bubblePad = 26;
@@ -1380,17 +1380,11 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
         const bh = rowH[ri];
         nodes.push({ type: "path", d: roundRect(bx, y, col, bh, Math.round(bh / 2)), stroke: ink, strokeWidth: 5 });
         draw(it, bx + col / 2, y + Math.round((bh - it.height) / 2), { anchor: "middle" });
-        // an arrow into the answer's box: the top row's from its inner side down the gap between the lower bubbles,
-        // the lower row's from its inner foot
-        const inner = ci ? bx : bx + col;
-        const fx = ri ? (ci ? bx + 70 : bx + col - 70) : inner + (ci ? -6 : 6);
-        const fy = ri ? y + bh + 8 : y + Math.round(bh / 2);
-        const tx = ci ? W / 2 + (ri ? 150 : 34) : W / 2 - (ri ? 150 : 34);
+        // an arrow into the answer's box, in straight runs that pass no bubble: the top row's leaves its inner side and
+        // drops down the gap between the columns; the lower row's drops from the middle of its foot
         const ty = boxY - 14;
-        const gx = W / 2 + (ci ? 26 : -26);
-        heads.push(ri ? `M${fx} ${fy}Q${(fx + tx) / 2} ${(fy + ty) / 2} ${tx} ${ty}` : `M${fx} ${fy}C${gx} ${fy} ${gx} ${fy + 60} ${gx} ${(fy + ty) / 2}S${tx} ${ty - 40} ${tx} ${ty}`);
-        const a = Math.atan2(ty - fy, tx - fx);
-        heads.push(`M${tx - 22 * Math.cos(a - 0.45)} ${ty - 22 * Math.sin(a - 0.45)}L${tx} ${ty}L${tx - 22 * Math.cos(a + 0.45)} ${ty - 22 * Math.sin(a + 0.45)}`);
+        const tx = ri ? Math.round(bx + col / 2) : W / 2 + (ci ? 26 : -26);
+        heads.push(ri ? `M${tx} ${y + bh + 10}V${ty}` : `M${ci ? bx - 8 : bx + col + 8} ${y + Math.round(bh / 2)}H${tx}V${ty}`, `M${tx - 14} ${ty - 20}L${tx} ${ty}L${tx + 14} ${ty - 20}`);
       });
       y += rowH[ri] + gapY;
     });
@@ -1662,16 +1656,20 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
     const bx = PAD_X + badgeR;
     const by = top + 48 + badgeR;
     const boxTop = Math.max(by + badgeR + 40, top + Math.round((bottom - top) * 0.36));
-    const room = bottom - 64 - 56 - boxTop;
+    const foot = fit(block("footer", { family: "sans", weight: 600, sizes: [28, 26, 24, 22], line: 1.25, fill: "#FFFFFF", gap: 0 }, true), w, 76)[0];
+    const footTop = bottom - 48 - (foot?.height ?? 0);
+    const room = footTop - 28 - boxTop;
     const head = fit(block("headline", { family: "sans", weight: 600, sizes: [116, 106, 98, 90, 82, 74, 66, 60, 54, 48, 44], line: 1.04, fill: "#FFFFFF", gap: 0 }, true), w, room);
-    const headTop = bottom - 64 - 56 - (head[0]?.height ?? 0);
+    const headTop = footTop - 28 - (head[0]?.height ?? 0);
     const fadeTop = Math.max(0, headTop - 380);
     nodes.push({ type: "fade", x: 0, y: fadeTop, width: W, height: headTop - fadeTop, color: "#000000", opacity: 0.82 }, { type: "rect", x: 0, y: headTop, width: W, height: H - headTop, fill: "#000000", opacity: 0.82 });
     nodes.push(dot(bx, by, badgeR, "#DC2626"));
     const badge = fit(block("badge", { family: "sans", weight: 600, sizes: [46, 42, 38, 34, 31, 28, 26], line: 1.05, fill: "#FFFFFF", gap: 0 }, true), 2 * badgeR - 48, 2 * badgeR - 70);
     draw(badge[0], bx, by - Math.round((badge[0]?.height ?? 0) / 2), { anchor: "middle" });
-    const foot = word("footer");
-    if (foot) text(foot.text.toUpperCase(), PAD_X, bottom - 64, { family: "sans", weight: 600, size: 28 }, "#FFFFFF", { opacity: foot.sample ? SAMPLE_FADE : 0.85 });
+    if (foot) {
+      foot.b.opacity ??= 0.85;
+      draw(foot, PAD_X, footTop);
+    }
     draw(head[0], PAD_X, headTop, { fill: (i) => (i % 2 ? "#FACC15" : "#FFFFFF") });
   }
 
