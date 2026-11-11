@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { mobileTabs, moreSheet, pageFor, pageTitle, section, sectionHref, SECTIONS, sectionFor, sectionTabs, visiblePages } from "./nav";
+import { groupedPages, mobileTabs, moreSheet, pageFor, pageTitle, section, sectionHref, SECTIONS, SETTINGS_ANCHORS, sectionFor, sectionTabs, settingsTiles, visiblePages } from "./nav";
 
 const routes = [
   "/home", "/welcome", "/generate", "/make", "/generate/batch", "/generate/answer", "/generate/vsl", "/script", "/carousel", "/image", "/slideshow", "/edit", "/plan", "/calendar", "/board",
@@ -76,7 +76,7 @@ describe("nav", () => {
       expect(pages("write", email).slice(0, 13), email).toEqual(["/studio", "/make", "/carousel", "/image", "/edit", "/make/hook-demo", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/hooks", "/script", "/library"]);
       expect(pages("write", email).slice(17, 19), email).toEqual(["/blitz", "/people"]);
       expect(pages("find", email).slice(5), email).toEqual(["/following", "/profiles", "/competitors", "/research", "/clone", "/saved"]);
-      expect(pages("settings", email), email).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
+      expect(pages("settings", email), email).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect", "/adlauncher", "/automations", "/activity", "/skills"]);
     }
   });
 
@@ -177,6 +177,11 @@ describe("nav", () => {
     expect(sectionTabs("/settings", ANYONE)).toEqual({ tabs: [], chips: [] });
     for (const p of ["/notifications", "/connect", "/links", "/reels/team", "/skills", "/adlauncher"]) expect(sectionTabs(p, LEO).back, p).toEqual({ to: "/settings", label: "Settings", active: false });
     expect(section("settings").pages.slice(1).every((p) => p.hint && p.hint.split(" ").length <= 12)).toBe(true);
+    // Post labels and Language are sections of Post choices with tiles of their own, Language on Leo's sign-ins only
+    const tiles = (email: string) => settingsTiles(visiblePages(groupedPages(section("settings").pages.slice(1)), email), email);
+    expect(tiles(ANYONE).map((t) => t.to).slice(0, 4)).toEqual(["/notifications", "/settings/post-choices", "/settings/post-choices#labels", "/bio"]);
+    expect(tiles(LEO).map((t) => [t.label, t.group]).slice(1, 4)).toEqual([["Post choices", "You"], ["Post labels", "You"], ["Language", "You"]]);
+    expect(SETTINGS_ANCHORS.every((a) => a.hint.split(" ").length <= 12 && pageFor(a.page)?.page.to === a.page)).toBe(true);
   });
 
   it("puts Fastlane's bar on the phone: Home, Strategy, then the agent's chats or Studio, and lights one per page", () => {

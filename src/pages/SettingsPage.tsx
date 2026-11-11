@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { groupedPages, section, visiblePages } from "@/lib/nav";
+import { groupedPages, section, settingsTiles, visiblePages } from "@/lib/nav";
 import { supabase } from "@/lib/supabase";
 import { startTour } from "@/lib/tour";
 import { useTourUser } from "@/lib/useTourUser";
@@ -18,7 +18,7 @@ export default function SettingsPage() {
     void supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? ""));
   }, []);
   const settings = section("settings");
-  const tiles = visiblePages(groupedPages(settings.pages.slice(1)), email);
+  const tiles = settingsTiles(visiblePages(groupedPages(settings.pages.slice(1)), email), email);
   const groups = [...new Set(tiles.map((p) => p.group ?? ""))];
   return (
     <div className="space-y-8">

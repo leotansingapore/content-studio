@@ -15,6 +15,7 @@ import {
   History,
   Home,
   Images,
+  Languages,
   Layers,
   Lightbulb,
   Linkedin,
@@ -37,6 +38,7 @@ import {
   Sparkles,
   Star,
   Swords,
+  Tag,
   Telescope,
   Target,
   TrendingUp,
@@ -278,12 +280,30 @@ export const SECTIONS: NavSection[] = [
       { to: "/connect", label: "Connect Claude", icon: Plug, hint: "Use the studio from a chat with Claude." },
       { to: "/adlauncher", label: "AdLauncher", icon: Megaphone, owners: LEO_EMAILS, hint: "Launch ads you make here, paused, in AdLauncher." },
       { to: "/reels/team", label: "Reviewers", icon: UserCheck, show: ownerShown, group: "Your team", hint: "Who approves posts on your posts board." },
+      // named as its page is, and as Fastlane's tile; Activity sits with it, so Your team is never a heading over a log
+      { to: "/automations", label: "What runs without you", icon: Zap, owners: LEO_EMAILS, group: "The agent", hint: "What the agent does alone, and today's limits." },
       { to: "/activity", label: "Activity", icon: ListChecks, owners: LEO_EMAILS, hint: "Everything that ran, and who ran it." },
-      { to: "/automations", label: "Automations", icon: Zap, owners: LEO_EMAILS, group: "The agent", hint: "What runs without you, and its limits." },
       { to: "/skills", label: "Skills", icon: Command, owners: LEO_EMAILS, hint: "Slash commands the agent runs for you." },
     ],
   },
 ];
+
+/**
+ * Sections of a Settings page that get a tile of their own on /settings, straight after their page's (Fastlane lists
+ * Post labels and Language beside Post choices). They are places on a page, not pages: no route, no tab title, and
+ * the open page under them is still their page.
+ */
+export const SETTINGS_ANCHORS: { page: string; hash: string; label: string; icon: LucideIcon; hint: string; owners?: string[] }[] = [
+  { page: "/settings/post-choices", hash: "labels", label: "Post labels", icon: Tag, hint: "The AI and ad labels that go out with a post." },
+  { page: "/settings/post-choices", hash: "language", label: "Language", icon: Languages, owners: LEO_EMAILS, hint: "The language your posts are written in." },
+];
+
+/** A Settings group's tiles for this sign-in: its pages, each followed by its sections' tiles. */
+export const settingsTiles = (pages: NavPage[], email: string): NavPage[] =>
+  pages.flatMap((p) => [
+    p,
+    ...SETTINGS_ANCHORS.filter((a) => a.page === p.to && (!a.owners || a.owners.includes(email.toLowerCase()))).map((a) => ({ to: `${a.page}#${a.hash}`, label: a.label, icon: a.icon, hint: a.hint, group: p.group })),
+  ]);
 
 export const section = (id: string) => SECTIONS.find((s) => s.id === id)!;
 

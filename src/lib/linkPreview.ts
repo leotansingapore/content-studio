@@ -95,7 +95,7 @@ export const PAGES: Record<string, string> = {
   "/studio": "Studio",
   "/skills": "Skills",
   "/activity": "Activity",
-  "/automations": "Automations",
+  "/automations": "What runs without you",
   "/academy": "Academy",
   "/create-guide": "How to post",
   "/tutorial": "How the studio works",

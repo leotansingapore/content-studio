@@ -4,6 +4,8 @@
 // maker's own page (its URL) wins for that post; Never, Sometimes and a ticked text style win over what a maker
 // only remembers from last time.
 import { useState } from "react";
+import { loadBrand, saveBrand } from "@/lib/carousel";
+import type { PostLang } from "@/lib/links";
 import { scoped } from "@/lib/profiles";
 import type { BoxStyle } from "@/lib/slideshow";
 import type { BlockBox, FontId, StyleId } from "@/lib/videoEdit";
@@ -131,3 +133,19 @@ export function textStyleFor(userId: string, rand = Math.random): (typeof TEXT_S
 /** A text style as a slideshow box's look: dark words on the white box, white words with a soft shadow otherwise. */
 export const boxStyleOf = (t: { font: FontId; box: BlockBox }): Partial<BoxStyle> =>
   t.box === "white" ? { font: t.font, bg: "white", color: "#111111", stroke: 0, shadow: false } : { font: t.font, bg: t.box, color: "#FFFFFF", stroke: 0, shadow: t.box === "none" };
+
+// ---------- language ----------
+
+/** The brand kit's post language, "en" when none is set (the kit's postLang, as Brand kit saves it); null with no kit saved yet. */
+export function postLangOf(userId: string): PostLang | "en" | null {
+  const kit = loadBrand(userId);
+  return kit ? (kit.postLang ?? "en") : null;
+}
+
+/** Saves it in the kit and leaves the rest of the kit alone. False with no kit, or when the browser refused the write. */
+export function savePostLang(userId: string, lang: PostLang | "en"): boolean {
+  const kit = loadBrand(userId);
+  if (!kit) return false;
+  saveBrand(userId, { ...kit, postLang: lang === "en" ? undefined : lang });
+  return postLangOf(userId) === lang;
+}

@@ -7,9 +7,10 @@ import { LOOKS } from "./aiVideo";
 import { captionStart } from "./captionLooks";
 import { startLook } from "./clipAsk";
 import {
-  DEFAULT_CHOICES, TEXT_STYLES, boxStyleOf, loadPostChoices, looksFor, mentionFor, mentionParam, nextLook, pickLook, presenterStarts, savePostChoices, textStyleFor,
+  DEFAULT_CHOICES, TEXT_STYLES, boxStyleOf, loadPostChoices, looksFor, mentionFor, mentionParam, nextLook, pickLook, postLangOf, presenterStarts, savePostChoices, savePostLang, textStyleFor,
   type PostChoices,
 } from "./postChoices";
+import { loadBrand, saveBrand } from "./carousel";
 import { addProfile, setActiveProfile } from "./profiles";
 import { saveStyleHint, DEFAULT_STYLE } from "./slideshow";
 import { slideLook } from "./slideshowJob";
@@ -164,5 +165,32 @@ describe("storage", () => {
   it("says when the browser refuses the write", () => {
     vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => { throw new Error("full"); } });
     expect(choose({ who: "men" })).toBe(false);
+  });
+});
+
+describe("language", () => {
+  it("has nothing to set until the brand kit exists", () => {
+    expect(postLangOf(UID)).toBeNull();
+    expect(savePostLang(UID, "zh")).toBe(false);
+    expect(loadBrand(UID)).toBeNull();
+  });
+
+  it("saves the kit's post language and leaves the rest of the kit alone, English being none set", () => {
+    saveBrand(UID, { color: "#123456", name: "Mei Tan", handle: "@mei", signOff: "Talk soon" });
+    expect(postLangOf(UID)).toBe("en");
+    expect(savePostLang(UID, "ms")).toBe(true);
+    expect(postLangOf(UID)).toBe("ms");
+    expect(loadBrand(UID)).toMatchObject({ color: "#123456", name: "Mei Tan", handle: "@mei", signOff: "Talk soon", postLang: "ms" });
+    expect(savePostLang(UID, "en")).toBe(true);
+    expect(loadBrand(UID)?.postLang).toBeUndefined();
+    expect(loadBrand(UID)?.signOff).toBe("Talk soon");
+  });
+
+  it("says when the browser refuses the write", () => {
+    saveBrand(UID, { color: "#123456", name: "Mei Tan", handle: "@mei" });
+    const kept = local;
+    vi.stubGlobal("localStorage", { getItem: (k: string) => kept.getItem(k), setItem: () => { throw new Error("full"); } });
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => kept.getItem(k), setItem: () => { throw new Error("full"); } } });
+    expect(savePostLang(UID, "ta")).toBe(false);
   });
 });
