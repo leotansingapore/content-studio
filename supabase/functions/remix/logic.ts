@@ -1020,9 +1020,60 @@ const STATIC_RULES: Record<StaticLayout, string[]> = {
   ],
 };
 
+/**
+ * A person's brand (an adviser, or anyone who is the brand): the formats where someone else speaks, written so nobody
+ * speaks as a client. A made-up friend "who uses" an adviser is an invented testimonial (decision 12: an adviser's ads
+ * never carry a client's words), so here the other person only points to the adviser and what they do. Same fields
+ * and limits as STATIC_RULES; a business keeps STATIC_RULES.
+ */
+const PERSON_STATIC_RULES: Partial<Record<StaticLayout, string[]>> = {
+  "ai-chat": [
+    "a chat with an AI assistant: a person asks a question the adviser can answer, and the assistant's reply gives plain advice and then says who to ask.",
+    "- words.question: the person's question, at most 25 words, the way someone types it into a chat.",
+    "- words.lead: the assistant's first sentence, the main advice, at most 20 words.",
+    "- words.answer: the rest of the reply, at most 35 words, naming the adviser as someone who does this and what the adviser does, only from the facts given. The assistant never rates, ranks or praises the adviser.",
+  ],
+  "text-chat": [
+    "a text message chat between two friends about a familiar task or mix-up, where the second friend says who to ask about it.",
+    "- words.name: the first friend's first name, at most 2 words, shown at the top of the chat.",
+    "- words.one, words.three and words.five: the first friend's messages; words.two, words.four and words.six: the second friend's replies, in that order. Each at most 14 words, casual texting, no emoji.",
+    "- The second friend names the adviser once as someone who covers this, and says what the adviser does, only from the facts given. The friend never says they are a client or what the adviser did for them.",
+  ],
+  "friend-recommends": [
+    "a messaging app chat where one friend asks for help with something and the other points them to the adviser.",
+    "- words.name: the friend who answers, a first name, at most 2 words, shown at the top of the chat.",
+    "- words.one, words.three and words.five: the person asking; words.two, words.four and words.six: the friend's replies, in that order. Each at most 14 words, casual texting, no emoji.",
+    "- The friend names the adviser once and says what the adviser does, only from the facts given, as someone to ask. The friend never says they are a client, never praises the adviser and never says how it went for them.",
+  ],
+  "forum-thread": [
+    "a forum post where someone asks for help with a problem, and a reply from another member that points them to the adviser.",
+    "- words.asker and words.replier: made-up forum usernames in lower case, like quietteapot, at most 2 words each.",
+    "- words.title: the post's title, a question or a plea for help, at most 14 words.",
+    "- words.body: what they have tried and why it isn't working, at most 30 words.",
+    "- words.reply: a casual reply, at most 45 words, with one plain tip on the problem, that names the adviser and what the adviser does, only from the facts given, as someone to ask. The member never says they are a client or what the adviser did for them.",
+  ],
+  "lofi-note": [
+    "a scrappy note typed in a desktop notes window by the adviser, in the first person: something the adviser keeps seeing in their own work, and what they do about it.",
+    "- words.title: the note's heading, at most 8 words, shown in capitals.",
+    "- words.body: the note, at most 40 words, in short plain sentences, in the adviser's own voice, only from the facts given. Never a client's story.",
+    "- words.last: the line it ends on, at most 12 words.",
+  ],
+  "phone-share": [
+    "a photo shared to someone's phone by a friend, with the friend's note pointing them to the adviser: the share is the ad.",
+    "- words.sender: the friend's first name, at most 2 words.",
+    "- words.message: the friend's note with the photo, casual, at most 25 words, naming the adviser and what the adviser does, only from the facts given, as someone to ask. The friend never says they are a client.",
+    "- words.caption: what the photo shows, at most 8 words.",
+  ],
+  "tshirt-print": [
+    "the words printed on the back of a stranger's T-shirt, in capitals: a line about the wearer's own habit or question that points to the adviser.",
+    "- words.print: the print, at most 20 words, in the wearer's first person about their own habit or question, ending by naming the adviser as who to ask. The wearer never says they are the adviser's client.",
+  ],
+};
+
 /** A static ad format's words: its own rules, then the image rules every ad picture keeps. */
 function staticRules(req: MakeRequest, layout: StaticLayout): string[] {
-  const [shape, ...fields] = STATIC_RULES[layout];
+  const person = req.brand.speaker === "person";
+  const [shape, ...fields] = (person && PERSON_STATIC_RULES[layout]) || STATIC_RULES[layout];
   return [
     "",
     `Write the words for one static ad picture. It is ${shape}`,
@@ -1030,6 +1081,16 @@ function staticRules(req: MakeRequest, layout: StaticLayout): string[] {
     "- Write the words in sentence case: capitalise only the first word, names and the brand, never every word.",
     "- Never put a number in the words: no figures, prices, percentages or counts.",
     "- The people in it are made up: never name a real person or another business, and never write a result, a promise or a customer's story the facts don't hold.",
+    // the voice rule above is the brand's own (a business never writes I): a chat's friends still talk like friends
+    "- Words said by someone other than the brand (a friend, a buyer, a forum member, an assistant) are in that person's own voice. The voice rule above is for the brand's own words and the caption.",
+    ...(person
+      ? [
+          "- Nobody in the picture is the adviser's client or speaks as one: nobody says they used, hired or were helped by the adviser, nobody praises or rates the adviser, and nobody reports a result. Others may only say what the adviser does, from the facts given, and suggest asking the adviser.",
+          "- Made-up people have a first name or a username only, never a full name, a job title or a company.",
+        ]
+      : []),
+    // Post choices' Never (or Sometimes' flip): the brand rule below says not to name the brand, and it wins
+    ...(req.brand.mention ? [] : ["- This picture does not name the brand: where a line above says to name it, leave the name out and keep the words on the problem and what helps."]),
     ...(req.source
       ? [
           "- Keep the original ad's angle and none of its words: no run of 4 or more words from it, and none of its brand, claims or numbers.",

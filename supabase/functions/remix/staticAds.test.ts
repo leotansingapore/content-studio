@@ -88,6 +88,45 @@ describe("static ad formats as image layouts", () => {
     }
   });
 
+  it("never lets a made-up person speak as an adviser's client, and leaves a business's formats as they were", () => {
+    const system = (layout: string, brand: Record<string, unknown> = BRAND) => buildMakePrompt(req({ as: "image", layout, topic: "Afternoon coffee", brand })).system;
+    const CLIENT = "- Nobody in the picture is the adviser's client or speaks as one";
+    // what a business's chat formats say, which for an adviser would be an invented testimonial
+    const AS_A_USER = ["as what they use for it", "the other recommends the brand", "the assistant's reply recommends the brand", "a reply from another member that recommends the brand", "saying why they use the brand", "shared to the buyer's phone by a friend", "a small confession about a familiar struggle"];
+    for (const layout of STATIC_LAYOUTS) {
+      const person = system(layout);
+      expect(person, layout).toContain(CLIENT);
+      expect(person, layout).toContain("never a full name, a job title or a company");
+      for (const said of AS_A_USER) expect(person, `${layout}: ${said}`).not.toContain(said);
+      // the compliance block every adviser prompt carries: no named insurer products, no promised returns
+      expect(person, layout).toContain("no named insurer products");
+      // each field is still told, with its limit
+      for (const [f, max] of Object.entries(STATIC_FIELDS[layout])) expect(person, `${layout} ${f}`).toMatch(new RegExp(`words\\.${f}\\b[^\\n]*at most ${max} words|words\\.${f}\\b[^\\n]*\\n?[^\\n]*at most ${max} words`));
+      const business = system(layout, BIZ);
+      expect(business, layout).not.toContain("is the adviser's client");
+      expect(business, layout).not.toContain("the adviser");
+      // someone else's words keep their own voice, so a business's "never write I" stays the brand's own rule
+      for (const p of [person, business]) expect(p, layout).toContain("- Words said by someone other than the brand");
+    }
+    for (const layout of ["text-chat", "friend-recommends", "ai-chat", "forum-thread", "phone-share", "tshirt-print"]) expect(system(layout), layout).toMatch(/never says they are (a|the adviser's) client|never rates, ranks or praises/);
+    expect(AS_A_USER.filter((said) => STATIC_LAYOUTS.some((l) => system(l, BIZ).includes(said)))).toEqual(AS_A_USER);
+    // a person in any other work gets the same guard in their own words, with no adviser in it
+    const coach = system("friend-recommends", { ...BRAND, profession: "Coach" });
+    expect(coach).toContain("is the coach's client or speaks as one");
+    expect(coach).not.toContain("adviser");
+  });
+
+  it("leaves the brand's name out when the make says not to name it (Post choices: Never)", () => {
+    const OFF = "- This picture does not name the brand";
+    for (const layout of STATIC_LAYOUTS) {
+      for (const brand of [BRAND, BIZ]) {
+        expect(buildMakePrompt(req({ as: "image", layout, topic: "x", brand: { ...brand, mention: false } })).system, layout).toContain(OFF);
+        expect(buildMakePrompt(req({ as: "image", layout, topic: "x", brand })).system, layout).not.toContain(OFF);
+      }
+    }
+    expect(buildMakePrompt(req({ as: "image", layout: "text-chat", topic: "x", brand: { ...BIZ, mention: false } })).system).toContain("Do not name Hilltop Coffee or any product.");
+  });
+
   it("sends a number back once, and reads every field for the copy and MAS checks", () => {
     const chat = image("text-chat", { ...filled("text-chat"), four: "see you at 9 then" })!;
     expect(imageProblem(chat, { source: undefined })?.kind).toBe("number");
