@@ -1204,3 +1204,68 @@ describe("hooks and the launch plan, for every link", () => {
     expect((await call("get_launch_plan", {}, memoryStore({}))).out).toMatchObject({ plan: null });
   });
 });
+
+describe("hooks and the launch plan stay on the link's own brand", () => {
+  const OTHER = "0b6e3f1c-1111-4c2d-9e8f-123456789abc";
+  const P2 = `${UID}~p2`;
+  const p2: Link = { userId: UID, scope: P2, secret: SECRET };
+  const hook = (id: string, text: string) => ({ id, name: text.slice(0, 40), text, kind: "hook" });
+  const run = async (name: string, args: Record<string, unknown>, s: Store, l = p2) => {
+    const r = await callTool(name, args, s, l, now, { leo: false });
+    return { error: r.isError === true, out: r.isError ? r.content[0].text : JSON.parse(r.content[0].text) };
+  };
+  const brands = () =>
+    memoryStore({
+      [`content-studio-snippets-${UID}`]: [hook("a", "the default brand's hook")],
+      [`content-studio-snippets-${P2}`]: [hook("b", "the second brand's hook")],
+      [`content-studio-snippets-${OTHER}`]: [hook("c", "another account's hook")],
+      [`content-studio-hookwriter-${UID}`]: { topic: "default topic", fresh: [{ id: "f", text: "a default batch hook", format: "pov" }] },
+      [`content-studio-launchplan-${UID}`]: { thing: "Default thing", date: "2026-10-20", link: "", done: [] },
+    });
+
+  it("lists and saves only the second brand's hooks on a link made for it", async () => {
+    const s = brands();
+    const before = (k: string) => s.rows.get(k);
+    const untouched = [`content-studio-snippets-${UID}`, `content-studio-snippets-${OTHER}`].map((k) => [k, before(k)]);
+    expect((await run("list_hooks", {}, s)).out).toEqual({ kept: ["the second brand's hook"], note: expect.any(String) });
+    expect((await run("add_hooks", { hooks: ["a new hook for brand two"] }, s)).out).toMatchObject({ added: 1, kept: 2 });
+    expect(JSON.parse(s.rows.get(`content-studio-snippets-${P2}`)!).map((x: { text: string }) => x.text)).toEqual(["the second brand's hook", "a new hook for brand two"]);
+    for (const [k, v] of untouched) expect(s.rows.get(k!), k).toBe(v);
+  });
+
+  it("reads no other brand's launch plan, and opens each maker on the link's own brand", async () => {
+    const s = brands();
+    expect((await run("get_launch_plan", {}, s)).out).toMatchObject({ plan: null });
+    s.rows.set(`content-studio-launchplan-${P2}`, JSON.stringify({ thing: "Brand two", date: "2026-10-20", link: "", done: [] }));
+    const { out } = await run("get_launch_plan", {}, s);
+    expect(out.launches).toBe("Brand two");
+    for (const p of out.posts) expect(p.open).toMatch(/[?&]profile=p2$/);
+  });
+
+  it("saves hooks when another device wrote the snippets in between, keeping what that device wrote", async () => {
+    const s = brands();
+    const key = `content-studio-snippets-${P2}`;
+    const put = s.put;
+    let races = 1;
+    // another device saves a reply snippet after the tool read the row and before it writes
+    s.put = async (k, v, was) => {
+      if (k === key && races-- > 0) await put(k, JSON.stringify([...JSON.parse(s.rows.get(k)!), { id: "r", name: "a reply", text: "Thanks for asking" }]), was);
+      return put(k, v, was);
+    };
+    expect((await run("add_hooks", { hooks: ["saved after the race"] }, s)).out).toMatchObject({ added: 1 });
+    expect(JSON.parse(s.rows.get(key)!).map((x: { text: string }) => x.text)).toEqual(["the second brand's hook", "Thanks for asking", "saved after the race"]);
+  });
+
+  it("says try again, and overwrites nothing, when the snippets keep changing under it", async () => {
+    const s = brands();
+    const key = `content-studio-snippets-${P2}`;
+    const put = s.put;
+    let n = 0;
+    s.put = async (k, v, was) => {
+      if (k === key) await put(k, JSON.stringify([...JSON.parse(s.rows.get(k)!), { id: `r${++n}`, name: "a reply", text: `reply ${n}` }]), was);
+      return put(k, v, was);
+    };
+    expect(await run("add_hooks", { hooks: ["never saved"] }, s)).toEqual({ error: true, out: "My hooks changed while saving. Try again." });
+    expect(JSON.parse(s.rows.get(key)!).map((x: { text: string }) => x.text)).toEqual(["the second brand's hook", "reply 1", "reply 2"]);
+  });
+});
