@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { choose, onAgent, send, turnOf, type Turn } from "@/lib/agentRun";
 import { fieldsOf, madeOpen } from "@/lib/agentPlans";
 import { starterChips } from "@/lib/agentStarters";
+import { inFlight } from "@/lib/agentWork";
 import { GONE_LINE, loadThreads, onThreadsChanged, patchMsg, type AgentMsg } from "@/lib/agentThreads";
 import { links } from "@/lib/links";
 import { cn } from "@/lib/utils";
@@ -284,7 +285,10 @@ export default function AgentThread({
                 <p className={cn("max-w-[92%] whitespace-pre-wrap break-words text-sm leading-relaxed", m.error && "text-destructive")}>{m.text}</p>
               )}
               {m.card && threadId && <ActionCard userId={userId} threadId={threadId} msg={m as AgentMsg & { card: NonNullable<AgentMsg["card"]> }} usage={usage} onSend={(t) => sendHere(t)} />}
-              {m.job?.state === "running" && <MakingBlock title={m.job.title ?? m.card?.title ?? ""} startedAt={m.job.startedAt} step={turn?.msg === m.id ? turn.line : undefined} />}
+              {/* a priced make on its way; a saved change (a note, a move) lands at once and shows none */}
+              {inFlight(m) && (m.job || m.card?.price) && (
+                <MakingBlock title={m.job?.title ?? m.card?.title ?? ""} startedAt={m.job?.startedAt ?? m.card?.decidedAt ?? m.at} step={turn?.msg === m.id ? turn.line : undefined} />
+              )}
               {m.job?.state === "done" && <MadeBlock userId={userId} job={{ ...m.job, open: madeOpen(userId, m.job) }} />}
               {m.receipt && threadId && (
                 <Receipt

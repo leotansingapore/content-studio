@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AgentCard } from "@/lib/agentCards";
 import type { AgentMsg, AgentThread } from "@/lib/agentThreads";
-import { cardType, ruleRows, workCounters, workOf } from "./agentWork";
+import { cardType, inFlight, ruleRows, workCounters, workOf } from "./agentWork";
 
 const card = (over: Partial<AgentCard>): AgentCard => ({ id: "k1", kind: "make", title: 'Carousel: "habits"', line: "", needs: [], plan: { plan: "remix", format: "carousel" }, status: "proposed", proposedAt: "2026-11-11T02:00:00.000Z", ...over });
 const msg = (id: string, over: Partial<AgentMsg>): AgentMsg => ({ id, at: "2026-11-11T01:00:00.000Z", role: "agent", ...over });
@@ -33,6 +33,16 @@ describe("Your work", () => {
     expect(w.making.map((x) => x.msg).sort()).toEqual(["m3", "m7"]);
     expect(w.made.map((x) => [x.msg, x.type, x.title])).toEqual([["m6", "Slideshow", "Five calls"], ["m5", "Carousel", 'Carousel: "habits"']]);
     expect(workCounters(w)).toEqual(["2 need you", "2 in flight", "2 made"]);
+  });
+
+  it("counts a pressed card as in flight until its result or receipt lands", () => {
+    expect(inFlight(msg("a", { card: card({ status: "starting" }) }))).toBe(true);
+    // most makes write their job row only when done: the approved card alone says it is being made
+    expect(inFlight(msg("b", { card: card({ status: "approved" }) }))).toBe(true);
+    expect(inFlight(msg("c", { card: card({ status: "approved" }), receipt: { title: "Added", line: "" } }))).toBe(false);
+    expect(inFlight(msg("d", { card: card({ status: "approved" }), job: { kind: "remix", state: "done", startedAt: "" } }))).toBe(false);
+    expect(inFlight(msg("e", { card: card({ status: "failed" }) }))).toBe(false);
+    expect(inFlight(msg("f", { card: card({}) }))).toBe(false);
   });
 
   it("says so when there is nothing", () => {

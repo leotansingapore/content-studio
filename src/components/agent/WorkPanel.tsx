@@ -4,7 +4,7 @@
 // on this device; below that the page opens it as a sheet (?panel=work, `sheet`).
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, ChevronRight, Hand, Loader2, type LucideIcon } from "lucide-react";
+import { Check, ChevronRight, Hand, Loader2, X, type LucideIcon } from "lucide-react";
 import { turnOf } from "@/lib/agentRun";
 import { workCounters, workOf, type WorkItem } from "@/lib/agentWork";
 import type { AgentThread } from "@/lib/agentThreads";
@@ -44,7 +44,7 @@ function Rows({ items, icon: Icon, spin, sub }: { items: WorkItem[]; icon: Lucid
   );
 }
 
-export default function WorkPanel({ threads, sheet }: { threads: AgentThread[]; sheet?: boolean }) {
+export default function WorkPanel({ threads, sheet, onClose }: { threads: AgentThread[]; sheet?: boolean; onClose?: () => void }) {
   const [hidden, setHidden] = useState(readHidden);
   const toggle = (next: boolean) => {
     setHidden(next);
@@ -71,6 +71,11 @@ export default function WorkPanel({ threads, sheet }: { threads: AgentThread[]; 
     <aside aria-label="Your work" className={sheet ? "flex h-full flex-col" : "hidden w-64 shrink-0 flex-col border-l border-border/60 pl-5 xl:flex"}>
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-base font-semibold text-foreground">Your work</h2>
+        {sheet && onClose && (
+          <button type="button" onClick={onClose} aria-label="Close Your work" className="-mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        )}
         {!sheet && (
           <button type="button" onClick={() => toggle(true)} className="inline-flex h-8 items-center gap-1 rounded-lg border border-border/70 px-2.5 text-xs text-muted-foreground hover:text-foreground">
             Hide <ChevronRight className="h-3.5 w-3.5" />

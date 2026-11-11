@@ -32,7 +32,17 @@ const item = (t: AgentThread, m: AgentMsg, at: string): WorkItem => ({
   at,
 });
 
-/** Waiting on your yes (proposed cards), making (a pressed card or a running job) and made, each newest first. */
+/**
+ * Being made now: a running job, or a pressed card whose result has not landed (the engine writes most makes' job
+ * row only when done, so the card's own state says it; agentRun's resumeAgent reads a reload the same way).
+ */
+export function inFlight(m: AgentMsg): boolean {
+  if (m.job) return m.job.state === "running";
+  const c = m.card;
+  return !!c && (c.status === "starting" || (c.status === "approved" && !m.receipt && fieldsOf(c).plan !== "write"));
+}
+
+/** Waiting on your yes (proposed cards), making (inFlight) and made, each newest first. */
 export function workOf(threads: AgentThread[]): { waiting: WorkItem[]; making: WorkItem[]; made: WorkItem[] } {
   const waiting: WorkItem[] = [];
   const making: WorkItem[] = [];
@@ -40,7 +50,7 @@ export function workOf(threads: AgentThread[]): { waiting: WorkItem[]; making: W
   for (const t of threads)
     for (const m of t.messages) {
       if (m.card?.status === "proposed") waiting.push(item(t, m, m.card.proposedAt));
-      else if (m.card?.status === "starting" || m.job?.state === "running") making.push(item(t, m, m.job?.startedAt ?? m.card?.decidedAt ?? m.at));
+      else if (inFlight(m)) making.push(item(t, m, m.job?.startedAt ?? m.card?.decidedAt ?? m.at));
       else if (m.job?.state === "done") made.push(item(t, m, m.job.endedAt ?? m.job.startedAt));
     }
   const newest = (a: WorkItem, b: WorkItem) => b.at.localeCompare(a.at);

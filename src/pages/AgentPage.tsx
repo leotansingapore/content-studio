@@ -3,9 +3,10 @@
 // chat fills the rest, with its composer pinned at the bottom and "Your work" (WorkPanel) beside it from xl up and
 // behind the "Your work" button (?panel=work) below that. ?m=
 // rings one message, and ?ask= and ?remix= hand a new chat its words or its post once, then leave the address (so the
-// Remix sheet never opens over the page). Everyone else gets the 404.
+// Remix sheet never opens over the page). A page can also hand over words that send on arrival, with where they came
+// from (navigation state, agentStarters.ts handoff). Everyone else gets the 404.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { MessagesSquare } from "lucide-react";
 import AgentThread, { useThreads } from "@/components/agent/AgentThread";
 import ThreadList from "@/components/agent/ThreadList";
@@ -13,6 +14,7 @@ import WorkPanel from "@/components/agent/WorkPanel";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { send, turnOf } from "@/lib/agentRun";
+import { handoff } from "@/lib/agentStarters";
 import { workOf } from "@/lib/agentWork";
 import { links } from "@/lib/links";
 import { useUrlItem } from "@/lib/urlState";
@@ -65,12 +67,24 @@ function useFillHeight() {
 }
 
 function Agent({ userId, email, threadId }: { userId: string; email: string; threadId: string | null }) {
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [panel, openPanel, closePanel] = useUrlItem("panel");
+  const navigate = useNavigate();
   // ?ask= and ?remix= belong to a new chat and are read once (replace)
   const [handover] = useState(() => ({ ask: threadId ? null : params.get("ask"), remix: threadId ? null : params.get("remix") }));
+  const location = useLocation();
+  // read once, as ?ask= is: the words a page handed over to send on arrival
+  const [sends] = useState(() => handoff(location.state, handover.ask).send);
+  const from = handoff(location.state, null).from;
+  // once per arrival: a second effect run, or New chat on this same page, never sends it again
+  const sent = useRef(false);
   useLayoutEffect(() => {
+    // a page handed over its request: it sends once and the chat opens, with the way back to that page
+    if (sends && !sent.current && !threadId && handover.ask) {
+      sent.current = true;
+      const id = send(userId, null, handover.ask);
+      if (id) return navigate(links.agent({ thread: id }), { replace: true, state: from ? { from } : null });
+    }
     if (!params.has("ask") && !params.has("remix")) return;
     setParams(
       (prev) => {
@@ -81,7 +95,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
       },
       { replace: true },
     );
-  }, [params, setParams]);
+  }, [params, setParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const threads = useThreads(userId);
   const thread = threadId ? threads.find((t) => t.id === threadId) : undefined;
   const [ref, height] = useFillHeight();
@@ -121,7 +135,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
               const id = send(userId, threadId, CAPABILITIES_ASK);
               if (id && id !== threadId) toThread(id);
             }}
-            className="ml-auto h-11 shrink-0 px-3 sm:ml-0 sm:h-9"
+            className={`ml-auto h-11 shrink-0 px-3 sm:ml-0 sm:h-9 ${thread ? "hidden sm:inline-flex" : ""}`}
           >
             {CAPABILITIES_ASK}
           </Button>
@@ -131,12 +145,21 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
           </Button>
           {thread && <CopyLinkButton path={links.agent({ thread: thread.id })} />}
         </header>
+        {from && (
+          // shortcut: the way back rides in navigation state, so a reload drops the chip; keep it on the thread if Leo wants it to stay
+          <p className="pt-2 text-xs text-muted-foreground">
+            From{" "}
+            <Link to={from.path} className="inline-flex min-h-9 items-center font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+              {from.label}
+            </Link>
+          </p>
+        )}
         <AgentThread
           key={threadId ?? "new"}
           userId={userId}
           threadId={threadId}
           attach={handover.remix}
-          ask={handover.ask}
+          ask={sends ? null : handover.ask}
           focusMsg={params.get("m")}
           identity={identity}
           onThread={toThread}
@@ -151,7 +174,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
         onClick={(e) => e.target === e.currentTarget && closePanel()}
         className="fixed inset-y-0 left-auto right-0 m-0 h-full max-h-none w-[min(340px,88vw)] max-w-none border-l border-border/70 bg-background p-4 shadow-xl backdrop:bg-foreground/40 xl:hidden"
       >
-        <WorkPanel threads={threads} sheet />
+        <WorkPanel threads={threads} sheet onClose={closePanel} />
       </dialog>
       <dialog
         ref={sheet}

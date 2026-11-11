@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ALWAYS, MAX_STARTERS, starterChips } from "@/lib/agentStarters";
+import { ALWAYS, MAX_STARTERS, handoff, starterChips } from "@/lib/agentStarters";
 import { saveDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { EMPTY_POSITIONING, savePositioning } from "@/lib/positioning";
 import { toggleSaved } from "@/lib/savedItems";
@@ -44,5 +44,23 @@ describe("starterChips", () => {
   it("offers /check and /retro when there is room and a post to run them on", () => {
     saveDrafts(UID, [draft({}), draft({ id: "b", status: "posted", postedAt: "2026-10-02T00:00:00.000Z" })]);
     expect(starterChips(UID)).toEqual(["/check", "/retro", ...ALWAYS]);
+  });
+});
+
+describe("a page handing the agent a request", () => {
+  it("sends on arrival only with the state's send and words to send", () => {
+    expect(handoff({ send: true }, 'Make an ad in the "Lo-fi note" format.').send).toBe(true);
+    // a pasted link carries no state: the composer is filled and nothing is sent
+    expect(handoff(null, "Make an ad").send).toBe(false);
+    expect(handoff({ send: "1" }, "Make an ad").send).toBe(false);
+    expect(handoff({ send: true }, "  ").send).toBe(false);
+    expect(handoff({ send: true }, null).send).toBe(false);
+  });
+
+  it("keeps where it came from only when that is a page of the app with a label", () => {
+    expect(handoff({ from: { label: "Static ads > Lo-fi note", path: "/make/static/lo-fi-note" } }, null).from).toEqual({ label: "Static ads > Lo-fi note", path: "/make/static/lo-fi-note" });
+    expect(handoff({ from: { label: "Elsewhere", path: "https://example.com" } }, null).from).toBeNull();
+    expect(handoff({ from: { label: "Elsewhere", path: "//example.com" } }, null).from).toBeNull();
+    expect(handoff({ from: { label: " ", path: "/make" } }, null).from).toBeNull();
   });
 });

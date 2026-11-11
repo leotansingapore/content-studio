@@ -24,3 +24,21 @@ export function starterChips(userId: string): string[] {
   ].filter((x): x is string => !!x);
   return [...fromData.slice(0, MAX_STARTERS - ALWAYS.length), ...ALWAYS];
 }
+
+/** The page a chat was started from: the "From ..." chip above it, back to that page. */
+export interface ArrivedFrom {
+  label: string;
+  path: string;
+}
+/**
+ * A page handing the agent a request (Fastlane's "Make an ad in this format", 11 Nov walk): it links to
+ * links.agent({ ask }) with navigation state { send: true, from: { label, path } }, and the new chat sends the words
+ * on arrival. Never a URL param, so a pasted or shared link only fills the composer and spends nothing. `from` is
+ * kept only when it is the app's own path and has a label.
+ */
+export function handoff(state: unknown, ask: string | null): { send: boolean; from: ArrivedFrom | null } {
+  const s = (state ?? {}) as { send?: unknown; from?: { label?: unknown; path?: unknown } };
+  const f = s.from;
+  const from = f && typeof f.label === "string" && f.label.trim() && typeof f.path === "string" && /^\/(?![/\\])[^\s\x00-\x1f\x7f]*$/.test(f.path) ? { label: f.label.trim().slice(0, 80), path: f.path } : null;
+  return { send: s.send === true && !!ask?.trim(), from };
+}
