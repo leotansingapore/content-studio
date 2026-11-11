@@ -24,6 +24,7 @@ import {
 } from "@/lib/audienceSuggest";
 import { links } from "@/lib/links";
 import { speakerFor } from "@/lib/remixBrand";
+import { adviserBrand } from "@/lib/profession";
 import type { PlanAudience } from "@/lib/positioning";
 import { reasonText } from "@/lib/prices";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -39,6 +40,11 @@ const STAGES: { value: PlanAudience; label: string }[] = [
   { value: "parent", label: "Parent" },
   { value: "pre-retiree", label: "Pre-retiree" },
 ];
+/** The editor's example words: an adviser's are about family money, any other brand's about a buyer at work. */
+export const examplesFor = (adviser: boolean) =>
+  adviser
+    ? { name: "Young parents in their 30s", who: "Both working, kids under 10, worried about hospital bills", care: "childcare costs" }
+    : { name: "Owners of small sales teams", who: "Lead 5 to 20 reps, short on time, judged on the monthly number", care: "hitting the monthly number" };
 const NO_SOURCE = "Type your website, or say who you serve in Plan setup first.";
 
 export default function AudiencesPage() {
@@ -264,6 +270,8 @@ function Editor({ userId, audience, onClose, onSaved, onCreated, onRemoved }: {
   onCreated: (id: string) => void;
   onRemoved: (gone: Audience) => void;
 }) {
+  const adviser = adviserBrand(userId);
+  const eg = examplesFor(adviser);
   const update = useUrlUpdate();
   const [f, setF] = useState<Fields>(() => fieldsOf(audience));
   const [care, setCare] = useState("");
@@ -320,20 +328,21 @@ function Editor({ userId, audience, onClose, onSaved, onCreated, onRemoved }: {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="aud-name">Name</Label>
-          <Input id="aud-name" ref={first} value={f.name} maxLength={AUDIENCE_LIMITS.name} placeholder="Young parents in their 30s" onChange={(e) => set({ name: e.target.value })} />
+          <Input id="aud-name" ref={first} value={f.name} maxLength={AUDIENCE_LIMITS.name} placeholder={eg.name} onChange={(e) => set({ name: e.target.value })} />
           {!audience && !f.name.trim() && <p className="text-xs text-muted-foreground">It saves once it has a name.</p>}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="aud-who">Who they are</Label>
-          <Textarea id="aud-who" rows={3} value={f.who} maxLength={AUDIENCE_LIMITS.who} placeholder="Both working, kids under 10, worried about hospital bills" onChange={(e) => set({ who: e.target.value })} />
+          <Textarea id="aud-who" rows={3} value={f.who} maxLength={AUDIENCE_LIMITS.who} placeholder={eg.who} onChange={(e) => set({ who: e.target.value })} />
         </div>
-        <div className="space-y-1.5">
+        {/* life stages are an adviser's way to group people: any other brand's audiences stay General */}
+        {adviser && <div className="space-y-1.5">
           <Label htmlFor="aud-stage">Life stage</Label>
           <select id="aud-stage" value={f.lifeStage} onChange={(e) => set({ lifeStage: e.target.value as PlanAudience })}
             className={`flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm ${TOUCH}`}>
             {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
-        </div>
+        </div>}
         <div className="space-y-1.5">
           <Label htmlFor="aud-care">What they care about</Label>
           {f.cares.length > 0 && (
@@ -351,13 +360,13 @@ function Editor({ userId, audience, onClose, onSaved, onCreated, onRemoved }: {
           )}
           {f.cares.length < AUDIENCE_LIMITS.cares && (
             <form onSubmit={addCare} className="flex gap-2">
-              <Input id="aud-care" value={care} maxLength={AUDIENCE_LIMITS.care} placeholder="childcare costs" onChange={(e) => setCare(e.target.value)} />
+              <Input id="aud-care" value={care} maxLength={AUDIENCE_LIMITS.care} placeholder={eg.care} onChange={(e) => setCare(e.target.value)} />
               <Button type="submit" variant="outline" className={`shrink-0 ${TOUCH}`} disabled={!care.trim()}>Add</Button>
             </form>
           )}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="aud-says">How they talk about {speakerFor(userId) === "person" ? "money" : "it"} (optional)</Label>
+          <Label htmlFor="aud-says">How they talk about {adviser && speakerFor(userId) === "person" ? "money" : "it"} (optional)</Label>
           <Input id="aud-says" value={f.says} maxLength={AUDIENCE_LIMITS.says} onChange={(e) => set({ says: e.target.value })} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
