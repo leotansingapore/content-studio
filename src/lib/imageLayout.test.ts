@@ -407,8 +407,9 @@ describe("static ad formats (ff1111)", () => {
     }
   });
 
-  it("draws every format's example at Square, Feed 4:5 and Story 9:16 with every word kept, with and without a photo", () => {
-    for (const layout of STATIC_LAYOUT_IDS) {
+  // one test per format: all of them in one test drew 96 pictures and ran past 5 s under load (6.6 to 14 s, 12 Nov)
+  for (const layout of STATIC_LAYOUT_IDS) {
+    it(`draws ${layout}'s example at Square, Feed 4:5 and Story 9:16 with every word kept, with and without a photo`, () => {
       for (const size of MEME_SIZES) {
         for (const picture of [STATIC_EXAMPLE.picture, undefined]) {
           const at = `${layout} ${size} ${picture ? "photo" : "no photo"}`;
@@ -422,11 +423,11 @@ describe("static ad formats (ff1111)", () => {
           for (const [k, v] of Object.entries(example(layout))) expect(shown, `${at}: ${k}`).toContain(v.split(" ")[0].toLowerCase());
         }
       }
-    }
-  });
+    });
+  }
 
-  it("keeps the longest words inside the picture, cut with an ellipsis, and draws empty fields as nothing or a grey sample", () => {
-    for (const layout of STATIC_LAYOUT_IDS) {
+  for (const layout of STATIC_LAYOUT_IDS) {
+    it(`keeps ${layout}'s longest words inside the picture, cut with an ellipsis, and draws empty fields as nothing or a grey sample`, () => {
       for (const size of MEME_SIZES) {
         const long = layoutImage({ layout, words: longest(layout), brand, picture: PIC }, size, measure);
         inside(long, size, `${layout} ${size} long`);
@@ -440,8 +441,8 @@ describe("static ad formats (ff1111)", () => {
         const samples = IMAGE_FIELDS[layout].map((f) => f.sample);
         expect(texts(blank.nodes).filter((t) => samples.includes(t.text)), `${layout} ${size} blank`).toEqual([]);
       }
-    }
-  });
+    });
+  }
 
   it("draws in the brand's colour: your side of a text chat, the friend's avatar, the forum's first avatar", () => {
     const fills = (layout: StaticLayoutId) => draw(layout, "4x5").nodes.flatMap((n) => ("fill" in n && n.fill ? [n.fill] : []));
