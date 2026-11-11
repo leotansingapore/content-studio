@@ -1,11 +1,16 @@
 // A campaign's ads group (plan-campaign, Leo only), first on the campaign page as Fastlane has it: a stack with
 // "10 ads launch together", the layout mix and "N made, N drafts"; ?ads=all shows the grid (Ad 1 to Ad 10, each with
-// its layout, Make, Swap layout, Edit and Skip, every change with Undo); ?ads=send adds the hand-off to AdLauncher,
-// where each made ad opens /image's Run as an ad with the campaign's settings filled in (src/lib/campaignAds.ts).
+// its layout, Make or Redraw, Swap layout, Edit and Skip, every change with Undo; a draft that remixes an ad we hold a
+// picture of shows that original). ?ads=send is the hand-off to AdLauncher: Send walks the made ads one after another
+// (?sending=<n>), each in /image's own Run as an ad sheet with the campaign's settings filled in, so each is made
+// PAUSED and only on its own Create paused press; the panel counts them and ends on a done state
+// (src/lib/campaignAds.ts). Nothing here calls AdLauncher itself.
 
 import { useEffect, useMemo, useReducer, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Loader2, Pencil, RefreshCw, Shuffle, Undo2, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, Pencil, RefreshCw, Shuffle, Undo2, X } from "lucide-react";
+import RunAsAdSheet from "@/components/image/RunAsAdSheet";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
@@ -14,8 +19,8 @@ import { LAUNCHES_CHANGED, loadLaunches } from "@/lib/adlauncher";
 import { useUsesLeft } from "@/lib/aiUsage";
 import type { MakeOutcome } from "@/lib/campaignActions";
 import {
-  adCounts, adViews, editAdLink, groupTitle, layoutMix, makeAd, handOff, notTaken, redrawAd, sendBlock, sendPlan, skipAd, swapAdLayout,
-  type AdView,
+  adCounts, adViews, editAdLink, groupTitle, layoutMix, makeAd, nextToSend, notTaken, prefillSheet, redrawAd, sendBlock, sendPlan, sendProgress, skipAd, swapAdLayout,
+  type AdView, type SendPlan,
 } from "@/lib/campaignAds";
 import type { Campaign } from "@/lib/campaigns";
 import { usd } from "@/lib/campaignWizard";
@@ -23,8 +28,10 @@ import { DEFAULT_BRAND, loadBrand } from "@/lib/carousel";
 import { renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 import { getFile } from "@/lib/deviceFiles";
-import { LAYOUT_LABELS, layoutImage } from "@/lib/imageLayout";
+import { LAYOUT_LABELS, layoutImage, mainWords } from "@/lib/imageLayout";
 import { HEADSHOT, imageWrite, imageWriteBusy, loadImages, MAX_IMAGES, onImagesChanged, onImageWrite, swipePicture, type SavedImage } from "@/lib/images";
+import { links } from "@/lib/links";
+import { speakerFor } from "@/lib/remixBrand";
 import { resolveSource } from "@/lib/resolveSource";
 import { useUrlState } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
@@ -211,7 +218,10 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
         </div>
       </div>
 
-      {ads === "send" && <SendPanel userId={userId} campaign={c} views={views} drafts={k.drafts} onClose={() => setAds("all")} onEdit={edit} />}
+      {ads === "send" && (
+        <SendPanel userId={userId} campaign={c} views={views} drafts={k.drafts} onClose={() => setAds("all")} onEdit={edit} preview={(n) => pictures[n] ?? ""}
+          jpeg={(d) => { const x = drawn(d); return svgJpeg(renderSvg(x), x.width, x.height); }} />
+      )}
 
       {open && (
         <div id="ads-grid" className="space-y-3 border-t border-border/60 pt-4">
@@ -229,60 +239,162 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
   );
 }
 
-/** ?ads=send: each made ad on its way to Run as an ad, the settings it carries, and the ones AdLauncher sets itself. */
-function SendPanel({ userId, campaign: c, views, drafts, onClose, onEdit }: {
-  userId: string; campaign: Campaign; views: AdView[]; drafts: number; onClose: () => void; onEdit: (n: number) => void;
+/** The design as a JPEG at its own size, as /image hands it to the sheet. */
+async function svgJpeg(svg: string, width: number, height: number): Promise<Blob> {
+  const img = new Image();
+  await new Promise<void>((ok, no) => {
+    img.onload = () => ok();
+    img.onerror = () => no(new Error("The image couldn't be drawn."));
+    img.src = svgDataUrl(svg);
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("This browser can't draw images.");
+  ctx.drawImage(img, 0, 0, width, height);
+  return new Promise((ok, no) => canvas.toBlob((b) => (b ? ok(b) : no(new Error("The image couldn't be created."))), "image/jpeg", 0.92));
+}
+
+/** One ad in Run as an ad, with the campaign's settings written into the sheet's kept form before it opens. */
+function SendSheet({ userId, campaign: c, view: v, plan, preview, jpeg, onClose }: {
+  userId: string; campaign: Campaign; view: AdView & { design: SavedImage }; plan: SendPlan; preview: string; jpeg: (d: SavedImage) => Promise<Blob>; onClose: () => void;
 }) {
-  const navigate = useNavigate();
+  useState(() => prefillSheet(c, v, plan));
+  const d = v.design;
+  return (
+    <RunAsAdSheet
+      userId={userId}
+      designId={d.id}
+      draftId={d.draftId}
+      headline={mainWords(d.layout, d.words)}
+      text={d.words.caption || (d.layout === "headline" ? d.words.line : "") || ""}
+      preview={preview}
+      picture={() => jpeg(d)}
+      person={speakerFor(userId) === "person"}
+      // shortcut: Jev's MAS answer lives with the write on /image, not the design; the sheet's own word scan still runs. Keep the flag on the ad if a missed warning ever shows.
+      masWarn={false}
+      onClose={onClose}
+    />
+  );
+}
+
+/**
+ * ?ads=send: the campaign's settings, each made ad's state, and the walk. Send opens the first ad not yet in
+ * AdLauncher in Run as an ad; once it is made paused there, closing the sheet opens the next, to a done state.
+ */
+function SendPanel({ userId, campaign: c, views, drafts, onClose, onEdit, preview, jpeg }: {
+  userId: string; campaign: Campaign; views: AdView[]; drafts: number; onClose: () => void; onEdit: (n: number) => void;
+  preview: (n: number) => string; jpeg: (d: SavedImage) => Promise<Blob>;
+}) {
+  const [sending, setSending] = useUrlState("sending", "");
+  const [stopped, setStopped] = useState<number | null>(null);
   const plan = sendPlan(c, views, loadLaunches(userId));
-  const next = plan.ads.find((v) => !plan.sent.includes(v.design?.id ?? "") && !sendBlock(v));
+  const k = sendProgress(plan);
+  const next = nextToSend(plan);
+  const sent = (v: AdView) => plan.sent.includes(v.design?.id ?? "");
+  const cur = plan.ads.find((v) => String(v.ad.n) === sending && !sendBlock(v)) as (AdView & { design: SavedImage }) | undefined;
   if (!c.budget) return null;
+  const start = (v: AdView) => {
+    setStopped(null);
+    setSending(String(v.ad.n));
+  };
+  // the sheet closed: on to the next ad when this one was made, else the walk stops here with nothing lost
+  const closed = () => {
+    if (!cur) return setSending("");
+    const now = sendPlan(c, views, loadLaunches(userId));
+    const made = now.sent.includes(cur.design.id);
+    const on = made ? nextToSend(now, cur.ad.n) : null;
+    setStopped(made || !nextToSend(now) ? null : cur.ad.n);
+    setSending(on ? String(on.ad.n) : "");
+  };
+  const after = cur && sent(cur) ? nextToSend(plan, cur.ad.n) : null;
   return (
     <div role="region" aria-labelledby="send-h" className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
       <h3 id="send-h" className="text-sm font-semibold">Send the ads to AdLauncher</h3>
-      <p className="text-sm text-muted-foreground">Each one opens Run as an ad with these filled in. AdLauncher makes it paused, and nothing spends until you switch it on there.</p>
-      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
-        <dt className="text-muted-foreground">Budget</dt>
-        <dd>{plan.ads.length ? `${usd(c.budget.daily)} a day across ${plan.ads.length} ${plan.ads.length === 1 ? "ad" : "ads"}, ${usd(plan.perAd)} each` : `${usd(c.budget.daily)} a day`}</dd>
-        <dt className="text-muted-foreground">Days</dt>
-        <dd>{plan.days}</dd>
-        <dt className="text-muted-foreground">Opens</dt>
-        <dd className="[overflow-wrap:anywhere]">{c.budget.url}</dd>
-      </dl>
-      <div className="space-y-1">
-        <p className={HEAD}>Set these in AdLauncher</p>
-        <ul className="list-disc space-y-0.5 pl-5 text-sm">{notTaken(c.budget).map((t) => <li key={t}>{t}</li>)}</ul>
-      </div>
+      {k.done ? (
+        <div role="status" className="space-y-1 rounded-lg border border-success/40 bg-success/10 p-3">
+          <p className="flex items-center gap-2 font-semibold"><CheckCircle2 className="h-5 w-5 shrink-0 text-success" aria-hidden /> {k.of === 1 ? "Your ad is" : `All ${k.of} ads are`} paused in AdLauncher</p>
+          <p className="text-sm text-muted-foreground">Nothing spends until you switch {k.of === 1 ? "it" : "them"} on there.{drafts > 0 ? ` ${drafts} ${drafts === 1 ? "draft is" : "drafts are"} still to make.` : ""}</p>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">Each one opens Run as an ad with these filled in, one after another. AdLauncher makes it paused, and nothing spends until you switch it on there.</p>
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+            <dt className="text-muted-foreground">Budget</dt>
+            <dd>{plan.ads.length ? `${usd(c.budget.daily)} a day across ${plan.ads.length} ${plan.ads.length === 1 ? "ad" : "ads"}, ${usd(plan.perAd)} each` : `${usd(c.budget.daily)} a day`}</dd>
+            <dt className="text-muted-foreground">Days</dt>
+            <dd>{plan.days}</dd>
+            <dt className="text-muted-foreground">Opens</dt>
+            <dd className="[overflow-wrap:anywhere]">{c.budget.url}</dd>
+          </dl>
+          <div className="space-y-1">
+            <p className={HEAD}>Set these in AdLauncher</p>
+            <ul className="list-disc space-y-0.5 pl-5 text-sm">{notTaken(c.budget).map((t) => <li key={t}>{t}</li>)}</ul>
+          </div>
+        </>
+      )}
+      {k.of > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-sm tabular-nums" aria-live="polite"><span className="font-semibold">{k.sent} of {k.of}</span> paused in AdLauncher</p>
+          <div role="progressbar" aria-label="Ads sent" aria-valuemin={0} aria-valuemax={k.of} aria-valuenow={k.sent} className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-success transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${(k.sent / k.of) * 100}%` }} />
+          </div>
+        </div>
+      )}
+      {stopped !== null && !k.done && <p role="status" className="text-sm">Stopped at Ad {stopped}. Nothing was made for it, and what you typed is kept.</p>}
       <ul className="divide-y divide-border/60 rounded-lg border border-border/60 bg-card">
         {plan.ads.map((v) => {
-          const sent = plan.sent.includes(v.design?.id ?? "");
           const block = sendBlock(v);
           return (
             <li key={v.ad.n} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
               <span className="min-w-0 flex-1 text-sm">
                 <span className="font-medium">Ad {v.ad.n}</span>, {LAYOUT_LABELS[v.layout]}
-                {block && !sent && <span className="block text-xs text-muted-foreground">{block}</span>}
+                {block && !sent(v) && <span className="block text-xs text-muted-foreground">{block}</span>}
               </span>
-              {sent ? (
+              {sent(v) ? (
                 <span className="rounded-full border border-success/40 bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">Paused in AdLauncher</span>
               ) : block ? (
                 <Button variant="outline" size="sm" className="h-11 sm:h-9" onClick={() => onEdit(v.ad.n)}>Edit</Button>
               ) : (
-                <Button variant={v === next ? "default" : "outline"} size="sm" className="h-11 sm:h-9" onClick={() => {
-                  const to = handOff(c, v, plan);
-                  if (to) navigate(to);
-                }}>
-                  Run as an ad
-                </Button>
+                <Button variant="ghost" size="sm" className="h-11 sm:h-9" onClick={() => start(v)}>Send this one</Button>
               )}
             </li>
           );
         })}
       </ul>
-      {drafts > 0 && <p className="text-xs text-muted-foreground">{drafts} {drafts === 1 ? "draft waits" : "drafts wait"} until {drafts === 1 ? "it's" : "they're"} made.</p>}
-      <div className="flex justify-end">
+      {drafts > 0 && !k.done && <p className="text-xs text-muted-foreground">{drafts} {drafts === 1 ? "draft waits" : "drafts wait"} until {drafts === 1 ? "it's" : "they're"} made.</p>}
+      {k.blocked > 0 && !next && !k.done && <p className="text-xs text-muted-foreground">The rest need an edit before they can go.</p>}
+      <div className="flex flex-wrap justify-end gap-2">
         <Button variant="ghost" className="h-11 sm:h-10" onClick={onClose}>Close</Button>
+        {k.done ? (
+          <Button asChild className="h-11 sm:h-10"><Link to={links.adlauncher()}>See them in AdLauncher</Link></Button>
+        ) : next && (
+          <Button className="h-11 sm:h-10" onClick={() => start(next)}>
+            {k.sent || stopped !== null ? `Send the ${k.of - k.sent - k.blocked} left` : k.of === 1 ? "Send the ad" : `Send the ${k.of - k.blocked} ads`}
+          </Button>
+        )}
       </div>
+      {cur && (
+        <>
+          <SendSheet key={cur.design.id} userId={userId} campaign={c} view={cur} plan={plan} preview={preview(cur.ad.n)} jpeg={jpeg} onClose={closed} />
+          {/* over the sheet (z-80): where the walk is, and the way on once this ad is made */}
+          {createPortal(
+            // on a phone the way on sits under the thumb, where the sheet's footer was
+            <div className={cn("pointer-events-none fixed z-[85] sm:bottom-auto sm:left-auto sm:right-[496px] sm:top-3 sm:translate-x-0",
+              after || sent(cur) ? "inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+1rem)] sm:inset-x-auto" : "left-1/2 top-2.5 -translate-x-1/2")}>
+              {after || sent(cur) ? (
+                <Button className="pointer-events-auto h-11 w-full shadow-elegant sm:h-9 sm:w-auto" onClick={closed}>{after ? `Next: Ad ${after.ad.n}` : "Done"}</Button>
+              ) : (
+                <span role="status" className="rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium tabular-nums shadow-sm">
+                  Ad {plan.ads.indexOf(cur) + 1} of {k.of}
+                </span>
+              )}
+            </div>,
+            document.body,
+          )}
+        </>
+      )}
     </div>
   );
 }
