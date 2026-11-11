@@ -112,6 +112,7 @@ export interface SyncBackend {
   pullLike?(prefixes: string[]): PromiseLike<{ data: SyncRow[] | null; error: unknown }>;
   /** Write the row only if the cloud's still has the stamp `seen` (null: no row yet). Merged keys save this way. */
   swap?(row: SyncRow, seen: string | null): PromiseLike<"ok" | "conflict" | Outcome>;
+  stamps?(keys: string[]): PromiseLike<{ data: Pick<SyncRow, "key" | "updated_at">[] | null; error: unknown }>;
 }
 
 // Unpatched storage calls: the engine's own reads and writes must not re-queue.
@@ -321,20 +322,41 @@ export function createCloudSync(
     return false;
   };
 
+  const notNewerInCloud = async (rows: SyncRow[]): Promise<SyncRow[] | null> => {
+    if (!rows.length) return rows;
+    try {
+      const keys = rows.map((row) => row.key);
+      const { data, error } = await (backend.stamps ? backend.stamps(keys) : backend.pull(keys));
+      if (error || !data) return null;
+      const sentAt = new Map(rows.filter((row) => meta[row.key]).map((row) => [row.key, ms(row.updated_at)]));
+      const newer = new Set(data.filter((c) => sentAt.has(c.key) && ms(c.updated_at) > sentAt.get(c.key)!).map((c) => c.key));
+      if (!newer.size) return rows;
+      const full = await backend.pull([...newer]);
+      if (full.error || !full.data) return null;
+      full.data.filter((row) => newer.has(row.key)).forEach(applyRow);
+      return rows.filter((row) => !newer.has(row.key));
+    } catch {
+      return null;
+    }
+  };
+
   const send = async (keys: string[]) => {
     const failed: string[] = [];
     const merged = backend.swap ? keys.filter((key) => mergerFor(key) && storage.getItem(key) !== null) : [];
     for (const key of merged) if (!(await sendMerged(key, mergerFor(key)!))) failed.push(key);
     const now = new Date().toISOString();
-    const upserts: SyncRow[] = [];
+    const written: SyncRow[] = [];
     const deletes: string[] = [];
     for (const key of keys.filter((k) => !merged.includes(k))) {
       const data = storage.getItem(key);
       // Stamp rows with when they were written here, not when they were sent,
       // so a delayed retry doesn't beat edits made on another device since.
       if (data === null) deletes.push(key);
-      else upserts.push({ key, data, updated_at: meta[key] ?? now });
+      else written.push({ key, data, updated_at: meta[key] ?? now });
     }
+    const checked = await notNewerInCloud(written);
+    if (!checked) failed.push(...written.map((row) => row.key));
+    const upserts = checked ?? [];
 
     if (upserts.length && !(await succeeded(() => backend.upsert(upserts)))) {
       failed.push(...upserts.map((row) => row.key));
@@ -554,6 +576,7 @@ function supabaseBackend(userId: string): SyncBackend {
         { onConflict: "user_id,key" },
       ),
     remove: (keys) => table().delete().eq("user_id", userId).in("key", keys),
+    stamps: (keys) => table().select("key,updated_at").eq("user_id", userId).in("key", keys),
     pullLike: (prefixes) =>
       table()
         .select("key,data,updated_at")

@@ -95,6 +95,9 @@ function fakeBackend(rows: SyncRow[] = []) {
       batch.forEach((row) => table.set(row.key, row));
       return { error: null };
     },
+    async stamps(keys) {
+      return { data: [...table.values()].filter((row) => keys.includes(row.key)).map(({ key, updated_at }) => ({ key, updated_at })), error: null };
+    },
     async pullLike(prefixes) {
       calls.pull += 1;
       return { data: [...table.values()].filter((row) => prefixes.some((p) => row.key.startsWith(p))), error: null };
@@ -211,6 +214,31 @@ describe("createCloudSync", () => {
     await vi.advanceTimersByTimeAsync(1_000);
     expect(storage.getItem(DRAFTS)).toBe("newer phone edit");
     expect(cloud.calls.upsert).toHaveLength(0);
+  });
+
+  it("an edit that waited offline doesn't replace a newer one another device saved meanwhile, and takes it instead", async () => {
+    const PLAN = `content-studio-plan-${ME}`;
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const phone = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    await a.start();
+    const b = createCloudSync(ME, phone, cloud.backend);
+    await b.start();
+
+    cloud.fail.upsert = 1;
+    write(laptop, a, PLAN, "offline laptop edit");
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(cloud.table.has(PLAN)).toBe(false);
+
+    write(phone, b, PLAN, "newer phone edit");
+    await vi.advanceTimersByTimeAsync(800);
+    expect(cloud.table.get(PLAN)?.data).toBe("newer phone edit");
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(cloud.table.get(PLAN)).toEqual({ key: PLAN, data: "newer phone edit", updated_at: "2026-09-15T10:00:01.000Z" });
+    expect(laptop.getItem(PLAN)).toBe("newer phone edit");
+    expect(a.syncedAt(PLAN)).toBe("2026-09-15T10:00:01.000Z");
   });
 
   it("pushes nothing while the first pull fails, then syncs once it succeeds", async () => {
