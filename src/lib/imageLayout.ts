@@ -182,6 +182,21 @@ const STATIC_FIELDS: Record<StaticLayoutId, ImageField[]> = {
     { key: "three", label: "Note 3", max: 6, unit: "words", sample: "One more" },
     { key: "close", label: "Bottom line", max: 14, unit: "words", sample: "Your name and one plain fact" },
   ],
+  "tear-off-flyer": [
+    { key: "headline", label: "Headline", max: 6, unit: "words", sample: "A short headline" },
+    { key: "line", label: "Line under it", max: 8, unit: "words", sample: "One line under it" },
+    { key: "details", label: "Details", max: 14, unit: "words", sample: "The details" },
+    { key: "price", label: "Price", max: 20, unit: "chars", sample: "Your price", typed: true },
+  ],
+  "article-page": [
+    { key: "kicker", label: "Section", max: 4, unit: "words", sample: "Section" },
+    { key: "headline", label: "Headline", max: 16, unit: "words", sample: "A big headline" },
+    { key: "deck", label: "Deck", max: 30, unit: "words", sample: "A short deck under the headline" },
+  ],
+  "general-ad": [
+    { key: "headline", label: "Headline", max: 10, unit: "words", sample: "Your headline" },
+    { key: "line", label: "Line under it", max: 14, unit: "words", sample: "One line on what they get" },
+  ],
 };
 /** The field a static design is named after, and needs before a download. */
 const STATIC_MAIN: Record<StaticLayoutId, string> = {
@@ -201,6 +216,9 @@ const STATIC_MAIN: Record<StaticLayoutId, string> = {
   "share-popup": "headline",
   whiteboard: "title",
   "anti-design": "headline",
+  "tear-off-flyer": "headline",
+  "article-page": "headline",
+  "general-ad": "headline",
 };
 
 /**
@@ -1433,6 +1451,106 @@ function layoutStatic(input: ImageInput, layout: StaticLayoutId, size: ImageSize
       arrows.push(`M${fx} ${fy}Q${fx} ${ty} ${tx} ${ty}`, `M${tx + (right ? 22 : -22)} ${ty - 16}L${tx} ${ty}L${tx + (right ? 22 : -22)} ${ty + 16}`);
     }
     if (arrows.length) nodes.push({ type: "path", d: arrows.join(""), stroke: red, strokeWidth: 6 });
+  } else if (layout === "tear-off-flyer") {
+    // a flyer pinned to a cork board: the brand's name, a headline in its colour, a line, its logo, the details, the
+    // price you typed, and a row of tear-off tabs with its handle
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: H, fill: "#C69C6D" });
+    for (let i = 0; i < 70; i++) nodes.push(dot((i * 397) % W, (i * 613) % H, 3 + (i % 4), "#8A6238", 0.35));
+    const paper = mix("#FFFFFF", brand.color, 0.1);
+    const ink = "#1C1917";
+    const head = accentOnPaper(brand.color, paper);
+    const fx = 110;
+    const fw = W - 2 * fx;
+    const fy = top + 64;
+    const fh = bottom - 56 - fy;
+    const tabH = Math.min(230, Math.round(fh * 0.2));
+    nodes.push({ type: "rect", x: fx + 10, y: fy + 14, width: fw, height: fh, fill: "#000000", opacity: 0.2 }, { type: "rect", x: fx, y: fy, width: fw, height: fh, fill: paper });
+    for (const [px, c] of [[fx + 56, "#DC2626"], [fx + fw - 56, "#2563EB"]] as const) nodes.push(dot(px, fy + 34, 16, c), dot(px - 5, fy + 29, 5, "#FFFFFF", 0.7));
+    const inner: Box = { x: fx + 54, y: fy + 76, w: fw - 108, h: fh - 76 - tabH - 40 };
+    if (brand.name?.trim()) text(brand.name.trim(), inner.x, inner.y + 24, { family: "sans", weight: 600, size: 28 }, head, { room: inner.w });
+    const logo = sanitizeImage(brand.logo);
+    const markH = Math.round(Math.min(180, inner.h * 0.2));
+    const p = fitFields(
+      [
+        ["headline", { family: "sans", weight: 600, sizes: [104, 94, 86, 78, 70, 62, 56, 50, 44, 40], line: 1.02, fill: head, gap: 16 }, true],
+        ["line", { family: "sans", weight: 600, sizes: [54, 50, 46, 42, 38, 34, 31, 28], line: 1.15, fill: ink, gap: markH + 64 }],
+        ["details", { family: "sans", weight: 400, sizes: [38, 35, 32, 30, 28, 26, 24, 22], line: 1.35, fill: ink, gap: 24 }],
+        ["price", { family: "sans", weight: 600, sizes: [84, 76, 68, 60, 54, 48, 42, 36], line: 1.1, fill: head, gap: 0, single: true }],
+      ],
+      inner.w,
+      inner.h - 56,
+    );
+    let y = inner.y + 56;
+    for (const k of ["headline", "line"] as const) if (p[k]) y += draw(p[k], inner.x, y) + p[k]!.b.gap;
+    // the brand's mark in the room kept under the line: its logo whole, else its initial on its colour
+    const markY = y - markH - 32;
+    if (p.line && logo) nodes.push({ type: "image", x: inner.x, y: markY, width: Math.round(markH * 2.4), height: markH, href: logo, shape: "square", fit: "contain" });
+    else if (p.line) {
+      nodes.push(dot(inner.x + markH / 2, markY + markH / 2, markH / 2, brand.color));
+      text(initialOf(brand.name || "?"), inner.x + markH / 2, markY + markH / 2 + Math.round(markH * 0.18), { family: "sans", weight: 600, size: Math.round(markH * 0.5) }, onBrand, { anchor: "middle" });
+    }
+    for (const k of ["details", "price"] as const) if (p[k]) y += draw(p[k], inner.x, y) + p[k]!.b.gap;
+    // the tear-off tabs: dashed cuts, the handle (else the name) turned on its side in each
+    const tabs = 7;
+    const tw = fw / tabs;
+    const ty = fy + fh - tabH;
+    const tag = normalizeHandle(brand.handle) || brand.name?.trim() || "";
+    const cuts: string[] = [`M${fx} ${ty}h${fw}`];
+    for (let i = 1; i < tabs; i++) for (let d = 0; d < tabH; d += 18) cuts.push(`M${Math.round(fx + i * tw)} ${ty + d}v10`);
+    nodes.push({ type: "path", d: cuts.join(""), stroke: mix(paper, ink, 0.45), strokeWidth: 2.5 });
+    if (tag) {
+      const tf: FontSpec = { family: "sans", weight: 400, size: [24, 22, 20, 18].find((n) => measure(tag, { family: "sans", weight: 400, size: n }) <= tabH - 36) ?? 18 };
+      const t = measure(tag, tf) <= tabH - 36 ? tag : ellipsize(tag, tabH - 36, tf, measure);
+      for (let i = 0; i < tabs; i++) {
+        const cx = Math.round(fx + (i + 0.5) * tw + 9);
+        const cy = ty + Math.round(tabH / 2);
+        nodes.push({ type: "text", x: cx, y: cy, text: t, font: tf, fill: ink, anchor: "middle", rotate: { deg: -90, x: cx, y: cy } });
+      }
+    }
+  } else if (layout === "article-page") {
+    // the brand's own magazine page: a nav bar in its colour with its name, a section label, a big serif headline, a
+    // rule, the deck, and the hero picture under it
+    const navH = 124;
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: top + navH, fill: brand.color });
+    nodes.push({ type: "path", d: `M${PAD_X} ${top + navH / 2 - 14}h40M${PAD_X} ${top + navH / 2}h40M${PAD_X} ${top + navH / 2 + 14}h40`, stroke: onBrand, strokeWidth: 5 });
+    if (brand.name?.trim()) text(brand.name.trim(), W / 2, top + navH / 2 + 16, { family: fonts.title, weight: 600, size: 46 }, onBrand, { anchor: "middle", room: w - 200 });
+    const stageH = bottom - top;
+    const heroMin = Math.round(stageH * (size === "1x1" ? 0.26 : 0.32));
+    const p = fitFields(
+      [
+        ["kicker", { family: "sans", weight: 600, sizes: [28, 26, 24, 22], line: 1.2, fill: accent, gap: 22 }, true],
+        ["headline", { family: fonts.title, weight: 600, sizes: [96, 88, 80, 72, 66, 60, 54, 48, 44, 40, 36], line: 1.08, fill: ui.ink, gap: 70 }],
+        ["deck", { family: fonts.title, weight: 400, sizes: [40, 37, 34, 32, 30, 28, 26, 24], line: 1.4, fill: ui.body, gap: 0 }],
+      ],
+      w,
+      stageH - navH - 2 * 52 - heroMin,
+    );
+    let y = top + navH + 52;
+    for (const k of ["kicker", "headline"] as const) if (p[k]) y += draw(p[k], PAD_X, y) + p[k]!.b.gap;
+    if (p.headline) nodes.push({ type: "rect", x: PAD_X, y: y - 38, width: w, height: 3, fill: ui.line });
+    if (p.deck) y += draw(p.deck, PAD_X, y);
+    const heroY = y + 52;
+    if (!photo({ x: 0, y: heroY, w: W, h: H - heroY })) nodes.push({ type: "rect", x: 0, y: heroY, width: W, height: H - heroY, fill: mix(ui.screen, brand.color, 0.3) });
+  } else if (layout === "general-ad") {
+    // a clean ad: the headline and its line top left, the photo large under them, the brand's colour without one
+    nodes.push({ type: "rect", x: 0, y: 0, width: W, height: H, fill: mix(ui.screen, "#000000", 0.04) });
+    const stageH = bottom - top;
+    const p = fitFields(
+      [
+        ["headline", { family: fonts.title, weight: 600, sizes: [104, 96, 88, 80, 72, 66, 60, 54, 48, 44], line: 1.06, fill: ui.ink, gap: 28 }],
+        ["line", { family: fonts.body, weight: 400, sizes: [42, 39, 36, 33, 30, 28, 26, 24], line: 1.38, fill: ui.body, gap: 0 }],
+      ],
+      w,
+      Math.round(stageH * 0.42),
+    );
+    let y = top + 80;
+    for (const it of [p.headline, p.line]) if (it) y += draw(it, PAD_X, y) + it.b.gap;
+    const picY = y + 64;
+    const pic: Box = { x: PAD_X, y: picY, w, h: bottom - 80 - picY };
+    if (!photo(pic, "rounded")) {
+      nodes.push({ type: "rect", x: pic.x, y: pic.y, width: pic.w, height: pic.h, rx: 28, fill: brand.color });
+      if (brand.name?.trim()) text(brand.name.trim(), W / 2, pic.y + pic.h / 2 + 20, { family: fonts.title, weight: 600, size: 60 }, onBrand, { anchor: "middle", room: w - 80 });
+    }
   } else {
     // news-headline: the photo full bleed, a round badge, the headline in capitals, white and yellow, on a dark fade
     // that is solid from the headline's first line down, so it reads on any photo

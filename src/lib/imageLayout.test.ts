@@ -50,8 +50,9 @@ const FULL: Record<AdLayoutId, Record<string, string>> = {
 
 const input = (layout: AdLayoutId, o: Partial<ImageInput> = {}): ImageInput => ({ layout, words: FULL[layout], brand, picture: PIC, ...o });
 
-/** The left and right edges a text node covers, whatever its anchor. */
+/** The left and right edges a text node covers, whatever its anchor; a line turned on its side covers about its size. */
 const span = (t: TextNode) => {
+  if (t.rotate && Math.abs(t.rotate.deg) > 45) return [t.x - t.font.size, t.x + t.font.size * 0.3];
   const w = measure(t.text, t.font);
   return t.anchor === "middle" ? [t.x - w / 2, t.x + w / 2] : t.anchor === "end" ? [t.x - w, t.x] : [t.x, t.x + w];
 };
@@ -415,7 +416,8 @@ describe("static ad formats (ff1111)", () => {
           inside(drawn, size, at);
           expect(drawn.overflow, at).toBe(false);
           const all = texts(drawn.nodes);
-          expect(all.some((t) => t.text.endsWith("\u2026")), at).toBe(false);
+          // a long handle on a flyer's tab may be cut; the words never are
+          expect(all.some((t) => !t.rotate && t.text.endsWith("\u2026")), at).toBe(false);
           const shown = all.map((t) => t.text).join(" ").toLowerCase();
           for (const [k, v] of Object.entries(example(layout))) expect(shown, `${at}: ${k}`).toContain(v.split(" ")[0].toLowerCase());
         }
