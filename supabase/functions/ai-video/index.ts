@@ -328,19 +328,11 @@ Deno.serve(async (req) => {
           return { state: "working" }; // a blip: the browser asks again
         }
       }));
-      if (ids.every(Boolean)) {
-        const anyFailed = jobs.some((j) => j.state === "failed");
-        const back = await refundFailed(admin, signing, uid, ids as string[], anyFailed, r.refund, day);
-        // a version run's ticket names edit-version: both uses back, once per video, as refundFailed does
-        if (!back && anyFailed && r.refund && (await openJobToken(signing, versionTicket(ids as string[]), r.refund)) && (await claimOnce(admin, uid, `refund:${ids[0]!.toLowerCase()}`))) {
-          await refundUsage(admin, uid, "edit-version" as UsageFeature, day);
-          await refundUsage(admin, GLOBAL_COUNTER_USER, "ai-video-global", day);
-        }
-      }
       // a video's poll (it carries the refund ticket) drops every part at the first failure, so the others are cancelled:
       // Higgsfield cancels and refunds only a queued request; one it is making or has made is charged, and the error says so
       const first = jobs.findIndex((j) => j.state === "failed");
       const failed = jobs[first];
+      let spent = 0;
       if (r.refund && failed?.state === "failed") {
         const charged = await Promise.all(ids.map(async (id, i) => {
           if (!id || jobs[i].state === "failed") return false;
@@ -349,8 +341,17 @@ Deno.serve(async (req) => {
           console.log("ai-video cancel", id, res?.status ?? "no answer");
           return !res?.ok;
         }));
-        const n = charged.filter(Boolean).length;
-        if (n) jobs[first] = { state: "failed", error: `${failed.error} ${partsSpent(n)}` };
+        spent = charged.filter(Boolean).length;
+        if (spent) jobs[first] = { state: "failed", error: `${failed.error} ${partsSpent(spent)}` };
+      }
+      if (ids.every(Boolean)) {
+        const anyFailed = first >= 0 && !spent;
+        const back = await refundFailed(admin, signing, uid, ids as string[], anyFailed, r.refund, day);
+        // a version run's ticket names edit-version: both uses back, once per video, as refundFailed does
+        if (!back && anyFailed && r.refund && (await openJobToken(signing, versionTicket(ids as string[]), r.refund)) && (await claimOnce(admin, uid, `refund:${ids[0]!.toLowerCase()}`))) {
+          await refundUsage(admin, uid, "edit-version" as UsageFeature, day);
+          await refundUsage(admin, GLOBAL_COUNTER_USER, "ai-video-global", day);
+        }
       }
       return json({ jobs });
     }

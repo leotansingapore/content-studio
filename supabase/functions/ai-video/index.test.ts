@@ -905,15 +905,19 @@ describe("a talking video's status checks", () => {
     expect(await (await send(UID, { mode: "status", tokens: one.tokens, refund: one.refund })).json()).toEqual({ jobs: [{ state: "working" }, { state: "failed", error: `${DIDNT} ${partsSpent(1)}` }] });
     expect(cancels()).toEqual([`https://api.higgsfield.ai/requests/${P1}/cancel`]);
     expect(logs.mock.calls).toContainEqual(["ai-video cancel", P1, 400]);
-    // the use rule as before: a failed part gives both back
-    expect([mine(), studio()]).toEqual([0, 0]);
+    // a part Higgsfield charged for keeps both uses spent, on every read
+    expect([mine(), studio()]).toEqual([1, 1]);
+    await send(UID, { mode: "status", tokens: one.tokens, refund: one.refund });
+    expect([mine(), studio()]).toEqual([1, 1]);
+    db.rows.clear();
 
-    // a part still queued is cancelled, and Higgsfield refunds a cancelled request: nothing to warn about
+    // a part still queued is cancelled, and Higgsfield refunds a cancelled request: nothing to warn about, both uses back
     const two = await start();
     delete hf.cancels[P1];
     hf.status = { [P1]: { status: "failed", error: "Generation failed" }, [P2]: { status: "queued" } };
     expect(await (await send(UID, { mode: "status", tokens: two.tokens, refund: two.refund })).json()).toEqual({ jobs: [{ state: "failed", error: DIDNT }, { state: "working" }] });
     expect(cancels()).toEqual([`https://api.higgsfield.ai/requests/${P2}/cancel`]);
+    expect([mine(), studio()]).toEqual([0, 0]);
 
     // a part already made is charged and can't be cancelled; one with no answer to its cancel may still be made
     const three = await start();
@@ -924,6 +928,7 @@ describe("a talking video's status checks", () => {
     hf.status = { [P1]: { status: "completed", video: { url: "https://cdn.example/p1.mp4" } }, [P2]: { status: "failed" } };
     expect((await (await send(UID, { mode: "status", tokens: three.tokens, refund: three.refund })).json()).jobs[1]).toEqual({ state: "failed", error: `${DIDNT} ${partsSpent(1)}` });
     expect(cancels()).toEqual([]);
+    expect([mine(), studio()]).toEqual([1, 1]);
     hf.status = { "77777777-7777-4888-9999-bbbbbbbbbbbb": { status: "nsfw" }, "88888888-7777-4888-9999-cccccccccccc": { status: "in_progress" }, "99999999-7777-4888-9999-dddddddddddd": { status: "in_progress" } };
     hf.cancels["88888888-7777-4888-9999-cccccccccccc"] = 500;
     expect((await (await send(UID, { mode: "status", tokens: four.tokens, refund: four.refund })).json()).jobs[0]).toEqual({ state: "failed", error: `The safety filter blocked it. Try another photo or wording. ${partsSpent(1)}` });
