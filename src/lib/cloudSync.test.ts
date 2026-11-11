@@ -411,6 +411,34 @@ describe("createCloudSync", () => {
     expect(sync.syncedAt(DESIGNS)).toBe("2026-09-15T10:05:00.000Z");
   });
 
+  it("a cloud row too big for this device is skipped: the pull still finishes, the rest arrive and sync carries on", async () => {
+    const BIG = `content-studio-designs-${ME}`;
+    const PLAN = `content-studio-plan-${ME}`;
+    const storage = new MemoryStorage();
+    const set = storage.setItem.bind(storage);
+    storage.setItem = (key, value) => {
+      if (key === BIG) throw new DOMException("full", "QuotaExceededError");
+      set(key, value);
+    };
+    const cloud = fakeBackend([
+      { key: BIG, data: "x".repeat(10), updated_at: NEW },
+      { key: PLAN, data: "plan", updated_at: NEW },
+    ]);
+    const sync = createCloudSync(ME, storage, cloud.backend);
+    await sync.start();
+    expect(storage.getItem(PLAN)).toBe("plan");
+    expect(storage.getItem(BIG)).toBeNull();
+    expect(sync.outOfRoom()).toBe(true);
+    expect(sync.syncedAt(PLAN)).toBe(NEW);
+    expect(sync.syncedAt(BIG)).toBeNull();
+
+    write(storage, sync, DRAFTS, "new draft");
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(cloud.table.get(DRAFTS)?.data).toBe("new draft");
+    expect(cloud.table.get(BIG)?.data).toBe("x".repeat(10));
+    expect(cloud.calls.remove).toHaveLength(0);
+  });
+
   it("refresh waits for the first pull and stops with the engine", async () => {
     const storage = new MemoryStorage();
     const { backend, calls } = fakeBackend();

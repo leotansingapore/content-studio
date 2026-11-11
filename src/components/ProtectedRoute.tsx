@@ -4,8 +4,11 @@ import type { Session } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
-import { initCloudSync } from "@/lib/cloudSync";
+import { cloudSyncOutOfRoom, initCloudSync } from "@/lib/cloudSync";
 import { rememberUser } from "@/lib/profiles";
+import { toast } from "@/hooks/use-toast";
+
+let toldOutOfRoom = false;
 
 export default function ProtectedRoute({
   children,
@@ -25,7 +28,15 @@ export default function ProtectedRoute({
       if (data.session) {
         // known before any page draws, so a page can tell a pending brand switch from the brand already open
         rememberUser(data.session.user.id);
-        await initCloudSync(data.session.user.id);
+        await initCloudSync(data.session.user.id).catch(() => undefined);
+        if (cloudSyncOutOfRoom() && !toldOutOfRoom) {
+          toldOutOfRoom = true;
+          toast({
+            title: "This device is out of room",
+            description: "Some of your work from other devices isn't on this one. Clear some space, then reload.",
+            variant: "destructive",
+          });
+        }
       }
       if (!mounted) return;
       setSession(data.session);

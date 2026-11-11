@@ -141,6 +141,7 @@ export interface CloudSync {
   syncedAt(key: string): string | null;
   /** Send what's pending once, then stop. Anything unsent stays saved on the device. */
   stop(): Promise<void>;
+  outOfRoom(): boolean;
 }
 
 function readJson<T>(storage: SyncStorage, key: string, fallback: T): T {
@@ -188,6 +189,7 @@ export function createCloudSync(
   let pullTimer: ReturnType<typeof setTimeout> | undefined;
   let pushFailures = 0;
   let pullFailures = 0;
+  let full = false;
 
   const backoff = (failures: number) =>
     RETRY_DELAYS_MS[Math.min(failures - 1, RETRY_DELAYS_MS.length - 1)];
@@ -431,7 +433,13 @@ export function createCloudSync(
       pending.has(row.key),
     );
     if (decision === "apply-cloud") {
-      storage.setItem(row.key, row.data);
+      try {
+        storage.setItem(row.key, row.data);
+      } catch {
+        full = true;
+        pending.delete(row.key);
+        return;
+      }
       meta[row.key] = row.updated_at;
       pending.delete(row.key);
       if (merger) {
@@ -541,6 +549,7 @@ export function createCloudSync(
     refresh,
     refreshMerged,
     syncedAt: (key) => meta[key] ?? null,
+    outOfRoom: () => full,
     noteWrite,
     retryNow: () => {
       if (pulled) {
@@ -668,6 +677,8 @@ export function refreshCloudKeys(keys: string[]): Promise<void> {
 
 /** This device's stamp for a synced key (CloudSync.syncedAt), or null before sync starts. */
 export const cloudSyncedAt = (key: string): string | null => active?.syncedAt(key) ?? null;
+
+export const cloudSyncOutOfRoom = (): boolean => active?.outOfRoom() ?? false;
 
 /** Send pending changes (briefly) and detach sync from the signed-out user. */
 export function stopCloudSync(): Promise<void> {
