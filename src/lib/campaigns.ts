@@ -35,7 +35,8 @@ export interface CampaignPost {
   ask?: string;
   /** `text` and `caption`: the words and caption a wall's maker wrote, which the queue shows once it is made. */
   made?: { kind: "draft" | "slideshow" | "video"; id: string; text?: string; caption?: string };
-  prev?: { hook?: string; body?: string; script?: string; brief?: string; cta?: string };
+  /** The words before the last Swap, for its Undo; `format` when the swap changed the format too. */
+  prev?: { hook?: string; body?: string; script?: string; brief?: string; cta?: string; format?: CampaignFormat };
 }
 
 /** Where it runs: posts only (missing on campaigns from before 11 Nov), ads only, or both. */
