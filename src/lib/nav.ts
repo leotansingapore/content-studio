@@ -15,6 +15,7 @@ import {
   History,
   Home,
   Images,
+  Layers,
   Lightbulb,
   Linkedin,
   MessageSquare,
@@ -133,7 +134,7 @@ export const SECTIONS: NavSection[] = [
     icon: Wand2,
     to: "/studio",
     pages: [
-      // Fastlane's Studio tabs in its order (Overview, Create, Library, then Blitz and Influencers, Leo 11 Nov), then our own two
+      // Fastlane's Studio tabs in its order (Overview, Create, Library, Blitz, Influencers, Leo 11 Nov), then our own two
       { to: "/studio", label: "Overview", title: "Studio", group: "Overview" },
       // Leo's Create opens on the whole catalogue, as Fastlane's does; everyone else's still opens on Post
       { to: "/make", label: "All formats", title: "Formats", owners: LEO_EMAILS, group: "Create" },
@@ -155,6 +156,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/board", label: "Board", icon: Columns3 },
       { to: "/grid", label: "Grid", title: "Instagram grid" },
       { to: "/media", label: "Media" },
+      // a deck of ready drafts to keep or skip (Fastlane's Blitz, plan-blitz)
+      { to: "/blitz", label: "Blitz", owners: LEO_EMAILS, icon: Layers, group: "Blitz" },
       { to: "/people", label: "Faces and voices", owners: LEO_EMAILS, group: "Influencers" },
       // its own tab, so Create stays a short choice and these Campaigns can't be read as Strategy's
       { to: "/slideshow", label: "Slideshow", group: "Slideshows" },

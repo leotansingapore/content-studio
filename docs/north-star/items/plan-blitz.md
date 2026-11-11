@@ -1,10 +1,12 @@
 # Swipe through ready drafts and keep the ones you like
 
-`plan-blitz` | plan | phase 5 | status: missing | /north-star#plan-blitz
+`plan-blitz` | plan | phase 5 | status: partial | /north-star#plan-blitz
 
 ## Leo asked
 
-No direct ask. From the Senna research Leo asked SearchBlueprint's Atlas session to share on 27 Oct 2026 (`~/Documents/seo-audit-tool/docs/north-star/research/senna.md`, "Hands-on walk in Leo's Chrome, 27 Oct 2026").
+11 Nov 2026 meeting, walking Fastlane's Blitz (inventory part1.md S22 to S24, 07:54 to 09:18): "Blitz is just... like
+swiping right and left", "it's remixed from this and I think the AI would just generate this", then Configure Blitz:
+"Text positioning, remix ratio, content mix, slide rules." Before that, no direct ask. From the Senna research Leo asked SearchBlueprint's Atlas session to share on 27 Oct 2026 (`~/Documents/seo-audit-tool/docs/north-star/research/senna.md`, "Hands-on walk in Leo's Chrome, 27 Oct 2026").
 
 ## How the best do it
 
@@ -17,6 +19,19 @@ Fastlane, seen on Leo's signed-in Activity Tracker workspace (Starter plan) on 2
 - The top bar has "Change mix" on the left and "Smart positioning" and "Configure" on the right. None of the three was opened.
 - Kept drafts land in the Library, and the 19 Oct recording's Activity log lists older keeps as "Saved a slideshow", who "Blitz", "No credits used" (`videos/fastlane-2026-10-19/notes-4.md`, 2.16); those notes guessed Blitz was the old product's generator, which the 27 Oct walk shows is wrong, since it is a live Studio tab.
 - Fastlane's AI meme page says memes are approved "in Blitz" before they are scheduled (formats-memes).
+
+Seen again on Leo's screen on 11 Nov (`meeting-20261111-vibe/pick/t07-54.jpg` to `t09-18.jpg`):
+
+- The deck: a 9:16 wall of text over a clip with a sound toggle, or a 4:5 slideshow with arrows and dots inside the
+  card, a second card peeking behind. Chips over it: the format, the angle with a dot, and "Why This Content?".
+- A card made by remix shows the post it came from on the left under "REMIXED FROM", with its likes and views.
+- Skip (a cross), Edit (a pencil) and Keep (a filled tick), key hints under the cross and the tick. A keep shows
+  "Content saved!" with "View in Library"; once it opened "Schedule post" with "Save to Library" or "Schedule Post".
+  Each keep took 5 credits (568, 563, 558...).
+- Configure (/studio/blitz/settings, a "1 unsaved change" banner): Content mix (Slideshow, Wall of text, Green
+  screen, Hook demo videos, 25% each, Equalize), Remix ratio 50% ("How much Blitz remixes trending content vs.
+  creates original ideas from scratch"), visual sources (Demo videos, Own uploads), Own-media mix 50%, Slide rules
+  (where a slide's picture comes from), Smart text positioning (on), and a Caption style mix of seven looks.
 
 Others:
 
@@ -32,7 +47,37 @@ Checked against ns/phase7 at 8664c00d on 27 Oct.
 - What a deck could draw on already exists on Leo's sign-ins: competitors' running ads (`content-studio-competitor-ads-`), the weekly format drop (`src/data/formatTrends.json`), Winner found posts (`src/lib/winners.ts`) and top posts (`src/lib/topPosts.ts`).
 - Missing: ready posts outside a campaign, a keep or skip that takes one press, and a reason on each draft.
 
-## Build
+## Built (11 Nov 2026, branch ff1111-blitz)
+
+- /blitz under Studio's own Blitz tab (Leo only): `src/pages/BlitzPage.tsx`, `src/components/blitz/*`, the deck's rules
+  and store in `src/lib/blitz.ts`, the job outside React in `src/lib/blitzJob.ts`. The day's first visit makes the
+  deck; it shows on /library's Making now and says "Your blitz deck is ready" on another page (formatJob.ts).
+- Cards are slideshows (slideshowJob, saved to Slideshows) and walls of text (the wall maker's own make call, as
+  "wall"). A kept wall is its words and caption in My posts; its clip and video come from the wall maker, so a deck
+  never queues ten videos in the editor. Text posts are left out: Fastlane's mix has none.
+- Edit keeps the card first, then opens the slideshow editor or Write with `from=blitz`, so an edit always lands in
+  My posts. Back returns to `/blitz?card=<id>`, which shows the next card once that one is kept.
+- A new day's deck removes the last deck's slideshows nobody kept or skipped.
+- Configure (`?configure=1`) holds Change mix and the settings our makers have an option for:
+
+| Fastlane | Ours | Maker option |
+|---|---|---|
+| Change mix | Remix from: Rivals' ads, Trends, Your winners | the source |
+| Content mix | Slideshow vs wall of text, one slider | slideshowJob or the wall's make |
+| Remix ratio | Remixed vs written from your ideas (/ideas, shortlist first) | `source` vs `topic` (startFrom) |
+| Own uploads, Own-media mix | Slideshow pictures from your Media vs stock | slideshow `pictures: "mine" \| "stock"` |
+| Slide rules | A picture per slide, or one photo mood | slideshow `mood` |
+| Green screen, Hook demo videos, Demo videos | none: each makes a paid AI video, not one remix make | |
+| Smart text positioning | none: the makers place words by their own layout | |
+| Caption style mix | none: a slideshow takes the last text look used in its editor, no look per make | |
+
+- Open: the Jev pick. writing-judge has no mode that judges a source's fit for the brand's audiences, and adding one
+  needs a new mode and a new cap (blitz-deck). Until then candidates go by outlier score within each source (days an
+  ad has run, a trend's views, a winner's ratio), the seam is `pickDeck` in `src/lib/blitz.ts`.
+- Not built: Fastlane's credit per keep and daily review count (no credits yet), and the Schedule post step after a
+  keep (the toast's "Schedule it" opens My posts' schedule steps instead).
+
+## Build (as specced 27 Oct)
 
 Gate: `useLeoOnly()` in the page, nav `owners: LEO_EMAILS`, `NORTH_STAR_USERS` on any server call. A typed URL from another sign-in gets the 404 page.
 
@@ -84,17 +129,17 @@ Blitz                                         8 left today   [Change mix]
 
 - `/blitz` opens the deck at its first open card.
 - `/blitz?card=<id>` opens one card (replace).
-- `/blitz?mix=1` opens Change mix (push).
+- `/blitz?configure=1` opens Configure, which holds Change mix (push).
 - Add the three to `docs/deep-links.md`.
 
 ## Done when
 
-- [ ] On Leo's sign-in /blitz makes up to 10 drafts from his competitors' ads, the format drop and his winners, and leaving the page mid-way does not stop it.
-- [ ] Keep puts the draft in My posts unscheduled, with Undo; Skip saves nothing.
-- [ ] Every card shows its format, its source and a Why this line drawn from real numbers.
-- [ ] The deck stops cleanly when remix-make runs out, keeping what it made.
-- [ ] S, E and K work from the keyboard and never fire while typing or with a dialog open.
-- [ ] Other sign-ins get the 404 page and no nav entry.
+- [x] On Leo's sign-in /blitz makes up to 10 drafts from his competitors' ads, the format drop and his winners, and leaving the page mid-way does not stop it.
+- [x] Keep puts the draft in My posts unscheduled, with Undo; Skip saves nothing.
+- [x] Every card shows its format, its source and a Why this line drawn from real numbers.
+- [x] The deck stops cleanly when remix-make runs out, keeping what it made.
+- [x] S, E and K work from the keyboard and never fire while typing or with a dialog open.
+- [x] Other sign-ins get the 404 page and no nav entry.
 - [ ] `npm run build`, the full `npx vitest run`, and a look at 390 px and 1440 px pass.
 - [ ] The item in `src/data/northStar.ts` flipped with its `ours` line in the same commit.
 

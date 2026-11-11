@@ -111,6 +111,7 @@ const AudiencesPage = lazy(() => import("@/pages/AudiencesPage"));
 const ScriptwriterPage = lazy(() => import("@/pages/ScriptwriterPage"));
 const ResearchPage = lazy(() => import("@/pages/ResearchPage"));
 const IdeasPage = lazy(() => import("@/pages/IdeasPage"));
+const BlitzPage = lazy(() => import("@/pages/BlitzPage"));
 const CampaignsPage = lazy(() => import("@/pages/CampaignsPage"));
 const CampaignWizardPage = lazy(() => import("@/pages/CampaignWizardPage"));
 const CampaignPage = lazy(() => import("@/pages/CampaignPage"));
@@ -237,6 +238,7 @@ export default function App() {
           <Route path="/brand" element={<BrandPage />} />
           <Route path="/audiences" element={<AudiencesPage />} />
           <Route path="/people" element={<PeoplePage />} />
+          <Route path="/blitz" element={<BlitzPage />} />
           <Route path="/bio" element={<LinkInBioPage />} />
           <Route path="/links" element={<TrackedLinksPage />} />
           <Route path="/media" element={<MediaPage />} />

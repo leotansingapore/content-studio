@@ -517,6 +517,19 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 Closing /edit's AI panel drops talk, offer, look, from, topic, link, draft, secs and visuals with kind and template.
 The made video opens at /edit?p=<project id> as today.
 
+## Blitz (Leo only)
+
+docs/north-star/items/plan-blitz.md. /blitz is Leo's sign-ins only (src/lib/useLeoOnly.ts): the nav hides it and
+anyone else gets the not-on-your-account page. Built in src/lib/links.ts (links.blitz), defaults left out.
+
+| Page | Param | Values | Default | History | Example |
+|---|---|---|---|---|---|
+| /blitz | card | Leo only. a card's id in today's deck; opens that card while it is still to review, else the first open card | the first open card | replace | /blitz?card=bz-mh3k2a0x1f |
+| /blitz | configure | Leo only. 1: Configure open (where cards come from, content mix, remix ratio, own-media mix, slide rules) | closed | push | /blitz?configure=1 |
+
+Edit on a card opens the slideshow editor (/slideshow?s=<id>) or Write (/generate?draft=<id>) with from=blitz, which
+the editors ignore; Back returns to /blitz?card=<id>.
+
 ## Faces, voices and brand (Leo only)
 
 North star phase 4 (docs/north-star/items/people-my-face.md, people-presenters.md, people-dub-lipsync.md,

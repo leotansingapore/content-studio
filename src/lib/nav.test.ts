@@ -6,7 +6,7 @@ const routes = [
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/carousels", "/working", "/trends", "/clone", "/research", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/social-north-star", "/audiences",
-  "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/notifications", "/adlauncher",
+  "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/notifications", "/adlauncher", "/blitz",
 ];
 const LEO = "tanjunsing@gmail.com";
 const ANYONE = "someone@example.com";
@@ -57,7 +57,7 @@ describe("nav", () => {
     expect(pageTitle("/board")).toBe("Board - Postmosis");
     expect(pageTitle("/generate")).toBe("Write a post - Postmosis");
     expect(pageTitle("/library")).toBe("Library - Postmosis");
-    for (const [to, title] of [["/agent", "Agent"], ["/skills", "Skills"], ["/campaigns", "Campaigns"], ["/people", "Faces and voices"], ["/make", "Formats"]]) {
+    for (const [to, title] of [["/agent", "Agent"], ["/skills", "Skills"], ["/campaigns", "Campaigns"], ["/people", "Faces and voices"], ["/make", "Formats"], ["/blitz", "Blitz"]]) {
       expect(pageTitle(to), to).toBe(`${title} - Postmosis`);
     }
     expect(pageTitle("/nope")).toBe("Postmosis");
@@ -74,7 +74,7 @@ describe("nav", () => {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/launch", "/linkedin", "/ideas", "/social-north-star"]);
       expect(pages("write", email).slice(0, 13), email).toEqual(["/studio", "/make", "/generate", "/hooks", "/make/hook-demo", "/generate/batch", "/generate/answer", "/generate/vsl", "/script", "/carousel", "/image", "/edit", "/library"]);
-      expect(pages("write", email).slice(17, 18), email).toEqual(["/people"]);
+      expect(pages("write", email).slice(17, 19), email).toEqual(["/blitz", "/people"]);
       expect(pages("find", email).slice(4, 6), email).toEqual(["/clone", "/research"]);
       expect(pages("find", email).slice(9, 11), email).toEqual(["/competitors", "/saved"]);
       expect(pages("settings", email), email).toEqual(["/settings", "/notifications", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
@@ -126,13 +126,14 @@ describe("nav", () => {
     it("gives Studio its groups as tabs and the open group's pages as chips", () => {
       const leo = sectionTabs("/carousel", LEO);
       // Fastlane's five in its order (Leo 11 Nov), then ours
-      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Influencers", "Slideshows", "Approvals"]);
+      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Blitz", "Influencers", "Slideshows", "Approvals"]);
       expect(leo.tabs.find((t) => t.active)?.label).toBe("Create");
       expect(labels(leo.chips)).toEqual(["All formats", "Post", "Hooks", "Hook + demo", "Batch", "Answer", "VSL", "Script", "Carousel", "Image", "Video"]);
       expect(leo.chips.find((t) => t.active)?.to).toBe("/carousel");
       // each group tab opens the group's first page this sign-in sees: Leo's Create the whole catalogue, everyone else's Post
-      expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/make", "/library", "/people", "/slideshow", "/team"]);
+      expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/make", "/library", "/blitz", "/people", "/slideshow", "/team"]);
       expect(sectionTabs("/grid", ANYONE).tabs.map((t) => t.to)).toEqual(["/studio", "/generate", "/library", "/slideshow", "/team"]);
+      expect(sectionTabs("/blitz", LEO).tabs.find((t) => t.active)?.label).toBe("Blitz");
       expect(sectionTabs("/people", LEO).tabs.find((t) => t.active)?.label).toBe("Influencers");
       // the slideshow tools are their own tab, so its Campaigns never sit beside Post and Video
       const slides = sectionTabs("/design/campaigns", ANYONE);

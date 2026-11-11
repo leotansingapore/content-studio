@@ -82,6 +82,7 @@ export const PAGES: Record<string, string> = {
   "/brand": "Brand kit",
   "/audiences": "Audiences",
   "/people": "Faces and voices",
+  "/blitz": "Blitz",
   "/bio": "Link in bio",
   "/links": "Tracked links",
   "/accounts": "Social accounts",

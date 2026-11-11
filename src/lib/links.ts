@@ -634,6 +634,8 @@ export const links = {
       idea?: string;
     } = {},
   ) => `/ideas${qs({ tab: o.tab !== "inbox" && o.tab, source: o.source !== "all" && o.source, label: o.label, idea: o.idea })}`,
+  /** Blitz (Leo only, plan-blitz): card opens one card (replace), configure=1 opens Configure (push). */
+  blitz: (o: { card?: string; configure?: boolean } = {}) => `/blitz${qs({ card: o.card, configure: o.configure && 1 })}`,
   // ---- end phase 5
   // ---- North star phase 6 (Leo only): the agent, skills, activity, automations and Connect Claude's sections.
   /** A thread (push) and one message in it; ask and remix start a new chat only, read once, so a thread drops them. panel=chats: the thread list on phones (push). */
