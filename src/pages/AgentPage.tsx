@@ -1,6 +1,7 @@
 // /agent and /agent/:thread (agent-chat, Leo only; docs/north-star/items/agent-chat.md): the agent's chats. The
 // thread list sits in the sidebar from lg up (SidebarThreads) and behind "Chats" (?panel=chats) on phones; the open
-// chat fills the rest, with its composer pinned at the bottom and "Your work" (WorkPanel) beside it from xl up. ?m=
+// chat fills the rest, with its composer pinned at the bottom and "Your work" (WorkPanel) beside it from xl up and
+// behind the "Your work" button (?panel=work) below that. ?m=
 // rings one message, and ?ask= and ?remix= hand a new chat its words or its post once, then leave the address (so the
 // Remix sheet never opens over the page). Everyone else gets the 404.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -12,6 +13,7 @@ import WorkPanel from "@/components/agent/WorkPanel";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { send, turnOf } from "@/lib/agentRun";
+import { workOf } from "@/lib/agentWork";
 import { links } from "@/lib/links";
 import { useUrlItem } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -84,14 +86,19 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
   const thread = threadId ? threads.find((t) => t.id === threadId) : undefined;
   const [ref, height] = useFillHeight();
   const sheet = useRef<HTMLDialogElement>(null);
+  const workSheet = useRef<HTMLDialogElement>(null);
   const chats = panel === "chats";
+  const work = panel === "work";
+  // each sheet is for the widths its panel isn't on the page: chats below lg, Your work below xl
   useEffect(() => {
-    const d = sheet.current;
-    if (!d) return;
-    const phone = window.matchMedia("(max-width: 1023px)").matches;
-    if (chats && phone && !d.open) d.showModal?.();
-    if ((!chats || !phone) && d.open) d.close();
-  }, [chats]);
+    for (const [d, on, max] of [[sheet.current, chats, 1023], [workSheet.current, work, 1279]] as const) {
+      if (!d) continue;
+      const narrow = window.matchMedia(`(max-width: ${max}px)`).matches;
+      if (on && narrow && !d.open) d.showModal?.();
+      if ((!on || !narrow) && d.open) d.close();
+    }
+  }, [chats, work]);
+  const waiting = workOf(threads).waiting.length;
 
   const toThread = (id: string) => navigate(links.agent({ thread: id }));
   const turn = threadId ? turnOf(threadId) : null;
@@ -118,6 +125,10 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
           >
             {CAPABILITIES_ASK}
           </Button>
+          <Button type="button" variant="outline" onClick={() => openPanel("work")} className="h-11 shrink-0 gap-1.5 sm:h-9 xl:hidden">
+            Your work
+            {waiting > 0 && <span className="rounded-full bg-primary px-1.5 text-[11px] font-semibold tabular-nums text-primary-foreground" aria-label={`${waiting} waiting on your yes`}>{waiting}</span>}
+          </Button>
           {thread && <CopyLinkButton path={links.agent({ thread: thread.id })} />}
         </header>
         <AgentThread
@@ -131,7 +142,17 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
           onThread={toThread}
         />
       </section>
-      <WorkPanel userId={userId} threads={threads} />
+      <WorkPanel threads={threads} />
+      <dialog
+        ref={workSheet}
+        aria-label="Your work"
+        onClose={() => work && closePanel()}
+        // a row lands on its chat's path without ?panel, which closes the sheet
+        onClick={(e) => e.target === e.currentTarget && closePanel()}
+        className="fixed inset-y-0 left-auto right-0 m-0 h-full max-h-none w-[min(340px,88vw)] max-w-none border-l border-border/70 bg-background p-4 shadow-xl backdrop:bg-foreground/40 xl:hidden"
+      >
+        <WorkPanel threads={threads} sheet />
+      </dialog>
       <dialog
         ref={sheet}
         aria-label="Chats"
