@@ -31,7 +31,7 @@ import { links } from "@/lib/links";
 import { loadSavedClones } from "@/lib/reelClone";
 import type { RemixSource } from "@/lib/remixSource";
 import {
-  DEFAULT_LENGTH, TALK_LENGTHS, TALK_SETTINGS, canWrite, cloneWords, defaultWho, loadTyped, saveTyped, speakerOf, talkCaps, talkPrice, useSpeakers,
+  DEFAULT_LENGTH, TALK_LENGTHS, TALK_SETTINGS, canWrite, cloneWords, defaultWho, loadTyped, saveTyped, speakerOf, talkCaps, talkPrice, talkWords, useSpeakers,
   whoChoices, wordCount, wordLine, writePlan, type TalkLength, type TalkSetting, type TalkWho, type Typed,
 } from "@/lib/talkingHead";
 import { dropTalk, goOnAtPrice, madePresenter, onTalkJob, ownsPending, resumeTalk, startTalk, talkBusy, talkJob, writeTalk, type TalkAsk, type TalkJob } from "@/lib/talkingHeadJob";
@@ -239,7 +239,8 @@ export default function TalkingHead({ userId, source }: { userId: string; source
           />
           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
             <p className="text-xs text-muted-foreground" aria-live="polite">
-              {wordLine(n, length, byVoice)}
+              {/* the target before a word is typed, so the length is a number to write to */}
+              {wordLine(n, length, byVoice) || `Aim for ${talkWords(length, byVoice).low} to ${talkWords(length, byVoice).high} words for ${length} seconds.`}
               {plan && <> {plan === "source" ? "Make the video writes the script from this post first." : "Make the video writes a script from this topic first."}</>}
             </p>
             {canWrite(typed.script, source) && <span className="text-xs"><PriceChip feature="remix-make" left={left("remix-make")} /></span>}
@@ -325,6 +326,7 @@ export default function TalkingHead({ userId, source }: { userId: string; source
         <Frame>
           <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
           <span role="status">{job.step}</span>
+          <span className="text-xs">You can leave this page. It keeps going.</span>
           {job.state === "joining" && (
             <Button variant="link" onClick={() => navigate(links.edit())} className={TOUCH}>Open the editor</Button>
           )}
