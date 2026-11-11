@@ -3,7 +3,7 @@
 // its layout, Make, Swap layout, Edit and Skip, every change with Undo); ?ads=send adds the hand-off to AdLauncher,
 // where each made ad opens /image's Run as an ad with the campaign's settings filled in (src/lib/campaignAds.ts).
 
-import { useEffect, useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, Loader2, Pencil, Shuffle, Undo2, X } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
@@ -21,14 +21,36 @@ import { usd } from "@/lib/campaignWizard";
 import { DEFAULT_BRAND, loadBrand } from "@/lib/carousel";
 import { renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
+import { getFile } from "@/lib/deviceFiles";
 import { LAYOUT_LABELS, layoutImage } from "@/lib/imageLayout";
-import { imageWrite, imageWriteBusy, loadImages, MAX_IMAGES, onImagesChanged, onImageWrite } from "@/lib/images";
+import { HEADSHOT, imageWrite, imageWriteBusy, loadImages, MAX_IMAGES, onImagesChanged, onImageWrite } from "@/lib/images";
 import { useUrlState } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 const CHIP = "rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm";
 const ICON = "h-11 w-11 sm:h-9 sm:w-9";
+
+/** Each picture key's file as a data URL (an SVG never draws a blob: link); "" for one this device doesn't hold. */
+function useFiles(keys: string[]): Record<string, string> {
+  const [got, setGot] = useState<Record<string, string>>({});
+  const want = keys.join();
+  useEffect(() => {
+    let live = true;
+    for (const k of keys) {
+      if (k in got) continue;
+      void getFile(k)
+        .catch(() => undefined)
+        .then((b) => (b ? new Promise<string>((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = () => ok(""); r.readAsDataURL(b); }) : ""))
+        .then((url) => live && setGot((g) => ({ ...g, [k]: url })));
+    }
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [want]);
+  return got;
+}
 
 export default function AdsGroup({ userId, campaign: c }: { userId: string; campaign: Campaign }) {
   const { toast } = useToast();
@@ -49,10 +71,12 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
   const views = adViews(c, designs, imageWrite());
   const k = adCounts(views);
 
-  // a made ad shows its own picture, drawn here as /image draws it (its photo stays on /image)
+  // a made ad shows its own picture with its photo, drawn here as /image draws it
   const brand = useMemo(() => loadBrand(userId) ?? DEFAULT_BRAND, [userId]);
   const measure = useMemo(createCanvasMeasure, []);
-  const drawKey = views.map((v) => (v.state === "made" ? `${v.design?.id}${v.design?.updatedAt}` : "")).join();
+  const files = useFiles([...new Set(views.flatMap((v) => (v.state === "made" && v.design?.pictureKey && v.design.pictureKey !== HEADSHOT ? [v.design.pictureKey] : [])))]);
+  const photoOf = (key: string | undefined) => (key === HEADSHOT ? brand.photo : key ? files[key] : undefined) || undefined;
+  const drawKey = views.map((v) => (v.state === "made" ? `${v.design?.id}${v.design?.updatedAt}${photoOf(v.design?.pictureKey)?.length ?? 0}` : "")).join();
   const pictures = useMemo(
     () =>
       Object.fromEntries(
@@ -60,7 +84,7 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
           const d = v.design;
           if (v.state !== "made" || !d) return [];
           try {
-            return [[v.ad.n, svgDataUrl(renderSvg(layoutImage({ layout: d.layout, words: d.words, brand, font: d.font, paper: d.paper, align: d.align }, d.size, measure)))]];
+            return [[v.ad.n, svgDataUrl(renderSvg(layoutImage({ layout: d.layout, words: d.words, brand, font: d.font, paper: d.paper, align: d.align, picture: photoOf(d.pictureKey) }, d.size, measure)))]];
           } catch {
             return [];
           }
