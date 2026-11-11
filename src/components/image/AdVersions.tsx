@@ -17,7 +17,7 @@ import { svgDataUrl } from "@/lib/carouselRender";
 import { setFormatJob } from "@/lib/formatJob";
 import { hookFormula } from "@/lib/hookFormulas";
 import { layoutImage, mainWords, type ImageInput, type ImageSize } from "@/lib/imageLayout";
-import { chosenVersion, imageById, saveImage, versionSet, versionWords, type AdVersionSet, type SavedImage, type VersionLayout } from "@/lib/images";
+import { chosenVersion, imageById, imageMention, saveImage, versionSet, versionWords, type AdVersionSet, type SavedImage, type VersionLayout } from "@/lib/images";
 import { links } from "@/lib/links";
 import { requestMake, type Flags } from "@/lib/remix";
 import type { RemixSource } from "@/lib/remixSource";
@@ -100,7 +100,7 @@ export async function startAdVersions(userId: string, ask: AdVersionsAsk): Promi
   setRun({ ...base, state: "writing" });
   try {
     const versions = nextFormulas(imageById(userId, ask.designId)?.versions?.list.map((v) => v.formula));
-    const body = makeBody(userId, { source: ask.source, topic: ask.topic, mention: true, note: ask.note, size: ask.size === "9x16" ? "9x16" : "4x5" }, "ads", {
+    const body = makeBody(userId, { source: ask.source, topic: ask.topic, mention: imageMention(userId), note: ask.note, size: ask.size === "9x16" ? "9x16" : "4x5" }, "ads", {
       layout: ask.layout,
       versions,
       ...(ask.shows ? { shows: ask.shows } : {}),

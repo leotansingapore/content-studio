@@ -15,6 +15,7 @@ import {
   cachedShows,
   chosenVersion,
   imageDraft,
+  imageMention,
   imageWrite,
   loadImages,
   pictureLine,
@@ -118,6 +119,20 @@ describe("saved designs", () => {
     expect(pictureLine({ pictureKey: "cimg-abc123def" }, undefined)).toBeNull();
     expect(pictureLine({ pictureKey: HEADSHOT }, false)).toBeNull();
     expect(pictureLine({}, false)).toBeNull();
+  });
+});
+
+describe("naming the business in a make (Settings > Post choices)", () => {
+  const choose = (mention: string) => storage.setItem("content-studio-post-choices-u1", JSON.stringify({ mention }));
+  it("names it by default, never on Never, and on Sometimes by this make's flip", () => {
+    expect(imageMention(U)).toBe(true);
+    choose("never");
+    expect(imageMention(U)).toBe(false);
+    expect(imageMention(U, true)).toBe(false);
+    choose("sometimes");
+    expect([imageMention(U, true), imageMention(U, false)]).toEqual([true, false]);
+    choose("always");
+    expect(imageMention(U, false)).toBe(true);
   });
 });
 

@@ -9,6 +9,8 @@ import { HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { blankImage, loadImages, saveImage } from "@/lib/images";
 import type { MakeResponse } from "@/lib/remix";
 import { parseMakeRequest } from "../../../supabase/functions/remix/logic";
+import { startMemeWrite } from "./MemeOptions";
+import { saveBrand } from "@/lib/carousel";
 import { AD_FORMULAS, VERSIONS, adVersionsRun, hookName, leftOutLine, nextFormulas, startAdVersions, type AdVersionsAsk } from "./AdVersions";
 
 class MemStorage {
@@ -88,6 +90,20 @@ describe("Write 6 versions", () => {
     expect(saved.words).toMatchObject({ topic: "Saving on a fresh grad pay", headline: "Headline 3", line: "Line 3.", caption: "Caption 3. Ask me." });
     expect(adVersionsRun()).toMatchObject({ designId: ID, state: "done" });
     expect(formatJobs().find((j) => j.slug === "static-ad")).toMatchObject({ state: "ready", href: `/image?image=${ID}&versions=6` });
+  });
+
+  it("names the business unless the brand's Post choices say never, for versions and memes alike", async () => {
+    make.mockRejectedValue(new Error("stop here"));
+    // a brand with no name has nothing to name
+    saveBrand(U, { color: "#1E3A8A", name: "Hilltop Coffee", handle: "" });
+    await startAdVersions(U, ask());
+    await startMemeWrite(U, { designId: ID, layout: "pov", source: null, topic: "Month end", note: "", size: "1x1" });
+    expect(make.mock.calls.map((c) => [c[0].as, c[0].brand.mention])).toEqual([["ads", true], ["meme", true]]);
+    localStorage.setItem("content-studio-post-choices-u1", JSON.stringify({ mention: "never" }));
+    await startAdVersions(U, ask());
+    await startMemeWrite(U, { designId: ID, layout: "pov", source: null, topic: "Month end", note: "", size: "1x1" });
+    expect(make.mock.calls.slice(2).map((c) => [c[0].as, c[0].brand.mention])).toEqual([["ads", false], ["meme", false]]);
+    expect(parseMakeRequest(make.mock.calls[3][0]).ok).toBe(true);
   });
 
   it("writes the next six hooks on a second press, and the first kept one when Jev gave no best", async () => {

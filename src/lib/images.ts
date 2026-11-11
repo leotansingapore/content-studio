@@ -16,6 +16,8 @@ import { SLIDE_FONTS, type SlideFont, type SlidePaper } from "@/lib/carouselLayo
 import { setFormatJob } from "@/lib/formatJob";
 import { IMAGE_FIELDS, IMAGE_SIZES, SECOND_PICTURE, optionIndex, type ImageSize } from "@/lib/imageLayout";
 import { IMAGE_LAYOUTS, links, type ImageLayout } from "@/lib/links";
+import { mentionFor } from "@/lib/postChoices";
+import { loadRemixPrefs } from "@/lib/remixBrand";
 import { scoped } from "@/lib/profiles";
 import { requestMake, type Flags, type MakeResult } from "@/lib/remix";
 import { scalePicture } from "@/lib/remixLink";
@@ -280,6 +282,12 @@ export const versionWords = (prev: Record<string, string>, set: AdVersionSet, i:
 
 /** Which version the design's words still are (a typed edit makes it none). */
 export const chosenVersion = (words: Record<string, string>, set: AdVersionSet) => optionIndex(words, set.list.map((_, i) => versionWords({}, set, i)));
+
+/**
+ * Whether this make names the business (Settings > Post choices): Never no, Sometimes this make's own flip, Always what
+ * the Remix sheet last remembered. The static ad, meme and ad version makes all ask here, once per press.
+ */
+export const imageMention = (userId: string, flip?: boolean): boolean => mentionFor(userId, null, loadRemixPrefs(userId).mention, flip);
 
 export interface ImageWriteAsk {
   /** The design the words go into; saved before the run starts. */

@@ -21,7 +21,7 @@ import { imageBusy, imageJob, makeImage } from "@/lib/aiImage";
 import { getFile } from "@/lib/deviceFiles";
 import { setFormatJob } from "@/lib/formatJob";
 import { SECOND_PICTURE, isMeme, mainWords, memeChoice, optionIndex, secondPicture, type ImageSize, type MemeLayoutId } from "@/lib/imageLayout";
-import { imageById, saveImage, type SavedImage } from "@/lib/images";
+import { imageById, imageMention, saveImage, type SavedImage } from "@/lib/images";
 import { links } from "@/lib/links";
 import { addMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
 import { priceOf, sumPrices } from "@/lib/prices";
@@ -128,7 +128,7 @@ export async function startMemeWrite(userId: string, ask: MemeAsk): Promise<void
   const base = { id: ++writes, designId: ask.designId };
   setWrite({ ...base, state: "writing" });
   try {
-    const body = makeBody(userId, { source: ask.source, topic: ask.topic, mention: true, note: ask.note, size: ask.size === "9x16" ? "9x16" : "4x5" }, "meme", { layout: ask.layout });
+    const body = makeBody(userId, { source: ask.source, topic: ask.topic, mention: imageMention(userId), note: ask.note, size: ask.size === "9x16" ? "9x16" : "4x5" }, "meme", { layout: ask.layout });
     const res = await requestMake(body);
     if (res?.result?.as !== "meme") throw new Error(MEME_FAILED);
     const r = res.result;
