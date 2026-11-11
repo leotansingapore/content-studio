@@ -1,10 +1,9 @@
-import { Fragment, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
 import ChannelsBlock from "@/components/ChannelsBlock";
-import CreateMenu from "@/components/CreateMenu";
 import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
@@ -26,7 +25,7 @@ import { useZernioOutbox } from "@/lib/useZernioOutbox";
 import { readTeamPostsHere, readTeamReviews } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
-import { ChevronUp, LayoutGrid, LogOut, MessageSquarePlus, Monitor, Moon, Plus, Search, Settings, Sparkles, Star, Sun, X } from "lucide-react";
+import { ChevronUp, CircleHelp, LayoutGrid, LogOut, MessageSquarePlus, Monitor, Moon, Plus, Search, Settings, Sparkles, Star, Sun, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import SectionTabs from "@/components/SectionTabs";
 import { links } from "@/lib/links";
@@ -45,9 +44,9 @@ import {
   type NavSection,
 } from "@/lib/nav";
 
-// One sidebar on desktop, after Fastlane (docs/fastlane-nav-gap.md): the sections, the agent's chat button and chats,
-// then Brand, Learn, Feedback and the account at the foot. The open section's pages are tabs at the top of the page
-// (SectionTabs). Phones keep a bottom bar and a More sheet. Every page is listed once, in src/lib/nav.ts.
+// One sidebar on desktop (docs/nav-overhaul.md): five places to go, one button (New post, or Ask the agent with its
+// chats under it), then Brand, Settings and the account at the foot. The open section's tabs are one row at the top of
+// the page (SectionTabs). Phones get a bottom bar of four and a More sheet. Every page is listed once, in src/lib/nav.ts.
 const MAIN_SECTIONS = SECTIONS.filter((s) => !s.foot);
 // The agent's chats (Leo only) load in their own chunk, like the agent page.
 const SidebarThreads = lazy(() => import("@/components/agent/SidebarThreads"));
@@ -156,9 +155,9 @@ function SideLink({ s, to, active, count = 0 }: { s: NavSection; to: string; act
   );
 }
 
-/** Brand, Learn and Feedback: the sidebar's foot buttons. */
+/** Brand and Settings: the sidebar's foot buttons. Settings carries the dot for something new on the feedback board, which lives there. */
 function FootLink({ s, to, active, wide = false }: { s: NavSection; to: string; active: boolean; wide?: boolean }) {
-  const isNew = s.id === "feedback" && feedbackIsNew();
+  const isNew = s.id === "settings" && feedbackIsNew();
   return (
     <Link
       to={to}
@@ -256,6 +255,9 @@ function AccountMenu({
           <Link role="menuitem" to={settingsTo} className={item}>
             <Settings className="h-4 w-4 text-muted-foreground" /> Settings
           </Link>
+          <Link role="menuitem" to="/welcome" className={item}>
+            <CircleHelp className="h-4 w-4 text-muted-foreground" /> Help
+          </Link>
           <div className="px-1 py-1">
             <ThemeSwitch theme={theme} onTheme={onTheme} />
           </div>
@@ -316,7 +318,7 @@ function MoreTileLink({ tile, active }: { tile: MoreTile; active: boolean }) {
     >
       <Icon className="h-4 w-4 shrink-0" />
       {tile.label}
-      {tile.sectionId === "feedback" && feedbackIsNew() && (
+      {tile.sectionId === "settings" && feedbackIsNew() && (
         <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">New</span>
       )}
     </Link>
@@ -585,15 +587,14 @@ export default function StudioLayout() {
             ))}
           </nav>
           <div className="space-y-2 px-3 pt-4">
-            {/* the main button starts the usual thing in one click; the arrow beside it opens every other way to make */}
-            <div className="relative flex">
+            {/* the one button: the usual thing in one click. Every other way to make is Create's first screen */}
             <Button
               asChild
-              className="h-auto min-h-10 min-w-0 flex-1 justify-start gap-2 whitespace-normal rounded-r-none py-2 text-left bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11"
+              className="h-auto min-h-10 w-full justify-start gap-2 whitespace-normal py-2 text-left bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11"
             >
               {leo ? (
                 <Link to={links.agent()}>
-                  <MessageSquarePlus className="h-4 w-4" /> Start a chat with the agent
+                  <MessageSquarePlus className="h-4 w-4" /> Ask the agent
                 </Link>
               ) : (
                 <Link to="/generate">
@@ -601,8 +602,6 @@ export default function StudioLayout() {
                 </Link>
               )}
             </Button>
-            <CreateMenu place="sidebar" />
-            </div>
             <button
               type="button"
               onClick={() => setJumpOpen(true)}
@@ -626,10 +625,9 @@ export default function StudioLayout() {
           </div>
           <div className="space-y-2 border-t border-border/70 p-3">
             {version.ready && <NewVersion onLater={version.later} />}
-            <FootLink s={section("playbook")} to={sectionTo(section("playbook"))} active={here?.id === "playbook"} wide />
             <div className="grid grid-cols-2 gap-2">
-              <FootLink s={section("learn")} to={sectionTo(section("learn"))} active={here?.id === "learn"} />
-              <FootLink s={section("feedback")} to={sectionTo(section("feedback"))} active={here?.id === "feedback"} />
+              <FootLink s={section("playbook")} to={sectionTo(section("playbook"))} active={here?.id === "playbook"} />
+              <FootLink s={section("settings")} to={sectionTo(section("settings"))} active={here?.id === "settings"} />
             </div>
             {leo && (
               <ErrorBoundary>
@@ -642,7 +640,7 @@ export default function StudioLayout() {
               email={email}
               settingsTo={sectionTo(section("settings"))}
               northStar={!!leo}
-              active={here?.id === "settings" || pathname === "/north-star"}
+              active={pathname === "/north-star"}
               theme={theme}
               onTheme={switchTheme}
               onSignOut={handleSignOut}
@@ -737,10 +735,8 @@ export default function StudioLayout() {
       >
         <div className="grid grid-cols-5">
           {tabs.map(({ to, label, icon: Icon, active }, i) => (
-            <Fragment key={label}>
-            {/* Create sits in the middle of the bar, as on Instagram, TikTok and YouTube */}
-            {i === 2 && <CreateMenu place="bar" />}
             <Link
+              key={label}
               to={barTo(to)}
               aria-current={active(pathname) ? "true" : undefined}
               className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
@@ -761,7 +757,6 @@ export default function StudioLayout() {
               {label}
               {to === "/home" && homeCount > 0 && <span className="sr-only">, {homeCount} need you</span>}
             </Link>
-            </Fragment>
           ))}
           <button
             type="button"
