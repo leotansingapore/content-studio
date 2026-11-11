@@ -6,18 +6,20 @@
 // share the chips and the search box, which looks in a card's name, line and section. "Needs something" is
 // what the open brand is missing on this device (a demo video, a product photo, a face or presenter, its own
 // footage), read once on arrival; a card's need line links to where it is added, beside the card's own link.
+// A video card with no preview clip draws its own storyboard tile (FormatTile), free.
 // The page calls no AI and stores nothing; the only read is today's usage counts.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clapperboard, Diamond, Image as ImageIcon, Layers, Search, Type, VolumeX, type LucideIcon } from "lucide-react";
+import { Diamond, Image as ImageIcon, Search, VolumeX } from "lucide-react";
+import FormatTile from "@/components/make/FormatTile";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
 import {
   FORMATS, FORMAT_FILTERS, NEED_LINES, bySection, filterFormats, formatHref, readyStatics, searchFormats,
-  type FormatDef, type FormatFilter, type FormatKind, type FormatNeed,
+  type FormatDef, type FormatFilter, type FormatNeed,
 } from "@/data/formats";
 import { STATIC_NEED_LINES, staticFormatHref, type StaticFormat } from "@/data/staticFormats";
 import { useUsesLeft } from "@/lib/aiUsage";
@@ -33,7 +35,6 @@ import { useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
-const KIND_ICONS: Record<FormatKind, LucideIcon> = { video: Clapperboard, slides: Layers, text: Type, image: ImageIcon };
 const VIDEOS = FORMATS.filter((f) => f.ready);
 const STATICS = readyStatics();
 // no ready static format: no tab, and a typed ?tab=static lands on Videos
@@ -169,7 +170,7 @@ function Gallery({ userId }: { userId: string }) {
 const TILE = "relative w-full overflow-hidden rounded-xl border border-border/60 bg-muted transition-colors group-hover:border-primary/40";
 const CARD = "group flex w-full flex-col gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-/** One format: poster or kind icon, name, line, price, uses left, and what it still needs. The whole card is one link;
+/** One format: poster or drawn storyboard, name, line, price, uses left, and what it still needs. The whole card is one link;
  * a missing need with a place to add it sits just under it as a second link. */
 function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; lacking: boolean }) {
   const [playing, setPlaying] = useState(false);
@@ -178,7 +179,6 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
   const play = () => poster && window.matchMedia(PLAYS).matches && setPlaying(true);
   const stop = () => setPlaying(false);
   const price = f.price();
-  const Icon = KIND_ICONS[f.kind];
   const needsHref = lacking && f.needs ? NEED_HREFS[f.needs] : undefined;
   const need = lacking && f.needs && (
     <>
@@ -191,9 +191,7 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
         {poster ? (
           <img src={`/formats/${f.slug}.webp`} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <Icon className="h-8 w-8 text-muted-foreground/70" aria-hidden />
-          </div>
+          <FormatTile f={f} />
         )}
         {playing && (
           <>
