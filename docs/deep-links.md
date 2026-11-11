@@ -38,6 +38,7 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | A clone you saved | /clone?clone=<platform>:<post id> | the clone's result |
 | An idea in the Ideas inbox (Leo only) | /ideas?idea=<idea key> | the open idea |
 | A saved design (Leo only) | /image?image=<design id> | the open design |
+| A static ad format (Leo only) | /make/static/<slug> | the format's page; the Create gallery's Static ads cards link to it |
 | A format trend (Leo only) | /trends?view=formats&template=<id> | every format card |
 | A carousel in the carousel library | /carousels/<id> | the carousel's page; every card is a link to it |
 | A What's working slideshow | /working/<TikTok post id> | the slideshow's page; every card is a link to it |
@@ -465,6 +466,9 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 |---|---|---|---|---|---|
 | /make | tab | Leo only. static: the Static ads tab, one card per ready static format (src/data/staticFormats.ts); while none is ready there is no tab and static reads as videos | videos | replace | /make?tab=static |
 | /make | show | Leo only, Videos tab. ready: the formats the open brand has what they need for; needs: the ones still missing a demo video, product photo, face or presenter, or its own footage (read from this device) | all | replace | /make?show=needs |
+| /make | kind | Leo only. video, slides, text, image | all | replace | /make?kind=video |
+| /make | needs | Leo only. none: only the formats that need nothing extra | off | replace | /make?kind=video&needs=none |
+| /make/static/<slug> | (path) | Leo only. One static ad format's page (src/pages/StaticFormatPage.tsx): its example, what it works with, an optional note kept on this device (cs-static-note-<slug>) and Make, which opens /image on that layout and writes it. An unknown slug gets the not-found page | none | push | /make/static/text-chat |
 | /make/notification-stack | bg | Leo only. mine (Background: My video; the video stays on the device and is picked again on each visit). The typed worries, closing word and label are kept on the device in cs-make-notify | stock | replace | /make/notification-stack?bg=mine |
 | /make/text-over-clip | scene | Leo only. kitchen, walk, interview | kitchen | replace | /make/text-over-clip?scene=walk |
 | /make/text-over-clip | quality | Leo only. 480p, 720p | 480p | replace | /make/text-over-clip?quality=720p |
@@ -481,7 +485,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /make/green-screen | voice | Leo only. with who=presenter: the text-voice keys, as /make/talking-head | alice | replace | /make/green-screen?who=presenter&voice=george |
 | /make/hook-demo | play | Leo only. stock (words on a stock clip), mine (you say it), crumple (you crumple a notification card with the hook, AI from your demo's first frame), spoken (someone says it) | stock | replace | /make/hook-demo?play=crumple |
 | /make/hook-demo | topic | Leo only. what the demo shows: fills the topic once, then removed (replace). The demo itself is a file on the device and never in a link | none | replace | /make/hook-demo?topic=log+every+client+call |
-| /image | layout | Leo only. headline, quote, stat, testimonial; memes top-bottom, nobody-me, expectation, pov, post-reaction | headline | replace | /image?layout=stat |
+| /image | layout | Leo only. headline, quote, stat, testimonial; memes top-bottom, nobody-me, expectation, pov, post-reaction; static ad formats by their src/data/staticFormats.ts slug (text-chat, friend-recommends, ai-chat, forum-thread, us-vs-them, news-headline, lofi-note, concern-answer, story-reply, page-post, email-screenshot, playful-apology, phone-share, share-popup, whiteboard, anti-design, tear-off-flyer, article-page, general-ad, street-poster, lettered-object, tshirt-print; 4x5, 1x1 or 9x16). A write on arrival from a format page comes only from navigation state, never from the URL | headline | replace | /image?layout=forum-thread |
 | /image | size | Leo only. 4x5, 1x1, 9x16, wide | 4x5 | replace | /image?layout=stat&size=1x1 |
 | /image | source | Leo only. a remix source key (ad:<id>, own:<draft id>, and the other /generate?source= shapes): fills the words once, then removed | none | replace | /image?source=ad%3A2095783381019179 |
 | /image | image | Leo only. a saved design's id: opens it; the address takes it once an edit is kept | none | replace | /image?image=img-mh2k9x01ab |

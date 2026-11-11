@@ -156,6 +156,40 @@ Add a builder `image` to `src/lib/links.ts`, a row per param to `docs/deep-links
 - The page renders `NotFoundPage` when `!leoOnly(email)`, since a typed URL skips the nav. The "Make it as an image" button on `/swipe` shows only for `leoOnly`.
 - `carousel-copy` refuses mode `image` for anyone else with 403, via `supabase/functions/_shared/leoOnly.ts`.
 
+## Static ad formats (ff1111, 11 Nov 2026)
+
+Leo, 11 Nov: "all of these formats. We need to have it inside our app as well." Fastlane's Studio > Create > Static
+ads lists 22 formats (inventory/live-create.md). All 22 are now layouts on this page, in a third group, Static, picked
+from one menu under the Ads and Memes chips. Names and lines are ours (`src/data/staticFormats.ts`); every look is a
+generic look-alike drawn in code, never another app's name, logo or trade dress.
+
+- Drawing (`layoutStatic` in `src/lib/imageLayout.ts`): a text chat, a messaging chat with times and ticks, an assistant
+  chat, a forum post with a reply, us vs them rows, a news thumbnail with a badge, a notes window in a marker hand, a
+  question sticker answered with one fact, a story reply, the brand's page post, an inbox email, a phone share card, a
+  share pop-up with Decline and Accept, a whiteboard with bubbles and arrows, a scrawled anti-design ad, a tear-off flyer
+  with your typed price, your own article page, a general ad, a lit street poster at night, a sticky note, and a T-shirt
+  back print. The brand's colour, name, logo or headshot and the Font and Background choices (Light, Dark, Brand tint)
+  carry into each. 4:5, 1:1 and 9:16; a story keeps its words out of the top and bottom 250 px.
+  `carouselLayout.ts` gained three additive drawing pieces for these: a `path` node, turned text and a marker hand family.
+- Photos: a format best with a photo shows the picture picker and draws without one; a format that needs one (phone
+  share, share pop-up) can't download until it has one. The format page puts the brand's first product photo (What you
+  sell) in when there is one.
+- Write it for me: the image make (`supabase/functions/remix/logic.ts`, as "image" with the static layout) writes each
+  format's own fields from `STATIC_RULES` (what it is, each field and its word limit) on the remix-make cap. The people in
+  a chat or forum are made up and say only what the brand's facts hold; no numbers, as every ad picture. The flyer's
+  price is a typed field the writer never fills. Today's image, meme and ad version prompts are pinned byte for byte
+  (`__pins__/image-prompts.json`).
+- The format page, `/make/static/<slug>` (`src/pages/StaticFormatPage.tsx`, Leo only): a back chip to the Create
+  gallery's Static ads tab, the name and line, an example drawn by our own template for a made-up coffee shop, what it
+  works with, an optional note kept on this device (`cs-static-note-<slug>`), the price and one button. "Make an ad in
+  this format" opens `/image` on that layout with navigation state, makes a new design with the note as its topic and
+  writes it at once; it lands in Your images. A format that needs a photo, with none on the brand, reads "Add a photo"
+  and opens the picker instead.
+- Tests: `src/lib/imageLayout.test.ts` (every format at every size with its example, the longest words and empty
+  words, inside the margins), `supabase/functions/remix/staticAds.test.ts` (the pins, each layout's rules, fields and
+  checks), `src/lib/images.test.ts` (the write and a design's words), `src/pages/StaticFormatPage.test.tsx` (the page's
+  states and its button).
+
 ## Done when
 
 - [ ] Each layout draws in all four sizes with the brand kit's colour, font, headshot and logo, checked by eye at 390 px and 1440 px.
