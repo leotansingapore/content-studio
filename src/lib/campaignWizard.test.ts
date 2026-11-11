@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { campaignCost } from "./campaigns";
 import {
-  addedLine, confirmed, costLine, defaultName, firstOpen, formatLine, freshAngles, listJoin, loadWizard, nearestPace, newWork, openStep, PACES, paceLabel, pickAudience, previewPosts,
-  readWork, saveWizard, shortDay, successLine, summaryLines, whereLine, withAudience, withoutAudience, writeLimitLine, type WizardWork,
+  addedLine, adsCostLine, budgetLine, budgetProblems, budgetReason, confirmed, costLine, countryName, defaultName, firstOpen, formatLine, freshAngles, listJoin,
+  loadWizard, matchCountry, nearestPace, NEW_BUDGET, newWork, openStep, overRunLine, PACES, paceLabel, parseMoney, pickAudience, previewPosts, readWork,
+  runsLabel, saveWizard, shortDay, stepCount, stepsFor, successLine, summaryLines, toBudget, usd, whereLine, withAudience, withoutAudience, writeLimitLine,
+  type BudgetWork, type WizardWork,
 } from "./campaignWizard";
 
 class MemStorage {
@@ -24,11 +26,31 @@ const ANGLES = ["a1", "a2", "a3"].map((id) => ({ id, title: `Angle ${id}`, line:
 const work = (o: Partial<WizardWork> = {}): WizardWork => ({ ...newWork("linkedin"), ...o });
 
 describe("the steps", () => {
-  it("opens the first unfinished step, and review once the four are confirmed", () => {
+  it("opens the first unfinished step, and review once every step before it is confirmed", () => {
     expect(firstOpen(work())).toBe("who");
     expect(firstOpen(work({ done: ["who"] }))).toBe("angles");
-    expect(firstOpen(work({ done: ["who", "angles", "pace"] }))).toBe("where");
-    expect(firstOpen(work({ done: ["who", "angles", "where", "pace"] }))).toBe("review");
+    expect(firstOpen(work({ done: ["who", "angles"] }))).toBe("where");
+    expect(firstOpen(work({ done: ["who", "angles", "where", "pace"] }))).toBe("accounts");
+    expect(firstOpen(work({ done: ["who", "angles", "where", "accounts", "pace"] }))).toBe("review");
+  });
+
+  it("Where it runs comes after Angles; an ads option adds Budget, and Ads only drops the two posting steps", () => {
+    expect(stepsFor("organic")).toEqual(["who", "angles", "where", "accounts", "pace", "review"]);
+    expect(stepsFor("both")).toEqual(["who", "angles", "where", "budget", "accounts", "pace", "review"]);
+    expect(stepsFor("ads")).toEqual(["who", "angles", "where", "budget", "review"]);
+    expect(stepCount("where", "organic")).toBe("3 of 6");
+    expect(stepCount("where", "both")).toBe("3 of 7");
+    expect(stepCount("budget", "both")).toBe("4 of 7");
+    expect(stepCount("review", "ads")).toBe("5 of 5");
+    expect(["organic", "ads", "both"].map((r) => runsLabel(r as "ads"))).toEqual(["Organic posts", "Ads only", "Posts and ads"]);
+    // picking an ads option after Where it runs: Budget opens next, and Review waits for it
+    const done: WizardWork["done"] = ["who", "angles", "where", "accounts", "pace"];
+    expect(firstOpen(work({ done, runs: "both" }))).toBe("budget");
+    expect(openStep("review", work({ done, runs: "both" }))).toBe("budget");
+    expect(openStep("review", work({ done: [...done, "budget"], runs: "both" }))).toBe("review");
+    expect(firstOpen(work({ done: ["who", "angles", "where", "budget"], runs: "ads" }))).toBe("review");
+    // ?step=pace on Ads only is no step of its: the first unfinished opens
+    expect(openStep("pace", work({ done: ["who", "angles", "where"], runs: "ads" }))).toBe("budget");
   });
 
   it("?step= opens a confirmed step or the next one; a step further on, or an unknown one, opens the first unfinished", () => {
@@ -37,10 +59,12 @@ describe("the steps", () => {
     expect(openStep("who", w)).toBe("who");
     expect(openStep("angles", w)).toBe("angles");
     expect(openStep("where", w)).toBe("where");
+    expect(openStep("accounts", w)).toBe("where");
+    expect(openStep("budget", w)).toBe("where");
     expect(openStep("pace", w)).toBe("where");
     expect(openStep("review", w)).toBe("where");
     expect(openStep("nope", w)).toBe("where");
-    expect(openStep("review", work({ done: ["who", "angles", "where", "pace"] }))).toBe("review");
+    expect(openStep("review", work({ done: ["who", "angles", "where", "accounts", "pace"] }))).toBe("review");
     expect(openStep("angles", work())).toBe("who");
   });
 
@@ -50,7 +74,7 @@ describe("the steps", () => {
     expect(w).toMatchObject({ weeks: 6, formats: ["carousel"] });
     // Change only moves ?step=: the step reopens on the answers it had
     expect(openStep("pace", w)).toBe("pace");
-    expect(openStep("where", w)).toBe("who");
+    expect(openStep("accounts", w)).toBe("who");
   });
 
   it("another audience drops the angles it confirmed; the same one keeps them", () => {
@@ -154,11 +178,83 @@ describe("the lines", () => {
   });
 });
 
+describe("the budget", () => {
+  const b = (o: Partial<BudgetWork> = {}): BudgetWork => ({ ...NEW_BUDGET, daily: "50", url: "https://example.com", ...o });
+
+  it("starts on Singapore and 18 to 65, with no budget typed: Confirm waits and no error shows yet", () => {
+    expect(NEW_BUDGET).toEqual({ daily: "", url: null, countries: ["SG"], ageMin: "18", ageMax: "65" });
+    expect(budgetProblems(NEW_BUDGET, "https://brand.example")).toEqual({});
+    expect(budgetReason(NEW_BUDGET, "https://brand.example")).toBe("Type a daily budget.");
+    expect(budgetReason(b())).toBeNull();
+  });
+
+  it("keeps the daily budget between US$25 and US$100,000, its error under the field and Confirm off", () => {
+    const line = "Keep the daily budget between US$25 and US$100,000.";
+    for (const daily of ["20", "24.99", "100000.01", "abc", "-50"]) {
+      expect(budgetProblems(b({ daily })).daily).toBe(line);
+      expect(budgetReason(b({ daily }))).toBe("");
+    }
+    for (const daily of ["25", "100000", "US$1,000", "$ 50", "50.5"]) expect(budgetProblems(b({ daily })).daily).toBeUndefined();
+    expect(parseMoney("US$1,000")).toBe(1000);
+    expect(parseMoney("")).toBeNaN();
+  });
+
+  it("the landing page is the brand's website until typed, and must be https on a real host", () => {
+    expect(budgetProblems(b({ url: null }), "https://brand.example").url).toBeUndefined();
+    expect(budgetProblems(b({ url: null }), "").url).toBe("Add the page the ads send people to.");
+    expect(budgetProblems(b({ url: "" }), "https://brand.example").url).toBe("Add the page the ads send people to.");
+    expect(budgetProblems(b({ url: "http://example.com" })).url).toBe("Use an https address on your own site.");
+    expect(budgetProblems(b({ url: "example.com/book" })).url).toBeUndefined();
+    expect(toBudget(b({ url: "example.com/book" })).url).toBe("https://example.com/book");
+    expect(toBudget(b({ url: null }), "https://brand.example").url).toBe("https://brand.example/");
+  });
+
+  it("needs a country, and ages from 18 to 65 youngest first", () => {
+    expect(budgetProblems(b({ countries: [] })).countries).toBe("Pick at least one country.");
+    const ages = "Ages go from 18 to 65, the youngest first.";
+    expect(budgetProblems(b({ ageMin: "17" })).ages).toBe(ages);
+    expect(budgetProblems(b({ ageMax: "66" })).ages).toBe(ages);
+    expect(budgetProblems(b({ ageMin: "40", ageMax: "30" })).ages).toBe(ages);
+    expect(budgetProblems(b({ ageMin: "21.5" })).ages).toBe(ages);
+    expect(budgetProblems(b({ ageMin: "25", ageMax: "54" })).ages).toBeUndefined();
+  });
+
+  it("countries are picked by name or code, and named back", () => {
+    expect(matchCountry("singapore")).toBe("SG");
+    expect(matchCountry(" Malaysia ")).toBe("MY");
+    expect(matchCountry("my")).toBe("MY");
+    expect(matchCountry("Niger")).toBe("NE");
+    expect(matchCountry("Nigeria")).toBe("NG");
+    expect(matchCountry("Atlantis")).toBeNull();
+    expect(matchCountry("")).toBeNull();
+    expect(countryName("SG")).toBe("Singapore");
+  });
+
+  it("the review's rows: the budget, over the run, and the collapsed row", () => {
+    const kept = toBudget(b({ daily: "50", countries: ["SG", "MY"], ageMin: "25", ageMax: "54" }));
+    expect(kept).toEqual({ daily: 50, url: "https://example.com/", countries: ["SG", "MY"], ages: [25, 54] });
+    expect(usd(50)).toBe("US$50");
+    expect(usd(12.5)).toBe("US$12.50");
+    expect(overRunLine(50, 4)).toBe("US$1,400 across 4 weeks");
+    expect(overRunLine(25, 1)).toBe("US$175 across 1 week");
+    expect(budgetLine(kept)).toBe("US$50 a day | Singapore, Malaysia | 25 to 54");
+    expect(adsCostLine(10)).toMatch(/^10 ads come to .+, each written when you press Make\.$/);
+  });
+
+  it("the result card for each place it runs", () => {
+    const ads = Array.from({ length: 10 }, (_, i) => ({ n: i + 1, angleId: "a1", layout: "headline" as const }));
+    const c = { angles: ANGLES, weeks: 4, perWeek: 3 as const, posts: previewPosts(["text-post"], 3, 4) };
+    expect(addedLine({ ...c, runs: "both", ads }, ["LinkedIn"])).toBe("3 angles, LinkedIn, 3 a week for 4 weeks, 12 posts and 10 ad drafts. The posts' words are being written now, and you can leave this page.");
+    expect(addedLine({ ...c, posts: [], runs: "ads", ads }, [])).toBe("3 angles, 10 ad drafts over 4 weeks. Each ad is written when you press Make on it.");
+  });
+});
+
 describe("typed work", () => {
   it("round trips every field per brand, and clears on Add or Start over", () => {
     const w = work({
       audience: "au-1", angles: ANGLES, fresh: ["a1"], platforms: ["instagram", "tiktok"], accountIds: ["acc-1"], formats: ["slideshow", "ai-video"],
-      weeks: 6, perWeek: 7, pictures: "mine", name: "My month", done: ["who", "angles", "where"],
+      weeks: 6, perWeek: 7, pictures: "mine", name: "My month", runs: "both",
+      budget: { daily: "50", url: "https://example.com", countries: ["SG", "MY"], ageMin: "25", ageMax: "54" }, done: ["who", "angles", "where", "budget"],
     });
     saveWizard("u1", w);
     expect(session.getItem("cs-campaign-wizard-u1")).not.toBeNull();
@@ -179,6 +275,11 @@ describe("typed work", () => {
     expect(readWork([])).toBeNull();
     expect(readWork({ formats: ["text-post", "story"], weeks: 12, perWeek: 4, done: ["who", "review", "x"], platforms: ["linkedin", "myspace"], angles: [{ id: 1 }, { id: "a", title: "T" }] })).toMatchObject({
       formats: ["text-post"], weeks: 4, perWeek: null, done: ["who"], platforms: ["linkedin"], angles: [{ id: "a", title: "T", line: "" }], audience: null,
+    });
+    // a stored wizard from before Where it runs: organic, the default budget
+    expect(readWork({ done: ["who"] })).toMatchObject({ runs: "organic", budget: NEW_BUDGET });
+    expect(readWork({ runs: "billboards", budget: { daily: 50, countries: ["SG", "XX", "MY"], ageMin: "21" } })).toMatchObject({
+      runs: "organic", budget: { daily: "", url: null, countries: ["SG", "MY"], ageMin: "21", ageMax: "65" },
     });
   });
 

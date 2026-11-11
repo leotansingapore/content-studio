@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignFormats, campaignsKey,
+  AD_COUNT, adLayoutFor, addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignFormats, campaignsKey,
   campaignStatus, type CampaignFormat, type CampaignPost, deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
-  planCampaign, type PostState, REMIX_MAKE, replanCampaign, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
+  planAds, planCampaign, type PostState, REMIX_MAKE, replanCampaign, runningAdSources, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
 } from "./campaigns";
 import { MAX_DRAFTS, type DraftEntry } from "./draftHistory";
 import { priceOf, type Price } from "./prices";
@@ -394,5 +394,66 @@ describe("laying a campaign out", () => {
     saveCampaigns(UID, twelve);
     expect(addCampaign(UID, c)).toBe(LIMIT_LINE);
     expect(loadCampaigns(UID)).toHaveLength(MAX_CAMPAIGNS);
+  });
+
+  describe("where it runs", () => {
+    const BUDGET = { daily: 50, url: "https://example.com/", countries: ["SG", "MY"], ages: [25, 54] as [number, number] };
+    const ad = (id: string, start: string, o: Record<string, unknown> = {}) =>
+      ({ id, format: "image", headline: null, body: "b", cta: null, link: null, image: null, video: null, start, end: null, active: true, platforms: [], versions: 1, ...o });
+    const comp = (id: string) => ({ id, name: id, site: null, logo: null, why: "", fbPageId: "123456", handles: {}, adsCountry: "SG", source: "typed", addedAt: "" });
+    const rivals = () => {
+      storage.setItem(`content-studio-competitors-${UID}`, JSON.stringify({ list: [comp("finch"), comp("apollo")] }));
+      storage.setItem(`content-studio-competitor-ads-${UID}`, JSON.stringify({
+        finch: { checkedAt: "2026-10-20T00:00:00Z", pageId: "1", pageName: "Finch", seen: [], fresh: [], ads: [
+          ad("f-new", "2026-10-15"), ad("f-old", "2026-09-01"), ad("f-video", "2026-08-01", { format: "video" }), ad("f-stopped", "2026-07-01", { active: false }),
+        ] },
+        apollo: { checkedAt: "2026-10-20T00:00:00Z", pageId: "2", pageName: "Apollo.io", seen: [], fresh: [], ads: [ad("a-1", "2026-10-01")] },
+      }));
+    };
+
+    it("Posts and ads: the posts, the budget, and 10 ad drafts over the angles, the seam's layouts in turn", () => {
+      const c = planCampaign(UID, ask({ runs: "both", budget: BUDGET }), THU);
+      expect(c).toMatchObject({ runs: "both", budget: BUDGET });
+      expect(c.posts).toHaveLength(12);
+      expect(c.ads).toHaveLength(AD_COUNT);
+      expect(c.ads?.map((a) => a.n)).toEqual(Array.from({ length: 10 }, (_, i) => i + 1));
+      expect(c.ads?.map((a) => a.angleId)).toEqual(["a1", "a2", "a3", "a4", "a5", "a1", "a2", "a3", "a4", "a5"]);
+      expect(c.ads?.map((a) => a.layout)).toEqual(["headline", "quote", "stat", "headline", "quote", "stat", "headline", "quote", "stat", "headline"]);
+      expect(c.ads?.map((a) => a.layout)).toEqual(c.ads?.map((_, i) => adLayoutFor(i)));
+      // no competitor ads on this brand: none remixes anything
+      expect(c.ads?.some((a) => a.source)).toBe(false);
+      // a copy, never the ask's own arrays
+      expect(c.budget?.countries).not.toBe(BUDGET.countries);
+    });
+
+    it("Ads only posts nothing and still carries the ads; organic carries neither", () => {
+      const ads = planCampaign(UID, ask({ runs: "ads", budget: BUDGET, platforms: [], formats: [] }), THU);
+      expect(ads.posts).toEqual([]);
+      expect(ads.target).toEqual({ posts: 0, winners: 1 });
+      expect(ads.ads).toHaveLength(10);
+      expect(replanCampaign(UID, ads, { weeks: 6, perWeek: 3 })).toMatchObject({ weeks: 6, posts: [] });
+      const organic = planCampaign(UID, ask({ budget: BUDGET }), THU);
+      expect(organic).not.toHaveProperty("ads");
+      expect(organic).not.toHaveProperty("runs");
+      expect(organic).not.toHaveProperty("budget");
+    });
+
+    it("remixes competitors' running ads, one rival after another, pictures first and the longest running first", () => {
+      rivals();
+      const now = Date.parse("2026-10-22T00:00:00Z");
+      const s = runningAdSources(UID, now);
+      expect(s.map((x) => x.key)).toEqual(["ad:f-old", "ad:a-1", "ad:f-new", "ad:f-video"]);
+      expect(s[0].label).toBe("Finch, 51 days running");
+      const c = planCampaign(UID, ask({ runs: "ads", budget: BUDGET }), THU);
+      expect(c.ads?.map((a) => a.source?.key ?? null)).toEqual(["ad:f-old", "ad:a-1", "ad:f-new", "ad:f-video", null, null, null, null, null, null]);
+      expect(planAds(ANGLES.slice(0, 2), s).map((a) => [a.angleId, a.source?.key ?? null]).slice(0, 5))
+        .toEqual([["a1", "ad:f-old"], ["a2", "ad:a-1"], ["a1", "ad:f-new"], ["a2", "ad:f-video"], ["a1", null]]);
+    });
+
+    it("an ad made counts as running, though no post is", () => {
+      expect(campaignStatus(campaign({ posts: [] }), "2026-12-01")).toBe("draft");
+      expect(campaignStatus(campaign({ posts: [] }), "2026-12-01", 1)).toBe("running");
+      expect(campaignStatus(campaign(), "2026-10-01", 2)).toBe("running");
+    });
   });
 });

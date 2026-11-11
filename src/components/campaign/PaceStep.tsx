@@ -14,6 +14,24 @@ const ORDER = Object.keys(FORMAT_NAME) as CampaignFormat[];
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 const CHIP = "flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors";
 
+/** The 1 to 8 week stepper (Ads only shows it on its Budget step). */
+export function WeeksStepper({ weeks, onWeeks, label }: { weeks: number; onWeeks: (n: number) => void; label: string }) {
+  return (
+    <div className="space-y-2">
+      <p id="length-q" className={HEAD}>{label}</p>
+      <div className="flex items-center gap-2" role="group" aria-labelledby="length-q">
+        <Button type="button" variant="outline" size="icon" aria-label="One week shorter" disabled={weeks <= MIN_WEEKS} onClick={() => onWeeks(weeks - 1)}>
+          <Minus />
+        </Button>
+        <span className="min-w-[5.5rem] text-center font-semibold tabular-nums" aria-live="polite">{weeks} {weeks === 1 ? "week" : "weeks"}</span>
+        <Button type="button" variant="outline" size="icon" aria-label="One week longer" disabled={weeks >= MAX_WEEKS} onClick={() => onWeeks(weeks + 1)}>
+          <Plus />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function PaceStep(p: {
   formats: CampaignFormat[];
   onFormats: (f: CampaignFormat[]) => void;
@@ -63,18 +81,7 @@ export default function PaceStep(p: {
         {on("ai-video") && <p className="pt-1 text-sm text-muted-foreground">{p.who}</p>}
       </fieldset>
 
-      <div className="space-y-2">
-        <p id="length-q" className={HEAD}>Campaign length</p>
-        <div className="flex items-center gap-2" role="group" aria-labelledby="length-q">
-          <Button type="button" variant="outline" size="icon" aria-label="One week shorter" disabled={p.weeks <= MIN_WEEKS} onClick={() => p.onWeeks(p.weeks - 1)}>
-            <Minus />
-          </Button>
-          <span className="min-w-[5.5rem] text-center font-semibold tabular-nums" aria-live="polite">{p.weeks} {p.weeks === 1 ? "week" : "weeks"}</span>
-          <Button type="button" variant="outline" size="icon" aria-label="One week longer" disabled={p.weeks >= MAX_WEEKS} onClick={() => p.onWeeks(p.weeks + 1)}>
-            <Plus />
-          </Button>
-        </div>
-      </div>
+      <WeeksStepper weeks={p.weeks} onWeeks={p.onWeeks} label="Campaign length" />
 
       <div className="space-y-2">
         <p id="pace-q" className={HEAD}>How often</p>

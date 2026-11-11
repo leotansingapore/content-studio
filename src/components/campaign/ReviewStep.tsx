@@ -25,8 +25,11 @@ export default function ReviewStep(p: {
   onName: (name: string) => void;
   rows: [string, ReactNode][];
   goal: string;
-  success: string;
+  /** null: nothing is posted (Ads only), so no winners to count. */
+  success: string | null;
   cost: string;
+  /** The line above Add when it isn't the posts' one. */
+  note?: string;
   adding: boolean;
   /** campaign-draft uses: today's left (null unread) and what Add spends. */
   left: number | null;
@@ -61,22 +64,26 @@ export default function ReviewStep(p: {
             </>
           )}
         </dd>
-        <dt className="flex items-center gap-1 text-muted-foreground">
-          Success looks like
-          <InfoTip label="About success">A winner gets half again your usual engagement.</InfoTip>
-        </dt>
-        <dd className="-mt-2 sm:mt-0">{p.success}</dd>
+        {p.success && (
+          <>
+            <dt className="flex items-center gap-1 text-muted-foreground">
+              Success looks like
+              <InfoTip label="About success">A winner gets half again your usual engagement.</InfoTip>
+            </dt>
+            <dd className="-mt-2 sm:mt-0">{p.success}</dd>
+          </>
+        )}
       </dl>
 
       <p className="text-sm">{p.cost}</p>
 
       <div className="space-y-3 border-t border-border/60 pt-4">
-        <p className="text-sm text-muted-foreground">Adding this writes the words for every post. Nothing is posted, and no AI video is made, until you press Make on it.</p>
+        <p className="text-sm text-muted-foreground">{p.note ?? "Adding this writes the words for every post. Nothing is posted, and no AI video is made, until you press Make on it."}</p>
         <div className="flex flex-wrap items-center justify-between gap-2">
           {p.adding ? <span /> : <Button variant="outline" onClick={p.onBack}>Back</Button>}
           <div className="flex flex-col items-end gap-1">
             <Button onClick={p.onAdd} disabled={p.adding || !!p.blocked}>{p.adding ? "Adding..." : "Add campaign"}</Button>
-            <PriceChip price={writePrice(p.uses)} uses={p.uses} left={p.left} />
+            {p.uses > 0 && <PriceChip price={writePrice(p.uses)} uses={p.uses} left={p.left} />}
           </div>
         </div>
         {p.limitLine && <p className="text-right text-xs text-muted-foreground">{p.limitLine}</p>}

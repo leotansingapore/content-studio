@@ -18,7 +18,8 @@ const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-f
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /** What saving this pace and length does: the new count, then the written posts it drops and the new ones it writes. */
-export function replanLine(c: Pick<Campaign, "posts">, weeks: number, perWeek: number): string {
+export function replanLine(c: Pick<Campaign, "posts" | "runs">, weeks: number, perWeek: number): string {
+  if (c.runs === "ads") return `The ads run ${plural(weeks, "week")}.`;
   const count = weeks * perWeek;
   const dropped = c.posts.slice(count).filter(hasWords).length;
   const added = Math.max(0, count - c.posts.length);
@@ -50,7 +51,7 @@ export default function ConfigurePanel({ userId, campaign: c, onClose }: { userI
     // shortcut: an Undo while a batch is in flight can land its words on the old plan's post of the same number; fine while Leo-only
     startDrafting(userId, c.id);
     toast({
-      title: `Now ${plural(next.posts.length, "post")} over ${plural(weeks, "week")}, ${paceLabel(perWeek)}.`,
+      title: c.runs === "ads" ? `The ads run ${plural(weeks, "week")} now.` : `Now ${plural(next.posts.length, "post")} over ${plural(weeks, "week")}, ${paceLabel(perWeek)}.`,
       duration: 6000,
       action: (
         <ToastAction altText="Undo" onClick={() => {
@@ -72,7 +73,7 @@ export default function ConfigurePanel({ userId, campaign: c, onClose }: { userI
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className={HEAD}>Campaign settings</p>
-          <p className="mt-1 text-sm text-muted-foreground">{plural(c.posts.length, "post")} | {paceLabel(c.perWeek)} | {plural(c.weeks, "week")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{c.runs === "ads" ? plural(c.weeks, "week") : `${plural(c.posts.length, "post")} | ${paceLabel(c.perWeek)} | ${plural(c.weeks, "week")}`}</p>
         </div>
         <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 sm:h-10 sm:w-10" aria-label="Close campaign settings" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -93,7 +94,7 @@ export default function ConfigurePanel({ userId, campaign: c, onClose }: { userI
       </div>
 
       <fieldset disabled={!!lock} className="space-y-5 disabled:opacity-60">
-        <div className="space-y-2">
+        <div className={c.runs === "ads" ? "hidden" : "space-y-2"}>
           <p id="cfg-pace" className={HEAD}>Pace, per account</p>
           <div role="radiogroup" aria-labelledby="cfg-pace" className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
             {PACES.map((n) => (
@@ -120,7 +121,7 @@ export default function ConfigurePanel({ userId, campaign: c, onClose }: { userI
       </fieldset>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button className="h-11 sm:h-10" disabled={!!lock || !changed} onClick={save}>Save pace and length</Button>
+        <Button className="h-11 sm:h-10" disabled={!!lock || !changed} onClick={save}>{c.runs === "ads" ? "Save length" : "Save pace and length"}</Button>
         <p className="min-w-0 flex-1 text-sm text-muted-foreground" aria-live="polite">{lock ?? (changed ? replanLine(c, weeks, perWeek) : replanLine(c, c.weeks, c.perWeek))}</p>
       </div>
     </section>

@@ -1,10 +1,12 @@
 // Campaigns (plan-campaign, Leo only): a month of posts for one audience, synced per brand under
 // content-studio-campaigns-<scoped>, newest first, 12 at most. Deleting rewrites the array, so nothing depends on a
 // tombstone. Status, cost and the angle mix are worked out from the posts, never stored. The wizard lays a campaign
-// out with buildCampaignPosts and planCampaign and keeps it with addCampaign.
+// out with buildCampaignPosts and planCampaign and keeps it with addCampaign. A campaign that runs ads ("Ads only" or
+// "Posts and ads") also carries its budget and 10 ad drafts (planAds; made and sent in src/lib/campaignAds.ts).
 
 import type { FunnelStageId } from "@/data/funnelFramework";
 import { loadAudiences } from "@/lib/audiences";
+import { loadCompetitorAds, runLabel } from "@/lib/competitorAds";
 import { generatePlan, planItemDate, planOptionsFor, steerFor, upcomingMonday, type GeneratePlanOptions, type PlanPillar } from "@/lib/contentPlan";
 import { keyToDate, localDateKey } from "@/lib/dueDates";
 import { draftStatus, engagement, loadDrafts, MAX_DRAFTS, pushedOut, type DraftEntry } from "@/lib/draftHistory";
@@ -14,6 +16,7 @@ import { freeTimeOn, monFirst, slotTimesFor, type Held } from "@/lib/postingSlot
 import { EMPTY_POSITIONING, loadPositioning, type PlanPlatform, type Positioning } from "@/lib/positioning";
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
 import { scoped } from "@/lib/profiles";
+import { sourceKey } from "@/lib/remixSource";
 import { BREAKOUT_RATIO, median } from "../../supabase/functions/_shared/socialAudit.ts";
 
 export type CampaignFormat = "text-post" | "carousel" | "short-video" | "slideshow" | "wall" | "ai-video";
@@ -32,15 +35,36 @@ export interface CampaignPost {
   prev?: { hook?: string; body?: string; script?: string; brief?: string; cta?: string };
 }
 
+/** Where it runs: posts only (missing on campaigns from before 11 Nov), ads only, or both. */
+export type CampaignRuns = "organic" | "ads" | "both";
+/** What the ads spend and who sees them: US$ a day, the https landing page, ISO country codes (up to 10) and ages. */
+export interface AdBudget { daily: number; url: string; countries: string[]; ages: [number, number] }
+/** The layouts an ad takes today: /image's headline ad, quote card and stat card (a testimonial is a customer's own words). */
+export const AD_LAYOUTS = ["headline", "quote", "stat"] as const;
+export type CampaignAdLayout = (typeof AD_LAYOUTS)[number];
+/**
+ * One of the campaign's ads: an angle, a layout and, when the brand's competitors have running ads, the one it remixes.
+ * `designId` is its /image design once Make or Edit made one; made, making and draft are read from that design.
+ */
+export interface CampaignAd {
+  n: number; angleId: string; layout: CampaignAdLayout; source?: { key: string; label: string };
+  designId?: string; skipped?: true; error?: string;
+}
+export const AD_COUNT = 10;
+
 export interface Campaign {
   id: string; name: string; createdAt: string; audience: string; audienceName: string;
   angles: { id: string; title: string; line: string }[]; platforms: PlanPlatform[]; accountIds?: string[];
   formats: CampaignFormat[]; weeks: number; perWeek: 2 | 3 | 5 | 7 | 14 | 21 | 28; startDay: string;
   pictures: "stock" | "mine"; goal?: string; target: { posts: number; winners: number };
   waitUntil?: string; posts: CampaignPost[];
+  runs?: CampaignRuns; budget?: AdBudget; ads?: CampaignAd[];
 }
 
-export interface CampaignAsk { audience: string; angles: Campaign["angles"]; platforms: PlanPlatform[]; accountIds?: string[]; formats: CampaignFormat[]; weeks: number; perWeek: Campaign["perWeek"]; pictures: Campaign["pictures"]; name: string }
+export interface CampaignAsk {
+  audience: string; angles: Campaign["angles"]; platforms: PlanPlatform[]; accountIds?: string[]; formats: CampaignFormat[]; weeks: number;
+  perWeek: Campaign["perWeek"]; pictures: Campaign["pictures"]; name: string; runs?: CampaignRuns; budget?: AdBudget;
+}
 
 export const MAX_CAMPAIGNS = 12;
 export const MAX_CAMPAIGN_CHARS = 800_000;
@@ -184,12 +208,41 @@ function freeTimes(userId: string, posts: CampaignPost[], platform: string, exce
   });
 }
 
+// ---- The ads ----------------------------------------------------------------------
+
+/**
+ * THE SEAM where an ad's layout is chosen: ad i takes /image's three ad layouts in turn. Once the static ad formats
+ * (src/data/staticFormats.ts) can be made from here, pick among them in this one function.
+ */
+export const adLayoutFor = (i: number): CampaignAdLayout => AD_LAYOUTS[i % AD_LAYOUTS.length];
+
+/** 10 ad drafts: ad i takes angle i mod n, the seam's layout and, while they last, source i. */
+export const planAds = (angles: Campaign["angles"], sources: { key: string; label: string }[]): CampaignAd[] =>
+  Array.from({ length: AD_COUNT }, (_, i) => ({ n: i + 1, angleId: angles[i % angles.length]?.id ?? "", layout: adLayoutFor(i), ...(sources[i] ? { source: sources[i] } : {}) }));
+
+/**
+ * The brand's competitors' running ads to remix, one competitor after another so the 10 aren't all one rival's:
+ * pictures before videos, the longest running first.
+ */
+export function runningAdSources(userId: string, now = Date.now()): { key: string; label: string }[] {
+  const lists = Object.values(loadCompetitorAds(userId)).map((e) =>
+    e.ads
+      .filter((a) => a.active)
+      .sort((a, b) => Number(b.format === "image") - Number(a.format === "image") || (a.start ?? "9").localeCompare(b.start ?? "9"))
+      .map((a) => ({ key: sourceKey.ad(a.id), label: [e.pageName || "A competitor", runLabel(a, now)].filter(Boolean).join(", ") })));
+  const out: { key: string; label: string }[] = [];
+  for (let i = 0; out.length < AD_COUNT && lists.some((l) => l[i]); i++) for (const l of lists) if (l[i] && out.length < AD_COUNT) out.push(l[i]);
+  return out;
+}
+
 /** The wizard's answers as a campaign, laid out from this brand's positioning, posting slots and goal; not saved. */
 export function planCampaign(userId: string, ask: CampaignAsk, today: Date): Campaign {
   const positioning = loadPositioning(userId) ?? EMPTY_POSITIONING;
   const platform = ask.platforms[0] ?? positioning.platform;
   const options = { ...planOptionsFor(userId, platform, { plan: null }), ...steerFor(userId) };
-  const posts = freeTimes(userId, buildCampaignPosts(ask, positioning, options, today), platform);
+  const runs = ask.runs ?? "organic";
+  // Ads only posts nothing
+  const posts = runs === "ads" ? [] : freeTimes(userId, buildCampaignPosts(ask, positioning, options, today), platform);
   const goal = positioning.goal?.trim();
   return {
     id: newCampaignId(),
@@ -208,6 +261,9 @@ export function planCampaign(userId: string, ask: CampaignAsk, today: Date): Cam
     ...(goal ? { goal } : {}),
     target: { posts: posts.length, winners: winnersFor(posts.length) },
     posts,
+    ...(runs !== "organic" && ask.budget
+      ? { runs, budget: { ...ask.budget, countries: [...ask.budget.countries], ages: [...ask.budget.ages] as AdBudget["ages"] }, ads: planAds(ask.angles, runningAdSources(userId, today.getTime())) }
+      : {}),
   };
 }
 
@@ -225,6 +281,8 @@ export const hasWords = (p: CampaignPost) => p.state !== "waiting" && p.state !=
  * order, on the new days; the other slots wait to be written; any past the new end are dropped.
  */
 export function replanCampaign(userId: string, c: Campaign, next: Pick<Campaign, "weeks" | "perWeek">): Campaign {
+  // Ads only posts nothing: only the length (the ads' days) changes
+  if (c.runs === "ads") return { ...c, ...next };
   const positioning = loadPositioning(userId) ?? EMPTY_POSITIONING;
   const platform = c.platforms[0] ?? positioning.platform;
   const options = { ...planOptionsFor(userId, platform, { plan: null }), ...steerFor(userId) };
@@ -241,11 +299,14 @@ export function replanCampaign(userId: string, c: Campaign, next: Pick<Campaign,
 
 export type CampaignStatus = "draft" | "running" | "done";
 
-/** Done: every post made or skipped and the last post day before `today` (YYYY-MM-DD). Running: something made. Else draft. */
-export function campaignStatus(c: Pick<Campaign, "posts">, today: string): CampaignStatus {
+/**
+ * Done: every post made or skipped and the last post day before `today` (YYYY-MM-DD). Running: something made (a post,
+ * or one of `adsMade` ads, which campaignAds reads from their designs). Else draft.
+ */
+export function campaignStatus(c: Pick<Campaign, "posts">, today: string, adsMade = 0): CampaignStatus {
   const last = c.posts.reduce((m, p) => (p.day > m ? p.day : m), "");
   if (c.posts.length && last < today && c.posts.every((p) => p.state === "made" || p.state === "skipped")) return "done";
-  return c.posts.some((p) => p.state === "made") ? "running" : "draft";
+  return adsMade > 0 || c.posts.some((p) => p.state === "made") ? "running" : "draft";
 }
 
 export interface CampaignCost {

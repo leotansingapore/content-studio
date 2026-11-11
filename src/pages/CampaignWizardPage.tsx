@@ -1,5 +1,5 @@
-// /campaigns/new (plan-campaign, Leo only; docs/north-star/items/plan-campaign.md): plan a campaign in five steps,
-// one open at a time in a 680 px column. ?step= is the open step (replace; the first unfinished by default) and
+// /campaigns/new (plan-campaign, Leo only; docs/north-star/items/plan-campaign.md): plan a campaign in six steps
+// (seven with Budget, five for Ads only), one open at a time in a 680 px column. ?step= is the open step (replace; the first unfinished by default) and
 // ?audience=<id> answers step 1 once. Every answer waits in cs-campaign-wizard-<scoped> (src/lib/campaignWizard.ts)
 // until Add or Start over. Add lays the campaign out (planCampaign), keeps it (addCampaign) and starts writing its
 // words outside React (startDrafting), so the result card can be left at once. Everyone else gets the 404 page.
@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import AnglesStep from "@/components/campaign/AnglesStep";
+import BudgetStep, { RunsStep } from "@/components/campaign/BudgetStep";
 import PaceStep from "@/components/campaign/PaceStep";
 import ReviewStep, { AddedCard } from "@/components/campaign/ReviewStep";
 import WhereStep, { defaultAccounts, useAccounts } from "@/components/campaign/WhereStep";
@@ -19,13 +20,14 @@ import { anglesFor } from "@/lib/angles";
 import { loadAudiences, onAudiencesChanged } from "@/lib/audiences";
 import { startDrafting } from "@/lib/campaignJob";
 import {
-  addCampaign, campaignCost, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, planCampaign, videosLeft, winnersFor, type Campaign, type CampaignAsk,
+  AD_COUNT, addCampaign, campaignCost, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, planCampaign, videosLeft, winnersFor, type Campaign, type CampaignAsk,
 } from "@/lib/campaigns";
 import {
-  addedLine, confirmed, costLine, defaultName, firstOpen, FORMAT_NAME, formatLine, freshAngles, listJoin, loadWizard, nearestPace, newWork, openStep,
-  paceLabel, pickAudience, previewPosts, saveWizard, shortDay, STEP_LABEL, STEPS, successLine, summaryLines, whereLine, withAudience, withoutAudience,
-  writeLimitLine, type WizardStep, type WizardWork,
+  addedLine, adsCostLine, budgetLine, budgetReason, confirmed, costLine, countryName, defaultName, firstOpen, FORMAT_NAME, formatLine, freshAngles, listJoin,
+  loadWizard, nearestPace, newWork, openStep, overRunLine, paceLabel, pickAudience, previewPosts, runsLabel, saveWizard, shortDay, STEP_LABEL, STEPS,
+  stepCount, stepsFor, successLine, summaryLines, toBudget, usd, whereLine, withAudience, withoutAudience, writeLimitLine, type WizardStep, type WizardWork,
 } from "@/lib/campaignWizard";
+import { loadBrand } from "@/lib/carousel";
 import { upcomingMonday } from "@/lib/contentPlan";
 import { loadGoals } from "@/lib/goals";
 import { links } from "@/lib/links";
@@ -38,10 +40,14 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
-const TITLE: Record<WizardStep, string> = { who: "Who it reaches", angles: "Angles", where: "Where it posts", pace: "Format and pace", review: "Review" };
+const TITLE: Record<WizardStep, string> = {
+  who: "Who it reaches", angles: "Angles", where: "Where it runs", budget: "Budget", accounts: "Where it posts", pace: "Format and pace", review: "Review",
+};
 const QUESTION: Partial<Record<WizardStep, string>> = {
   who: "Who should this campaign reach?",
-  where: "Where does it go out?",
+  where: "Where does this campaign run?",
+  budget: "What does it spend, and who sees it?",
+  accounts: "Where does it go out?",
   pace: "What gets made, and how often?",
 };
 
@@ -95,6 +101,11 @@ function Wizard({ userId }: { userId: string }) {
   // an audience removed since step 1 opens step 1 again
   const work = stored.audience && !audience ? withoutAudience(stored) : stored;
   const open = openStep(urlStep || null, work);
+  const steps = stepsFor(work.runs);
+  const ads = work.runs !== "organic";
+  const website = useMemo(() => loadBrand(userId)?.website ?? "", [userId]);
+  const budgetWait = ads ? budgetReason(work.budget, website) : null;
+  const budget = ads && budgetWait === null ? toBudget(work.budget, website) : null;
   const picked = work.audience ?? audiences[0]?.id ?? null;
 
   const accountsOn = accounts.state === "ready" && accounts.accounts.length > 0;
@@ -127,9 +138,13 @@ function Wizard({ userId }: { userId: string }) {
     if (!audience) return;
     setAdding(true);
     setError(null);
+    // the Budget step un-confirms itself on every edit, so a campaign with ads only reaches Add with a budget that holds
+    if (ads && !budget) return goTo("budget");
+    const posting = work.runs !== "ads";
     const ask: CampaignAsk = {
-      audience: audience.id, angles: work.angles, platforms, ...(accountsOn ? { accountIds } : {}), formats: work.formats, weeks: work.weeks, perWeek,
-      pictures, name: name.trim() || defaultName(audience.name, start),
+      audience: audience.id, angles: work.angles, platforms: posting ? platforms : [], ...(posting && accountsOn ? { accountIds } : {}),
+      formats: posting ? work.formats : [], weeks: work.weeks, perWeek, pictures, name: name.trim() || defaultName(audience.name, start),
+      runs: work.runs, ...(budget ? { budget } : {}),
     };
     // a painted frame of "Adding..." before the save, which is quick and local
     requestAnimationFrame(() =>
@@ -177,11 +192,12 @@ function Wizard({ userId }: { userId: string }) {
       {STEP_LABEL[step]}
     </div>
   );
+  /** reason: why Confirm waits, null when it can go ("" waits on the errors the fields show). */
   const footer = (step: WizardStep, reason: string | null, onConfirm: () => void) => (
     <div className="space-y-1 border-t border-border/60 pt-4">
       <div className="flex items-center justify-between gap-2">
-        {STEPS.indexOf(step) > 0 ? <Button variant="outline" onClick={() => goTo(STEPS[STEPS.indexOf(step) - 1])}>Back</Button> : <span />}
-        <Button onClick={onConfirm} disabled={!!reason}>Confirm</Button>
+        {steps.indexOf(step) > 0 ? <Button variant="outline" onClick={() => goTo(steps[steps.indexOf(step) - 1])}>Back</Button> : <span />}
+        <Button onClick={onConfirm} disabled={reason !== null}>Confirm</Button>
       </div>
       {reason && <p className="text-right text-xs text-muted-foreground">{reason}</p>}
     </div>
@@ -191,11 +207,11 @@ function Wizard({ userId }: { userId: string }) {
       <header className="space-y-1">
         {QUESTION[step] ? (
           <>
-            <p className={HEAD}>{TITLE[step]} | {STEPS.indexOf(step) + 1} of 5</p>
+            <p className={HEAD}>{TITLE[step]} | {stepCount(step, work.runs)}</p>
             <h2 id="wizard-q" className="font-serif text-xl sm:text-2xl">{QUESTION[step]}</h2>
           </>
         ) : (
-          <h2 id="wizard-q" className={HEAD}>{TITLE[step]} | {STEPS.indexOf(step) + 1} of 5</h2>
+          <h2 id="wizard-q" className={HEAD}>{TITLE[step]} | {stepCount(step, work.runs)}</h2>
         )}
       </header>
       {body}
@@ -225,12 +241,25 @@ function Wizard({ userId }: { userId: string }) {
       );
     }
     if (step === "where") {
+      return card(step, <RunsStep runs={work.runs} onRuns={(runs) => save({ ...work, runs })} />, footer(step, null, () => confirm(confirmed(work, "where"))));
+    }
+    if (step === "budget") {
+      // an edit un-confirms the step until its Confirm, so Review never shows a budget that doesn't hold
+      const edit = (patch: Partial<WizardWork>) => save({ ...work, ...patch, done: work.done.filter((s) => s !== "budget") });
+      return card(
+        step,
+        <BudgetStep budget={work.budget} onBudget={(b) => edit({ budget: b })} website={website}
+          {...(work.runs === "ads" ? { weeks: work.weeks, onWeeks: (weeks: number) => edit({ weeks }) } : {})} />,
+        footer(step, budgetWait, () => confirm(confirmed({ ...work, budget: { ...work.budget, url: work.budget.url ?? website } }, "budget"))),
+      );
+    }
+    if (step === "accounts") {
       const count = accountsOn ? accountIds.length : platforms.length;
       return card(
         step,
         <WhereStep accounts={accounts} picked={accountIds} onAccounts={(ids) => save({ ...work, accountIds: ids })} platforms={work.platforms}
           onPlatforms={(p) => save({ ...work, platforms: p })} />,
-        footer(step, accounts.state === "loading" ? "Loading your accounts..." : whereLine(count), () => confirm({ ...confirmed(work, "where"), ...(accountsOn ? { accountIds } : {}) })),
+        footer(step, accounts.state === "loading" ? "Loading your accounts..." : whereLine(count), () => confirm({ ...confirmed(work, "accounts"), ...(accountsOn ? { accountIds } : {}) })),
       );
     }
     if (step === "pace") {
@@ -243,7 +272,8 @@ function Wizard({ userId }: { userId: string }) {
       );
     }
     if (step === "review" && audience) {
-      const uses = Math.ceil(posts / 7);
+      const posting = work.runs !== "ads";
+      const uses = posting ? Math.ceil(posts / 7) : 0;
       return card(
         step,
         <ReviewStep
@@ -252,20 +282,39 @@ function Wizard({ userId }: { userId: string }) {
           rows={[
             ["Who", audience.name],
             ["Angles", work.angles.map((a) => `${a.title}${work.fresh.includes(a.id) ? " (new)" : ""}`).join(", ")],
-            ["Where", accountsOn ? whereValue : listJoin(whereNames)],
-            ["Formats", formatsValue],
-            ["Pace", `${paceLabel(perWeek)} | ${work.weeks} ${work.weeks === 1 ? "week" : "weeks"} | starts ${shortDay(start)}`],
+            ["Where it runs", runsLabel(work.runs)],
+            ...(budget
+              ? ([
+                ["Budget", `${usd(budget.daily)} a day`],
+                ["Over the run", overRunLine(budget.daily, work.weeks)],
+                ["Destination", budget.url],
+                ["Countries", budget.countries.map(countryName).join(", ")],
+                ["Ages", `${budget.ages[0]} to ${budget.ages[1]}`],
+              ] as [string, string][])
+              : []),
+            ...(posting
+              ? ([
+                ["Where it posts", accountsOn ? whereValue : listJoin(whereNames)],
+                ["Formats", formatsValue],
+                ["Pace", `${paceLabel(perWeek)} | ${work.weeks} ${work.weeks === 1 ? "week" : "weeks"} | starts ${shortDay(start)}`],
+              ] as [string, string][])
+              : []),
           ]}
           goal={positioning?.goal?.trim() ?? ""}
-          success={successLine({ posts, winners: winnersFor(posts) })}
-          cost={costLine(cost)}
+          success={posting ? successLine({ posts, winners: winnersFor(posts) }) : null}
+          cost={[posting ? costLine(cost) : "", ads ? adsCostLine(AD_COUNT) : ""].filter(Boolean).join(" ")}
+          note={
+            work.runs === "ads"
+              ? `Adding this lays out ${AD_COUNT} ad drafts. Nothing is written until you press Make, and nothing goes to AdLauncher until you send it.`
+              : undefined
+          }
           adding={adding}
           left={usesLeft("campaign-draft")}
           uses={uses}
           limitLine={writeLimitLine(posts, usesLeft("campaign-draft"))}
           blocked={full ? LIMIT_LINE : null}
           error={error}
-          onBack={() => goTo("pace")}
+          onBack={() => goTo(steps[steps.length - 2])}
           onAdd={add}
         />,
         null,
@@ -276,7 +325,9 @@ function Wizard({ userId }: { userId: string }) {
 
   const value: Partial<Record<WizardStep, ReactNode>> = {
     who: audience?.name,
-    where: whereValue,
+    where: runsLabel(work.runs),
+    budget: budget && `${budgetLine(budget)}${work.runs === "ads" ? ` | ${work.weeks} ${work.weeks === 1 ? "week" : "weeks"}` : ""}`,
+    accounts: whereValue,
     pace: `${formatsValue} | ${paceLabel(perWeek)} | ${work.weeks} ${work.weeks === 1 ? "week" : "weeks"}`,
   };
 
@@ -294,10 +345,11 @@ function Wizard({ userId }: { userId: string }) {
       <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Plan a campaign</h1>
 
       {added ? (
-        <AddedCard id={added.id} name={added.name} line={addedLine(added, added.platforms.map(platformName))} cost={costLine(campaignCost(added, left))} />
+        <AddedCard id={added.id} name={added.name} line={addedLine(added, added.platforms.map(platformName))}
+          cost={[added.posts.length ? costLine(campaignCost(added, left)) : "", added.ads?.length ? adsCostLine(added.ads.length) : ""].filter(Boolean).join(" ")} />
       ) : (
         <>
-          {STEPS.map((step) => {
+          {steps.map((step) => {
             if (step === open) return openCard(step);
             if (!work.done.includes(step)) return later(step);
             if (step === "angles" && audience) {
