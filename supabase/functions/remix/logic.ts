@@ -186,6 +186,7 @@ export const STATIC_LAYOUTS = [
   "lofi-note", "concern-answer", "story-reply", "page-post", "email-screenshot",
   "playful-apology", "phone-share", "share-popup", "whiteboard", "anti-design",
   "tear-off-flyer", "article-page", "general-ad",
+  "street-poster", "lettered-object", "tshirt-print",
 ] as const;
 export type StaticLayout = (typeof STATIC_LAYOUTS)[number];
 export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
@@ -208,6 +209,9 @@ export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
   "tear-off-flyer": { headline: 6, line: 8, details: 14 },
   "article-page": { kicker: 4, headline: 16, deck: 30 },
   "general-ad": { headline: 10, line: 14 },
+  "street-poster": { headline: 12, line: 10 },
+  "lettered-object": { note: 14 },
+  "tshirt-print": { print: 20 },
 };
 export const isStaticLayout = (l: unknown): l is StaticLayout => (STATIC_LAYOUTS as readonly unknown[]).includes(l);
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
@@ -1000,6 +1004,19 @@ const STATIC_RULES: Record<StaticLayout, string[]> = {
     "a clean ad shaped to the business: a headline and one line under it, over the product photo.",
     "- words.headline: the headline, at most 10 words.",
     "- words.line: one line under it, at most 14 words, naming the brand.",
+  ],
+  "street-poster": [
+    "a poster in a lit street display at night, where the buyer walks past: a big headline, the product and a small line.",
+    "- words.headline: the poster's headline, at most 12 words, about the moment the buyer is in.",
+    "- words.line: a small line under the product, at most 10 words: the brand and what it is.",
+  ],
+  "lettered-object": [
+    "a short handwritten line on a sticky note, the way a person reminds themselves, that ties to what the brand does.",
+    "- words.note: the line on the note, at most 14 words, in the first person.",
+  ],
+  "tshirt-print": [
+    "the words printed on the back of a stranger's T-shirt, in capitals, saying why they use the brand.",
+    "- words.print: the print, at most 20 words, in the first person, naming the brand and what it does, only from the facts given.",
   ],
 };
 
