@@ -22,13 +22,17 @@ export default function PhonePage() {
   const [got, setGot] = useState<Got | null>(null);
   const [files, setFiles] = useState<File[] | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     void callFn<{ urls: string[]; expires_at: string }>("slide-campaigns", { action: "phone-get", token }, "Couldn't open the slides. Try the link again.")
       .then((g) => {
         setGot(g);
         // fetched now, not on the tap: iOS Safari only opens the share sheet straight from the tap
-        void Promise.all(g.urls.map(fileOf)).then(setFiles, (e) => setNote((e as Error).message));
+        void Promise.all(g.urls.map(fileOf)).then(setFiles, () => {
+          setFailed(true);
+          setNote("Couldn't load the slides. Reload the page to try again.");
+        });
       })
       .catch((e) => setGot({ error: (e as Error).message }));
   }, [token]);
@@ -51,11 +55,16 @@ export default function PhonePage() {
     }
   };
   const save = async (url: string, i: number) => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(await blobOf(url));
-    a.download = `slide-${i + 1}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    setNote(null);
+    try {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(files?.[i] ?? (await blobOf(url)));
+      a.download = `slide-${i + 1}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    } catch {
+      setNote(`Couldn't save slide ${i + 1}. Reload the page to try again.`);
+    }
   };
 
   return (
@@ -70,7 +79,7 @@ export default function PhonePage() {
       {got && "urls" in got && (
         <>
           <Button size="lg" className="w-full gap-2" disabled={!files} onClick={() => files && void share(files)}>
-            {files ? <Share2 className="h-5 w-5" /> : <Loader2 className="h-5 w-5 animate-spin" />} Share all {got.urls.length}
+            {files || failed ? <Share2 className="h-5 w-5" /> : <Loader2 className="h-5 w-5 animate-spin" />} Share all {got.urls.length}
           </Button>
           {note && <p className="text-sm text-destructive">{note}</p>}
           {sent.format === "tiktok" && <p className="text-xs text-muted-foreground">Instagram crops 9:16 slides to 4:5.</p>}
