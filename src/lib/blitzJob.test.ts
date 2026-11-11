@@ -19,7 +19,7 @@ vi.mock("@/lib/ideasInbox", async (orig) => ({ ...(await orig<typeof import("./i
 vi.mock("@/lib/remix", async (orig) => ({ ...(await orig<typeof import("./remix")>()), requestMake }));
 
 import { DEFAULT_MIX, deckDay, loadBlitz, saveBlitz, type BlitzCard } from "./blitz";
-import { alsoMake, blitzBusy, keepCard, loadPools, nothingToDraw, retryCard, skipCard, undoKeep, whyEmpty } from "./blitzJob";
+import { alsoMake, blitzBusy, keepCard, loadPools, nothingToDraw, retryCard, skipCard, startDeck, undoKeep, whyEmpty } from "./blitzJob";
 import { FORMAT_TRENDS } from "./formatTrends";
 import { DEFAULT_CHOICES, savePostChoices } from "./postChoices";
 import { loadDrafts } from "./draftHistory";
@@ -118,6 +118,30 @@ describe("making the deck", () => {
     expect(loadBlitz(UID).cards[0]).toMatchObject({ state: "failed", error: "Couldn't make this one." });
     await run("c1");
     expect(loadBlitz(UID).cards[0]).toMatchObject({ state: "new", wall: { text: "Second go" } });
+  });
+});
+
+describe("starting the deck", () => {
+  it("deals no second deck the day the remixes ran out before a card was made", async () => {
+    saveBlitz(UID, { day: deckDay(), mix: DEFAULT_MIX, cards: [], capped: true });
+    // there is plenty to draw on: only the spent day holds it back
+    expect(nothingToDraw(UID)).toBe(false);
+    expect(startDeck(UID)).toBe("capped");
+    await until(() => !blitzBusy());
+    expect(loadBlitz(UID).cards).toEqual([]);
+    expect([requestMake.mock.calls.length, startSlideshow.mock.calls.length]).toEqual([0, 0]);
+  });
+
+  it("never makes a card twice when the deck is started again while it runs", async () => {
+    let answer: (v: unknown) => void = () => {};
+    requestMake.mockImplementationOnce(() => new Promise((r) => (answer = r)));
+    seed([card("c1", "wall")]);
+    expect(startDeck(UID)).toBe("started");
+    expect(startDeck(UID)).toBe("busy");
+    answer(wallOk("Made once"));
+    await until(() => !blitzBusy());
+    expect(requestMake).toHaveBeenCalledTimes(1);
+    expect(loadBlitz(UID).cards[0]).toMatchObject({ state: "new", wall: { text: "Made once" } });
   });
 });
 
