@@ -241,6 +241,22 @@ describe("the budget", () => {
     expect(adsCostLine(10)).toMatch(/^10 ads come to .+, each written when you press Make\.$/);
   });
 
+  it("keeps a typed budget's cents and reads USD written out, so the review says what was typed", () => {
+    expect(toBudget(b({ daily: "50.5" })).daily).toBe(50.5);
+    expect(toBudget(b({ daily: "US$1,234.56" })).daily).toBe(1234.56);
+    expect(budgetLine(toBudget(b({ daily: "50.5" })))).toBe("US$50.50 a day | Singapore | 18 to 65");
+    for (const daily of ["USD 50", "50 usd"]) {
+      expect(budgetProblems(b({ daily })).daily).toBeUndefined();
+      expect(toBudget(b({ daily })).daily).toBe(50);
+    }
+  });
+
+  it("never aims the ads at more than 10 countries, typed or kept from an earlier visit", () => {
+    const twelve = ["SG", "MY", "ID", "TH", "PH", "VN", "AU", "NZ", "GB", "US", "CA", "IN"];
+    expect(toBudget(b({ countries: twelve })).countries).toEqual(twelve.slice(0, 10));
+    expect(readWork({ budget: { countries: twelve } })?.budget.countries).toEqual(twelve.slice(0, 10));
+  });
+
   it("the result card for each place it runs", () => {
     const ads = Array.from({ length: 10 }, (_, i) => ({ n: i + 1, angleId: "a1", layout: "headline" as const }));
     const c = { angles: ANGLES, weeks: 4, perWeek: 3 as const, posts: previewPosts(["text-post"], 3, 4) };
