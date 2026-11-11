@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { blankDna, createBrand, keptBrand, keptBrandKey, NETWORKS, newBrandKit, PROFESSION_NEEDED, profileAddress, readBody, type BrandDna } from "./addBrand";
+import { blankDna, createBrand, keptBrand, keptBrandKey, NETWORKS, newBrandKit, parseTopics, PROFESSION_NEEDED, profileAddress, readBody, shownTopics, type BrandDna } from "./addBrand";
 import { loadBrand } from "./carousel";
 import { loadPositioning } from "./positioning";
 import { loadFacts } from "./voiceMemory";
@@ -158,5 +158,30 @@ describe("creating a brand (Add a brand)", () => {
     const other = createBrand(UID, "Acme Advisory", dna, "Financial adviser", null);
     if (other.ok === false) throw new Error(other.error);
     expect(loadFacts(UID)).toEqual([]);
+  });
+});
+
+describe("the Topics field", () => {
+  const type = (start: string[], keys: string) => {
+    let typed = "";
+    let topics = start;
+    let shown = shownTopics(typed, topics);
+    for (const k of keys) {
+      typed = shown + k;
+      topics = parseTopics(typed);
+      shown = shownTopics(typed, topics);
+    }
+    return { shown, topics };
+  };
+
+  it("keeps every comma and space typed, and saves the topics split", () => {
+    expect(type([], "retirement planning, tax")).toEqual({ shown: "retirement planning, tax", topics: ["retirement planning", "tax"] });
+    expect(type(["wealth", "estate"], ", estate planning")).toEqual({ shown: "wealth, estate, estate planning", topics: ["wealth", "estate", "estate planning"] });
+  });
+
+  it("shows the read's topics until something is typed, and a new read over old typing", () => {
+    expect(shownTopics("", ["CPF", "HDB"])).toBe("CPF, HDB");
+    expect(shownTopics("tax, ", ["CPF"])).toBe("CPF");
+    expect(parseTopics(" a, ,b,c,d,e,f,g ")).toEqual(["a", "b", "c", "d", "e", "f"]);
   });
 });

@@ -13,7 +13,7 @@ import { callFn, EdgeError } from "@/lib/edgeFn";
 import type { PlanAudience } from "@/lib/positioning";
 import { loadProfiles } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
-import { AUDIENCE_NAMES, blankDna, createBrand, keptBrand, keptBrandKey, NETWORKS, PROFESSION_NEEDED, readBody, type BrandDna as Dna } from "@/lib/addBrand";
+import { AUDIENCE_NAMES, blankDna, createBrand, keptBrand, keptBrandKey, NETWORKS, parseTopics, PROFESSION_NEEDED, readBody, shownTopics, type BrandDna as Dna } from "@/lib/addBrand";
 import { appDna, appFacts, appProfession, appStoreLink, isAppRead, MAX_PAINS, proofLines, readComplaints, readListing, readRivals, type AppRead } from "@/lib/appStore";
 import { asPostLang, LANG_NAMES } from "@/lib/translate";
 
@@ -47,6 +47,7 @@ export default function AddBrandPage() {
   // Create was pressed before "What do you do?" had an answer: the line saying so shows until it has one
   const [triedEmpty, setTriedEmpty] = useState(false);
   const [created, setCreated] = useState("");
+  const [topicsTyped, setTopicsTyped] = useState("");
   const timer = useRef<number>();
   const createdOnce = useRef(false);
   const leo = useLeoOnly();
@@ -321,7 +322,7 @@ export default function AddBrandPage() {
           ))}
           {row("topics", "Topics and edge", dna.topics.join(", ") || dna.edge, (
             <div className="space-y-2">
-              <Input value={dna.topics.join(", ")} onChange={(e) => patch({ topics: e.target.value.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 6) })} placeholder="Topics, separated by commas" className="text-sm" aria-label="Topics" />
+              <Input value={shownTopics(topicsTyped, dna.topics)} onChange={(e) => { setTopicsTyped(e.target.value); patch({ topics: parseTopics(e.target.value) }); }} placeholder="Topics, separated by commas" className="text-sm" aria-label="Topics" />
               <Input value={dna.edge} onChange={(e) => patch({ edge: e.target.value })} placeholder="Why people pick this brand" className="text-sm" aria-label="Edge" />
             </div>
           ))}

@@ -130,6 +130,10 @@ export function profileAddress(base: string, typed: string): string {
   return path.toLowerCase().startsWith(`${new URL(base).hostname.replace(/^www\./, "")}/`) ? `https://www.${path}` : base + h.replace(/^@/, "");
 }
 
+export const parseTopics = (text: string) => text.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 6);
+
+export const shownTopics = (typed: string, topics: string[]) => (parseTopics(typed).join("\n") === topics.join("\n") ? typed : topics.join(", "));
+
 /** The one line Add a brand shows when Create or Add brand is pressed before "What do you do?" has an answer. */
 export const PROFESSION_NEEDED = "Pick what you do first, so the AI writes this brand's posts for it.";
 
