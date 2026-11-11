@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardCounts, boardWeeks, countsText, frames } from "./campaignBoard";
+import { boardCounts, boardWeeks, countsText, frames, plannedByDay } from "./campaignBoard";
 import type { CampaignPost } from "./campaigns";
 
 const post = (n: number, day: string, o: Partial<CampaignPost> = {}): CampaignPost => ({
@@ -44,5 +44,16 @@ describe("a post as storyboard frames", () => {
     expect(frames(post(4, "d", { body: "The body." }))[0].text).toContain("The body.");
     expect(frames(post(5, "d", { format: "carousel", body: "One.\n\nTwo.\n\nThree." })).length).toBeGreaterThan(1);
     expect(frames(post(6, "d", { hook: undefined, state: "waiting" }))).toEqual([]);
+  });
+});
+
+describe("the calendar's campaign drafts", () => {
+  it("lists each campaign's posts still to make on their day, never a made, making or skipped one", () => {
+    const by = plannedByDay([
+      { id: "c1", name: "One", posts: [post(1, "2026-11-16"), post(2, "2026-11-16", { state: "made" }), post(3, "2026-11-17", { state: "skipped" }), post(4, "2026-11-18", { state: "waiting", hook: undefined })] },
+      { id: "c2", name: "Two", posts: [post(1, "2026-11-16"), post(2, "2026-11-19", { state: "making" })] },
+    ]);
+    expect([...by.keys()].sort()).toEqual(["2026-11-16", "2026-11-18"]);
+    expect(by.get("2026-11-16")?.map((x) => `${x.c.id}:${x.p.n}`)).toEqual(["c1:1", "c2:1"]);
   });
 });

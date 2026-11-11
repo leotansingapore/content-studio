@@ -73,3 +73,12 @@ export function frames(p: CampaignPost): Frame[] {
   }
   return [{ label: "Post", text: postText(p) }];
 }
+
+export interface PlannedPost { c: Pick<Campaign, "id" | "name">; p: CampaignPost }
+
+/** Every campaign's posts still to make (not made, being made or skipped) by their day, for the calendar: a made post is already there as itself. */
+export function plannedByDay(campaigns: Pick<Campaign, "id" | "name" | "posts">[]): Map<string, PlannedPost[]> {
+  const out = new Map<string, PlannedPost[]>();
+  for (const c of campaigns) for (const p of c.posts) if (toMake(p)) out.set(p.day, [...(out.get(p.day) ?? []), { c: { id: c.id, name: c.name }, p }]);
+  return out;
+}
