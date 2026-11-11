@@ -779,7 +779,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          Analytics
+          Results
         </h1>
       </header>
 
