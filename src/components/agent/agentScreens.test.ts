@@ -63,6 +63,8 @@ describe("run and meta lines", () => {
     expect(runLabel("thinking", 3)).toBe("Thinking 3s");
     expect(runLabel("writing", 9)).toBe("Writing 9s");
     expect(runLabel("thinking", null)).toBe("Thinking");
+    // a named step takes the word's place and keeps its own seconds
+    expect(runLabel("thinking", 2, "Checking today's uses")).toBe("Checking today's uses 2s");
     expect(runLabel("making", 4, "Making the voiceover...")).toBe("Making | Making the voiceover...");
   });
   it("reads time, steps and seconds", () => {

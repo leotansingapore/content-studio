@@ -11,11 +11,13 @@ import Composer, { useAgentUsage, type ComposerHandle } from "@/components/agent
 import { chipAction, DONE, isAppPath, type DockIdentity } from "@/components/agent/dockActions";
 import FbChip from "@/components/agent/FbChip";
 import MadeBlock, { madeNoun } from "@/components/agent/MadeBlock";
+import MakingBlock from "@/components/agent/MakingBlock";
 import Receipt from "@/components/agent/Receipt";
 import { Button } from "@/components/ui/button";
 import { choose, onAgent, send, turnOf, type Turn } from "@/lib/agentRun";
 import { fieldsOf, madeOpen } from "@/lib/agentPlans";
 import { starterChips } from "@/lib/agentStarters";
+import { inFlight } from "@/lib/agentWork";
 import { GONE_LINE, loadThreads, onThreadsChanged, patchMsg, type AgentMsg } from "@/lib/agentThreads";
 import { links } from "@/lib/links";
 import { cn } from "@/lib/utils";
@@ -26,11 +28,11 @@ type Go = { path: string; label: string };
 /** Chips that act here rather than open a page; any other path that isn't the app's own is never drawn. */
 export const ENGINE_CHIP = /^(say|format|forget|fb):/;
 
-/** "Thinking 3s" for a live turn; the stored state's word for one this tab isn't running. */
+/** "Thinking 3s", or the turn's named step ("Checking today's uses 2s"), for a live turn; the stored state's word for one this tab isn't running. */
 export function runLabel(state: Turn["state"], seconds: number | null, line?: string): string {
   const n = seconds === null ? "" : ` ${seconds}s`;
   if (state === "starting") return "Starting";
-  if (state === "thinking") return `Thinking${n}`;
+  if (state === "thinking") return `${line || "Thinking"}${n}`;
   if (state === "writing") return `Writing${n}`;
   return line ? `Making | ${line}` : "Making";
 }
@@ -142,6 +144,14 @@ export default function AgentThread({
     } else toBottom();
   }, [messages.length, focusMsg, show, toBottom]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // a link into the chat already open (a row of Your work) scrolls to its message too
+  useEffect(() => {
+    if (landed.current && focusMsg && document.getElementById(`m-${focusMsg}`)) {
+      near.current = false;
+      show(focusMsg, true);
+    }
+  }, [focusMsg, show]);
+
   // new words follow the bottom while it is in view; a make that lands while scrolled up gets the "ready" chip
   const tail = messages.map((m) => `${m.id}:${m.turn ?? ""}:${m.card?.status ?? ""}:${m.job?.state ?? ""}:${m.receipt ? 1 : 0}`).join("|");
   useLayoutEffect(() => {
@@ -251,7 +261,7 @@ export default function AgentThread({
           const mine = turn && turn.msg === m.id && RUNNING.has(turn.state) ? turn : null;
           const stored = !mine && m.turn && RUNNING.has(m.turn) ? m.turn : null;
           const state = mine
-            ? runLabel(mine.state, Math.max(0, Math.floor((now - mine.startedAt) / 1000)), mine.line)
+            ? runLabel(mine.state, Math.max(0, Math.floor((now - (mine.stepAt ?? mine.startedAt)) / 1000)), mine.line)
             : stored
               ? runLabel(stored, null)
               : null;
@@ -275,15 +285,9 @@ export default function AgentThread({
                 <p className={cn("max-w-[92%] whitespace-pre-wrap break-words text-sm leading-relaxed", m.error && "text-destructive")}>{m.text}</p>
               )}
               {m.card && threadId && <ActionCard userId={userId} threadId={threadId} msg={m as AgentMsg & { card: NonNullable<AgentMsg["card"]> }} usage={usage} onSend={(t) => sendHere(t)} />}
-              {m.job?.state === "running" && !m.card && (
-                <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-                  <Loader2 className="h-3 w-3 animate-spin" /> {turn?.msg === m.id && turn.line ? turn.line : "Making"}
-                </p>
-              )}
-              {m.job?.state === "running" && m.card?.status === "approved" && turn?.msg === m.id && turn.line && (
-                <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-                  <Loader2 className="h-3 w-3 animate-spin" /> {turn.line}
-                </p>
+              {/* a priced make on its way; a saved change (a note, a move) lands at once and shows none */}
+              {inFlight(m) && (m.job || m.card?.price) && (
+                <MakingBlock title={m.job?.title ?? m.card?.title ?? ""} startedAt={m.job?.startedAt ?? m.card?.decidedAt ?? m.at} step={turn?.msg === m.id ? turn.line : undefined} />
               )}
               {m.job?.state === "done" && <MadeBlock userId={userId} job={{ ...m.job, open: madeOpen(userId, m.job) }} />}
               {m.receipt && threadId && (

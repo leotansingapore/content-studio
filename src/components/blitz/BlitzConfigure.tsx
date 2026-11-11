@@ -1,7 +1,9 @@
 // Configure on /blitz (?configure=1, Leo's sign-ins), after Fastlane's Configure Blitz (11 Nov walk). Only the
 // settings our slideshow and wall-of-text makers have an option for: where cards come from (Change mix), the content
-// mix, the remix ratio (a source or one of your ideas), the own-media mix (the slideshow's Media pictures) and slide
-// rules (the slideshow's photo mood). Each change saves at once and shapes the next deck.
+// mix, the remix ratio (a source or one of your ideas), the own-media mix (the slideshow's Media pictures), slide
+// rules (the slideshow's photo mood) and the text looks (Fastlane's caption style mix: the brand's ticked Post
+// choices styles, which both makers already draw one of per make). Demo videos are counted because a card's "Make
+// it a hook plus demo" needs one. Each change saves at once and shapes the next deck.
 
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -11,7 +13,9 @@ import { FilterChip } from "@/components/ui/filter-chip";
 import { candidatesOf, loadBlitz, saveMix, SOURCE_KINDS, SOURCE_LABELS, type BlitzMix } from "@/lib/blitz";
 import { loadPools } from "@/lib/blitzJob";
 import { links } from "@/lib/links";
+import { demoVideos } from "@/lib/demoVideos";
 import { loadMedia } from "@/lib/mediaLibrary";
+import { loadPostChoices, savePostChoices, TEXT_STYLE_IDS, TEXT_STYLES, type TextStyleId } from "@/lib/postChoices";
 import { PHOTO_MOOD_IDS, PHOTO_MOODS } from "@/lib/slideshowJob";
 
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
@@ -37,6 +41,16 @@ export default function BlitzConfigure({ userId, onClose }: { userId: string; on
     return Object.fromEntries(SOURCE_KINDS.map((k) => [k, all.filter((c) => c.kind === k).length]));
   }, [userId]);
   const media = useMemo(() => loadMedia(userId).length, [userId]);
+  const demos = useMemo(() => demoVideos(userId).length, [userId]);
+  // the brand's own Post choices (Settings), ticked from here too: one store, so the two never disagree
+  const [looks, setLooks] = useState<TextStyleId[]>(() => loadPostChoices(userId).textStyles);
+  const [lookError, setLookError] = useState(false);
+  const toggleLook = (id: TextStyleId) => {
+    const next = TEXT_STYLE_IDS.filter((x) => (x === id ? !looks.includes(x) : looks.includes(x)));
+    const ok = savePostChoices(userId, { ...loadPostChoices(userId), textStyles: next });
+    setLookError(!ok);
+    if (ok) setLooks(next);
+  };
   const change = (patch: Partial<BlitzMix>) => {
     const next = { ...mix, ...patch };
     setMix(next);
@@ -94,7 +108,29 @@ export default function BlitzConfigure({ userId, onClose }: { userId: string; on
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">Green screen and hook demo videos, smart text positioning and caption styles aren't in Blitz yet.</p>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2">
+          <p className={HEAD}>Text looks</p>
+          <div className="flex flex-wrap gap-2">
+            {TEXT_STYLE_IDS.map((id) => (
+              <FilterChip key={id} active={looks.includes(id)} onClick={() => toggleLook(id)}>
+                {TEXT_STYLES[id].label}
+              </FilterChip>
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground">{looks.length ? `Each post draws one of the ${looks.length} ticked.` : "None ticked: each post keeps your last look."}</p>
+          {lookError && <p className="text-sm text-destructive" role="alert">Couldn't save that on this device. Try again.</p>}
+        </div>
+        <div className="space-y-2">
+          <p className={HEAD}>Demo videos ({demos})</p>
+          <p className="text-sm text-muted-foreground">
+            {demos ? "A card's hook plus demo plays one of these. " : "A card's hook plus demo needs one. "}
+            <Link to={links.brand({ section: "demo-videos" })} className="text-primary hover:underline">{demos ? "Manage them" : "Add one"}</Link>
+          </p>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">Smart text positioning isn't in Blitz yet.</p>
     </section>
   );
 }

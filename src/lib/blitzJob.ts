@@ -219,6 +219,21 @@ export function skipCard(userId: string, id: string): () => void {
   };
 }
 
+/**
+ * The formats Blitz can't deal by itself, as a hand-off from a card (Fastlane's green screen and hook demo content
+ * types): the same source or idea opened in that maker. A green screen needs your clip or a paid presenter, and a
+ * hook plus demo ends in the one video editor, so neither is made ten at a time. A green screen is offered only for
+ * a source: its page takes no topic from a link.
+ */
+export function alsoMake(card: Pick<BlitzCard, "source" | "topic">): { label: string; href: string }[] {
+  const from = card.source ? { source: card.source.key } : card.topic?.title.trim() ? { topic: card.topic.title.trim() } : null;
+  if (!from) return [];
+  return [
+    ...(card.source ? [{ label: "Make it a green screen", href: links.makeFormat("green-screen", from) }] : []),
+    { label: "Make it a hook plus demo", href: links.makeFormat("hook-demo", from) },
+  ];
+}
+
 /** Where Edit goes: the slideshow editor or Write, with from=blitz. The card is kept first, so the edit lands in My posts. */
 export function editHref(userId: string, id: string): string | null {
   const draftId = keepCard(userId, id);

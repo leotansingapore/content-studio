@@ -534,7 +534,7 @@ anyone else gets the not-on-your-account page. Built in src/lib/links.ts (links.
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|
 | /blitz | card | Leo only. a card's id in today's deck; opens that card while it is still to review, else the first open card | the first open card | replace | /blitz?card=bz-mh3k2a0x1f |
-| /blitz | configure | Leo only. 1: Configure open (where cards come from, content mix, remix ratio, own-media mix, slide rules) | closed | push | /blitz?configure=1 |
+| /blitz | configure | Leo only. 1: Configure open (where cards come from, content mix, remix ratio, own-media mix, slide rules, text looks, demo videos) | closed | push | /blitz?configure=1 |
 
 Edit on a card opens the slideshow editor (/slideshow?s=<id>) or Write (/generate?draft=<id>) with from=blitz, which
 the editors ignore; Back returns to /blitz?card=<id>.
@@ -640,8 +640,9 @@ never uuid-shaped: threads t<base36>, messages m<base36>, events a<base36><4 cha
 | /agent | (path) | Leo only. a new, empty chat | | | /agent |
 | /agent/<thread> | (path) | Leo only. a thread's id: that thread, with Copy link in its header | | push | /agent/tmh2k9x |
 | /agent/<thread> | m | Leo only. a message's id: scrolls to that message (a card, a receipt, a MADE block) and rings it for 2 seconds; receipts, Activity and Home link here | none | push | /agent/tmh2k9x?m=mmh2k9y |
-| /agent | panel | Leo only. chats: the thread list sheet at phone width, with or without a thread | closed | push | /agent/tmh2k9x?panel=chats |
+| /agent | panel | Leo only. chats: the thread list sheet at phone width, with or without a thread. work: Your work (needs you, in flight, made) as a sheet below 1280px, where it is not beside the chat | closed | push | /agent/tmh2k9x?panel=work |
 | /agent | ask | Leo only. words for a new chat: the composer filled, not sent; read once, then removed; a thread drops it | none | replace | /agent?ask=make+a+carousel+about+CPF+LIFE |
+| /agent | ask + state | Leo only. A page that hands the agent a request links to /agent?ask=<words> with navigation state { send: true, from: { label, path } } (src/lib/agentStarters.ts handoff): the new chat sends the words on arrival and shows "From <label>" back to that page. State is never in the URL, so a pasted or shared link only fills the composer | not sent | replace | (state only) |
 | /agent | remix | Leo only. a remix source key (the ?remix= shapes above): a new chat with that source on the composer, in place of the Remix sheet; a thread drops it | none | replace | /agent?remix=top%3Athe-woke-salaryman-instagram-Ddkxv39j961 |
 | /home | waiting | Leo only. all: every Next up item, not just the first few | the first few | replace | /home?waiting=all |
 | /home | #next-up, #ask, #agent-now | Leo only. scrolls to Next up, the Ask tiles or Agent now | top | (anchor) | /home#agent-now |

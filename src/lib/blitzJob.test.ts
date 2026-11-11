@@ -19,7 +19,7 @@ vi.mock("@/lib/ideasInbox", async (orig) => ({ ...(await orig<typeof import("./i
 vi.mock("@/lib/remix", async (orig) => ({ ...(await orig<typeof import("./remix")>()), requestMake }));
 
 import { DEFAULT_MIX, deckDay, loadBlitz, saveBlitz, type BlitzCard } from "./blitz";
-import { blitzBusy, keepCard, loadPools, nothingToDraw, retryCard, skipCard, undoKeep, whyEmpty } from "./blitzJob";
+import { alsoMake, blitzBusy, keepCard, loadPools, nothingToDraw, retryCard, skipCard, undoKeep, whyEmpty } from "./blitzJob";
 import { FORMAT_TRENDS } from "./formatTrends";
 import { DEFAULT_CHOICES, savePostChoices } from "./postChoices";
 import { loadDrafts } from "./draftHistory";
@@ -174,5 +174,20 @@ describe("a brand with competitors tracked, no ads, no winners and no ideas", ()
     expect(why.action).toBe("configure");
     expect(why.line).toContain("no running ads found for your competitors");
     expect(why.line).toContain("Trends switched off in Configure");
+  });
+});
+
+describe("a card's other formats", () => {
+  it("opens the green screen and hook plus demo makers on the card's own source", () => {
+    const source = { key: "format:tiktok-1", kind: "format", format: "slideshow", title: "t" } as unknown as NonNullable<BlitzCard["source"]>;
+    expect(alsoMake({ source })).toEqual([
+      { label: "Make it a green screen", href: "/make/green-screen?source=format%3Atiktok-1" },
+      { label: "Make it a hook plus demo", href: "/make/hook-demo?source=format%3Atiktok-1" },
+    ]);
+  });
+
+  it("hands an idea's title to hook plus demo only, and nothing when there is neither", () => {
+    expect(alsoMake({ source: null, topic: { title: " Five calls before lunch ", angle: "" } })).toEqual([{ label: "Make it a hook plus demo", href: "/make/hook-demo?topic=Five+calls+before+lunch" }]);
+    expect(alsoMake({ source: null })).toEqual([]);
   });
 });

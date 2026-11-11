@@ -37,10 +37,13 @@ const CHIPS: { key: keyof Omit<Prefs, "extra">; label: string; options: [string 
   { key: "dress", label: "Dress", options: [["office", "Office"], ["smart-casual", "Smart casual"], ["casual", "Casual"]], clears: true },
 ];
 
+const NO_NAME = "your brand";
 function brandName(userId: string): string {
   const p = activeProfile(userId);
-  return p.id === DEFAULT_PROFILE_ID ? loadBrand(userId)?.name.trim() || "your brand" : p.name;
+  return p.id === DEFAULT_PROFILE_ID ? loadBrand(userId)?.name.trim() || NO_NAME : p.name;
 }
+/** "MoneyBees videos", or "your videos" for a brand with no name yet ("your brand videos" reads broken after every and New). */
+const videosOf = (brand: string) => (brand === NO_NAME ? "your videos" : `${brand} videos`);
 
 export default function PresentersTab({ userId }: { userId: string }) {
   const { toast } = useToast();
@@ -71,7 +74,7 @@ export default function PresentersTab({ userId }: { userId: string }) {
   return (
     <div className="space-y-6">
       <section className={CARD} aria-labelledby="who-appears">
-        <h2 id="who-appears" className="font-serif text-lg font-semibold">Who appears in {brand} videos</h2>
+        <h2 id="who-appears" className="font-serif text-lg font-semibold">Who appears in {videosOf(brand)}</h2>
         <div role="radiogroup" aria-labelledby="who-appears" className="flex flex-wrap items-center gap-2">
           <Choice checked={data.who === "me"} disabled={!face} onClick={() => who("me")}>Me</Choice>
           {on.map((p) => (
@@ -116,7 +119,7 @@ export default function PresentersTab({ userId }: { userId: string }) {
         ) : (
           !sheet && (
             <div className={CARD}>
-              <p className="text-sm text-muted-foreground">No presenters yet. Make one, and the same face can front every {brand} video.</p>
+              <p className="text-sm text-muted-foreground">No presenters yet. Make one, and the same face can front all {videosOf(brand)}.</p>
               <Button className={BIG} onClick={openSheet}>Make a presenter</Button>
             </div>
           )
@@ -172,7 +175,7 @@ function MakeSheet(props: { userId: string; prefs: Prefs; full: boolean; taken: 
     const r = await keepPick(userId, picked, name);
     setSaving(false);
     if (r.ok === false) return setError(r.error);
-    toast({ title: `${r.presenter.name} is saved. New ${brand} videos can use ${r.presenter.name}.` });
+    toast({ title: `${r.presenter.name} is saved. ${r.presenter.name} can front ${videosOf(brand)} from now on.` });
     onClose();
   };
 
@@ -181,7 +184,10 @@ function MakeSheet(props: { userId: string; prefs: Prefs; full: boolean; taken: 
   return (
     <section className={CARD} aria-labelledby="make-presenter">
       <div className="flex items-center justify-between gap-2">
-        <h3 id="make-presenter" className="font-serif text-lg font-semibold">Make a presenter</h3>
+        <div className="min-w-0">
+          <h3 id="make-presenter" className="font-serif text-lg font-semibold">Make a presenter</h3>
+          <p className="text-xs tabular-nums text-muted-foreground">Step {make.state === "pick" ? 3 : make.state === "making" ? 2 : 1} of 3: {make.state === "pick" ? "pick and name" : make.state === "making" ? "making" : "describe"}</p>
+        </div>
         <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-9 sm:w-9" aria-label="Close" onClick={onClose}><X className="h-4 w-4" /></Button>
       </div>
 

@@ -45,6 +45,8 @@ export interface Turn {
   msg: string;
   state: "starting" | "thinking" | "writing" | "making" | "done" | "stopped" | "failed";
   startedAt: number;
+  /** When the step it shows began (its state or line last changed): the run line's seconds count from here. */
+  stepAt?: number;
   steps: number;
   line?: string;
 }
@@ -66,6 +68,10 @@ export const REFUSE = {
 const OPEN_MY_POSTS = { path: "/drafts", label: "Open All posts" };
 export const NOT_MADE = "Nothing was made or charged.";
 const OVER_A_DOLLAR = 1;
+
+/** The named steps of a turn after the pick, each what the engine is really doing before it answers. */
+export const STEP = { uses: "Checking today's uses", campaign: "Reading your audience and angles", notes: "Checking your notes", open: "Reading what's open" } as const;
+const STEP_FOR: Partial<Record<AgentPick["act"], string>> = { make: STEP.uses, remix: STEP.uses, answer: STEP.uses, campaign: STEP.campaign, remember: STEP.notes, edit: STEP.open };
 
 // ---------- hooks the pages register ----------
 
@@ -128,7 +134,8 @@ export function onAgent(fn: () => void): () => void {
 function setTurn(thread: string, msg: string, patch: Partial<Turn>) {
   const t = turns.get(thread);
   if (t && t.msg !== msg) return; // a newer turn owns the thread
-  turns.set(thread, { ...(t ?? { thread, msg, state: "starting", startedAt: clock(), steps: 0 }), ...patch });
+  const stepped = !!t && (("state" in patch && patch.state !== t.state) || ("line" in patch && patch.line !== t.line));
+  turns.set(thread, { ...(t ?? { thread, msg, state: "starting", startedAt: clock(), steps: 0 }), ...patch, ...(stepped ? { stepAt: clock() } : {}) });
   emit();
 }
 
@@ -142,10 +149,12 @@ function onlyProposed(messages: AgentMsg[]): { msg: string; card: AgentCard } | 
   return list.length === 1 ? { msg: list[0].id, card: list[0].card! } : null;
 }
 
-function liveFor(thread: string, msg: string): Live & { steps: () => number } {
+function liveFor(thread: string, msg: string): Live & { steps: () => number; note: (line: string) => void } {
   let n = 0;
   return {
     step: (line, state) => setTurn(thread, msg, { line, state }),
+    // a named step of a thinking turn, before any card ("Checking today's uses 2s")
+    note: (line) => setTurn(thread, msg, { line }),
     call: () => setTurn(thread, msg, { steps: ++n }),
     steps: () => n,
   };
@@ -310,8 +319,10 @@ async function decide(userId: string, thread: string, msg: string, text: string,
   const cp = ans?.pick ? clientPick(ans.pick, sent) : null;
   // who appears, with its look: a new presenter's look is only known by the server's index
   const speaker = ans?.pick?.who != null ? (sent.speakers[ans.pick.who] ?? null) : null;
+  if (!cp && o.chip) live.note(STEP.uses);
   if (!cp) return o.chip ? chipReply(userId, text, o.chip, src, p) : feedbackReply(userId, thread, text, live);
   const act = cp.act;
+  if (STEP_FOR[act]) live.note(STEP_FOR[act]!);
   if (cp.skill && act !== "approve" && act !== "decline") {
     const mine = sent.skills.find((x) => x.slash === cp.skill);
     const postId = (cp.post === null ? undefined : loadDrafts(userId)[cp.post]?.id) ?? writeDraft();
