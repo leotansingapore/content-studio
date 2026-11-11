@@ -1,10 +1,12 @@
 // One product or service, edited in a dialog over /brand (brand-products, Leo only). Opened by ?product=<id>#products,
-// or ?product=new for a blank one (push, so Back closes it). What is typed is kept for the tab until Save or close, so
-// a reload never loses it. Pictures: up to 4, the first used first, from Media or an upload; each joins Media's
+// or ?product=new for a blank one (push, so Back closes it). What is typed is kept for the tab until Save, Delete or
+// Back, so a reload never loses it; Close, Escape or a tap outside with unsaved changes keeps it too and offers
+// "Keep editing". Pictures: up to 4, the first used first, from Media or an upload; each joins Media's
 // "Products" folder. Also here: PictureTile, the one picture square the section, the review and the AI panel draw.
 
 import { useEffect, useReducer, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ImageOff, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +84,9 @@ const draftOf = (p?: Product): Draft => ({
   name: p?.name ?? "", what: p?.what ?? "", forWho: p?.forWho ?? "", price: p?.price ?? "", url: p?.url ?? "", pictures: p?.pictures ?? [], sources: p?.sources ?? [],
 });
 
+/** Whether the editor holds something Save would change. */
+export const isDirty = (d: Draft, p?: Product) => JSON.stringify(d) !== JSON.stringify(draftOf(p));
+
 /** The typed draft kept for this tab, when it belongs to this item. */
 function keptDraft(userId: string, id: string): Draft | null {
   try {
@@ -111,8 +116,10 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
       // storage blocked: the draft lasts this visit
     }
   }, [userId, id, draft]);
-  // closed by Close, Escape, Save or Back: what was typed goes (a reload never runs this, so it keeps it)
+  // closed by Save, Delete or Back: what was typed goes (a reload never runs this, so it keeps it)
+  const keep = useRef(false);
   useEffect(() => () => {
+    if (keep.current) return;
     try {
       sessionStorage.removeItem(draftKey(userId));
     } catch {
@@ -120,7 +127,19 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
     }
   }, [userId]);
   useEffect(() => first.current?.focus(), []);
-  const close = onClose;
+  const nav = useNavigate();
+  const here = useLocation();
+  // Close, Escape or a tap outside: unsaved changes stay for this tab, one press from coming back
+  const close = () => {
+    if (isDirty(draft, existing)) {
+      keep.current = true;
+      toast({
+        title: `Your changes to ${draft.name.trim() || "this"} aren't saved.`,
+        action: <ToastAction altText="Keep editing" onClick={() => nav(`${here.pathname}${here.search}${here.hash}`)}>Keep editing</ToastAction>,
+      });
+    }
+    onClose();
+  };
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && close();
     window.addEventListener("keydown", esc);
@@ -144,17 +163,17 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
     const items = existing ? now.items.map((p) => (p.id === id ? next : p)) : [...now.items, next];
     const error = saveProducts(userId, { ...now, items });
     if (error) return setLine(error);
-    close();
+    onClose();
   };
 
   const remove = () => {
     const now = loadProducts(userId);
     const at = now.items.findIndex((p) => p.id === id);
-    if (at < 0) return close();
+    if (at < 0) return onClose();
     const gone = now.items[at];
     const error = saveProducts(userId, { ...now, items: now.items.filter((p) => p.id !== id) });
     if (error) return setLine(error);
-    close();
+    onClose();
     toast({
       title: `Removed ${gone.name}.`,
       action: (
