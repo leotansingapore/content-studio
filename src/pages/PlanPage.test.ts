@@ -129,7 +129,7 @@ describe("/plan for everyone else", () => {
   it("draws today's plan view for a saved plan", async () => {
     seed();
     const { loaded } = await frames();
-    expect(loaded).toContain("Draft in Studio");
+    expect(loaded).toContain("Write it");
     await expect(loaded).toMatchFileSnapshot("./__pins__/plan-page-everyone.html");
   });
 
@@ -164,7 +164,7 @@ describe("/plan for Leo", () => {
     expect(loaded).not.toContain("These come from your topics.");
     // a slot about CPF top-ups wears the saved label by name, and takes it into Write
     expect(loaded).toContain(">Change</button>");
-    expect(loaded).toMatch(/href="\/generate\?[^"]*ctx=[^"]*label=t-cpf-top-ups"[^>]*>Draft in Studio/);
+    expect(loaded).toMatch(/href="\/generate\?[^"]*ctx=[^"]*label=t-cpf-top-ups"[^>]*>Write it/);
     // an empty cell links to Write with the pillar, format and label set
     expect(loaded).toContain('aria-label="Write a text post about Retirement"');
     expect(loaded).toContain('href="/generate?pillar=topic&amp;detail=Retirement&amp;format=text-post&amp;label=lx"');
