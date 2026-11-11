@@ -326,6 +326,15 @@ export default function AccountsPage() {
           </section>
         </>
       )}
+
+      {status && (
+        <p className="text-sm text-muted-foreground">
+          Missing a platform?{" "}
+          <Link to="/feedback?tab=feedback" className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-2 hover:underline">
+            Request it
+          </Link>
+        </p>
+      )}
     </div>
   );
 }
