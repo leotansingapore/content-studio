@@ -20,6 +20,7 @@ import { loadImages } from "@/lib/images";
 import { loadMedia } from "@/lib/mediaLibrary";
 import { loadSlideshows } from "@/lib/slideshow";
 import { loadProjects } from "@/lib/videoProjects";
+import { loadCreateTopic, saveCreateTopic, tileHref } from "@/lib/createTopic";
 import { links } from "@/lib/links";
 import { buildCreatorAverages, enrich, sortPosts, type ScoredPost } from "@/lib/postInsights";
 import { adviserBrand } from "@/lib/profession";
@@ -81,7 +82,15 @@ export default function StudioPage() {
   const latest = useMemo(() => (stores ? recentCreations(stores, ROW) : []), [stores]);
   const fontsReady = useFontsReady(latest.some((c) => c.item.thumb?.kind === "show"));
   const sources = useMemo(() => (userId && stores ? readThumbSources(userId, stores, fontsReady) : undefined), [userId, stores, fontsReady]);
-  const [topic, setTopic] = useState("");
+  const [topic, setTopicState] = useState("");
+  // what was typed here is still here on the way back from any maker (this tab only)
+  useEffect(() => {
+    if (userId) setTopicState((t) => t || loadCreateTopic(userId));
+  }, [userId]);
+  const setTopic = (t: string) => {
+    setTopicState(t);
+    if (userId) saveCreateTopic(userId, t);
+  };
   // New post lands here as /studio#topic: the box takes the cursor, so typing is the next thing (never on a plain
   // visit, where a phone would open its keyboard over the choices)
   const { hash, key } = useLocation();
@@ -139,8 +148,9 @@ export default function StudioPage() {
               key={w.to}
               to={w.to}
               className={tile}
-              // the Post tile is the topic box's twin for customers; Leo's screen has the agent's composer instead
-              onClick={w.to === "/generate" && leo === null ? (e) => (e.preventDefault(), write()) : undefined}
+              // customers: the Post tile is the topic box's twin, and every other tile takes the box's topic with it
+              // (Leo's screen has the agent's composer instead of the box)
+              onClick={leo !== null ? undefined : w.to === "/generate" ? (e) => (e.preventDefault(), write()) : topic.trim() ? (e) => (e.preventDefault(), navigate(tileHref(w.to, topic, userId))) : undefined}
             >
               <w.icon className="h-5 w-5 text-primary" />
               <span className="text-base font-semibold text-foreground">{w.name}</span>
