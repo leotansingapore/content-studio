@@ -839,6 +839,87 @@ describe("what a user would lose or get back at the edges of sync", () => {
     expect(ids(cloud.table.get(LIST)?.data)).toEqual(["y", "x"]);
   });
 
+  it("saving a list the cloud already holds writes nothing, so no other device is told of a change", async () => {
+    const was = "2026-11-06T09:00:00.000Z";
+    const cloud = fakeBackend([{ key: LIST, data: list("a"), updated_at: was }]);
+    const laptop = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    await a.start();
+    // an edit undone: the page saves the list the cloud already has
+    write(laptop, a, LIST, list("a"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(cloud.calls.swap).toBe(0);
+    expect(cloud.table.get(LIST)?.updated_at).toBe(was);
+    expect(a.syncedAt(LIST)).toBe(was);
+  });
+
+  it("a list sent for the first time keeps its posts when the tab comes back mid-send with another device's copy", async () => {
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    await a.start();
+    // the phone made the same list meanwhile
+    cloud.table.set(LIST, { key: LIST, data: list("phone"), updated_at: "2026-11-06T09:30:00.000Z" });
+    // the laptop's read before its write is slow
+    const pull = cloud.backend.pull.bind(cloud.backend);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    cloud.backend.pull = async (keys) => {
+      await held;
+      return pull(keys);
+    };
+    write(laptop, a, LIST, list("laptop"));
+    await vi.advanceTimersByTimeAsync(10_000);
+    await a.refreshMerged();
+    release();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(ids(cloud.table.get(LIST)?.data).sort()).toEqual(["laptop", "phone"]);
+    expect(ids(laptop.getItem(LIST)).sort()).toEqual(["laptop", "phone"]);
+  });
+
+  it("a device too full to store a merged list keeps syncing everything else", async () => {
+    class FullFor extends MemoryStorage {
+      setItem(key: string, value: string) {
+        if (key === LIST) throw new Error("QuotaExceededError");
+        super.setItem(key, value);
+      }
+    }
+    const laptop = new FullFor();
+    laptop.setItem(DRAFTS, "my drafts");
+    MemoryStorage.prototype.setItem.call(laptop, LIST, list("mine"));
+    const cloud = fakeBackend([{ key: LIST, data: list("theirs"), updated_at: "2026-11-06T09:00:00.000Z" }]);
+    await createCloudSync(ME, laptop, cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(ids(laptop.getItem(LIST))).toEqual(["mine"]);
+    expect(cloud.table.get(DRAFTS)?.data).toBe("my drafts");
+  });
+
+  it("a tab coming back also clears a deleted list's old copy from the cloud, wherever the cloud lists it", async () => {
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const phone = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    const b = createCloudSync(ME, phone, cloud.backend);
+    await a.start();
+    await b.start();
+    write(laptop, a, LIST, list("a"));
+    await vi.advanceTimersByTimeAsync(11_000);
+    await b.refreshMerged();
+    const old = cloud.table.get(LIST)!;
+    remove(laptop, a, LIST);
+    await vi.advanceTimersByTimeAsync(1_000);
+    // an old build uploads the deleted list again with its old stamp, and the cloud returns it before the removals
+    const tombs = cloud.table.get(TOMBS)!;
+    cloud.table.delete(TOMBS);
+    cloud.table.set(LIST, old);
+    cloud.table.set(TOMBS, tombs);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await b.refreshMerged();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(phone.getItem(LIST)).toBeNull();
+    expect(cloud.table.has(LIST)).toBe(false);
+  });
+
   it("a tab coming back twice within 10 seconds reads the cloud once", async () => {
     const cloud = fakeBackend();
     const a = createCloudSync(ME, new MemoryStorage(), cloud.backend);
@@ -963,6 +1044,8 @@ describe("what a user would lose or get back at the edges of sync", () => {
     await vi.advanceTimersByTimeAsync(11_000);
     await b.refreshMerged();
     expect(ids(phone.getItem(LIST))).toEqual(["a"]);
+    // a list new to this device is read again by its open page too
+    expect(changed).toEqual([LIST]);
     remove(laptop, a, LIST);
     await vi.advanceTimersByTimeAsync(11_000);
     changed.length = 0;
