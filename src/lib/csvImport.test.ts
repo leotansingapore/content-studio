@@ -32,6 +32,10 @@ describe("parseCsv", () => {
     expect(parseCsv('hook,text\n"A; B",C')).toEqual([["hook", "text"], ["A; B", "C"]]);
     expect(parseCsv("Do this; then that\nAnother hook")).toEqual([["Do this; then that"], ["Another hook"]]);
   });
+  it("reads a one-line semicolon file, and keeps hooks whole when the next line has more semicolons than the first", () => {
+    expect(parseCsv("My hook;My text")).toEqual([["My hook", "My text"]]);
+    expect(parseCsv("Do this; then that\nOne; two; three")).toEqual([["Do this; then that"], ["One; two; three"]]);
+  });
 });
 
 describe("parseDay", () => {
