@@ -177,6 +177,21 @@ export const MEME_FIELDS: Record<MemeLayout, Record<string, number>> = {
 };
 /** proposal (decision 11): an option Jev reads as unsafe at this or more is dropped. */
 export const MEME_UNSAFE_AT = 0.4;
+/**
+ * ff1111: Fastlane's static ad formats as image layouts (src/data/staticFormats.ts slugs), each with its own words and
+ * word limits. A field the brand types itself (the flyer's price) is never here, so the writer never fills it.
+ */
+export const STATIC_LAYOUTS = ["text-chat", "friend-recommends", "ai-chat", "forum-thread", "us-vs-them", "news-headline"] as const;
+export type StaticLayout = (typeof STATIC_LAYOUTS)[number];
+export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
+  "text-chat": { name: 2, one: 14, two: 14, three: 14, four: 14, five: 14, six: 14 },
+  "friend-recommends": { name: 2, one: 14, two: 14, three: 14, four: 14, five: 14, six: 14 },
+  "ai-chat": { question: 25, lead: 20, answer: 35 },
+  "forum-thread": { asker: 2, title: 14, body: 30, replier: 2, reply: 45 },
+  "us-vs-them": { headline: 10, them: 4, us: 4, oldA: 7, newA: 7, oldB: 7, newB: 7, oldC: 7, newC: 7, close: 8 },
+  "news-headline": { badge: 3, headline: 16, footer: 10 },
+};
+export const isStaticLayout = (l: unknown): l is StaticLayout => (STATIC_LAYOUTS as readonly unknown[]).includes(l);
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
 const FORMATS = ["video", "carousel", "image", "text"] as const;
 
@@ -262,8 +277,8 @@ export interface MakeRequest {
   formulas?: HookFormula[];
   /** hooks only: the demo the hook opens, the only thing known about it. */
   demo?: { name: string; seconds: number };
-  /** image: an ad layout, picked by Jev when none is sent; meme and ads: its layout, always sent. */
-  layout?: AdLayout | MemeLayout;
+  /** image: an ad layout, picked by Jev when none is sent, or a static ad format's; meme and ads: its layout, always sent. */
+  layout?: AdLayout | MemeLayout | StaticLayout;
   /** ads only: 2 to 6 HOOK_FORMULA_COPY ids, one version on each, in this order. */
   versions?: string[];
   /** image only: the source ad's picture in one sentence (remix-link image mode), at most 300. */
@@ -292,7 +307,7 @@ export type MakeResult =
   | { as: "notes"; title: string; items: string[]; caption: string }
   /** search: the stock clip behind a hook on screen, left out when it isn't one (hookSearch). */
   | { as: "hooks"; hooks: { text: string; formula: string; search?: string }[] }
-  | { as: "image"; layout: AdLayout; layoutBy: "jev" | "default"; words: Partial<Record<AdWord, string>>; caption: string }
+  | { as: "image"; layout: AdLayout | StaticLayout; layoutBy: "jev" | "default"; words: Partial<Record<string, string>>; caption: string }
   /** best and dropped come from Jev after writing (memeVerdict); dropped options stay in the list. */
   | { as: "meme"; options: Record<string, string>[]; best: number | null; dropped: number[]; caption: string }
   /** best and dropped come from Jev after writing (adsVerdict); mas counts the dropped that failed the MAS question; checked is false when Jev gave no answer, so nothing was read. */
@@ -557,7 +572,7 @@ function parseShape(as: MakeAs, r: Item, speaker: Speaker): Partial<MakeRequest>
     return { formulas, ...(name && seconds > 0 && seconds <= 30 ? { demo: { name, seconds } } : {}), ...(r.maxWords != null ? { maxWords: SPOKEN_HOOK_WORDS } : {}) };
   }
   if (as === "image") {
-    const layout = AD_LAYOUTS.find((x) => x === r.layout);
+    const layout = [...AD_LAYOUTS, ...STATIC_LAYOUTS].find((x) => x === r.layout);
     if (r.layout != null && !layout) return "Pick a layout: headline, quote, stat or testimonial.";
     // decision 12: an adviser's ads never carry a client's words (MAS and insurers' own rules)
     if (layout === "testimonial" && speaker !== "business") return "Testimonials are for business brands only.";
@@ -846,8 +861,75 @@ const AD_RULES: Record<AdLayout, string[]> = {
   ],
 };
 
+/**
+ * Each static ad format: what it is (it ends the "It is" line), then its words. The people in a chat or a forum are
+ * made up, and they say only what the brand's facts hold: never a result, a promise or a customer's story.
+ */
+const STATIC_RULES: Record<StaticLayout, string[]> = {
+  "text-chat": [
+    "a text message chat between two friends about a familiar task or mix-up, where the second friend brings up the brand as what they use for it.",
+    "- words.name: the first friend's first name, at most 2 words, shown at the top of the chat.",
+    "- words.one, words.three and words.five: the first friend's messages; words.two, words.four and words.six: the second friend's replies, in that order. Each at most 14 words, casual texting, no emoji.",
+    "- The second friend names the brand once and says what it does, only from the facts given.",
+  ],
+  "friend-recommends": [
+    "a messaging app chat where one friend asks for help with something and the other recommends the brand.",
+    "- words.name: the friend who recommends it, a first name, at most 2 words, shown at the top of the chat.",
+    "- words.one, words.three and words.five: the person asking; words.two, words.four and words.six: the friend's replies, in that order. Each at most 14 words, casual texting, no emoji.",
+    "- The friend names the brand once and says what it does, only from the facts given.",
+  ],
+  "ai-chat": [
+    "a chat with an AI assistant: a person asks a question the brand can answer, and the assistant's reply recommends the brand.",
+    "- words.question: the person's question, at most 25 words, the way someone types it into a chat.",
+    "- words.lead: the assistant's first sentence, the main advice, at most 20 words.",
+    "- words.answer: the rest of the reply, at most 35 words, naming the brand and what it does, only from the facts given.",
+  ],
+  "forum-thread": [
+    "a forum post where someone asks for help with a problem, and a reply from another member that recommends the brand.",
+    "- words.asker and words.replier: made-up forum usernames in lower case, like quietteapot, at most 2 words each.",
+    "- words.title: the post's title, a question or a plea for help, at most 14 words.",
+    "- words.body: what they have tried and why it isn't working, at most 30 words.",
+    "- words.reply: a casual first-person reply, at most 45 words, that names the brand and what it does, only from the facts given.",
+  ],
+  "us-vs-them": [
+    "the usual way and the brand side by side in paired rows, under a headline that sets up the choice.",
+    "- words.headline: the choice in one line, at most 10 words.",
+    "- words.them: a short label for the usual way, at most 4 words. words.us: the brand's label, at most 4 words, usually its name.",
+    "- words.oldA, words.oldB and words.oldC: three steps, costs or hassles of the usual way. words.newA, words.newB and words.newC: the brand's answer to each, in the same order. Each at most 7 words.",
+    "- words.close: a closing line, at most 8 words.",
+  ],
+  "news-headline": [
+    "a news-style picture: a photo, a small badge and a huge headline in capitals.",
+    "- words.badge: the badge, at most 3 words, like Just in.",
+    "- words.headline: the headline, at most 16 words, written like news about the brand or the problem it solves, only from the facts given.",
+    "- words.footer: a small line at the foot, at most 10 words: the brand and what it is.",
+  ],
+};
+
+/** A static ad format's words: its own rules, then the image rules every ad picture keeps. */
+function staticRules(req: MakeRequest, layout: StaticLayout): string[] {
+  const [shape, ...fields] = STATIC_RULES[layout];
+  return [
+    "",
+    `Write the words for one static ad picture. It is ${shape}`,
+    ...fields,
+    "- Write the words in sentence case: capitalise only the first word, names and the brand, never every word.",
+    "- Never put a number in the words: no figures, prices, percentages or counts.",
+    "- The people in it are made up: never name a real person or another business, and never write a result, a promise or a customer's story the facts don't hold.",
+    ...(req.source
+      ? [
+          "- Keep the original ad's angle and none of its words: no run of 4 or more words from it, and none of its brand, claims or numbers.",
+          "- Take the angle from the original ad, never from the brand's one-liner.",
+        ]
+      : []),
+    ...CAPTION_RULES,
+    refuseRule(req, "an ad"),
+  ];
+}
+
 /** formats-static-ad: the words for one designed picture, in the source ad's structure and none of its words. */
 function imageRules(req: MakeRequest): string[] {
+  if (isStaticLayout(req.layout)) return staticRules(req, req.layout);
   const layout = (req.layout as AdLayout | undefined) ?? "headline";
   const [shape, ...fields] = AD_RULES[layout];
   return [
@@ -1300,7 +1382,7 @@ export function responseFormat(req: MakeRequest): unknown {
     case "image":
       return schema("remix_image", {
         ...REFUSE,
-        words: fieldsObject({ headline: 8, line: 16, button: 3, quote: 25, statLabel: 12 }),
+        words: fieldsObject(isStaticLayout(req.layout) ? STATIC_FIELDS[req.layout] : { headline: 8, line: 16, button: 3, quote: 25, statLabel: 12 }),
         ...CAPTION,
       });
     case "edit": {
@@ -1572,9 +1654,9 @@ function validateShape(as: "notes" | "hooks" | "image" | "meme" | "ads", r: Item
     return caption ? { as, title, items, caption } : null;
   }
   if (as === "image") {
-    const layout = AD_LAYOUTS.find((x) => x === req.layout) ?? "headline";
+    const layout = [...AD_LAYOUTS, ...STATIC_LAYOUTS].find((x) => x === req.layout) ?? "headline";
     // a testimonial's words come only from the facts, so the writer may leave them for the brand to type
-    const raw = fieldsWithin(r.words, AD_WORDS[layout], layout === "testimonial" ? ["quote"] : []);
+    const raw = isStaticLayout(layout) ? fieldsWithin(r.words, STATIC_FIELDS[layout]) : fieldsWithin(r.words, AD_WORDS[layout], layout === "testimonial" ? ["quote"] : []);
     const words = raw && adCase(raw, String(r.caption ?? ""), req.brand?.name);
     const caption = words ? slideshowCaption(r, [{ title: Object.values(words).join(" "), sub: "" }]) : null;
     return words && caption ? { as, layout, layoutBy: req.layoutBy ?? "default", words, caption } : null;
