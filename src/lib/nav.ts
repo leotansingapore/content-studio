@@ -135,23 +135,25 @@ export const SECTIONS: NavSection[] = [
     icon: Wand2,
     to: "/studio",
     pages: [
-      // Fastlane's Studio tabs in its order (Overview, Create, Library, Blitz, Influencers, Leo 11 Nov), then our own two
+      // Fastlane's Studio tabs in its order (Overview, Create, Library, Blitz, Influencers, Leo 11 Nov), with Write
+      // beside Create, then our own two
       { to: "/studio", label: "Overview", title: "Studio", group: "Overview" },
-      // Leo's Create opens on the whole catalogue, as Fastlane's does; everyone else's still opens on Post
+      // Create is what you make to look at, Write is words (Leo 11 Nov, "quite hard to navigate": one row held 11 chips).
+      // Leo's Create opens on the whole catalogue, as Fastlane's does; everyone else's opens on Carousel
       { to: "/make", label: "All formats", title: "Formats", owners: LEO_EMAILS, group: "Create" },
-      { to: "/generate", label: "Post", end: true, title: "Write a post" },
-      // write hooks in bulk, keep or say Not this (BuilderCult's My hooks, folded in 6 Nov)
-      { to: "/hooks", label: "Hooks", title: "My hooks" },
-      // a hook that stops the scroll, then the app's demo (BuilderCult's Reaction UGC, folded in 6 Nov)
-      { to: "/make/hook-demo", label: "Hook + demo", title: "Hook plus demo" },
-      { to: "/generate/batch", label: "Batch" },
-      { to: "/generate/answer", label: "Answer", title: "Answer a question" },
-      { to: "/generate/vsl", label: "VSL", title: "Write a VSL" },
-      // Scriptwriter: 12 dials, hook ideas and a topic, written on Leo's own Claude Code (script desk)
-      { to: "/script", label: "Script", title: "Scriptwriter", owners: LEO_EMAILS },
       { to: "/carousel", label: "Carousel" },
       { to: "/image", label: "Image", owners: LEO_EMAILS },
       { to: "/edit", label: "Video" },
+      // a hook that stops the scroll, then the app's demo (BuilderCult's Reaction UGC, folded in 6 Nov)
+      { to: "/make/hook-demo", label: "Hook + demo", title: "Hook plus demo" },
+      { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Write" },
+      { to: "/generate/batch", label: "Batch" },
+      { to: "/generate/answer", label: "Answer", title: "Answer a question" },
+      { to: "/generate/vsl", label: "VSL", title: "Write a VSL" },
+      // write hooks in bulk, keep or say Not this (BuilderCult's My hooks, folded in 6 Nov)
+      { to: "/hooks", label: "Hooks", title: "My hooks" },
+      // Scriptwriter: 12 dials, hook ideas and a topic, written on Leo's own Claude Code (script desk)
+      { to: "/script", label: "Script", title: "Scriptwriter", owners: LEO_EMAILS },
       { to: "/library", label: "Everything", title: "Library", group: "Library" },
       { to: "/drafts", label: "All posts", icon: History },
       { to: "/board", label: "Board", icon: Columns3 },

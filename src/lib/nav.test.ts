@@ -66,14 +66,14 @@ describe("nav", () => {
   it("shows owner-only pages to Leo's sign-ins only, and leaves everyone else's sections as they were", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
     expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan", "/launch", "/linkedin"]);
-    expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/hooks", "/make/hook-demo", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/edit", "/library", "/drafts", "/board", "/grid", "/media", "/slideshow", "/design", "/design/campaigns", "/design/libraries", "/team"]);
+    expect(pages("write", ANYONE)).toEqual(["/studio", "/carousel", "/edit", "/make/hook-demo", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/hooks", "/library", "/drafts", "/board", "/grid", "/media", "/slideshow", "/design", "/design/campaigns", "/design/libraries", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/launch", "/linkedin", "/ideas", "/social-north-star"]);
-      expect(pages("write", email).slice(0, 13), email).toEqual(["/studio", "/make", "/generate", "/hooks", "/make/hook-demo", "/generate/batch", "/generate/answer", "/generate/vsl", "/script", "/carousel", "/image", "/edit", "/library"]);
+      expect(pages("write", email).slice(0, 13), email).toEqual(["/studio", "/make", "/carousel", "/image", "/edit", "/make/hook-demo", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/hooks", "/script", "/library"]);
       expect(pages("write", email).slice(17, 19), email).toEqual(["/blitz", "/people"]);
       expect(pages("find", email).slice(4, 6), email).toEqual(["/clone", "/research"]);
       expect(pages("find", email).slice(9, 11), email).toEqual(["/competitors", "/saved"]);
@@ -125,14 +125,20 @@ describe("nav", () => {
 
     it("gives Studio its groups as tabs and the open group's pages as chips", () => {
       const leo = sectionTabs("/carousel", LEO);
-      // Fastlane's five in its order (Leo 11 Nov), then ours
-      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Blitz", "Influencers", "Slideshows", "Approvals"]);
+      // Fastlane's five in its order (Leo 11 Nov) with Write beside Create, then ours
+      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Write", "Library", "Blitz", "Influencers", "Slideshows", "Approvals"]);
       expect(leo.tabs.find((t) => t.active)?.label).toBe("Create");
-      expect(labels(leo.chips)).toEqual(["All formats", "Post", "Hooks", "Hook + demo", "Batch", "Answer", "VSL", "Script", "Carousel", "Image", "Video"]);
+      // Create is what you look at, Write is words: no row holds more than six
+      expect(labels(leo.chips)).toEqual(["All formats", "Carousel", "Image", "Video", "Hook + demo"]);
       expect(leo.chips.find((t) => t.active)?.to).toBe("/carousel");
-      // each group tab opens the group's first page this sign-in sees: Leo's Create the whole catalogue, everyone else's Post
-      expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/make", "/library", "/blitz", "/people", "/slideshow", "/team"]);
-      expect(sectionTabs("/grid", ANYONE).tabs.map((t) => t.to)).toEqual(["/studio", "/generate", "/library", "/slideshow", "/team"]);
+      const write = sectionTabs("/generate/batch", LEO);
+      expect(write.tabs.find((t) => t.active)?.label).toBe("Write");
+      expect(labels(write.chips)).toEqual(["Post", "Batch", "Answer", "VSL", "Hooks", "Script"]);
+      expect(labels(sectionTabs("/generate", ANYONE).chips)).toEqual(["Post", "Batch", "Answer", "VSL", "Hooks"]);
+      for (const email of [LEO, ANYONE]) for (const p of pages("write", email)) expect(sectionTabs(p, email).chips.length, p).toBeLessThanOrEqual(6);
+      // each group tab opens the group's first page this sign-in sees: Leo's Create the whole catalogue, everyone else's Carousel
+      expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/make", "/generate", "/library", "/blitz", "/people", "/slideshow", "/team"]);
+      expect(sectionTabs("/grid", ANYONE).tabs.map((t) => t.to)).toEqual(["/studio", "/carousel", "/generate", "/library", "/slideshow", "/team"]);
       expect(sectionTabs("/blitz", LEO).tabs.find((t) => t.active)?.label).toBe("Blitz");
       expect(sectionTabs("/people", LEO).tabs.find((t) => t.active)?.label).toBe("Influencers");
       // the slideshow tools are their own tab, so its Campaigns never sit beside Post and Video
