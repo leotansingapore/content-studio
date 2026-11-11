@@ -30,6 +30,7 @@ const EXCEPTIONS: Record<string, string> = {
   "/design/campaigns/:id": "one slideshow campaign, opened from /design/campaigns",
   "/profiles/:id": "one creator, opened from /profiles",
   "/make/:format": "a format's create page, opened from Remix buttons and the /make gallery",
+  "/make/static/:slug": "a static ad format's page, opened from the /make gallery's Static ads tab",
   "/campaigns/new": "reached from /campaigns",
   "/campaigns/:id": "reached from /campaigns",
   "/agent/:thread": "a thread of /agent",

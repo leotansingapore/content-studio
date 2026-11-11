@@ -132,6 +132,21 @@ describe("the words a make wrote", () => {
     expect(t.quote).toBe("My line");
     expect(wordsFromMake(prev, { as: "image", layout: "stat", layoutBy: "default", words: { statLabel: "of people" }, caption: "C" })).toMatchObject({ number: "57%", statSource: "MOH", statLabel: "of people" });
   });
+
+  it("fills a static format's own fields and leaves what the brand typed, like a price", () => {
+    const prev = { headline: "Keep", price: "$6", topic: "Afternoons", news: "x" };
+    expect(wordsFromMake(prev, { as: "image", layout: "news-headline", layoutBy: "default", words: { badge: "Just in", headline: "New", footer: "Hilltop" }, caption: "Cap" })).toEqual({
+      headline: "New", price: "$6", topic: "Afternoons", news: "x", badge: "Just in", footer: "Hilltop", caption: "Cap",
+    });
+  });
+
+  it("keeps the open layout's words when a design holds more than 16 fields from other layouts", () => {
+    const others = Object.fromEntries("abcdefghijklmnopqrst".split("").map((c) => [`old${c.toUpperCase()}`, "kept"]));
+    const words = { ...others, topic: "Afternoons", question: "Where do I start", lead: "Start here", answer: "With us", caption: "Cap" };
+    const back = sanitizeSavedImage({ ...blankImage({ layout: "ai-chat" }), id: "img-many1x", words })!;
+    expect(Object.keys(back.words)).toHaveLength(16);
+    expect(back.words).toMatchObject({ topic: "Afternoons", question: "Where do I start", lead: "Start here", answer: "With us", caption: "Cap" });
+  });
 });
 
 describe("ad versions kept in the design", () => {
@@ -278,6 +293,16 @@ describe("Write it for me", () => {
     expect(make.mock.calls[1][0]).toMatchObject({ as: "image", topic: "Saving for a BTO", layout: "quote" });
     expect(parseMakeRequest(make.mock.calls[1][0]).ok).toBe(true);
     expect(imageWrite()).toMatchObject({ state: "failed", error: "Couldn't write it right now. Try again in a minute." });
+  });
+
+  it("writes a static format for its own layout from a topic, into its own fields", async () => {
+    make.mockResolvedValue(reply({ layout: "text-chat", layoutBy: "default", words: { name: "Priya", one: "a", two: "b", three: "c", four: "d", five: "e", six: "f" } }));
+    await startImageWrite(U, ask({ source: null, topic: "What Hilltop Coffee does", layout: "text-chat", read: false }));
+    const sent = make.mock.calls.at(-1)![0];
+    expect(sent).toMatchObject({ as: "image", layout: "text-chat", topic: "What Hilltop Coffee does" });
+    expect(parseMakeRequest(sent).ok).toBe(true);
+    expect(loadImages(U)[0]).toMatchObject({ layout: "text-chat", words: { name: "Priya", one: "a", six: "f", number: "57%" } });
+    expect(imageWrite()).toMatchObject({ state: "done", layout: "text-chat" });
   });
 });
 

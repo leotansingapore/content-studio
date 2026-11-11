@@ -14,7 +14,7 @@
 import { callFn } from "@/lib/edgeFn";
 import { SLIDE_FONTS, type SlideFont, type SlidePaper } from "@/lib/carouselLayout";
 import { setFormatJob } from "@/lib/formatJob";
-import { IMAGE_SIZES, optionIndex, type ImageSize } from "@/lib/imageLayout";
+import { IMAGE_FIELDS, IMAGE_SIZES, SECOND_PICTURE, optionIndex, type ImageSize } from "@/lib/imageLayout";
 import { IMAGE_LAYOUTS, links, type ImageLayout } from "@/lib/links";
 import { scoped } from "@/lib/profiles";
 import { requestMake, type Flags, type MakeResult } from "@/lib/remix";
@@ -24,7 +24,7 @@ import type { RemixSource } from "@/lib/remixSource";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import type { LinkedSource } from "@/lib/resolveSource";
-import { AD_VERSIONS, AD_WORDS, VERSION_LAYOUTS, type AdLayout, type AdVersion } from "../../supabase/functions/remix/logic.ts";
+import { AD_VERSIONS, AD_WORDS, STATIC_FIELDS, VERSION_LAYOUTS, isStaticLayout, type AdLayout, type AdVersion, type StaticLayout } from "../../supabase/functions/remix/logic.ts";
 
 export type VersionLayout = (typeof VERSION_LAYOUTS)[number];
 export const isVersionLayout = (l: string): l is VersionLayout => (VERSION_LAYOUTS as readonly string[]).includes(l);
@@ -107,9 +107,13 @@ export function sanitizeSavedImage(raw: unknown): SavedImage | null {
   const r = raw as Record<string, unknown>;
   if (typeof r.id !== "string" || !/^img-[a-z0-9]{4,30}$/.test(r.id)) return null;
   const w = r.words && typeof r.words === "object" ? (r.words as Record<string, unknown>) : {};
+  const layout = oneOf(IMAGE_LAYOUTS, r.layout, "headline");
+  // words kept from other layouts can pass 16 (each static format has its own): the open layout's are kept first
+  const own = new Set([...IMAGE_FIELDS[layout].map((f) => f.key), "topic", "caption", SECOND_PICTURE]);
   const words = Object.fromEntries(
     Object.entries(w)
       .filter((e): e is [string, string] => WORD_KEY.test(e[0]) && typeof e[1] === "string")
+      .sort(([a], [b]) => Number(own.has(b)) - Number(own.has(a)))
       .slice(0, 16)
       .map(([k, v]) => [k, v.slice(0, MAX_WORDS_CHARS)]),
   );
@@ -119,7 +123,7 @@ export function sanitizeSavedImage(raw: unknown): SavedImage | null {
   const versions = sanitizeVersions(r.versions);
   return {
     id: r.id,
-    layout: oneOf(IMAGE_LAYOUTS, r.layout, "headline"),
+    layout,
     size: oneOf(IMAGE_SIZES, r.size, "4x5"),
     words,
     font: oneOf(Object.keys(SLIDE_FONTS) as SlideFont[], r.font, "classic"),
@@ -250,9 +254,13 @@ async function readShows(path: string): Promise<string> {
   return cutAtWord(words ? `${shows} Words in it: ${words}` : shows, 800);
 }
 
-/** The words a make wrote, over the design's own: the layout's fields replaced, a testimonial's into clientWords. */
+/** The words a make wrote, over the design's own: the layout's fields replaced, a testimonial's into clientWords; a static format's typed fields (a price) stay. */
 export function wordsFromMake(prev: Record<string, string>, r: Extract<MakeResult, { as: "image" }>): Record<string, string> {
   const next = { ...prev, caption: r.caption };
+  if (isStaticLayout(r.layout)) {
+    for (const k of Object.keys(STATIC_FIELDS[r.layout])) next[k] = r.words[k] ?? "";
+    return next;
+  }
   const own: Record<AdLayout, string[]> = { headline: ["headline", "line", "button"], quote: ["quote"], stat: ["statLabel"], testimonial: ["quote"] };
   for (const k of own[r.layout]) next[r.layout === "testimonial" ? "clientWords" : k] = r.words[k as keyof typeof r.words] ?? "";
   return next;
@@ -278,8 +286,8 @@ export interface ImageWriteAsk {
   designId: string;
   source: RemixSource | null;
   topic: string;
-  /** null: Jev picks it from the ad (Headline ad when it can't). */
-  layout: AdLayout | null;
+  /** null: Jev picks it from the ad (Headline ad when it can't); a static format's is always sent. */
+  layout: AdLayout | StaticLayout | null;
   mention: boolean;
   note: string;
   size: ImageSize;
@@ -296,7 +304,7 @@ export interface ImageWrite {
   refused?: boolean;
   capped?: boolean;
   /** Done: the layout written for, and whether Jev picked it from the ad. */
-  layout?: AdLayout;
+  layout?: AdLayout | StaticLayout;
   layoutBy?: "jev" | "default";
   flags?: Flags;
 }

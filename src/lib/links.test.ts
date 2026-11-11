@@ -5,7 +5,7 @@ import { APP_ORIGIN as BIO_ORIGIN } from "../../supabase/functions/link-in-bio/l
 import { APP_ORIGIN as SOCIAL_ORIGIN } from "../../supabase/functions/social/logic";
 import { COPY } from "../../supabase/functions/telegram-hook/logic";
 import { ORIGIN as PREVIEW_ORIGIN } from "./linkPreview";
-import { APP_ORIGIN, CAROUSEL_DESIGNS, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, absolute, links, slug, withDock, withRemix } from "./links";
+import { APP_ORIGIN, CAROUSEL_DESIGNS, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, STATIC_LAYOUT_IDS, absolute, links, slug, withDock, withRemix } from "./links";
 
 describe("links", () => {
   it("builds the calendar links the team-posts job sends (docs/deep-links.md)", () => {
@@ -210,7 +210,8 @@ describe("links", () => {
     expect(links.image({ image: "img-mh2k9x01ab", versions: 6 })).toBe("/image?image=img-mh2k9x01ab&versions=6");
     expect(links.image({ versions: 1 })).toBe("/image");
     expect(links.adlauncher()).toBe("/adlauncher");
-    expect(IMAGE_LAYOUTS).toEqual(["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction"]);
+    expect(IMAGE_LAYOUTS).toEqual(["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction", ...STATIC_LAYOUT_IDS]);
+    expect(links.image({ layout: "text-chat", size: "9x16" })).toBe("/image?layout=text-chat&size=9x16");
     // a format page stays generic, with each page's own params
     expect(links.makeFormat("talking-head", { who: "presenter", setting: "car", length: 30 })).toBe("/make/talking-head?who=presenter&setting=car&length=30");
     expect(links.makeFormat("text-over-clip", { scene: "walk", quality: "720p", source: "trend:t1" })).toBe(

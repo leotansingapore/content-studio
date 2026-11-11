@@ -6,6 +6,10 @@
 // Memes (docs/north-star/items/formats-memes.md) are five more layouts in a Meme group: "Write 3 memes" is one remix
 // make (as "meme") with Jev's safety cut and "Best", and the picture is made, from Media or free stock
 // (src/components/image/MemeOptions.tsx). A meme is 4:5, 1:1 or 9:16 and starts on Square.
+// Static ad formats (ff1111, src/data/staticFormats.ts) are a third group, Static: each a generic look-alike (a text
+// chat, a forum post, a news thumbnail) drawn in the brand's colour, 4:5, 1:1 or 9:16, with the picture picker where
+// the format is best with or needs a product photo. Its page (/make/static/<slug>) opens a new design here with
+// navigation state { format: { topic, pictureKey?, price? }, go? }: go writes it at once, as the Remix sheet's link does.
 // Ad versions (docs/adlauncher-ads.md): with Versions on 6, the press is one remix make (as "ads") writing six versions
 // of a headline ad, quote card or stat card on six hook formulas, drawn small under the preview; tapping one puts its
 // words in the fields (src/components/image/AdVersions.tsx). They are kept in the design.
@@ -57,12 +61,14 @@ import {
   countOf,
   imageBlock,
   isMeme,
+  isStatic,
   layoutImage,
   mainWords,
   optionIndex,
   pictureBlock,
   secondPicture,
   sizesFor,
+  staticPhoto,
   type AdLayoutId,
   type ImageInput,
   type ImageSize,
@@ -89,7 +95,7 @@ import {
   type ImageWrite,
   type SavedImage,
 } from "@/lib/images";
-import { links, type ImageLayout } from "@/lib/links";
+import { STATIC_LAYOUT_IDS, links, type ImageLayout } from "@/lib/links";
 import { loadMedia, type MediaItem } from "@/lib/mediaLibrary";
 import { priceOf, sumPrices } from "@/lib/prices";
 import { brandName, loadRemixPrefs, speakerFor } from "@/lib/remixBrand";
@@ -199,8 +205,9 @@ function ImageEditor({ userId }: { userId: string }) {
   const speaker = useMemo(() => loadRemixPrefs(userId).speaker ?? speakerFor(userId), [userId]);
   // decision 12: a client testimonial only for a business's brand, never an adviser's
   const layouts = useMemo(() => AD_LAYOUT_IDS.filter((l) => l !== "testimonial" || speaker === "business"), [speaker]);
-  const [layout] = useUrlState<ImageLayout>("layout", "headline", { allowed: [...layouts, ...MEME_LAYOUT_IDS] });
+  const [layout] = useUrlState<ImageLayout>("layout", "headline", { allowed: [...layouts, ...MEME_LAYOUT_IDS, ...STATIC_LAYOUT_IDS] });
   const meme = isMeme(layout);
+  const statik = isStatic(layout);
   const [size] = useUrlState<ImageSize>("size", "4x5", { allowed: sizesFor(layout) });
   const [pick] = useUrlState<"none" | "media" | "make" | "stock">("pick", "none", { allowed: ["none", "media", "make", "stock"] });
   // a testimonial is a customer's own words and a meme writes its own 3, so neither takes versions
@@ -315,7 +322,8 @@ function ImageEditor({ userId }: { userId: string }) {
       designId: design.id,
       source: src,
       topic: design.words.topic ?? "",
-      layout: src && !layoutPicked ? null : (layout as AdLayoutId),
+      // a static format is always written for itself; an ad's layout Jev may pick from the original
+      layout: isStatic(design.layout) ? design.layout : src && !layoutPicked ? null : (layout as AdLayoutId),
       mention: true,
       note: src ? sheetNote(src.key) : "",
       size,
@@ -358,6 +366,33 @@ function ImageEditor({ userId }: { userId: string }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceKey]);
+
+  // a static format's page: a new design on its layout, its note as the topic and the brand's product photo or price in
+  // it; { go } writes it at once. Read once, then cleared from history, so a reload never writes again.
+  const fromFormat = useRef(false);
+  useEffect(() => {
+    const st = location.state as { go?: boolean; format?: { topic?: string; pictureKey?: string; price?: string } } | null;
+    if (fromFormat.current || !st?.format || !statik || sourceKey) return;
+    fromFormat.current = true;
+    try {
+      window.history.replaceState({ ...window.history.state, usr: null }, "");
+    } catch {
+      /* the design below is saved either way; a reload then opens it by its link */
+    }
+    flush();
+    const f = st.format;
+    const next: SavedImage = {
+      ...blankImage({ layout, size, font: img.font, paper: img.paper }),
+      words: { topic: (f.topic ?? "").slice(0, 200), ...(f.price ? { price: f.price.slice(0, 40) } : {}) },
+      ...(f.pictureKey && staticPhoto(layout) ? { pictureKey: f.pictureKey } : {}),
+    };
+    saveImage(userId, next);
+    setImg(next);
+    setPicked(true);
+    if (st.go) startWrite(next, null, true);
+    else update({ image: next.id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // once per step of a write for this design: on a phone the preview sits under the fields, so its start, end or
   // failure is scrolled into view; at the end its words and Jev's layout come in (the run saved them itself)
@@ -431,7 +466,7 @@ function ImageEditor({ userId }: { userId: string }) {
   }, [pictureJob]);
 
   // ---- drawing ----
-  const pictured = layout === "headline" || meme;
+  const pictured = layout === "headline" || meme || !!staticPhoto(layout);
   const second = layout === "expectation" ? secondPicture(img.words) : undefined;
   const picture = usePicture(pictured ? img.pictureKey : undefined, brand.photo);
   const picture2 = usePicture(second, brand.photo);
@@ -514,8 +549,8 @@ function ImageEditor({ userId }: { userId: string }) {
 
   const pickLayout = (l: ImageLayout) => {
     setPicked(true);
-    // memes start on Square; a 9:16 story stays one
-    const s = isMeme(l) && !meme && (size === "4x5" || size === "wide") ? MEME_SIZE : size;
+    // memes start on Square; a 9:16 story stays one; a static ad has no link size
+    const s = isMeme(l) && !meme && (size === "4x5" || size === "wide") ? MEME_SIZE : isStatic(l) && size === "wide" ? "4x5" : size;
     commit({ ...img, layout: l, size: s }, { layout: l === "headline" ? null : l, ...(s !== size ? { size: s } : {}) });
   };
   /** A meme's picture into its slot (expectation's reality picture is the second), or out of it. */
@@ -586,6 +621,23 @@ function ImageEditor({ userId }: { userId: string }) {
                 ))}
               </div>
             ))}
+            <div role="group" aria-label="Static ads" className="flex items-center gap-1.5">
+              <span className="w-14 shrink-0 text-[11px] text-muted-foreground">Static</span>
+              <select
+                aria-label="Static ad format"
+                value={statik ? layout : ""}
+                disabled={writing}
+                onChange={(e) => e.target.value && pickLayout(e.target.value as ImageLayout)}
+                className={cn("h-8 min-w-0 flex-1 rounded-full border bg-background px-3 text-xs font-medium", statik ? "border-primary text-primary" : "border-input text-muted-foreground", TOUCH)}
+              >
+                {!statik && <option value="">Pick a format</option>}
+                {STATIC_LAYOUT_IDS.map((l) => (
+                  <option key={l} value={l}>
+                    {LAYOUT_LABELS[l]}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           {!kit && (!meme || layout === "post-reaction") && (
             <p className="text-xs text-muted-foreground">
@@ -635,10 +687,11 @@ function ImageEditor({ userId }: { userId: string }) {
                 )}
                 {f.key === "number" && !value.trim() && <p className="text-xs text-muted-foreground">Type your own number and where it's from.</p>}
                 {f.key === "clientWords" && <p className="text-xs text-muted-foreground">Only words a client really said, with their OK.</p>}
+                {f.typed && <p className="text-xs text-muted-foreground">Write it for me leaves this one to you.</p>}
               </div>
             );
           })}
-          {layout === "headline" && (
+          {(layout === "headline" || !!staticPhoto(layout)) && (
             <PicturePicker
               userId={userId}
               img={img}
@@ -697,10 +750,13 @@ function ImageEditor({ userId }: { userId: string }) {
                 </FilterChip>
               ))}
             </Row>
-            <Row label="Words">
-              <FilterChip active={img.align !== "center"} disabled={writing} onClick={() => edit({ align: "left" })}>Left</FilterChip>
-              <FilterChip active={img.align === "center"} disabled={writing} onClick={() => edit({ align: "center" })}>Centred</FilterChip>
-            </Row>
+            {/* a static format places its own words */}
+            {!statik && (
+              <Row label="Words">
+                <FilterChip active={img.align !== "center"} disabled={writing} onClick={() => edit({ align: "left" })}>Left</FilterChip>
+                <FilterChip active={img.align === "center"} disabled={writing} onClick={() => edit({ align: "center" })}>Centred</FilterChip>
+              </Row>
+            )}
           </CardContent>
         </Card>
       )}

@@ -15,6 +15,8 @@ export const SLIDE_WIDTH = 1080;
 export const SLIDE_HEIGHT = 1350;
 export const SERIF_STACK = "Georgia, 'Times New Roman', Times, serif";
 export const SANS_STACK = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+/** A marker hand (the static ads' whiteboard, notes and scrawls), with the device's own cursive behind it. */
+export const HAND_STACK = "'Marker Felt', 'Chalkboard SE', 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive";
 
 export const PAPER = "#FBFAF7";
 export const INK = "#1C1917";
@@ -33,7 +35,7 @@ const TITLE_BODY_GAP = 40;
 const SWIPE_SPACE = 96;
 
 export interface FontSpec {
-  family: "serif" | "sans";
+  family: "serif" | "sans" | "hand";
   weight: 400 | 600;
   size: number;
   /** Set only while measuring Chinese or Tamil text, so fontCss names their fonts; layouts never store it. */
@@ -49,7 +51,7 @@ const OTHER_SCRIPT = /[\p{Script=Han}\p{Script=Tamil}\u3000-\u303F\uFF00-\uFFEF]
 
 /** The family's stack; text in Chinese or Tamil gets their fonts before the generic family, and Latin text keeps today's stack exactly. */
 export function stackFor(family: FontSpec["family"], scripts = false): string {
-  const stack = family === "serif" ? SERIF_STACK : SANS_STACK;
+  const stack = family === "serif" ? SERIF_STACK : family === "hand" ? HAND_STACK : SANS_STACK;
   return scripts ? stack.replace(/, ([a-z-]+)$/, `, ${SCRIPT_FONTS}, $1`) : stack;
 }
 
@@ -98,7 +100,7 @@ export const SLIDE_FONTS: Record<SlideFont, { label: string; title: FontSpec["fa
   serif: { label: "Editorial", title: "serif", body: "serif" },
 };
 
-function mix(a: string, b: string, t: number): string {
+export function mix(a: string, b: string, t: number): string {
   const pa = parseInt(a.slice(1), 16);
   const pb = parseInt(b.slice(1), 16);
   const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
@@ -225,7 +227,11 @@ export type SvgNode =
       /** An outline drawn under the fill (paint-order stroke): a meme's white words on any picture. */
       stroke?: string;
       strokeWidth?: number;
+      /** Turned by deg degrees about (x, y): a static ad's scrawled note or a tear-off tab. */
+      rotate?: { deg: number; x: number; y: number };
     }
+  /** A drawn shape in SVG path data: a chat bubble's tail, an arrow, a tick, a T-shirt. No fill draws the line only. */
+  | { type: "path"; d: string; fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }
   /**
    * A picture: the brand kit headshot (circle), a slide image (rounded box) or a full-bleed picture (square), each
    * cropped to fill; `fit: "contain"` keeps it whole against the right edge of its box instead, unclipped (a logo).
@@ -586,6 +592,12 @@ export function renderSvg(layout: Pick<SlideLayout, "width" | "height" | "nodes"
       );
       return;
     }
+    if (node.type === "path") {
+      const stroke = node.stroke ? ` stroke="${escapeXml(node.stroke)}" stroke-width="${node.strokeWidth ?? 1}" stroke-linecap="round" stroke-linejoin="round"` : "";
+      const faded = node.opacity !== undefined ? ` opacity="${node.opacity}"` : "";
+      out.push(`<path d="${escapeXml(node.d)}" fill="${node.fill ? escapeXml(node.fill) : "none"}"${stroke}${faded}/>`);
+      return;
+    }
     const opacity = node.opacity !== undefined ? ` fill-opacity="${node.opacity}"` : "";
     if (node.type === "rect") {
       const rx = node.rx ? ` rx="${node.rx}"` : "";
@@ -596,8 +608,9 @@ export function renderSvg(layout: Pick<SlideLayout, "width" | "height" | "nodes"
       const family = stackFor(node.font.family, OTHER_SCRIPT.test(node.text));
       const anchor = node.anchor ? ` text-anchor="${node.anchor}"` : "";
       const stroke = node.stroke ? ` stroke="${escapeXml(node.stroke)}" stroke-width="${node.strokeWidth ?? 1}" stroke-linejoin="round" paint-order="stroke"` : "";
+      const turn = node.rotate ? ` transform="rotate(${node.rotate.deg} ${node.rotate.x} ${node.rotate.y})"` : "";
       out.push(
-        `<text x="${node.x}" y="${node.y}" font-family="${escapeXml(family)}" font-size="${node.font.size}" font-weight="${node.font.weight}" fill="${escapeXml(node.fill)}"${opacity}${anchor}${stroke}>${escapeXml(node.text)}</text>`,
+        `<text x="${node.x}" y="${node.y}" font-family="${escapeXml(family)}" font-size="${node.font.size}" font-weight="${node.font.weight}" fill="${escapeXml(node.fill)}"${opacity}${anchor}${stroke}${turn}>${escapeXml(node.text)}</text>`,
       );
     }
   });

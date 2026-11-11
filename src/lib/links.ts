@@ -699,8 +699,10 @@ export type CompareView = Exclude<(typeof COMPARE_TABS)[number], "version">;
 // ---- end Create pages ----
 
 // ---- North star phase 3 (Leo only): the values the format params take.
-/** /image?layout=: four ad layouts, then the five meme layouts. */
-export const IMAGE_LAYOUTS = ["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction"] as const;
+/** The static ad formats drawn so far (src/data/staticFormats.ts slugs marked ready; the remix writer's STATIC_LAYOUTS). */
+export const STATIC_LAYOUT_IDS = ["text-chat", "friend-recommends", "ai-chat", "forum-thread", "us-vs-them", "news-headline"] as const;
+/** /image?layout=: four ad layouts, the five meme layouts, then the static ad formats. */
+export const IMAGE_LAYOUTS = ["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction", ...STATIC_LAYOUT_IDS] as const;
 export type ImageLayout = (typeof IMAGE_LAYOUTS)[number];
 /** /edit?look=: the explainer's looks, then the animated stories (ai-video EXPLAINER_LOOKS holds the same ids). */
 export const EXPLAINER_LOOK_IDS = [

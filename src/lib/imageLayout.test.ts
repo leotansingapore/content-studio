@@ -23,8 +23,10 @@ import {
   type ImageInput,
   type MemeLayoutId,
 } from "@/lib/imageLayout";
-import { IMAGE_LAYOUTS } from "@/lib/links";
-import { MEME_FIELDS } from "../../supabase/functions/remix/logic.ts";
+import { STATIC_EXAMPLE, STATIC_FORMATS } from "@/data/staticFormats";
+import { IMAGE_LAYOUTS, STATIC_LAYOUT_IDS } from "@/lib/links";
+import { MEME_FIELDS, STATIC_FIELDS, STATIC_LAYOUTS } from "../../supabase/functions/remix/logic.ts";
+import { isStatic, staticPhoto, type StaticLayoutId } from "@/lib/imageLayout";
 
 type TextNode = Extract<SvgNode, { type: "text" }>;
 type ImageNode = Extract<SvgNode, { type: "image" }>;
@@ -198,7 +200,7 @@ describe("memes", () => {
 
   it("keeps the writer's fields and limits, and the layout list the links builder takes", () => {
     for (const l of MEME_LAYOUT_IDS) expect(Object.fromEntries(IMAGE_FIELDS[l].map((f) => [f.key, f.max])), l).toEqual(MEME_FIELDS[l]);
-    expect([...AD_LAYOUT_IDS, ...MEME_LAYOUT_IDS]).toEqual([...IMAGE_LAYOUTS]);
+    expect([...AD_LAYOUT_IDS, ...MEME_LAYOUT_IDS, ...STATIC_LAYOUT_IDS]).toEqual([...IMAGE_LAYOUTS]);
     expect(MEME_LAYOUT_IDS.every(isMeme) && !AD_LAYOUT_IDS.some(isMeme)).toBe(true);
     expect(sizesFor("pov")).toEqual(["4x5", "1x1", "9x16"]);
     expect(sizesFor("headline")).toEqual(IMAGE_SIZES);
@@ -353,5 +355,110 @@ describe("memes", () => {
     expect(secondPicture({ [SECOND_PICTURE]: "cimg-abc123" })).toBe("cimg-abc123");
     expect(secondPicture({ [SECOND_PICTURE]: "https://example.com/a.jpg" })).toBeUndefined();
     expect(secondPicture({})).toBeUndefined();
+  });
+});
+
+describe("static ad formats (ff1111)", () => {
+  const LONG = ["understandably", "neighbourhood", "considerately", "straightforward", "conversations", "comfortably"];
+  /** Every field at its limit in long words, the worst a writer or a brand could type. */
+  const longest = (layout: StaticLayoutId) =>
+    Object.fromEntries(IMAGE_FIELDS[layout].map((f) => [f.key, f.unit === "chars" ? "x".repeat(f.max) : Array.from({ length: f.max }, (_, i) => LONG[i % LONG.length]).join(" ")]));
+  const example = (layout: StaticLayoutId) => STATIC_FORMATS.find((f) => f.slug === layout)!.example!;
+  const draw = (layout: StaticLayoutId, size: (typeof MEME_SIZES)[number], o: Partial<ImageInput> = {}) => layoutImage({ layout, words: example(layout), brand, ...o }, size, measure);
+
+  /** No NaN anywhere, every word inside the side margins and the canvas, and on a story out of the top and bottom 250 px. */
+  const inside = (drawn: ReturnType<typeof layoutImage>, size: (typeof MEME_SIZES)[number], at: string) => {
+    const { width, height } = SIZE_INFO[size];
+    expect(drawn, at).toMatchObject({ width, height });
+    expect(renderSvg(drawn), at).not.toContain("NaN");
+    for (const t of texts(drawn.nodes)) {
+      const [left, right] = span(t);
+      expect(left, `${at}: ${t.text}`).toBeGreaterThanOrEqual(96 - 0.5);
+      expect(right, `${at}: ${t.text}`).toBeLessThanOrEqual(width - 96 + 0.5);
+      const floor = size === "9x16" ? STORY_CLEAR : 0;
+      expect(t.y - t.font.size, `${at}: ${t.text}`).toBeGreaterThanOrEqual(floor);
+      expect(t.y, `${at}: ${t.text}`).toBeLessThanOrEqual(height - floor);
+    }
+    for (const i of images(drawn.nodes)) expect(i.x >= 0 && i.y >= 0 && i.x + i.width <= width && i.y + i.height <= height, `${at}: picture`).toBe(true);
+  };
+
+  it("keeps the writer's fields and limits, the links builder's list and the registry's ready flags in step", () => {
+    expect([...STATIC_LAYOUTS]).toEqual([...STATIC_LAYOUT_IDS]);
+    for (const l of STATIC_LAYOUT_IDS) {
+      const written = IMAGE_FIELDS[l].filter((f) => !f.typed);
+      expect(Object.fromEntries(written.map((f) => [f.key, f.max])), l).toEqual(STATIC_FIELDS[l]);
+      expect(written.every((f) => f.unit === "words"), l).toBe(true);
+      expect(IMAGE_FIELDS[l].every((f) => /^[a-zA-Z]{1,20}$/.test(f.key)), l).toBe(true);
+      expect(sizesFor(l)).toEqual(["4x5", "1x1", "9x16"]);
+    }
+    expect(STATIC_FORMATS.filter((f) => f.ready).map((f) => f.slug).sort()).toEqual([...STATIC_LAYOUT_IDS].sort());
+    expect(STATIC_FORMATS.filter((f) => isStatic(f.slug)).every((f) => f.ready)).toBe(true);
+    expect(isStatic("headline") || isStatic("pov")).toBe(false);
+  });
+
+  it("gives every ready format an example within its fields' limits", () => {
+    for (const l of STATIC_LAYOUT_IDS) {
+      const words = example(l);
+      const fields = IMAGE_FIELDS[l];
+      expect(Object.keys(words).every((k) => fields.some((f) => f.key === k)), l).toBe(true);
+      for (const f of fields) expect(countOf(words[f.key] ?? "", f.unit), `${l} ${f.key}`).toBeLessThanOrEqual(f.max);
+      expect(imageBlock(l, words), l).toBeNull();
+    }
+  });
+
+  it("draws every format's example at Square, Feed 4:5 and Story 9:16 with every word kept, with and without a photo", () => {
+    for (const layout of STATIC_LAYOUT_IDS) {
+      for (const size of MEME_SIZES) {
+        for (const picture of [STATIC_EXAMPLE.picture, undefined]) {
+          const at = `${layout} ${size} ${picture ? "photo" : "no photo"}`;
+          const drawn = draw(layout, size, { picture });
+          inside(drawn, size, at);
+          expect(drawn.overflow, at).toBe(false);
+          const all = texts(drawn.nodes);
+          expect(all.some((t) => t.text.endsWith("\u2026")), at).toBe(false);
+          const shown = all.map((t) => t.text).join(" ").toLowerCase();
+          for (const [k, v] of Object.entries(example(layout))) expect(shown, `${at}: ${k}`).toContain(v.split(" ")[0].toLowerCase());
+        }
+      }
+    }
+  });
+
+  it("keeps the longest words inside the picture, cut with an ellipsis, and draws empty fields as nothing or a grey sample", () => {
+    for (const layout of STATIC_LAYOUT_IDS) {
+      for (const size of MEME_SIZES) {
+        const long = layoutImage({ layout, words: longest(layout), brand, picture: PIC }, size, measure);
+        inside(long, size, `${layout} ${size} long`);
+        if (long.overflow) expect(texts(long.nodes).some((t) => t.text.endsWith("\u2026")), `${layout} ${size}`).toBe(true);
+        const preview = layoutImage({ layout, words: {}, brand, samples: true }, size, measure);
+        inside(preview, size, `${layout} ${size} preview`);
+        const faded = texts(preview.nodes).filter((t) => t.opacity !== undefined && t.opacity < 1);
+        expect(faded.length, `${layout} ${size} samples`).toBeGreaterThan(0);
+        const blank = layoutImage({ layout, words: {}, brand }, size, measure);
+        inside(blank, size, `${layout} ${size} blank`);
+        const samples = IMAGE_FIELDS[layout].map((f) => f.sample);
+        expect(texts(blank.nodes).filter((t) => samples.includes(t.text)), `${layout} ${size} blank`).toEqual([]);
+      }
+    }
+  });
+
+  it("draws in the brand's colour: your side of a text chat, the friend's avatar, the forum's first avatar", () => {
+    const fills = (layout: StaticLayoutId) => draw(layout, "4x5").nodes.flatMap((n) => ("fill" in n && n.fill ? [n.fill] : []));
+    for (const l of ["text-chat", "friend-recommends", "us-vs-them"] as const) expect(fills(l), l).toContain(brand.color);
+    expect(fills("forum-thread")).toContain(brand.color);
+    // a dark background turns the screen dark and its words light
+    const dark = draw("ai-chat", "4x5", { paper: "dark" });
+    expect(dark.nodes[0]).toMatchObject({ type: "rect", fill: "#0B0B0C" });
+    expect(texts(dark.nodes).find((t) => t.text.startsWith("i need"))?.fill).toBe("#F5F5F7");
+  });
+
+  it("names a static design by its main words, wants them before a download, and a photo only where the format needs one", () => {
+    expect(mainWords("ai-chat", { question: "  where do i  start  ", lead: "x" })).toBe("where do i start");
+    expect(mainWords("text-chat", { name: "Priya", one: "hi" })).toBe("hi");
+    expect(imageBlock("news-headline", { badge: "Just in" })).toBe("Add the words first.");
+    expect(imageBlock("news-headline", { headline: "A headline" })).toBeNull();
+    expect(staticPhoto("ai-chat")).toBe("best");
+    expect(staticPhoto("text-chat")).toBeNull();
+    expect(staticPhoto("headline")).toBeNull();
+    for (const l of STATIC_LAYOUT_IDS) expect(pictureBlock(l, 0), l).toBe(staticPhoto(l) === "needs" ? "Add a picture first." : null);
   });
 });

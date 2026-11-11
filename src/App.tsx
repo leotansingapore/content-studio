@@ -60,6 +60,7 @@ const SlideLibrariesPage = lazy(() => import("@/pages/SlideLibrariesPage"));
 const PhonePage = lazy(() => import("@/pages/PhonePage"));
 const MakePage = lazy(() => import("@/pages/MakePage"));
 const MakeFormatPage = lazy(() => import("@/pages/MakeFormatPage"));
+const StaticFormatPage = lazy(() => import("@/pages/StaticFormatPage"));
 const SwipeFilePage = lazy(() => import("@/pages/SwipeFilePage"));
 const TrendsPage = lazy(() => import("@/pages/TrendsPage"));
 const CloneReelPage = lazy(() => import("@/pages/CloneReelPage"));
@@ -197,6 +198,7 @@ export default function App() {
           <Route path="/design/:id" element={<DesignEditorPage />} />
           <Route path="/make" element={<MakePage />} />
           <Route path="/make/:format" element={<MakeFormatPage />} />
+          <Route path="/make/static/:slug" element={<StaticFormatPage />} />
           <Route path="/edit" element={<VideoEditPage />} />
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/linkedin" element={<LinkedInStrategyPage />} />
