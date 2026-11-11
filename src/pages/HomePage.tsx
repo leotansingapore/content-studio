@@ -1,3 +1,4 @@
+import { newPostHref } from "@/lib/newPost";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link, useNavigate } from "react-router-dom";
@@ -639,7 +640,7 @@ export default function HomePage() {
                 size="lg"
                 className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 lg:border lg:border-input lg:bg-background lg:bg-none lg:text-foreground lg:shadow-none lg:hover:bg-accent lg:hover:text-accent-foreground lg:hover:opacity-100"
               >
-                <Link to="/generate">
+                <Link to={newPostHref(uid)}>
                   <Pencil className="h-4 w-4" /> Write a post
                 </Link>
               </Button>
@@ -1014,7 +1015,7 @@ export default function HomePage() {
                 No posts yet.
               </p>
               <Button asChild size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11">
-                <Link to="/generate">
+                <Link to={newPostHref(uid)}>
                   <Pencil className="h-3.5 w-3.5" /> Write your first post
                 </Link>
               </Button>

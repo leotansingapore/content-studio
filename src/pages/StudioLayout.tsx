@@ -29,6 +29,7 @@ import { ChevronUp, CircleHelp, LayoutGrid, LogOut, MessageSquarePlus, Monitor, 
 import { feedbackIsNew } from "@/components/feedback/config";
 import SectionTabs from "@/components/SectionTabs";
 import { links } from "@/lib/links";
+import { newPostHref } from "@/lib/newPost";
 import { useNewVersion } from "@/lib/newVersion";
 import { applyTheme, readTheme, resolveTheme, saveTheme, type ThemePick } from "@/lib/theme";
 import {
@@ -597,7 +598,7 @@ export default function StudioLayout() {
                   <MessageSquarePlus className="h-4 w-4" /> Ask the agent
                 </Link>
               ) : (
-                <Link to="/generate">
+                <Link to={newPostHref(uid)}>
                   <Plus className="h-4 w-4" /> New post
                 </Link>
               )}

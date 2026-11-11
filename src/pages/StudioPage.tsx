@@ -2,8 +2,8 @@
 // that opens the post writer on its last step (the agent's composer for Leo), six big choices one tap from their
 // maker, and the rest behind More formats: the catalogue for Leo, the other makers for everyone else. Under them, ads
 // running now, trending posts and your latest. Reads only what this device and the bundled drops hold; calls no AI.
-import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +79,13 @@ export default function StudioPage() {
   const fontsReady = useFontsReady(latest.some((c) => c.item.thumb?.kind === "show"));
   const sources = useMemo(() => (userId && stores ? readThumbSources(userId, stores, fontsReady) : undefined), [userId, stores, fontsReady]);
   const [topic, setTopic] = useState("");
+  // New post lands here as /studio#topic: the box takes the cursor, so typing is the next thing (never on a plain
+  // visit, where a phone would open its keyboard over the choices)
+  const { hash, key } = useLocation();
+  const topicBox = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (hash === "#topic") topicBox.current?.focus();
+  }, [hash, key, leo]);
   // the ads and top posts are Singapore personal finance: an adviser brand's rows only
   const adviser = adviserBrand(userId);
 
@@ -99,7 +106,7 @@ export default function StudioPage() {
               navigate(topic.trim() ? links.generate({ detail: topic.trim() }) : links.generate());
             }}
           >
-            <Input value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="What your post is about" placeholder="What's your post about?" maxLength={300} className="h-12 flex-1 text-base" />
+            <Input ref={topicBox} id="topic" value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="What your post is about" placeholder="What's your post about?" maxLength={300} className="h-12 flex-1 text-base" />
             <Button type="submit" className="h-12 gap-2 px-5">
               Write it <ArrowRight className="h-4 w-4" />
             </Button>
