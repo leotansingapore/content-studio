@@ -1,12 +1,124 @@
 {
-  "fetched": "2026-11-10",
+  "fetched": "2026-11-11",
   "questions": [
+    {
+      "question": "How to buy Anthropic stock in SG",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xt2oas/how_to_buy_anthropic_stock_in_sg/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-10T23:53:03.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Standchart eSaver",
+      "url": "https://forums.hardwarezone.com.sg/threads/standchart-esaver.5070862/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-10T15:16:56.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "VRWA or VALU?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xsmdut/vrwa_or_valu/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-10T13:04:36.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "24M, got lucky early with a good job – how do I not waste it?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xskny9/24m_got_lucky_early_with_a_good_job_how_do_i_not/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-10T11:36:53.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "How should I portion my money in investments?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xsknc9/how_should_i_portion_my_money_in_investments/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-10T11:35:57.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "MariBank is closing my account",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xskdmf/maribank_is_closing_my_account/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-10T11:20:08.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Regarding CCS",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xsj6d2/regarding_ccs/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-10T10:07:48.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "cpf top up?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xsix60/cpf_top_up/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-10T09:52:14.000Z",
+      "audience": "young-adult"
+    },
     {
       "question": "Waited 1year for the stocks market to drop.",
       "url": "https://forums.hardwarezone.com.sg/threads/waited-1year-for-the-stocks-market-to-drop.7230863/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-09T20:19:41.000Z",
+      "publishedAt": "2026-11-10T08:16:30.000Z",
       "audience": "general"
+    },
+    {
+      "question": "Debt left by my primary guardian that passed away in August",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xsgomm/debt_left_by_my_primary_guardian_that_passed_away/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-10T07:25:26.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "FIRE (Financial Independence, Retire Early) Movement",
+      "url": "https://forums.hardwarezone.com.sg/threads/fire-financial-independence-retire-early-movement.6370468/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-10T05:26:34.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "UOB stash interest",
+      "url": "https://forums.hardwarezone.com.sg/threads/uob-stash-interest.7093002/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-10T02:51:37.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Which app is the best?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xs2gol/which_app_is_the_best/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-09T20:16:30.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "Best credit card for public hospital bills?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xrwii8/best_credit_card_for_public_hospital_bills/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-09T16:39:15.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Dilemma on GE rider (P Signature or Optimum)",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xru2rb/dilemma_on_ge_rider_p_signature_or_optimum/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-09T15:08:20.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Take loan for hdb or pay in cash?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xrrlsw/take_loan_for_hdb_or_pay_in_cash/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-09T13:26:17.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "What is the correct setting for a lump sum on IBKR?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xrre3b/what_is_the_correct_setting_for_a_lump_sum_on_ibkr/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-09T13:16:25.000Z",
+      "audience": "working-adult"
     },
     {
       "question": "Fixed deposit war",
@@ -16,11 +128,18 @@
       "audience": "general"
     },
     {
-      "question": "FIRE (Financial Independence, Retire Early) Movement",
-      "url": "https://forums.hardwarezone.com.sg/threads/fire-financial-independence-retire-early-movement.6370468/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-09T07:36:02.000Z",
-      "audience": "working-adult"
+      "question": "What is considered behind nowadays?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xrgfpt/what_is_considered_behind_nowadays/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-09T02:49:23.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "Recently divorced single mom. Keep portfolio liquid or buy resale HDB?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xreu16/recently_divorced_single_mom_keep_portfolio/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-09T01:28:21.000Z",
+      "audience": "parent"
     },
     {
       "question": "Tiq 3-Year Endowment Plan",
@@ -63,13 +182,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-11-08T04:48:55.000Z",
       "audience": "general"
-    },
-    {
-      "question": "Standchart eSaver",
-      "url": "https://forums.hardwarezone.com.sg/threads/standchart-esaver.5070862/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-08T00:53:35.000Z",
-      "audience": "working-adult"
     },
     {
       "question": "Is it wise to buy resale hoping for ROI",
@@ -307,118 +419,6 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1xndo0p/anyone_use_kilde_private_credit/",
       "source": "r/singaporefi",
       "publishedAt": "2026-11-04T03:24:07.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "Commentary: When stock analysts move markets, should retail investors follow?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xnb0ml/commentary_when_stock_analysts_move_markets/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-04T01:14:20.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "To Financially Successful Singaporeans, which book changed the way you think about money, budgeting and how to accumulate wealth?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xn73bk/to_financially_successful_singaporeans_which_book/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-03T22:21:08.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "How do I increase my CPF if I can't mentally sustain a full-time job?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xn0ol2/how_do_i_increase_my_cpf_if_i_cant_mentally/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-03T18:20:14.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "What is a realistic savings rate for a fresh grad?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xmwzav/what_is_a_realistic_savings_rate_for_a_fresh_grad/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-03T16:06:30.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "SRS top up for Tax relief",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xmsqsc/srs_top_up_for_tax_relief/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-03T13:20:14.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "need some financial help",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xmpb7k/need_some_financial_help/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-03T10:17:51.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "How much do fresh grads save/invest these days?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xmkcoy/how_much_do_fresh_grads_saveinvest_these_days/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-03T05:15:08.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "Will writing service",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xmk6hy/will_writing_service/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-03T05:05:58.000Z",
-      "audience": "parent"
-    },
-    {
-      "question": "Any update on IBKR Margin Update?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xmikq8/any_update_on_ibkr_margin_update/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-03T03:42:47.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "Should I surrender my saving plan (Pruwealth) ?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xmh9kf/should_i_surrender_my_saving_plan_pruwealth/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-03T02:39:47.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Financial Declaration (for Civil Servants)",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xm1owi/financial_declaration_for_civil_servants/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-02T16:22:37.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Default record with full settlement. How to apply for credit",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xlrcib/default_record_with_full_settlement_how_to_apply/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-02T07:59:45.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "Why nowadays new to bank credit card offerings getting worse and worse? last time still can get PS5.",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xlqvjh/why_nowadays_new_to_bank_credit_card_offerings/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-02T07:28:41.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "UOB stash interest",
-      "url": "https://forums.hardwarezone.com.sg/threads/uob-stash-interest.7093002/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-02T07:10:08.000Z",
-      "audience": "general"
-    },
-    {
-      "question": "resale hdb - financing as a couple",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xllb7f/resale_hdb_financing_as_a_couple/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-02T02:18:57.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Chocolate finance increased top up programme balance",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xl5bhc/chocolate_finance_increased_top_up_programme/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-01T15:05:31.000Z",
       "audience": "general"
     }
   ]

@@ -1,5 +1,29 @@
 [
   {
+    "id": "784100dc60b8",
+    "title": "What you should know about income-payout funds",
+    "gist": "In an October interview, Pimco chief investment officer Dan Ivascyn stated that market yields are the most attractive they have been over the past two decades. He noted that this gives long-term investors such as retirees an opportunity to lock in relatively high current income. Pimco data indicates a 95 per cent correlation between the starting yield of fixed-income assets and returns over three to five years.",
+    "talkingPoint": "Clients planning for retirement may want to know how current market yields could affect their cash flow. You can ask how their income arrangements are currently structured and review their plan together.",
+    "clientMessage": "Hi [Client name], a recent financial report noted that market yields are at their most attractive levels in two decades. For long-term investors and retirees, this may provide a chance to lock in relatively high income. Historical data also shows a strong link between starting yields and returns over three to five years. If you want, we can look at your current plan together to see how your income is set up. [Your name]",
+    "source": "The Business Times",
+    "url": "https://businesstimes.com.sg/wealth/wealth-investing/what-you-should-know-about-income-payout-funds",
+    "publishedAt": "2026-11-10T08:49:44+00:00",
+    "topic": "Rates and markets",
+    "clipping": "/news/784100dc60b8.jpg"
+  },
+  {
+    "id": "3b47eb23e1c7",
+    "title": "About 3 million S'poreans to receive up to S$250 from Assurance Package in Dec. 2026, here's who's eligible",
+    "gist": "About three million adult Singaporeans will receive between S$100 and S$250 in Assurance Package cash payments from Dec. 8, 2026. The Ministry of Finance stated that this is the final cash disbursement under the enhanced Assurance Package announced at Budget 2023. Payout amounts depend on assessable annual income and property ownership.",
+    "talkingPoint": "Clients may want to check their eligibility and payment details before the deadlines to receive their payout smoothly. You can ask how they usually allocate these government disbursements within their broader savings or cash reserves.",
+    "clientMessage": "Hi [Client name], about three million adult Singaporeans will receive between S$100 and S$250 from Dec. 8, 2026 under the Assurance Package. This is the final cash disbursement from the enhanced package. The exact amount depends on your income and property ownership. You can check your eligibility online. If you would like to look over your cash flow or your overall financial plan together, feel free to let me know. [Your name]",
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/11/assurance-package-singapore",
+    "publishedAt": "2026-11-10T03:03:08+00:00",
+    "topic": "Government schemes",
+    "clipping": "/news/3b47eb23e1c7.jpg"
+  },
+  {
     "id": "bf3b89ffa26e",
     "title": "S'pore woman loses over S$100,000 to scammer, was promised investment would pay for kids’ education",
     "gist": "A Singaporean woman named Ruth lost over S$100,000 over four months to a scammer named Rob after being promised an investment would pay for her children's education. Rob gained her trust under the pretense of buying insurance and moved her money to an app that locked her funds. Police stated that investigations are ongoing and that recovering the money will be hard or impossible.",
@@ -614,18 +638,6 @@
     "clipping": "/news/f2a8cedb0cb3.jpg"
   },
   {
-    "id": "eab7f642835b",
-    "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
-    "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
-    "talkingPoint": "The best opening line on this wall. Ask a client how long they expect to live, then how long they expect to stay well. The gap they name is the conversation, and you have not mentioned a product yet. Careful: AIA's own study, so attribute it as AIA research rather than independent data, and quote the figures as what people EXPECT, not as a forecast of how long anyone will live.",
-    "clientMessage": "Hi [Client name],\n\nSingaporeans expect to live to about 80 but expect their health to start declining around 70. That ten-year gap is the part of retirement most plans forget to fund.\n\nSource: AIA Singapore, 23 Jul 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
-    "source": "AIA Singapore",
-    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-longevity-study-finds-singaporeans-view-longevity-with-more-anxiety-than-opportunity",
-    "publishedAt": "2026-07-22T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/eab7f642835b.jpg"
-  },
-  {
     "id": "5e4ceccda4ff",
     "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
     "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
@@ -636,6 +648,18 @@
     "publishedAt": "2026-07-22T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/5e4ceccda4ff.jpg"
+  },
+  {
+    "id": "eab7f642835b",
+    "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
+    "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
+    "talkingPoint": "The best opening line on this wall. Ask a client how long they expect to live, then how long they expect to stay well. The gap they name is the conversation, and you have not mentioned a product yet. Careful: AIA's own study, so attribute it as AIA research rather than independent data, and quote the figures as what people EXPECT, not as a forecast of how long anyone will live.",
+    "clientMessage": "Hi [Client name],\n\nSingaporeans expect to live to about 80 but expect their health to start declining around 70. That ten-year gap is the part of retirement most plans forget to fund.\n\nSource: AIA Singapore, 23 Jul 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
+    "source": "AIA Singapore",
+    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-longevity-study-finds-singaporeans-view-longevity-with-more-anxiety-than-opportunity",
+    "publishedAt": "2026-07-22T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/eab7f642835b.jpg"
   },
   {
     "id": "cc5c9a27e256",
@@ -698,18 +722,6 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
-    "id": "146ce01a9327",
-    "title": "Budget 2026 Highlights",
-    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
-    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
-    "clientMessage": null,
-    "source": "CPF Board",
-    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "CPF and retirement",
-    "clipping": "/news/146ce01a9327.jpg"
-  },
-  {
     "id": "38d77cf6f8ef",
     "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
     "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
@@ -720,6 +732,18 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "Cost of living",
     "clipping": "/news/38d77cf6f8ef.jpg"
+  },
+  {
+    "id": "146ce01a9327",
+    "title": "Budget 2026 Highlights",
+    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
+    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "clientMessage": null,
+    "source": "CPF Board",
+    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "CPF and retirement",
+    "clipping": "/news/146ce01a9327.jpg"
   },
   {
     "id": "6d46dc1c57d8",
