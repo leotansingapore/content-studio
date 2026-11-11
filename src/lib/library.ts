@@ -17,6 +17,7 @@ import type { MediaItem } from "@/lib/mediaLibrary";
 import type { MontageJob } from "@/lib/montage";
 import type { RemixAs } from "@/lib/remix";
 import { runParams, type RemixJobState } from "@/lib/remixJob";
+import { draftLine, type RemixSource } from "@/lib/remixSource";
 import { slideWords, type Slideshow } from "@/lib/slideshow";
 import { askParams, stepText, type SlideshowJob } from "@/lib/slideshowJob";
 import type { ExportJob, JoinJob } from "@/lib/videoMedia";
@@ -31,7 +32,7 @@ export const FORMAT_LABELS: Record<LibraryFormat, string> = { text: "Text", caro
 export const STATUS_LABELS: Record<LibraryStatus, string> = { ready: "Ready", scheduled: "Scheduled", posted: "Posted", making: "Making", failed: "Failed" };
 
 export interface LibraryItem {
-  /** "d:<draftId>", "c:<carouselId>", "s:<slideshowId>", "v:<projectId>", "i:<mediaKey>", "g:<image design id>", "j:<job kind>" */
+  /** "d:<draftId>", "c:<carouselId>", "s:<slideshowId>", "v:<projectId>", "i:<mediaKey>", "g:<image design id>", "x:<Design id>", "j:<job kind>" */
   key: string;
   format: LibraryFormat;
   status: LibraryStatus;
@@ -43,7 +44,19 @@ export interface LibraryItem {
   at: string;
   /** scheduledFor or postedAt. */
   when?: string;
-  thumb?: { kind: "slide"; carouselId: string } | { kind: "show"; showId: string } | { kind: "url"; url: string } | { kind: "media"; key: string };
+  /** The card's word for it, finer than the format filter: a slideshow and a Design are both under Carousel. */
+  kind: string;
+  /** What it was remixed from: "From a TikTok video by @handle". */
+  source?: string;
+  thumb?:
+    | { kind: "slide"; carouselId: string }
+    | { kind: "show"; showId: string }
+    | { kind: "url"; url: string }
+    | { kind: "media"; key: string }
+    /** An /image design, drawn the way /image draws it. */
+    | { kind: "image"; imageId: string }
+    /** A Design's first slide. */
+    | { kind: "design"; designId: string };
   /** Where Open goes. */
   href: string;
   /** Ready drafts only. */
@@ -89,14 +102,23 @@ function firstBy<T>(list: T[], key: (t: T) => string | undefined): Map<string, T
   return m;
 }
 
-type ImageDesign = Pick<SavedImage, "id" | "words" | "updatedAt" | "draftId" | "pictureKey">;
+type ImageDesign = Pick<SavedImage, "id" | "words" | "updatedAt" | "draftId" | "source">;
+type DesignDoc = Pick<Design, "id" | "draftId"> & Partial<Pick<Design, "title" | "caption" | "slides" | "updatedAt">>;
 const imageTitle = (g: ImageDesign) => g.words.headline?.trim() || Object.values(g.words).map((w) => w.trim()).find(Boolean) || "Image";
-/** The design's own picture from this device's media library; the brand headshot and a design without one draw none. */
-const imageThumb = (g: ImageDesign) => (g.pictureKey?.startsWith("cimg-") ? { thumb: { kind: "media" as const, key: g.pictureKey } } : {});
+const imageThumb = (g: ImageDesign) => ({ thumb: { kind: "image" as const, imageId: g.id } });
+const designWords = (x: DesignDoc) => [x.title, x.caption, ...(x.slides ?? []).flatMap((sl) => sl.layers.flatMap((l) => (l.type === "text" ? [l.text] : [])))].filter(Boolean).join("\n");
+/** "From a reel by @handle"; a source saved without its parts says nothing rather than throwing. */
+const sourceLine = (s?: RemixSource) => {
+  try {
+    return s?.kind ? { source: draftLine(s) } : {};
+  } catch {
+    return {};
+  }
+};
 
-function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project?: VideoProject, design?: Pick<Design, "id">, image?: ImageDesign): LibraryItem {
+function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project?: VideoProject, design?: DesignDoc, image?: ImageDesign): LibraryItem {
   const pid = d.id.startsWith("video-") ? d.id.slice("video-".length) : null;
-  const format: LibraryFormat = image ? "image" : show || car || d.format === "carousel" ? "carousel" : d.format === "short-video" ? "video" : "text";
+  const format: LibraryFormat = image ? "image" : design || show || car || d.format === "carousel" ? "carousel" : d.format === "short-video" ? "video" : "text";
   const z = d.zernio;
   const zFailed = z?.status === "failed" || z?.status === "partial";
   const st = draftStatus(d);
@@ -119,13 +141,15 @@ function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project
   return {
     key: `d:${d.id}`,
     format,
+    kind: design ? "Design" : show ? "Slideshow" : FORMAT_LABELS[format],
+    ...(d.source ? sourceLine(d.source) : show?.source ? sourceLine(show.source) : image?.source ? { source: `From ${image.source.label}` } : {}),
     status,
     title: clip(d.hook?.trim() || firstLine(d.draft) || project?.name || show?.title || car?.title || (image ? imageTitle(image) : "") || "Untitled"),
-    words: [d.hook, d.draft, d.firstComment, car && carouselWords(car), show && slideWords(show), project?.name, project?.caption, ...(image ? Object.values(image.words) : [])].filter(Boolean).join("\n"),
-    at: latest(d.createdAt, car?.updatedAt, show?.updatedAt, project?.updatedAt, image?.updatedAt),
+    words: [d.hook, d.draft, d.firstComment, car && carouselWords(car), show && slideWords(show), project?.name, project?.caption, design && designWords(design), ...(image ? Object.values(image.words) : [])].filter(Boolean).join("\n"),
+    at: latest(d.createdAt, car?.updatedAt, show?.updatedAt, project?.updatedAt, image?.updatedAt, design?.updatedAt),
     ...(status === "scheduled" && d.scheduledFor ? { when: d.scheduledFor } : {}),
     ...(status === "posted" && d.postedAt ? { when: d.postedAt } : {}),
-    ...(show ? { thumb: { kind: "show" as const, showId: show.id } } : car ? { thumb: { kind: "slide" as const, carouselId: car.id } } : project?.thumb ? { thumb: { kind: "url" as const, url: project.thumb } } : image ? imageThumb(image) : {}),
+    ...(design ? { thumb: { kind: "design" as const, designId: design.id } } : show ? { thumb: { kind: "show" as const, showId: show.id } } : car ? { thumb: { kind: "slide" as const, carouselId: car.id } } : project?.thumb ? { thumb: { kind: "url" as const, url: project.thumb } } : image ? imageThumb(image) : {}),
     href,
     // month view, as SlideshowPage does: a remembered Upcoming view shows no editor for the post
     ...(status === "ready" ? { scheduleHref: `${links.calendar({ post: d.id })}&view=month` } : {}),
@@ -147,6 +171,7 @@ function jobItem(j: LibraryJob, now: Date): LibraryItem {
   return {
     key: `j:${j.kind}`,
     format: j.format,
+    kind: FORMAT_LABELS[j.format],
     status,
     title: clip(j.label),
     words: [j.label, note].filter(Boolean).join("\n"),
@@ -158,7 +183,7 @@ function jobItem(j: LibraryJob, now: Date): LibraryItem {
   };
 }
 
-/** Every store merged into one list, newest first. A carousel, slideshow, video project or /image design tied to a draft is that draft's card, never a second one. */
+/** Every store merged into one list, newest first. A carousel, slideshow, video project, Design or /image design tied to a draft is that draft's card, never a second one. */
 export function buildLibrary(i: {
   drafts: DraftEntry[];
   carousels: SavedCarousel[];
@@ -167,7 +192,7 @@ export function buildLibrary(i: {
   media: MediaItem[];
   jobs: LibraryJob[];
   now: Date;
-  designs?: Pick<Design, "id" | "draftId">[];
+  designs?: DesignDoc[];
   /** The /image designs (images.ts): static ads and memes. */
   images?: ImageDesign[];
 }): LibraryItem[] {
@@ -185,6 +210,7 @@ export function buildLibrary(i: {
       .map((c): LibraryItem => ({
         key: `c:${c.id}`,
         format: "carousel",
+        kind: "Carousel",
         status: "ready",
         title: clip(c.title || firstLine(c.slides[0]?.title ?? "") || "Carousel"),
         words: carouselWords(c),
@@ -197,6 +223,8 @@ export function buildLibrary(i: {
       .map((s): LibraryItem => ({
         key: `s:${s.id}`,
         format: "carousel",
+        kind: "Slideshow",
+        ...sourceLine(s.source),
         status: "ready",
         title: clip(s.title),
         words: slideWords(s),
@@ -209,6 +237,7 @@ export function buildLibrary(i: {
       .map((p): LibraryItem => ({
         key: `v:${p.id}`,
         format: "video",
+        kind: "Video",
         status: "ready",
         title: clip(p.name || "Video"),
         words: [p.name, p.caption].filter(Boolean).join("\n"),
@@ -222,6 +251,7 @@ export function buildLibrary(i: {
       .map((m): LibraryItem => ({
         key: `i:${m.key}`,
         format: "image",
+        kind: "Image",
         status: "ready",
         title: clip(m.name || "AI picture"),
         words: [m.name, m.alt].filter(Boolean).join("\n"),
@@ -234,12 +264,28 @@ export function buildLibrary(i: {
       .map((g): LibraryItem => ({
         key: `g:${g.id}`,
         format: "image",
+        kind: "Image",
+        ...(g.source ? { source: `From ${g.source.label}` } : {}),
         status: "ready",
         title: clip(imageTitle(g)),
         words: Object.values(g.words).filter(Boolean).join("\n"),
         at: g.updatedAt,
         ...imageThumb(g),
         href: links.image({ image: g.id }),
+      })),
+    // a Design not yet saved as a post (one read without its title, as tests pass, is only ever a draft's card)
+    ...(i.designs ?? [])
+      .filter((x) => !tied(x.draftId) && x.updatedAt)
+      .map((x): LibraryItem => ({
+        key: `x:${x.id}`,
+        format: "carousel",
+        kind: "Design",
+        status: "ready",
+        title: clip(x.title || "Design"),
+        words: designWords(x),
+        at: x.updatedAt!,
+        thumb: { kind: "design", designId: x.id },
+        href: `/design/${x.id}`,
       })),
     ...i.jobs.map((j) => jobItem(j, i.now)),
   ];

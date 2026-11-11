@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { Link } from "react-router-dom";
 import { LibraryBig, Search, X } from "lucide-react";
 import LibraryCard from "@/components/library/LibraryCard";
+import { thumbSources, useFontsReady } from "@/components/library/LibraryThumb";
 import MakingNow, { useLibraryJobs } from "@/components/library/MakingNow";
 import { useZernioRefresh } from "@/components/PostItForMe";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
 import { DEFAULT_BRAND, loadBrand, loadCarousels } from "@/lib/carousel";
-import { loadDesigns } from "@/lib/design";
+import { DESIGNS_CHANGED, loadDesigns } from "@/lib/design";
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
 import { loadImages, onImagesChanged } from "@/lib/images";
 import {
@@ -32,7 +33,6 @@ import { loadMedia } from "@/lib/mediaLibrary";
 import { loadSlideshows, onSlideshowsChanged } from "@/lib/slideshow";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
-import { ensureCaptionFonts } from "@/lib/videoMedia";
 import { loadProjects } from "@/lib/videoProjects";
 import NotFoundPage from "@/pages/NotFoundPage";
 
@@ -59,20 +59,6 @@ const readStores = (userId: string) => ({
   brand: loadBrand(userId) ?? DEFAULT_BRAND,
 });
 
-/** Slideshow thumbs measure with the caption fonts; only wait for them when there is a slideshow to draw. */
-function useFontsReady(want: boolean) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    if (!want) return;
-    let live = true;
-    void ensureCaptionFonts().then(() => live && setReady(true));
-    return () => {
-      live = false;
-    };
-  }, [want]);
-  return ready;
-}
-
 function Library({ userId }: { userId: string }) {
   const [format, setFormat] = useUrlState<(typeof FORMATS)[number]>("format", "all", { allowed: FORMATS });
   const [status, setStatus] = useUrlState<(typeof STATUSES)[number]>("status", "all", { allowed: STATUSES });
@@ -87,7 +73,11 @@ function Library({ userId }: { userId: string }) {
   const reload = useCallback(() => setStores(readStores(userId)), [userId]);
   useEffect(() => {
     const offs = [onDraftsChanged(reload), onSlideshowsChanged(reload), onImagesChanged(reload)];
-    return () => offs.forEach((off) => off());
+    window.addEventListener(DESIGNS_CHANGED, reload);
+    return () => {
+      offs.forEach((off) => off());
+      window.removeEventListener(DESIGNS_CHANGED, reload);
+    };
   }, [reload]);
   // a job that starts, ends or fails may have saved a draft, a picture or a slideshow; progress alone saves nothing
   const settled = jobs.map((j) => `${j.kind}:${j.state}`).join();
@@ -102,8 +92,7 @@ function Library({ userId }: { userId: string }) {
   const shown = st ? scoped.filter((i) => i.status === st) : scoped;
   const making = jobs.filter((j) => j.state === "working").length;
   const failedJobs = jobs.filter((j) => j.state === "failed").length;
-  const carouselById = useMemo(() => new Map(stores.carousels.map((c) => [c.id, c])), [stores.carousels]);
-  const showById = useMemo(() => new Map(stores.slideshows.map((s) => [s.id, s])), [stores.slideshows]);
+  const sources = useMemo(() => thumbSources(userId, stores, fontsReady), [userId, stores, fontsReady]);
 
   const clear = () => {
     setText("");
@@ -179,14 +168,7 @@ function Library({ userId }: { userId: string }) {
                 <ul className="grid grid-cols-2 items-stretch gap-x-3 gap-y-6 sm:grid-cols-3 xl:grid-cols-4">
                   {shown.map((item) => (
                     <li key={item.key} className="flex min-w-0">
-                      <LibraryCard
-                        item={item}
-                        brand={stores.brand}
-                        carousel={item.thumb?.kind === "slide" ? carouselById.get(item.thumb.carouselId) : undefined}
-                        show={item.thumb?.kind === "show" ? showById.get(item.thumb.showId) : undefined}
-                        userId={userId}
-                        fontsReady={fontsReady}
-                      />
+                      <LibraryCard item={item} sources={sources} />
                     </li>
                   ))}
                 </ul>

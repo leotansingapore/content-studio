@@ -134,7 +134,7 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | /reels | t, slide | seconds into the video, or the carousel slide, with card | none | with card | /reels?card=c123&t=12 |
 | /library | format | all, text, carousel, video, image. Leo's sign-ins only (src/lib/leoOnly.ts) | all | replace | /library?format=video |
 | /library | status | all, ready, scheduled, posted, making, failed | all | replace | /library?status=ready |
-| /library | q | search text over titles, post words, slide words and captions | empty | replace | /library?q=cpf |
+| /library | q | search text over titles, post words, slide words, Design words and captions | empty | replace | /library?q=cpf |
 | /library | panel | making: the Making now sheet below 1024 px (from 1024 px it is a column beside the grid) | closed | push | /library?panel=making |
 
 A link to an item that has not loaded yet keeps its param and opens when the data arrives; a link to an

@@ -133,9 +133,10 @@ describe("buildLibrary", () => {
       ["g:im2", "image", "/image?image=im2"],
       ["g:im3", "image", "/image?image=im3"],
     ]);
-    expect(made[0].thumb).toEqual({ kind: "media", key: "cimg-abc123" });
+    // every design is drawn the way /image draws it, picture or none: never a title on a coloured tile
+    expect(made[0].thumb).toEqual({ kind: "image", imageId: "im1" });
     expect(made[2]).toMatchObject({ status: "ready", title: "Ad im2", words: "Ad im2\nits caption" });
-    expect(made[2].thumb).toBeUndefined();
+    expect(made[2].thumb).toEqual({ kind: "image", imageId: "im2" });
     expect(filterLibrary(made, { format: "image", q: "" }).map((m) => m.key)).toEqual(["d:p1", "g:im2", "g:im3"]);
     expect(filterLibrary(made, { format: null, q: "its caption" }).map((m) => m.key)).toEqual(["d:p1", "g:im2", "g:im3"]);
     expect(countBy(made).all).toBe(4);
@@ -146,6 +147,30 @@ describe("buildLibrary", () => {
     expect(byKey(made, "d:dz").href).toBe("/design/dsg_1");
     expect(byKey(made, "d:cd2").href).toBe(links.carousel({ draft: "cd2" }));
     expect(made).toHaveLength(2);
+  });
+
+  it("lists a Design not yet saved as a post, with its first slide, and finds it by its slide words", () => {
+    const doc = { id: "dsg_3", title: "Mistakes buyers make", caption: "cap", updatedAt: "2026-10-05T00:00:00.000Z", slides: [{ id: "s", background: "#000", layers: [{ type: "text", text: "quokka" }] }] };
+    const made = build({ drafts: [draft("dz")], designs: [{ ...doc, id: "dsg_1", draftId: "dz" }, doc] as never });
+    expect(made.map((m) => [m.key, m.kind, m.format, m.href, m.thumb])).toEqual([
+      ["d:dz", "Design", "carousel", "/design/dsg_1", { kind: "design", designId: "dsg_1" }],
+      ["x:dsg_3", "Design", "carousel", "/design/dsg_3", { kind: "design", designId: "dsg_3" }],
+    ]);
+    expect(filterLibrary(made, { q: "QUOKKA" }).map((m) => m.key)).toEqual(["d:dz", "x:dsg_3"]);
+  });
+
+  it("names each card's kind, and what a remix was made from", () => {
+    expect(byKey(items, "d:ss").kind).toBe("Slideshow");
+    expect(byKey(items, "s:sh2").kind).toBe("Slideshow");
+    expect(byKey(items, "c:p:1").kind).toBe("Carousel");
+    expect(byKey(items, "d:t1").kind).toBe("Text");
+    expect(byKey(items, "d:t1").source).toBeUndefined();
+    const made = build({
+      drafts: [draft("rx", { source: { key: "top:1", kind: "top-post", format: "video", platform: "instagram", author: "@mrbrown", remixedAt: "2026-10-01T00:00:00.000Z" } })],
+      images: [{ id: "im9", words: { headline: "Ad" }, updatedAt: "2026-10-03T00:00:00.000Z", source: { key: "ad:1", label: "Singlife, 40 days running" } }],
+    });
+    expect(byKey(made, "d:rx").source).toBe("From @mrbrown's reel");
+    expect(byKey(made, "g:im9").source).toBe("From Singlife, 40 days running");
   });
 
   it("gives a tied draft its carousel slide, slideshow or video thumb and name", () => {
