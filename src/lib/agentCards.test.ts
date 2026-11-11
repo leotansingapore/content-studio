@@ -56,14 +56,14 @@ describe("needsCard", () => {
       expect(needsCard(pick("remix", { format }), P, "auto")).toBe(true);
     }
     for (const act of ["competitor", "campaign", "move", "write", "remember", "edit", "answer", "engage_replies", "engage_dms", "engage_thread", "engage_comment"] as const)
-      expect(needsCard(pick(act, { post: 0, day: "2026-10-24" }), P, "ask")).toBe(true);
+      expect(needsCard(pick(act, { post: "d1", day: "2026-10-24" }), P, "ask")).toBe(true);
   });
   it("is false for answers, forget (undo) and a typed approve or decline", () => {
     for (const act of ["week", "capabilities", "refuse", "budget", "memory", "check", "forget", "approve", "decline"] as const)
       expect(needsCard(pick(act), P, "ask")).toBe(false);
   });
   it("lets a move skip its card only in auto mode, with a day, and both cuts held", () => {
-    const move = pick("move", { post: 2, day: "2026-10-24", time: "09:00" });
+    const move = pick("move", { post: "d3", day: "2026-10-24", time: "09:00" });
     expect(needsCard(move, { act: 0.85, post: 0.8, day: 0.8 }, "auto")).toBe(false);
     expect(needsCard(move, { act: 0.85, post: 0.8, day: 0.8 }, "ask")).toBe(true);
     expect(needsCard(move, { act: 0.84, post: 0.9, day: 0.9 }, "auto")).toBe(true);
@@ -71,7 +71,7 @@ describe("needsCard", () => {
     expect(needsCard(move, { act: 0.9, post: 0.9, day: 0.79 }, "auto")).toBe(true);
     expect(needsCard(move, { act: 0.9, post: 0.9, day: null }, "auto")).toBe(true);
     expect(needsCard({ ...move, day: null }, { act: 0.9, post: 0.9, day: 0.9 }, "auto")).toBe(true);
-    expect(needsCard(pick("write", { post: 2 }), { act: 0.99, post: 0.99, day: 0.99 }, "auto")).toBe(true);
+    expect(needsCard(pick("write", { post: "d3" }), { act: 0.99, post: 0.99, day: 0.99 }, "auto")).toBe(true);
   });
 });
 

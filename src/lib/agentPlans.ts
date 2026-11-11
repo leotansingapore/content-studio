@@ -467,13 +467,14 @@ export function learningCard(message: string, scope: LearningScope, replaces: { 
 }
 
 /** Today's dock acts (move, write, paste into Reply drafts) as a card, an answer, or null (nothing it can do). */
-export function dockCard(userId: string, a: { act: AgentAct; post: number | null; day: string | null; time: string | null; message: string; p: PlanFields["p"] }, now = new Date()): Reply | null {
+export function dockCard(userId: string, a: { act: AgentAct; post: string | null; day: string | null; time: string | null; message: string; p: PlanFields["p"] }, now = new Date()): Reply | null {
   const drafts = loadDrafts(userId);
   const today = localDateKey(now);
-  const dock = actFor(userId, { act: a.act as "move", post: a.post, day: a.day, time: a.time }, a.message, drafts.slice(0, 50), today, () => {});
+  const at = a.post === null ? null : drafts.findIndex((x) => x.id === a.post);
+  const dock = actFor(userId, { act: a.act as "move", post: at, day: a.day, time: a.time }, a.message, drafts, today, () => {});
   if (!dock) return null;
   if ("say" in dock) return { text: dock.say, go: dock.go };
-  const d = a.post === null ? undefined : drafts[a.post];
+  const d = at === null ? undefined : drafts[at];
   if (a.act === "move" && d) {
     const to = moveWhen(d, a, today)!;
     const verb = dock.yes;

@@ -22,7 +22,6 @@ import { askAgent, conflictFor, type AgentAsk } from "@/lib/assistantActs";
 import { loadAudiences } from "@/lib/audiences";
 import { loadAutonomy, recordShadow } from "@/lib/autonomy";
 import { loadCompetitorAds } from "@/lib/competitorAds";
-import { loadDrafts } from "@/lib/draftHistory";
 import { EdgeError } from "@/lib/edgeFn";
 import { currentEditTarget } from "@/lib/editTarget";
 import { links } from "@/lib/links";
@@ -235,7 +234,7 @@ function sentLists(userId: string, api: SkillsApi | null): Sent {
 }
 
 /** The server's pick in agentCards' shape: indexes into what was sent read as their ids, slides 1-based. */
-export function clientPick(pick: ServerPick, sent: Pick<Sent, "speakers" | "audiences" | "skills">): AgentPick | null {
+export function clientPick(pick: ServerPick, sent: Pick<Sent, "speakers" | "audiences" | "skills"> & { posts: string[] }): AgentPick | null {
   if (!pick.act) return null;
   const at = <T>(list: T[], i: number | null) => (i === null ? undefined : list[i]);
   return {
@@ -249,7 +248,7 @@ export function clientPick(pick: ServerPick, sent: Pick<Sent, "speakers" | "audi
     slide: pick.slide === null ? null : pick.slide + 1,
     which: pick.which === "last" ? "last" : pick.which === null ? null : `l${pick.which + 1}`,
     skill: at(sent.skills, pick.skill)?.slash ?? null,
-    post: pick.post,
+    post: at(sent.posts, pick.post) ?? null,
     day: pick.day,
     time: pick.time,
     scope: pick.scope,
@@ -287,7 +286,7 @@ async function decide(userId: string, thread: string, msg: string, text: string,
     competitorAds: hasAds(userId),
     ...(made ? { last: { format: made.format, subject: made.subject } } : {}),
   };
-  let ans: { pick: ServerPick | null; p: ServerP } | null = null;
+  let ans: { pick: ServerPick | null; p: ServerP; posts: string[] } | null = null;
   // Jev reads English best: other text works through the chips and "/" only
   if (mostlyEnglish(text)) {
     live.call();
@@ -304,7 +303,7 @@ async function decide(userId: string, thread: string, msg: string, text: string,
   }
   if (signal.aborted) throw new Error("stopped");
   const p = (ans?.p ?? {}) as Record<string, number | null>;
-  const cp = ans?.pick ? clientPick(ans.pick, sent) : null;
+  const cp = ans?.pick ? clientPick(ans.pick, { ...sent, posts: ans.posts }) : null;
   // who appears, with its look: a new presenter's look is only known by the server's index
   const speaker = ans?.pick?.who != null ? (sent.speakers[ans.pick.who] ?? null) : null;
   if (!cp && o.chip) live.note(STEP.uses);
@@ -313,7 +312,7 @@ async function decide(userId: string, thread: string, msg: string, text: string,
   if (STEP_FOR[act]) live.note(STEP_FOR[act]!);
   if (cp.skill && act !== "approve" && act !== "decline") {
     const mine = sent.skills.find((x) => x.slash === cp.skill);
-    const postId = (cp.post === null ? undefined : loadDrafts(userId)[cp.post]?.id) ?? writeDraft();
+    const postId = cp.post ?? writeDraft();
     if (mine && api) return skillReply(userId, api, mine.slash, { rest: text, postId }, live);
   }
   switch (act) {
@@ -346,8 +345,7 @@ async function decide(userId: string, thread: string, msg: string, text: string,
       return { card: c, ...(full ? { go: [OPEN_VOICE] } : {}) };
     }
     case "check": {
-      const d = cp.post === null ? undefined : loadDrafts(userId)[cp.post];
-      return api ? skillReply(userId, api, "check", { postId: d?.id ?? writeDraft(), rest: text }, live) : feedbackReply(userId, thread, text, live);
+      return api ? skillReply(userId, api, "check", { postId: cp.post ?? writeDraft(), rest: text }, live) : feedbackReply(userId, thread, text, live);
     }
     case "answer":
       return guard(userId, { card: answerCard(act, p) }, text);
@@ -469,7 +467,7 @@ async function skillReply(userId: string, api: SkillsApi, skill: string, input: 
   for (let i = 0; i < (run.calls ?? 0); i++) live.call();
   if (run.step === "open" && run.postId) {
     const mine = api.loadMySkills(userId).find((x) => x.slash === skill);
-    const r = dockCard(userId, { act: "write", post: loadDrafts(userId).findIndex((d) => d.id === run.postId), day: null, time: null, message: mine?.instruction ?? input.rest ?? "", p: {} });
+    const r = dockCard(userId, { act: "write", post: run.postId, day: null, time: null, message: mine?.instruction ?? input.rest ?? "", p: {} });
     if (r) return r;
   }
   return { text: run.failed ?? (run.id ? api.skillRunText(run) : run.lines.join("\n")), go: run.links, ...(api.QUOTING.includes(skill) ? { quotes: true as const } : {}) };

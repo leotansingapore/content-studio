@@ -332,12 +332,12 @@ describe("proposeAct for everyone (pinned before the agent's call is added)", ()
 
 describe("askAgent (the agent's question, Leo only)", () => {
   const refusal = (status: number, code: string) => ({ data: null, error: { context: new Response(JSON.stringify({ code, error: "You've used all 100 for today. It resets at 8am Singapore time." }), { status }) } });
-  it("sends today's body with agent: true and its fields, through the signal, and returns the pick with its probabilities", async () => {
+  it("sends today's body with agent: true and its fields, through the signal, and returns the pick with its probabilities and the post ids sent", async () => {
     saveDrafts(UID, [post({})]);
     const answer = { pick: { act: "make", format: "carousel" }, p: { act: 0.9 } };
     invoke.mockResolvedValue({ data: answer, error: null });
     const signal = new AbortController().signal;
-    expect(await askAgent(UID, "make a carousel about CPF LIFE", { chip: "carousel", speaker: "person", pending: "" }, signal)).toEqual(answer);
+    expect(await askAgent(UID, "make a carousel about CPF LIFE", { chip: "carousel", speaker: "person", pending: "" }, signal)).toEqual({ ...answer, posts: ["a"] });
     expect(invoke).toHaveBeenCalledWith("assistant-act", {
       body: { message: "make a carousel about CPF LIFE", today: TODAY, posts: [expect.objectContaining({ title: "Three CPF myths" })], agent: true, chip: "carousel", speaker: "person", pending: "" },
       signal,

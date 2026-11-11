@@ -48,7 +48,7 @@ const fake = vi.hoisted(() => {
     link: store(),
   };
 });
-const jev = vi.hoisted(() => ({ pick: null as unknown, p: {} as Record<string, number | null>, refuse: null as null | { status: number; code: string }, hang: false, bodies: [] as Record<string, unknown>[] }));
+const jev = vi.hoisted(() => ({ pick: null as unknown, p: {} as Record<string, number | null>, refuse: null as null | { status: number; code: string }, hang: false, bodies: [] as Record<string, unknown>[], during: null as null | (() => void) }));
 const invoke = vi.hoisted(() => vi.fn());
 const wait = () => new Promise((r) => setTimeout(r, 0));
 const SCRIPT =
@@ -246,6 +246,7 @@ beforeEach(() => {
   jev.refuse = null;
   jev.hang = false;
   jev.bodies = [];
+  jev.during = null;
   invoke.mockReset();
   invoke.mockImplementation(async (name: string, opts: { body: Record<string, unknown>; signal?: AbortSignal }) => {
     // the explainer's script, written by the engine in the brand's voice
@@ -258,6 +259,7 @@ beforeEach(() => {
     if (name === "writing-judge") return { data: { replaces: null }, error: null };
     if (name !== "assistant-act") return { data: null, error: new Error(`unexpected ${name}`) };
     jev.bodies.push(opts.body);
+    jev.during?.();
     if (jev.hang) return new Promise((resolve) => opts.signal?.addEventListener("abort", () => resolve({ data: null, error: new Error("aborted") })));
     if (jev.refuse) return { data: null, error: { context: new Response(JSON.stringify({ code: jev.refuse.code, error: "You've used all 100 for today." }), { status: jev.refuse.status }) } };
     return { data: { pick: jev.pick, p: jev.p }, error: null };
@@ -289,8 +291,9 @@ describe("the server's pick and agentCards' pick", () => {
     expectTypeOf<keyof ServerPick>().toEqualTypeOf<keyof AgentPick>();
     expectTypeOf<ServerPick["format"]>().toEqualTypeOf<AgentPick["format"]>();
     expectTypeOf<keyof ServerP>().toEqualTypeOf<keyof ServerPick>();
-    const sent = { speakers: [{ id: "mine", look: "me" }, { id: "pr-abc", look: "x" }], audiences: [{ id: "au-1", name: "Parents" }], skills: [{ id: "s1", slash: "tighten", name: "Tighten", instruction: "Tighten it" }] };
-    expect(clientPick(pk({ act: "make", who: 1, audience: 0, slide: 2, which: 3, skill: 0 }), sent)).toMatchObject({ act: "make", who: "pr-abc", audience: "au-1", slide: 3, which: "l4", skill: "tighten" });
+    const sent = { speakers: [{ id: "mine", look: "me" }, { id: "pr-abc", look: "x" }], audiences: [{ id: "au-1", name: "Parents" }], skills: [{ id: "s1", slash: "tighten", name: "Tighten", instruction: "Tighten it" }], posts: ["p1", "p2"] };
+    expect(clientPick(pk({ act: "make", who: 1, audience: 0, slide: 2, which: 3, skill: 0, post: 1 }), sent)).toMatchObject({ act: "make", who: "pr-abc", audience: "au-1", slide: 3, which: "l4", skill: "tighten", post: "p2" });
+    expect(clientPick(pk({ act: "move", post: 2 }), sent)?.post).toBeNull();
     expect(clientPick(pk({ act: "forget", which: "last" }), sent)?.which).toBe("last");
     expect(clientPick(pk({}), sent)).toBeNull();
   });
@@ -698,6 +701,21 @@ describe("autonomy", () => {
     expect(cardMsg(id).card?.status).toBe("proposed");
     expect(await undoReceipt(UID, thread(loadThreads(UID)[1].id).id, cardMsg(loadThreads(UID)[1].id).id)).toBe(UNDONE);
     expect(loadDrafts(UID)[0].scheduledFor).toBe("2099-10-14T09:00");
+  });
+
+  it("moves the post Jev named when another post is saved while it thinks, and answers in words when that post is gone", async () => {
+    saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2099-10-14T09:00" })]);
+    saveAutonomy(UID, { changes: "auto" });
+    const sure = { act: 0.9, post: 0.9, day: 0.9 };
+    jev.during = () => saveDrafts(UID, [post({ id: "p2", hook: "A new make", status: "scheduled", scheduledFor: "2099-10-20T09:00" }), ...loadDrafts(UID)]);
+    let id = await say("move my CPF myths post to the 16th", { act: "move", post: 0, day: "2099-10-16" }, { p: sure });
+    expect(last(id).text).toMatch(/^Moved "Three CPF myths" to /);
+    expect(loadDrafts(UID).find((d) => d.id === "p1")?.scheduledFor).toBe("2099-10-16T09:00");
+    expect(loadDrafts(UID).find((d) => d.id === "p2")?.scheduledFor).toBe("2099-10-20T09:00");
+    jev.during = () => saveDrafts(UID, loadDrafts(UID).filter((d) => d.id !== "p2"));
+    id = await say("move the new one to the 18th", { act: "move", post: 0, day: "2099-10-18" }, { p: sure });
+    expect(thread(id).messages.some((m) => m.card || m.receipt)).toBe(false);
+    expect(loadDrafts(UID).find((d) => d.id === "p1")?.scheduledFor).toBe("2099-10-16T09:00");
   });
 });
 

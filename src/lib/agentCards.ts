@@ -44,8 +44,8 @@ export interface AgentPick {
   which: string | null;
   /** A skill's slash. */
   skill: string | null;
-  /** Index into the posts sent, for move and write. */
-  post: number | null;
+  /** The id of the post sent, for move and write. */
+  post: string | null;
   /** "YYYY-MM-DD". */
   day: string | null;
   /** "HH:MM". */

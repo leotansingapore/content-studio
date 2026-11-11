@@ -62,9 +62,10 @@ export async function proposeAct(userId: string, message: string, go: Go): Promi
 export type AgentAsk = Partial<Omit<AgentFields, "open" | "source">> & { open?: { kind: string; title: string; slides?: string[]; onScreen?: number }; source?: { kind: string; format: string; title: string } };
 
 /** The agent's question (Leo only): today's body plus `agent: true` and its fields. Throws every refusal, a 429 included. */
-export async function askAgent(userId: string, message: string, fields: AgentAsk, signal?: AbortSignal): Promise<{ pick: AgentPick | null; p: AgentP }> {
-  const posts = postsForJev(loadDrafts(userId).slice(0, MAX_POSTS));
-  return callFn("assistant-act", { message, today: localDateKey(), posts, agent: true, ...fields }, undefined, signal ? { signal } : {});
+export async function askAgent(userId: string, message: string, fields: AgentAsk, signal?: AbortSignal): Promise<{ pick: AgentPick | null; p: AgentP; posts: string[] }> {
+  const drafts = loadDrafts(userId).slice(0, MAX_POSTS);
+  const ans = await callFn<{ pick: AgentPick | null; p: AgentP }>("assistant-act", { message, today: localDateKey(), posts: postsForJev(drafts), agent: true, ...fields }, undefined, signal ? { signal } : {});
+  return { ...ans, posts: drafts.map((d) => d.id) };
 }
 
 /** A kept note a new one replaces, "capped" when the check is over its daily limit, or null (none, or no answer). */
