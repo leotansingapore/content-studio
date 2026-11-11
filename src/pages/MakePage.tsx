@@ -150,7 +150,9 @@ function Gallery({ userId }: { userId: string }) {
   );
 }
 
-const TILE = "relative aspect-[9/16] w-full overflow-hidden rounded-xl border border-border/60 bg-muted transition-colors group-hover:border-primary/40";
+// a 9:16 poster when the format has a preview clip; without one a short tile, so a page of formats with no previews
+// yet is not a wall of empty phone-sized boxes
+const TILE = "relative w-full overflow-hidden rounded-xl border border-border/60 bg-muted transition-colors group-hover:border-primary/40";
 const CARD = "group flex w-full flex-col gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /** One format: poster or kind icon, name, line, price, uses left, and what it still needs. The whole card is one link;
@@ -171,7 +173,7 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
   );
   const card = (
     <Link to={formatHref(f)} onMouseEnter={play} onMouseLeave={stop} onFocus={play} onBlur={stop} className={CARD}>
-      <div className={TILE}>
+      <div className={`${TILE} ${f.preview ? "aspect-[9/16]" : "aspect-[16/9]"}`}>
         {poster ? (
           <img src={`/formats/${f.slug}.webp`} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
         ) : (
