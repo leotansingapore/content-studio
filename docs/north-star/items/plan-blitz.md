@@ -71,6 +71,11 @@ Checked against ns/phase7 at 8664c00d on 27 Oct.
 | Smart text positioning | none: the makers place words by their own layout | |
 | Caption style mix | none: a slideshow takes the last text look used in its editor, no look per make | |
 
+- Each card names the business as Settings > Post choices says (`mentionFor`: Never, Sometimes with a flip per card,
+  Always), and a slideshow card wears the brand's ticked text styles through the slideshow maker.
+- The deck reads the whole latest format drop however old it is (/trends hides a drop past 21 days), so a brand with
+  no running ads, winners or ideas still gets a deck. A source used in the last 14 days comes back only when the deck
+  would be short. The empty state shows only when nothing can be dealt and names what is missing (`emptyReason`).
 - Open: the Jev pick. writing-judge has no mode that judges a source's fit for the brand's audiences, and adding one
   needs a new mode and a new cap (blitz-deck). Until then candidates go by outlier score within each source (days an
   ad has run, a trend's views, a winner's ratio), the seam is `pickDeck` in `src/lib/blitz.ts`.

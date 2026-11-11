@@ -71,6 +71,39 @@ export const FAILED_LINE = "Couldn't make this one.";
 export const CAPPED_LINE = "Today's remixes are used up. More at 8am Singapore time.";
 export const NO_SOURCES_LINE = "Add a competitor so Blitz has ads to remix.";
 
+/** What a brand has for a deck, counted: the empty state says which of them is missing. */
+export interface Supply {
+  competitors: number;
+  ads: number;
+  trends: number;
+  winners: number;
+  ideas: number;
+}
+
+const listed = (parts: string[]) => (parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`);
+
+/**
+ * The empty state, shown only when nothing at all can be dealt: what is actually missing, and the one way forward.
+ * No competitor at all keeps the spec's line; otherwise each empty or switched-off source is named.
+ */
+export function emptyReason(s: Supply, mix: BlitzMix): { line: string; action: "competitor" | "configure" | "ideas" } {
+  const off = SOURCE_KINDS.filter((k) => !mix.sources[k]);
+  if (mix.sources.ads && !s.competitors && !off.length && !s.trends) return { line: NO_SOURCES_LINE, action: "competitor" };
+  const parts = [
+    mix.sources.ads && !s.competitors && "no competitors added",
+    mix.sources.ads && s.competitors > 0 && !s.ads && "no running ads found for your competitors",
+    mix.sources.trends && !s.trends && "no trending formats in the latest drop",
+    mix.sources.winners && !s.winners && "no winning posts yet",
+    !s.ideas && "no ideas yet",
+    off.length > 0 && `${listed(off.map((k) => SOURCE_LABELS[k]))} switched off in Configure`,
+  ].filter((x): x is string => !!x);
+  const line = `Nothing to deal today: ${listed(parts)}.`;
+  // a switched-off source that has something in it is the quickest way to a deck
+  const has: Record<BlitzSourceKind, number> = { ads: s.ads, trends: s.trends, winners: s.winners };
+  if (off.some((k) => has[k] > 0)) return { line, action: "configure" };
+  return { line, action: mix.sources.ads && !s.competitors ? "competitor" : "ideas" };
+}
+
 /** The deck's day: the UTC date, so it turns over at 8am Singapore time with the daily caps. */
 export const deckDay = (now = new Date()) => now.toISOString().slice(0, 10);
 
@@ -245,21 +278,30 @@ const cardId = () => `bz-${Date.now().toString(36)}${(seq++).toString(36)}${Math
 /**
  * Today's deck: up to `n` cards in the mix's formats, its remix share from the sources (round robin over the kinds
  * switched on, best outlier first in each, a trend matched to its own format when one fits) and the rest from your
- * ideas; either side fills in when the other runs dry. Sources used in the last 14 days are left out.
+ * ideas; either side fills in when the other runs dry. Sources used in the last 14 days wait behind every fresh one
+ * and come back only when the deck would otherwise be short (the format drop is about 10 posts a week, so a brand
+ * with trends alone would get one deck a fortnight).
  */
 export function pickDeck(pools: Pools, mix: BlitzMix, used: Set<string>, o: { n?: number; media?: boolean; now?: number } = {}): BlitzCard[] {
   const n = o.n ?? DECK_SIZE;
   const all = candidatesOf(pools, o.now);
-  const left: Record<BlitzSourceKind, Candidate[]> = { ads: [], trends: [], winners: [] };
-  for (const c of all) if (mix.sources[c.kind] && !used.has(c.source.key) && !left[c.kind].some((x) => x.source.key === c.source.key)) left[c.kind].push(c);
-  const ideas = pools.ideas.filter((i) => i.title.trim() && !used.has(ideaKey(i)));
+  type Lists = Record<BlitzSourceKind, Candidate[]>;
+  const left: Lists = { ads: [], trends: [], winners: [] };
+  const again: Lists = { ads: [], trends: [], winners: [] };
+  for (const c of all) {
+    if (!mix.sources[c.kind] || [...left[c.kind], ...again[c.kind]].some((x) => x.source.key === c.source.key)) continue;
+    (used.has(c.source.key) ? again : left)[c.kind].push(c);
+  }
+  const titled = pools.ideas.filter((i) => i.title.trim());
+  const ideas = titled.filter((i) => !used.has(ideaKey(i)));
+  const ideasAgain = titled.filter((i) => used.has(ideaKey(i)));
   const shows = spread(n, mix.slideshow);
   const fresh = spread(n, 100 - mix.remix);
   let turn = 0;
-  const nextSource = (format: BlitzFormat): Candidate | null => {
+  const nextSource = (format: BlitzFormat, lists: Lists): Candidate | null => {
     for (let k = 0; k < SOURCE_KINDS.length; k++) {
       const kind = SOURCE_KINDS[(turn + k) % SOURCE_KINDS.length];
-      const list = left[kind];
+      const list = lists[kind];
       if (!list.length) continue;
       turn = (turn + k + 1) % SOURCE_KINDS.length;
       const i = Math.max(0, list.findIndex((c) => !c.prefers || c.prefers === format));
@@ -270,12 +312,13 @@ export function pickDeck(pools: Pools, mix: BlitzMix, used: Set<string>, o: { n?
   const cards: BlitzCard[] = [];
   for (let i = 0; i < n; i++) {
     const format: BlitzFormat = shows[i] ? "slideshow" : "wall";
-    const pick = fresh[i] && ideas.length ? null : nextSource(format);
+    // fresh before repeated, and within each the slot's own side (an idea or a source) before the other
+    const pick = (fresh[i] && ideas.length ? null : nextSource(format, left)) ?? (ideas.length ? null : nextSource(format, again));
     if (pick) {
       cards.push({ id: cardId(), format, source: pick.source, why: whyLine(pick.source), state: "waiting" });
       continue;
     }
-    const idea = ideas.shift();
+    const idea = ideas.shift() ?? ideasAgain.shift();
     if (!idea) break;
     cards.push({ id: cardId(), format, source: null, topic: { title: idea.title.slice(0, 200), angle: idea.angle.slice(0, 300) }, why: ideaWhy(idea.from), state: "waiting" });
   }

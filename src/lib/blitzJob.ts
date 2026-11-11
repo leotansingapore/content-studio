@@ -12,7 +12,8 @@ import { loadCompetitors } from "@/lib/competitors";
 import { deleteDraft, draftsChanged, loadDrafts, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { EdgeError } from "@/lib/edgeFn";
 import { clearFormatJob, setFormatJob } from "@/lib/formatJob";
-import { currentFormatTrends } from "@/lib/formatTrends";
+import { FORMAT_TRENDS } from "@/lib/formatTrends";
+import { mentionFor } from "@/lib/postChoices";
 import { arrange, genIdeas, loadIdeas, loadPoolStores, poolIdeas } from "@/lib/ideasInbox";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
@@ -22,7 +23,7 @@ import { loadSlideshows, removeSlideshow, saveSlideshow, slideshowToDraft, type 
 import { makeBody, slideshowBusy, slideshowJob, startSlideshow } from "@/lib/slideshowJob";
 import { findWinners, loadWinners } from "@/lib/winners";
 import {
-  CAPPED_LINE, FAILED_LINE, loadBlitz, loadStored, madeCount, patchCard, pickDeck, rememberUsed, saveBlitz, usedKeyOf, usedKeys,
+  CAPPED_LINE, FAILED_LINE, emptyReason, loadBlitz, loadStored, madeCount, patchCard, pickDeck, rememberUsed, saveBlitz, usedKeyOf, usedKeys,
   type BlitzCard, type Pools,
 } from "@/lib/blitz";
 
@@ -46,12 +47,20 @@ export function loadPools(userId: string, now = new Date()): Pools {
   const all = [...genIdeas(ideasState), ...poolIdeas(loadPoolStores(userId), now)];
   // shortlisted ideas first, then the inbox
   const ideas = [...arrange(all, ideasState.status, { tab: "shortlist" }), ...arrange(all, ideasState.status, { tab: "inbox" })].map((i) => ({ title: i.title, angle: i.angle, from: i.from }));
-  return { ads, trends: currentFormatTrends(undefined, now), winners: findWinners(loadDrafts(userId), now.getTime(), loadWinners(userId).handled), ideas };
+  // the whole latest drop, however old: /trends hides a drop past 21 days because it says "this week", but a format's
+  // shape still remixes, and without it a brand with no ads, winners or ideas has no deck at all
+  return { ads, trends: FORMAT_TRENDS.items, winners: findWinners(loadDrafts(userId), now.getTime(), loadWinners(userId).handled), ideas };
 }
 
 /** Has nothing to draw on today: no source switched on with anything in it, and no ideas. */
 export const nothingToDraw = (userId: string, now = new Date()) =>
   pickDeck(loadPools(userId, now), loadBlitz(userId, now).mix, new Set(), { n: 1, now: now.getTime() }).length === 0;
+
+/** Why nothing can be dealt, from what this brand has (emptyReason). */
+export function whyEmpty(userId: string, now = new Date()) {
+  const p = loadPools(userId, now);
+  return emptyReason({ competitors: loadCompetitors(userId).list.length, ads: p.ads.length, trends: p.trends.length, winners: p.winners.length, ideas: p.ideas.length }, loadBlitz(userId, now).mix);
+}
 
 function mirror(userId: string) {
   const cards = loadBlitz(userId).cards;
@@ -122,11 +131,13 @@ async function run(userId: string): Promise<void> {
 export async function makeCard(userId: string, card: BlitzCard): Promise<Partial<BlitzCard> | "capped"> {
   const topic = card.source ? "" : (card.topic?.title ?? "");
   const note = card.source ? "" : (card.topic?.angle ?? "");
+  // the brand's Name your business choice (Settings > Post choices): Never, Sometimes (a flip per card) or Always
+  const mention = mentionFor(userId);
   if (card.format === "slideshow") {
     // one slideshow at a time across the app: wait for one made on its own page
     while (slideshowBusy()) await sleep(1000);
     const mood = loadBlitz(userId).mix.mood;
-    const go = startSlideshow(userId, { source: card.source, topic, note, mention: true, size: "4x5", pictures: card.pictures ?? "stock", ...(mood ? { mood } : {}) });
+    const go = startSlideshow(userId, { source: card.source, topic, note, mention, size: "4x5", pictures: card.pictures ?? "stock", ...(mood ? { mood } : {}) });
     const id = slideshowJob()?.id;
     await go;
     const j = slideshowJob();
@@ -135,7 +146,7 @@ export async function makeCard(userId: string, card: BlitzCard): Promise<Partial
     return { state: "failed", error: FAILED_LINE };
   }
   try {
-    const res = await requestMake(makeBody(userId, { source: card.source, topic, note, mention: true, size: "9x16" }, "wall"));
+    const res = await requestMake(makeBody(userId, { source: card.source, topic, note, mention, size: "9x16" }, "wall"));
     if (res?.result?.as !== "wall") return { state: "failed", error: FAILED_LINE };
     const text = stripDashes(res.result.text).trim();
     const caption = stripDashes(applyBrandRules(res.result.caption, loadBrand(userId), "tiktok")).trim();

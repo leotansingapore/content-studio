@@ -14,9 +14,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import {
-  CAPPED_LINE, FORMAT_LABELS, NO_SOURCES_LINE, keptCount, keyAction, loadBlitz, onBlitzChanged, openCards, pending, sourceChip, type BlitzCard,
+  CAPPED_LINE, FORMAT_LABELS, keptCount, keyAction, loadBlitz, onBlitzChanged, openCards, pending, sourceChip, type BlitzCard,
 } from "@/lib/blitz";
-import { blitzBusy, editHref, keepCard, nothingToDraw, onBlitzJob, retryCard, skipCard, startDeck, undoKeep } from "@/lib/blitzJob";
+import { blitzBusy, editHref, keepCard, nothingToDraw, onBlitzJob, retryCard, skipCard, startDeck, undoKeep, whyEmpty } from "@/lib/blitzJob";
 import { links } from "@/lib/links";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlUpdate } from "@/lib/urlState";
@@ -56,6 +56,21 @@ function RemixedFrom({ card }: { card: BlitzCard }) {
   );
 }
 
+function NothingToDeal({ userId, onConfigure }: { userId: string; onConfigure: () => void }) {
+  const { line, action } = whyEmpty(userId);
+  return (
+    <EmptyState
+      icon={Swords}
+      title={line}
+      actions={
+        action === "configure" ? <Button onClick={onConfigure}>Open Configure</Button>
+        : action === "ideas" ? <Button asChild><Link to={links.ideas()}>Get today's ideas</Link></Button>
+        : <Button asChild><Link to={links.competitors({ view: "list" })}>Add a competitor</Link></Button>
+      }
+    />
+  );
+}
+
 function Blitz({ userId }: { userId: string }) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -68,18 +83,16 @@ function Blitz({ userId }: { userId: string }) {
   const update = useUrlUpdate();
   const [configure, openConfigure, closeConfigure] = useUrlItem("configure");
   const [why, setWhy] = useState(false);
-  const [empty, setEmpty] = useState(false);
-
-  // the day's first visit starts the deck; a deck a reload stopped goes on
-  const started = useRef(false);
-  useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    const s = loadBlitz(userId);
-    if (!s.cards.length || pending(s.cards)) setEmpty(startDeck(userId) === "empty");
-  }, [userId]);
 
   const s = loadBlitz(userId);
+  // only when nothing at all can be dealt; a source switched on in Configure, or a first idea, ends it
+  const nothing = !s.cards.length && nothingToDraw(userId);
+  // the day's first visit starts the deck; a deck a reload stopped goes on
+  useEffect(() => {
+    const now = loadBlitz(userId);
+    if (!nothing && (!now.cards.length || pending(now.cards))) startDeck(userId);
+  }, [userId, nothing]);
+
   const running = blitzBusy();
   const open = openCards(s.cards);
   const card = open.find((c) => c.id === cardParam) ?? open[0] ?? null;
@@ -150,8 +163,8 @@ function Blitz({ userId }: { userId: string }) {
 
       {s.capped && <p className="text-sm text-warning" role="status">{CAPPED_LINE}</p>}
 
-      {!s.cards.length && (empty || nothingToDraw(userId)) ? (
-        <EmptyState icon={Swords} title={NO_SOURCES_LINE} actions={<Button asChild><Link to={links.competitors({ view: "list" })}>Add a competitor</Link></Button>} />
+      {nothing ? (
+        <NothingToDeal userId={userId} onConfigure={() => openConfigure("1")} />
       ) : card ? (
         <div className="flex justify-center gap-6">
           <RemixedFrom card={card} />
