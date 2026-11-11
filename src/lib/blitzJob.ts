@@ -15,6 +15,7 @@ import { clearFormatJob, setFormatJob } from "@/lib/formatJob";
 import { currentFormatTrends } from "@/lib/formatTrends";
 import { arrange, genIdeas, loadIdeas, loadPoolStores, poolIdeas } from "@/lib/ideasInbox";
 import { links } from "@/lib/links";
+import { mentionFor } from "@/lib/postChoices";
 import { loadMedia } from "@/lib/mediaLibrary";
 import { stripDashes } from "@/lib/plainText";
 import { requestMake } from "@/lib/remix";
@@ -122,11 +123,13 @@ async function run(userId: string): Promise<void> {
 export async function makeCard(userId: string, card: BlitzCard): Promise<Partial<BlitzCard> | "capped"> {
   const topic = card.source ? "" : (card.topic?.title ?? "");
   const note = card.source ? "" : (card.topic?.angle ?? "");
+  // the brand's Name your business choice (Settings > Post choices): Never, Sometimes (a flip per card) or Always
+  const mention = mentionFor(userId);
   if (card.format === "slideshow") {
     // one slideshow at a time across the app: wait for one made on its own page
     while (slideshowBusy()) await sleep(1000);
     const mood = loadBlitz(userId).mix.mood;
-    const go = startSlideshow(userId, { source: card.source, topic, note, mention: true, size: "4x5", pictures: card.pictures ?? "stock", ...(mood ? { mood } : {}) });
+    const go = startSlideshow(userId, { source: card.source, topic, note, mention, size: "4x5", pictures: card.pictures ?? "stock", ...(mood ? { mood } : {}) });
     const id = slideshowJob()?.id;
     await go;
     const j = slideshowJob();
@@ -135,7 +138,7 @@ export async function makeCard(userId: string, card: BlitzCard): Promise<Partial
     return { state: "failed", error: FAILED_LINE };
   }
   try {
-    const res = await requestMake(makeBody(userId, { source: card.source, topic, note, mention: true, size: "9x16" }, "wall"));
+    const res = await requestMake(makeBody(userId, { source: card.source, topic, note, mention, size: "9x16" }, "wall"));
     if (res?.result?.as !== "wall") return { state: "failed", error: FAILED_LINE };
     const text = stripDashes(res.result.text).trim();
     const caption = stripDashes(applyBrandRules(res.result.caption, loadBrand(userId), "tiktok")).trim();

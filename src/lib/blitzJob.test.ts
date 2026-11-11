@@ -6,10 +6,11 @@ vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } },
 const fake = vi.hoisted(() => ({ show: null as null | Record<string, unknown>, seq: 0 }));
 const startSlideshow = vi.hoisted(() => vi.fn());
 const requestMake = vi.hoisted(() => vi.fn());
+const makeBody = vi.hoisted(() => vi.fn(() => ({})));
 vi.mock("@/lib/slideshowJob", async (orig) => ({
   ...(await orig<typeof import("./slideshowJob")>()),
   startSlideshow,
-  makeBody: () => ({}),
+  makeBody,
   slideshowJob: () => fake.show,
   slideshowBusy: () => false,
 }));
@@ -17,6 +18,7 @@ vi.mock("@/lib/remix", async (orig) => ({ ...(await orig<typeof import("./remix"
 
 import { DEFAULT_MIX, deckDay, loadBlitz, saveBlitz, type BlitzCard } from "./blitz";
 import { blitzBusy, keepCard, retryCard, skipCard, undoKeep } from "./blitzJob";
+import { DEFAULT_CHOICES, savePostChoices } from "./postChoices";
 import { loadDrafts } from "./draftHistory";
 import { EdgeError } from "./edgeFn";
 import { formatJobs } from "./formatJob";
@@ -69,6 +71,19 @@ describe("making the deck", () => {
     expect(requestMake).toHaveBeenCalledTimes(1);
     // the deck shows on /library's Making now, ready once made
     expect(formatJobs().find((j) => j.slug === "blitz")).toMatchObject({ state: "ready", href: "/blitz" });
+  });
+
+  it("names the business as the brand's post choices say: Always by default, never on Never", async () => {
+    requestMake.mockResolvedValue(wallOk("Words"));
+    seed([card("c1", "slideshow"), card("c2", "wall")]);
+    await run("c1");
+    expect(startSlideshow).toHaveBeenLastCalledWith(UID, expect.objectContaining({ mention: true }));
+    expect(makeBody).toHaveBeenLastCalledWith(UID, expect.objectContaining({ mention: true }), "wall");
+    savePostChoices(UID, { ...DEFAULT_CHOICES, mention: "never" });
+    seed([card("c3", "slideshow"), card("c4", "wall")]);
+    await run("c3");
+    expect(startSlideshow).toHaveBeenLastCalledWith(UID, expect.objectContaining({ mention: false }));
+    expect(makeBody).toHaveBeenLastCalledWith(UID, expect.objectContaining({ mention: false }), "wall");
   });
 
   it("stops when the day's remixes run out and keeps the cards it made", async () => {
