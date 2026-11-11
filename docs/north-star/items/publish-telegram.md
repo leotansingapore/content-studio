@@ -226,7 +226,7 @@ Leo, 27 Oct: in a group every post shows the bot's name, so a brand may want its
 
 ### Flow
 
-1. On /accounts#telegram, under the brand's chats, "Use your brand's own bot" opens a short how-to: in Telegram, open @BotFather and send /newbot; send /setdomain, pick the bot and send consultant-content-studio.vercel.app (the Confirm button needs it); paste the token BotFather gives.
+1. On /accounts#telegram, under the brand's chats, "Use your brand's own bot" opens a short how-to: in Telegram, open @BotFather and send /newbot; send /setdomain, pick the bot and send app.postmosis.com (the Confirm button needs it); paste the token BotFather gives.
 2. "Use this bot" sends the token to `telegram` (action bot-add). The page reads "Checking your bot..." and then "Posting as @<username>".
 3. The server checks the token with getMe, refuses one that isn't a bot, the shared bot, or a bot already set up in Content Studio (any account), stores the token in Vault, and calls setWebhook for that bot with its own secret_token and the hook URL `.../functions/v1/telegram-hook?bot=<bot id>`. It answers with the bot's username and name only. If setWebhook fails, nothing is kept.
 4. From then on Connect Telegram for that brand opens `t.me/<own bot>?start=<code>`, the Confirm and the pickers come from the own bot, and chats tied that way post through it.

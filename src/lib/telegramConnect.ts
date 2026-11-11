@@ -5,6 +5,7 @@
 // webhook costs no function call and no daily use.
 
 import { callFn } from "@/lib/edgeFn";
+import { APP_ORIGIN } from "@/lib/links";
 import { supabase } from "@/lib/supabase";
 import type { Channel } from "@/lib/socialConnect";
 import type { MediaFile } from "@/lib/autoPost";
@@ -286,7 +287,7 @@ export interface OwnBot {
 
 export const OWN_BOT_STEPS = [
   "In Telegram, open @BotFather and send /newbot. Pick a name and a username for your brand's bot. Use a new bot: one another app already reads stops working there.",
-  "Send /setdomain to @BotFather, pick your bot, and send consultant-content-studio.vercel.app",
+  `Send /setdomain to @BotFather, pick your bot, and send ${new URL(APP_ORIGIN).host}`,
   "Copy the token BotFather sends and paste it here.",
 ];
 
