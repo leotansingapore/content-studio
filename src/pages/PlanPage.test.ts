@@ -63,7 +63,7 @@ const POSITIONING = {
   cadence: 4,
 };
 const PLAN = {
-  ...generatePlan(POSITIONING, { weeks: 2, salt: 0 }),
+  ...generatePlan(POSITIONING, { weeks: 2, salt: 0, planId: "plan" }),
   id: "plan-pin",
   createdAt: "2026-01-05T00:00:00.000Z",
   thisWeek: "A client asked if her company cover is enough.",

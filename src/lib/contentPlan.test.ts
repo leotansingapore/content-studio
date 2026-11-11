@@ -172,8 +172,8 @@ import { updateLabel } from "./labels";
 
 const PIN_POS = pos({ audience: "parent", audienceDetail: "Parents of under-5s", platform: "instagram", edge: "Ex-teacher" });
 const stable = (p: ContentPlan) => {
-  const { id: _id, createdAt: _at, ...rest } = p;
-  return rest;
+  const { id, createdAt: _at, ...rest } = p;
+  return { ...rest, items: rest.items.map((i) => ({ ...i, id: i.id.replace(`${id}-`, "plan-") })) };
 };
 
 describe("generatePlan, pinned", () => {
@@ -426,6 +426,26 @@ describe("slot labels, rebuild and the pillar grid", () => {
     expect(after.items.map((i) => i.formulaId)).toEqual(before.items.map((i) => i.formulaId));
     expect(after).toMatchObject({ id: before.id, createdAt: before.createdAt, salt: 1, weeks: 2, thisWeek: "Lost a client" });
     expect(after.items.some((i) => i.labelId === "cpf")).toBe(true);
+  });
+
+  it("gives every plan its own slot ids, so a reshuffle or new plan never inherits last plan's posts", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 2, 9, 0));
+    const first = generatePlan(pos({ cadence: 3 }), { weeks: 1, salt: 0 });
+    vi.setSystemTime(new Date(2026, 10, 9, 9, 0));
+    const next = generatePlan(pos({ cadence: 3 }), { weeks: 1, salt: 1 });
+    vi.useRealTimers();
+    expect(first.items.every((i) => i.id.startsWith(`${first.id}-`))).toBe(true);
+    expect(next.items.some((i) => first.items.some((f) => f.id === i.id))).toBe(false);
+  });
+
+  it("rebuildPlan keeps an older plan's slot ids, made before they carried the plan's id", () => {
+    const fresh = generatePlan(pos({ cadence: 3 }), { weeks: 1, salt: 0 });
+    const old = { ...fresh, id: "plan-1730000000000", items: fresh.items.map((i) => ({ ...i, id: i.id.replace(fresh.id, "plan") })) };
+    const after = rebuildPlan(old, pos({ cadence: 3 }), {});
+    expect(after.items.map((i) => i.id)).toEqual(old.items.map((i) => i.id));
+    expect(after.items[0].id).toBe("plan-1-0-0");
+    expect(after.id).toBe(old.id);
   });
 
   it("pillarGrid counts posts out in the last 28 days and this plan's slots, by label and format", () => {

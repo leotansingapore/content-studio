@@ -293,6 +293,7 @@ export interface GeneratePlanOptions {
    * inspiration library (its seeds are finance hooks and topics): PERSON_SUBJECTS and neutral starters.
    */
   profession?: string;
+  planId?: string;
 }
 
 /**
@@ -458,6 +459,7 @@ export function generatePlan(
   const pillarName = new Map((opts.pillars ?? []).map((p) => [p.id, p.name]));
   const angles = opts.angles ?? [];
 
+  const planId = opts.planId ?? `plan-${Date.now()}`;
   const items: PlanItem[] = [];
   let globalIndex = 0;
   let authIndex = 0;
@@ -526,7 +528,7 @@ export function generatePlan(
       // past 7 a week a day comes round again: its second post is nth 1, and so on
       const time = opts.postingTime?.(WEEKDAYS.indexOf(day), Math.floor(slot / days.length)) ?? undefined;
       items.push({
-        id: `plan-${w}-${slot}-${globalIndex}`,
+        id: `${planId}-${w}-${slot}-${globalIndex}`,
         week: w,
         dayLabel: `Wk ${w} · ${day}`,
         stage: stageId,
@@ -566,7 +568,7 @@ export function generatePlan(
   }
 
   return {
-    id: `plan-${Date.now()}`,
+    id: planId,
     createdAt: new Date().toISOString(),
     cadence,
     weeks,
@@ -591,7 +593,8 @@ export function angleText(item: Pick<PlanItem, "angle">): string {
  */
 export function rebuildPlan(plan: ContentPlan, positioning: Positioning, options: GeneratePlanOptions): ContentPlan {
   const first = HOOK_FORMULAS.findIndex((f) => f.id === plan.items[0]?.formulaId);
-  const next = generatePlan(positioning, { ...options, weeks: plan.weeks, salt: plan.salt, ...(first >= 0 ? { formulaStart: first } : {}) });
+  const planId = plan.items.some((i) => !i.id.startsWith(`${plan.id}-`)) ? "plan" : plan.id;
+  const next = generatePlan(positioning, { ...options, planId, weeks: plan.weeks, salt: plan.salt, ...(first >= 0 ? { formulaStart: first } : {}) });
   const ticked = new Set(plan.items.filter((i) => i.posted).map((i) => i.id));
   return {
     ...next,
