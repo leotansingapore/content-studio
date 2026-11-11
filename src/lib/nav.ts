@@ -15,6 +15,7 @@ import {
   History,
   Home,
   Images,
+  Languages,
   Layers,
   Lightbulb,
   Linkedin,
@@ -37,6 +38,7 @@ import {
   Sparkles,
   Star,
   Swords,
+  Tag,
   Telescope,
   Target,
   TrendingUp,
@@ -135,23 +137,25 @@ export const SECTIONS: NavSection[] = [
     icon: Wand2,
     to: "/studio",
     pages: [
-      // Fastlane's Studio tabs in its order (Overview, Create, Library, Blitz, Influencers, Leo 11 Nov), then our own two
+      // Fastlane's Studio tabs in its order (Overview, Create, Library, Blitz, Influencers, Leo 11 Nov), with Write
+      // beside Create, then our own two
       { to: "/studio", label: "Overview", title: "Studio", group: "Overview" },
-      // Leo's Create opens on the whole catalogue, as Fastlane's does; everyone else's still opens on Post
+      // Create is what you make to look at, Write is words (Leo 11 Nov, "quite hard to navigate": one row held 11 chips).
+      // Leo's Create opens on the whole catalogue, as Fastlane's does; everyone else's opens on Carousel
       { to: "/make", label: "All formats", title: "Formats", owners: LEO_EMAILS, group: "Create" },
-      { to: "/generate", label: "Post", end: true, title: "Write a post" },
-      // write hooks in bulk, keep or say Not this (BuilderCult's My hooks, folded in 6 Nov)
-      { to: "/hooks", label: "Hooks", title: "My hooks" },
-      // a hook that stops the scroll, then the app's demo (BuilderCult's Reaction UGC, folded in 6 Nov)
-      { to: "/make/hook-demo", label: "Hook + demo", title: "Hook plus demo" },
-      { to: "/generate/batch", label: "Batch" },
-      { to: "/generate/answer", label: "Answer", title: "Answer a question" },
-      { to: "/generate/vsl", label: "VSL", title: "Write a VSL" },
-      // Scriptwriter: 12 dials, hook ideas and a topic, written on Leo's own Claude Code (script desk)
-      { to: "/script", label: "Script", title: "Scriptwriter", owners: LEO_EMAILS },
       { to: "/carousel", label: "Carousel" },
       { to: "/image", label: "Image", owners: LEO_EMAILS },
       { to: "/edit", label: "Video" },
+      // a hook that stops the scroll, then the app's demo (BuilderCult's Reaction UGC, folded in 6 Nov)
+      { to: "/make/hook-demo", label: "Hook + demo", title: "Hook plus demo" },
+      { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Write" },
+      { to: "/generate/batch", label: "Batch" },
+      { to: "/generate/answer", label: "Answer", title: "Answer a question" },
+      { to: "/generate/vsl", label: "VSL", title: "Write a VSL" },
+      // write hooks in bulk, keep or say Not this (BuilderCult's My hooks, folded in 6 Nov)
+      { to: "/hooks", label: "Hooks", title: "My hooks" },
+      // Scriptwriter: 12 dials, hook ideas and a topic, written on Leo's own Claude Code (script desk)
+      { to: "/script", label: "Script", title: "Scriptwriter", owners: LEO_EMAILS },
       { to: "/library", label: "Everything", title: "Library", group: "Library" },
       { to: "/drafts", label: "All posts", icon: History },
       { to: "/board", label: "Board", icon: Columns3 },
@@ -178,23 +182,24 @@ export const SECTIONS: NavSection[] = [
     icon: Radar,
     to: "/swipe",
     pages: [
+      // Four tabs with their pages as chips under them, as Studio has (Leo 11 Nov, "quite hard to navigate": his row of
+      // 12 ran off the page at 1440). Posts is what to copy, Creators is who to watch.
       // Top posts, the Singapore ads and the trend kits are Singapore personal finance: an adviser brand's only
-      { to: "/swipe", label: "Top posts", anyLabel: "News", leoAnyLabel: "Swipe file", icon: TrendingUp },
+      { to: "/swipe", label: "Top posts", anyLabel: "News", leoAnyLabel: "Swipe file", icon: TrendingUp, group: "Posts" },
       // the carousel library (Top Carousels' outliers, every niche): for every brand
       { to: "/carousels", label: "Carousels", icon: GalleryHorizontalEnd },
       // TikTok slideshows that beat their creator's usual views (Volume's library, every niche): for every brand
       { to: "/working", label: "What's working", icon: Images },
       { to: "/trends", label: "Trends", icon: Flame, show: () => adviserBrand() },
-      { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard },
+      { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },
+      { to: "/following", label: "Following", icon: UserCheck, group: "Creators" },
+      { to: "/profiles", label: "Creators", icon: Users, show: () => adviserBrand() },
       // its own page, not Following: 100 Instagram creators read by Leo's Mac and ranked as one feed (Following is
       // 5 accounts on either network, read through Apify, for everyone)
       { to: "/research", label: "Research", icon: Telescope, owners: LEO_EMAILS },
-      { to: "/inspiration", label: "Inspiration", icon: Lightbulb, show: () => adviserBrand() },
-      { to: "/profiles", label: "Creators", icon: Users, show: () => adviserBrand() },
-      { to: "/following", label: "Following", icon: UserCheck },
-      { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
-      { to: "/saved", label: "Saved", icon: Bookmark, owners: LEO_EMAILS },
-      { to: "/market", label: "Your market", icon: Radar, show: marketShown },
+      { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", icon: Clapperboard, group: "Remix" },
+      { to: "/saved", label: "Saved", icon: Bookmark, owners: LEO_EMAILS, group: "Saved" },
+      { to: "/market", label: "Your market", icon: Radar, show: marketShown, group: "Your market" },
     ],
   },
   {
@@ -231,6 +236,9 @@ export const SECTIONS: NavSection[] = [
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS },
+      // who the brand is up against is part of the brand, as on Fastlane's Brand (moved from Radar 11 Nov); their ads
+      // stay on Radar, in Top posts
+      { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
       { to: "/fads", label: "F.A.D.S.", subTabs: true, show: () => adviserBrand() },
     ],
   },
@@ -274,12 +282,30 @@ export const SECTIONS: NavSection[] = [
       { to: "/connect", label: "Connect Claude", icon: Plug, hint: "Use the studio from a chat with Claude." },
       { to: "/adlauncher", label: "AdLauncher", icon: Megaphone, owners: LEO_EMAILS, hint: "Launch ads you make here, paused, in AdLauncher." },
       { to: "/reels/team", label: "Reviewers", icon: UserCheck, show: ownerShown, group: "Your team", hint: "Who approves posts on your posts board." },
+      // named as its page is, and as Fastlane's tile; Activity sits with it, so Your team is never a heading over a log
+      { to: "/automations", label: "What runs without you", icon: Zap, owners: LEO_EMAILS, group: "The agent", hint: "What the agent does alone, and today's limits." },
       { to: "/activity", label: "Activity", icon: ListChecks, owners: LEO_EMAILS, hint: "Everything that ran, and who ran it." },
-      { to: "/automations", label: "Automations", icon: Zap, owners: LEO_EMAILS, group: "The agent", hint: "What runs without you, and its limits." },
       { to: "/skills", label: "Skills", icon: Command, owners: LEO_EMAILS, hint: "Slash commands the agent runs for you." },
     ],
   },
 ];
+
+/**
+ * Sections of a Settings page that get a tile of their own on /settings, straight after their page's (Fastlane lists
+ * Post labels and Language beside Post choices). They are places on a page, not pages: no route, no tab title, and
+ * the open page under them is still their page.
+ */
+export const SETTINGS_ANCHORS: { page: string; hash: string; label: string; icon: LucideIcon; hint: string; owners?: string[] }[] = [
+  { page: "/settings/post-choices", hash: "labels", label: "Post labels", icon: Tag, hint: "The AI and ad labels that go out with a post." },
+  { page: "/settings/post-choices", hash: "language", label: "Language", icon: Languages, owners: LEO_EMAILS, hint: "The language your posts are written in." },
+];
+
+/** A Settings group's tiles for this sign-in: its pages, each followed by its sections' tiles. */
+export const settingsTiles = (pages: NavPage[], email: string): NavPage[] =>
+  pages.flatMap((p) => [
+    p,
+    ...SETTINGS_ANCHORS.filter((a) => a.page === p.to && (!a.owners || a.owners.includes(email.toLowerCase()))).map((a) => ({ to: `${a.page}#${a.hash}`, label: a.label, icon: a.icon, hint: a.hint, group: p.group })),
+  ]);
 
 export const section = (id: string) => SECTIONS.find((s) => s.id === id)!;
 
@@ -322,6 +348,18 @@ export const pageTitle = (pathname: string) => {
   return hit ? `${hit.page.title ?? (hit.page.anyLabel && !adviserBrand() ? hit.page.anyLabel : hit.page.label)} - Postmosis` : "Postmosis";
 };
 
+/**
+ * Studio's tabs for a sign-in without the catalogue (/make): Write comes before Create, so the first maker they reach
+ * is still Post, their main action, not Carousel. With the catalogue, Create (All formats) stays first, as Fastlane's.
+ */
+function makerOrder(groups: (string | undefined)[], pages: NavPage[]): (string | undefined)[] {
+  const create = groups.indexOf("Create");
+  if (create < 0 || !groups.includes("Write") || pages.some((p) => p.to === "/make")) return groups;
+  const rest = groups.filter((g) => g !== "Write");
+  rest.splice(create, 0, "Write");
+  return rest;
+}
+
 export type Tab = { to: string; label: string; end?: boolean; active: boolean };
 export type SectionTabs = { tabs: Tab[]; chips: Tab[]; back?: Tab };
 
@@ -344,7 +382,7 @@ export function sectionTabs(pathname: string, email: string): SectionTabs {
   const atLeastTwo = (t: Tab[]) => (t.length > 1 ? t : []);
   if (!all.some((p) => p.group)) return { tabs: atLeastTwo(pages.map((p) => tab(p))), chips: [] };
   const open = all.find((p) => p.to === hit.page.to)?.group;
-  const groups = [...new Set(pages.map((p) => p.group))];
+  const groups = makerOrder([...new Set(pages.map((p) => p.group))], pages);
   return {
     tabs: atLeastTwo(groups.map((g) => tab(pages.find((p) => p.group === g)!, g, g === open))),
     chips: atLeastTwo(pages.filter((p) => p.group === open).map((p) => tab(p))),

@@ -1,11 +1,16 @@
 // /settings/post-choices (Settings > You; Fastlane's Post choices): five per-brand choices the makers start from
 // (src/lib/postChoices.ts). Any sign-in; each change saves at once and says so. A row shows only where this sign-in
 // has a maker that reads it: Your influencers is Leo's (saved presenters are), and it needs a presenter picked as
-// the brand's Who appears on /people. Nothing here is a view or filter, so the page has no URL params.
+// the brand's Who appears on /people. Language (Leo's, as on Brand kit: the kit's postLang) and Post labels (what a post
+// says about AI and ads, and where each is set) follow, each with its own Settings tile: #language and #labels scroll to
+// them. Nothing here is a view or filter, so the page has no URL params.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { links } from "@/lib/links";
-import { CAPTION_CHOICES, TEXT_STYLES, TEXT_STYLE_IDS, loadPostChoices, savePostChoices, type PostChoices } from "@/lib/postChoices";
+import { links, type PostLang } from "@/lib/links";
+import { DISCLOSURES } from "@/lib/plainText";
+import { LANG_NAMES } from "@/lib/translate";
+import { useScrollToHash } from "@/lib/urlState";
+import { CAPTION_CHOICES, TEXT_STYLES, TEXT_STYLE_IDS, loadPostChoices, postLangOf, savePostChoices, savePostLang, type PostChoices } from "@/lib/postChoices";
 import { loadPresenters, onPresenters } from "@/lib/presenters";
 import { ownBrandName } from "@/lib/remixBrand";
 import { useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
@@ -21,7 +26,7 @@ const FRAME = "grid h-16 w-full place-items-center rounded-md bg-neutral-800 dar
 
 function Row({ id, title, hint, children }: { id: string; title: string; hint: ReactNode; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="space-y-3 rounded-xl border border-border/70 bg-card p-4 sm:p-5">
+    <section id={id.replace("pc-", "")} aria-labelledby={id} className="scroll-mt-20 space-y-3 rounded-xl border border-border/70 bg-card p-4 sm:p-5">
       <div>
         <h2 id={id} className="text-sm font-semibold text-foreground">{title}</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
@@ -44,6 +49,14 @@ function Picks<T extends string>({ labelledBy, value, options, onPick }: { label
 }
 
 const HOW_OFTEN = [["always", "Always"], ["sometimes", "Sometimes"], ["never", "Never"]] as const;
+const LANGS = [["en", "English"], ...(Object.entries(LANG_NAMES) as [PostLang, string][])] as const;
+const GO = "inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline";
+/** What a post can say about AI and ads today, and the page that sets it. */
+export const POST_LABELS = [
+  { what: "A line in the caption", how: `Disclose adds ${Object.values(DISCLOSURES).map((d) => d.label).join(", ").replace(/, ([^,]*)$/, " or $1")} to a written post.`, to: links.generate(), go: "Write a post" },
+  { what: "TikTok's ad label", how: "A slideshow campaign that posts straight to your profile can say it promotes your business or is a paid partnership.", to: "/design/campaigns", go: "Slideshow campaigns" },
+  { what: "Made with AI label", how: "Not sent with a post yet. Set it in the network's own app." },
+] as const;
 
 function Choices({ userId, leo }: { userId: string; leo: boolean }) {
   const [c, setC] = useState<PostChoices>(() => loadPostChoices(userId));
@@ -59,6 +72,16 @@ function Choices({ userId, leo }: { userId: string; leo: boolean }) {
     if (ok) timer.current = setTimeout(() => setSaved(""), 2500);
   };
 
+  useScrollToHash();
+  // the brand kit's post language (postChoices.ts)
+  const [lang, setLangState] = useState(() => postLangOf(userId));
+  const setLang = (v: PostLang | "en") => {
+    const ok = savePostLang(userId, v);
+    if (ok) setLangState(v);
+    setSaved(ok ? "saved" : "failed");
+    clearTimeout(timer.current);
+    if (ok) timer.current = setTimeout(() => setSaved(""), 2500);
+  };
   const brand = ownBrandName(userId);
   const people = loadPresenters(userId);
   const presenter = leo ? onPresenters(people).find((p) => p.id === people.who) : undefined;
@@ -67,9 +90,10 @@ function Choices({ userId, leo }: { userId: string; leo: boolean }) {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Post choices</h1>
-        <p role="status" aria-live="polite" className={cn("text-sm font-medium", saved === "failed" ? "text-destructive" : "text-primary")}>
+      <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Post choices</h1>
+      {/* stays in view while the page scrolls, so a pick near the foot still says it saved */}
+      <div className="pointer-events-none sticky top-16 z-10 flex h-0 justify-end lg:top-4">
+        <p role="status" aria-live="polite" className={cn("h-fit rounded-full border border-border/70 bg-popover px-3 py-1 text-sm font-medium shadow-sm empty:hidden", saved === "failed" ? "text-destructive" : "text-primary")}>
           {saved === "saved" ? "Saved" : saved === "failed" ? "Couldn't save on this device. Free some space and pick again." : ""}
         </p>
       </div>
@@ -144,6 +168,30 @@ function Choices({ userId, leo }: { userId: string; leo: boolean }) {
             );
           })}
         </div>
+      </Row>
+
+      {leo && (
+        <Row id="pc-language" title="Language" hint="Posts are written and checked in English, then a version in this language is made beside each one.">
+          {lang ? (
+            <Picks labelledBy="pc-language" value={lang} onPick={setLang} options={LANGS} />
+          ) : (
+            <Link to={links.brand()} className={GO}>Set up your brand kit first</Link>
+          )}
+        </Row>
+      )}
+
+      <Row id="pc-labels" title="Post labels" hint="What a post says about AI and ads. Nothing is added unless you pick it.">
+        <ul className="divide-y divide-border/60">
+          {POST_LABELS.map((l) => (
+            <li key={l.what} className="flex flex-wrap items-center justify-between gap-x-4 py-2 first:pt-0 last:pb-0">
+              <div className="min-w-0 flex-1 basis-56">
+                <p className="text-sm font-medium text-foreground">{l.what}</p>
+                <p className="text-xs text-muted-foreground">{l.how}</p>
+              </div>
+              {"to" in l && <Link to={l.to} className={GO}>{l.go}</Link>}
+            </li>
+          ))}
+        </ul>
       </Row>
     </div>
   );

@@ -30,6 +30,7 @@ import { ChevronUp, LayoutGrid, LogOut, MessageSquarePlus, Monitor, Moon, Plus, 
 import { feedbackIsNew } from "@/components/feedback/config";
 import SectionTabs from "@/components/SectionTabs";
 import { links } from "@/lib/links";
+import { useNewVersion } from "@/lib/newVersion";
 import { applyTheme, readTheme, resolveTheme, saveTheme, type ThemePick } from "@/lib/theme";
 import {
   SECTIONS,
@@ -285,6 +286,22 @@ function AccountMenu({
   );
 }
 
+/** "New version ready": said once a newer build is live, in the sidebar foot and over the phone bar (newVersion.ts). */
+function NewVersion({ onLater, className = "" }: { onLater: () => void; className?: string }) {
+  return (
+    <div role="status" className={`flex flex-wrap items-center justify-end gap-1 rounded-xl border border-primary/40 bg-popover py-1 pl-3 pr-1 text-sm shadow-sm ${className}`}>
+      {/* one row on a phone; the sidebar is too narrow for that, so the words sit over the buttons there */}
+      <span className="min-w-0 flex-1 font-medium text-foreground lg:basis-full lg:pt-1">New version ready</span>
+      <Button variant="ghost" size="sm" onClick={onLater} className="h-9 px-2 text-muted-foreground [@media(pointer:coarse)]:h-11">
+        Later
+      </Button>
+      <Button size="sm" onClick={() => window.location.reload()} className="h-9 px-3 [@media(pointer:coarse)]:h-11">
+        Refresh
+      </Button>
+    </div>
+  );
+}
+
 function MoreTileLink({ tile, active }: { tile: MoreTile; active: boolean }) {
   const Icon = tile.icon;
   return (
@@ -359,6 +376,7 @@ export default function StudioLayout() {
     setTheme(t);
   };
 
+  const version = useNewVersion();
   const leo = useLeoUser();
   // Activity logs for Leo's sessions only. Set while drawing, before any page below reads its drafts (a Claude
   // draft absorbed on the first read logs then, and its sync row is gone after).
@@ -607,6 +625,7 @@ export default function StudioLayout() {
             )}
           </div>
           <div className="space-y-2 border-t border-border/70 p-3">
+            {version.ready && <NewVersion onLater={version.later} />}
             <FootLink s={section("playbook")} to={sectionTo(section("playbook"))} active={here?.id === "playbook"} wide />
             <div className="grid grid-cols-2 gap-2">
               <FootLink s={section("learn")} to={sectionTo(section("learn"))} active={here?.id === "learn"} />
@@ -652,6 +671,8 @@ export default function StudioLayout() {
             <ProfileSwitcher compact />
           </div>
         </div>
+        {/* in the top bar, so it covers nothing: clear of the chat button and the bottom bar */}
+        {version.ready && <NewVersion onLater={version.later} className="mx-3 mb-2" />}
       </header>
 
       {/* Mobile "More" sheet. A click on the dialog itself is a click on the backdrop. */}
