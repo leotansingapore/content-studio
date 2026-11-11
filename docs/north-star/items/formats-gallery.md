@@ -51,6 +51,38 @@ Checked against origin/main 08537d1, rechecked 2026-10-20.
 
 So it is partial: one corner of the app has a small template gallery, and nothing lists every format in one place with previews, prices and requirements.
 
+## 11 Nov 2026: reshaped after Fastlane's Studio > Create
+
+Leo, 11 Nov: "all of these formats. We need to have it inside our app as well." Fastlane's Create, read live that day
+(44 videos in 5 sections, 22 static ads, chips "All 44", "Ready for Activity Tracker 37", "Needs something 7"), is now
+the page's shape:
+
+- Tabs **Videos** and **Static ads** (`?tab=static`, replace). The Static ads tab lists every `STATIC_FORMATS` entry
+  with `ready: true` (`readyStatics` in `src/data/formats.ts`), each card linking to `/make/static/<slug>` with its line
+  and its "Best with ..." or "Needs ..." line; while none is ready the tab is not shown.
+- Videos sit in Fastlane's five sections, each with a count: Make your own, Your words over a clip, A person on
+  camera, Animated stories, Built from your footage (`SECTIONS`; every `FormatDef` has a `section`, templates take
+  theirs from `TEMPLATE_SECTIONS`). Inside a section the registry's order holds.
+- Chips "All", "Ready for <brand>" and "Needs something", each with its count (`?show=ready|needs`, replace;
+  `filterFormats`). Needs something is what the open brand is missing on this device, read on arrival the way the
+  demo videos always were: a demo video, a product photo (a product with a picture), a saved face or presenter, its own
+  footage in Media. A missing need's line links to where it is added (Brand > Demo videos, Brand > Products, People,
+  Media); a met need shows no line.
+- Kept: the price chip, the uses-left line, the muted preview, the icon tile.
+- New cards: Documentary interview (the interview scene of Words over a made scene, `/make/text-over-clip?scene=interview`);
+  ten Leo-only templates for A person on camera (reaction to a claim, unboxing with a product photo, presenter over a
+  notes list, comment reply, question box answer, call between two cars, front camera chat, two in the car,
+  whiteboard presenter, baby podcast) in `supabase/functions/ai-video/templates.ts`; nine animated stories as explainer
+  looks (brick figures, fashion dolls, skeleton explainer, painted anime, 3D metaphor story, talking object, talking
+  animal, marionette puppet, expert in the corner) in `ai-video/logic.ts` `EXPLAINER_LOOKS` and `links.ts`
+  `EXPLAINER_LOOK_IDS`. The look and presenter-talk cards are now ready, so all 16 animated stories and News anchor,
+  Stage talk and Spokesperson show.
+- Gates kept: the templates are `leoOnly` (the server refuses them for anyone not on NORTH_STAR_USERS) and a look is
+  read for NORTH_STAR_USERS only. Jev's Recommended look and the slideshows' AI looks keep to the first eight looks
+  (`LOOK_IDS`); `ALL_LOOK_IDS` is every look.
+- Skipped: Singing ad (no music model here) and Character swap (Leo, 21 Oct: no face swap). Not built: the format
+  search box and the "Needs an app" requirement (no card of ours needs an app).
+
 ## Build
 
 Page `/make`, file `src/pages/MakePage.tsx`. It reads the registry `src/data/formats.ts`, which `formats-slideshow` creates and every format item adds to. The cards link to each format's own page, whether that is a new `/make/<slug>` page or an existing deep link.
@@ -116,7 +148,8 @@ Order on the page: formats that cost cents or nothing first (Slideshow, Wall of 
 
 ### Deep links
 
-- `/make?kind=video` (also `slides`, `text`; default all) and `/make?needs=none` (default off), both replacing history.
+- `/make?tab=static` (default videos) and `/make?show=ready|needs` (default all), both replacing history. (Until 11 Nov
+  it was `?kind=` and `?needs=none`.)
 - A card opens its format's own URL (a push). `links.make({kind, needs})` goes in `src/lib/links.ts` beside `links.makeFormat` (which `formats-slideshow` adds; add it here if this ships first), with a "/make" row in `docs/deep-links.md`. The `/make` route goes in `src/App.tsx` behind the same `getSession` plus `leoOnly` check as `src/pages/NorthStarPage.tsx`.
 - Nav: `{ to: "/make", label: "Formats", owners: LEO_EMAILS }` goes in the "write" section of `src/lib/nav.ts`, second after "Post", with `/make` added to the routes list in `src/lib/nav.test.ts` and the words "formats", "make", "slideshow", "wall of text", "talking head", "green screen" and "hook" to `src/lib/jumpTo.ts`.
 - For Leo, add a "See every format" link at the top of `/edit`'s "Make a video without filming" panel.
@@ -126,7 +159,7 @@ Order on the page: formats that cost cents or nothing first (Slideshow, Wall of 
 - [ ] `/make` shows every format in the registry for Leo's two sign-ins, and NotFound plus no nav entry for anyone else.
 - [ ] Each card opens a page that works, and each price chip matches what that page shows before making.
 - [ ] Hover plays the muted preview with a mouse; a phone shows posters only; reduced motion plays nothing.
-- [ ] The kind filters and "Needs nothing extra" work and live in the URL; an empty result offers "Clear filters".
+- [x] The tabs and the All, Ready and Needs something chips work and live in the URL; an empty result offers "Show all".
 - [ ] Uses left show per card, and a used-up format says "None left today".
 - [ ] No name or line on the page names a brand-owned style.
 - [ ] Checked at 390 px and 1440 px; `npm run build` and the full `npx vitest run` pass; the `src/data/northStar.ts` item is flipped.

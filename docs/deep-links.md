@@ -463,8 +463,8 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|
-| /make | kind | Leo only. video, slides, text, image | all | replace | /make?kind=video |
-| /make | needs | Leo only. none: only the formats that need nothing extra | off | replace | /make?kind=video&needs=none |
+| /make | tab | Leo only. static: the Static ads tab, one card per ready static format (src/data/staticFormats.ts); while none is ready there is no tab and static reads as videos | videos | replace | /make?tab=static |
+| /make | show | Leo only, Videos tab. ready: the formats the open brand has what they need for; needs: the ones still missing a demo video, product photo, face or presenter, or its own footage (read from this device) | all | replace | /make?show=needs |
 | /make/notification-stack | bg | Leo only. mine (Background: My video; the video stays on the device and is picked again on each visit). The typed worries, closing word and label are kept on the device in cs-make-notify | stock | replace | /make/notification-stack?bg=mine |
 | /make/text-over-clip | scene | Leo only. kitchen, walk, interview | kitchen | replace | /make/text-over-clip?scene=walk |
 | /make/text-over-clip | quality | Leo only. 480p, 720p | 480p | replace | /make/text-over-clip?quality=720p |
@@ -495,7 +495,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /edit | #clips | Leo only. with p on a long video: scrolls to its clip list | top | (anchor) | /edit?p=vm1abc2#clips |
 | /edit | talk | Leo only. with kind=avatar: plain, news (News anchor), stage (Stage talk), spokesperson | the brand's last pick on this device, else plain | replace | /edit?panel=ai&kind=avatar&talk=news |
 | /edit | offer | Leo only. a brand kit offer's place, 0 to 4: Spokesperson's offer, or with template=ugc-creator-review fills "Your product" once, then removed | none | replace | /edit?panel=ai&template=ugc-creator-review&offer=0 |
-| /edit | look | Leo only. with kind=explainer: photo, clay, paper, felt, chalk, comic, cartoon3d, storybook | photo | replace | /edit?panel=ai&kind=explainer&look=clay |
+| /edit | look | Leo only. with kind=explainer: photo, clay, paper, felt, chalk, comic, cartoon3d, storybook, and the animated stories bricks, dolls, skeleton, anime, metaphor, object, animal, puppet, host (each a Formats card; Jev's Recommended tag picks among the first eight) | photo | replace | /edit?panel=ai&kind=explainer&look=puppet |
 | /edit | from | Leo only. with kind=explainer: topic, script, link, draft (where the narrated video starts) | topic | replace | /edit?panel=ai&kind=explainer&from=link |
 | /edit | topic | Leo only. with kind=explainer: the topic, filled once | none | replace | /edit?panel=ai&kind=explainer&topic=cpf+top-ups |
 | /edit | link | Leo only. with kind=explainer: an article link, filled once | none | replace | /edit?panel=ai&kind=explainer&from=link&link=https%3A%2F%2Fexample.com%2Fa |

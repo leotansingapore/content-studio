@@ -1,4 +1,5 @@
-// Every format a post can be made in (docs/north-star/items/formats-gallery.md): the /make gallery's cards, the
+// Every format a post can be made in (docs/north-star/items/formats-gallery.md): the /make gallery's cards in
+// Fastlane's five Create sections (`section`), the
 // /make/<slug> pages MakeFormatPage finds by slug, and the Remix sheet's "Also make" row. A card links to its own
 // /make page (Component) or to a page elsewhere (to). Prices come from the price table, never a typed number.
 // `ready` and `preview` are the integrator's: a card shows in the gallery once its item ships, and a page that is not
@@ -7,16 +8,18 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import { links, type ExplainerLook } from "@/lib/links";
 import { WRITE_PRICE, priceOf, sumPrices, type Price } from "@/lib/prices";
+import { STATIC_FORMATS, type StaticFormat } from "@/data/staticFormats";
 import type { RemixSource } from "@/lib/remixSource";
 import { TEMPLATES, type VideoTemplate } from "../../supabase/functions/ai-video/templates.ts";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
 export type FormatKind = "video" | "slides" | "text" | "image";
-export type FormatNeed = "demo-video" | "photo" | "own-video" | "own-media" | "reel-video";
+export type FormatNeed = "demo-video" | "photo" | "product-photo" | "own-video" | "own-media" | "reel-video";
 
 export const NEED_LINES: Record<FormatNeed, string> = {
   "demo-video": "Needs a demo video",
   photo: "Needs a photo of the person",
+  "product-photo": "Needs a product photo",
   "own-video": "Needs a video of you",
   "own-media": "Needs your own video or photos",
   "reel-video": "Needs a reel's video: Instagram or an upload",
@@ -24,14 +27,26 @@ export const NEED_LINES: Record<FormatNeed, string> = {
 
 type LinkOpts = { source?: string; mention?: "no" };
 
+/** The Create page's video sections, in Fastlane's order (Studio > Create, read live 11 Nov). */
+export type FormatSection = "own" | "words" | "person" | "animated" | "footage";
+export const SECTIONS: { id: FormatSection; title: string }[] = [
+  { id: "own", title: "Make your own" },
+  { id: "words", title: "Your words over a clip" },
+  { id: "person", title: "A person on camera" },
+  { id: "animated", title: "Animated stories" },
+  { id: "footage", title: "Built from your footage" },
+];
+
 export interface FormatDef {
   /** Unique, kebab-case; a /make/<slug> page when Component is set. */
   slug: string;
   name: string;
   blurb: string;
   kind: FormatKind;
-  /** Gallery order: cents or nothing, made without filming, people, your own footage. */
+  /** Studio's order: cents or nothing, made without filming, people, your own footage. */
   group: 1 | 2 | 3 | 4;
+  /** The Create page's section. */
+  section: FormatSection;
   /** The cap whose uses left the card shows; none means "No AI cost". */
   cap?: UsageFeature;
   /** The default options' price, from priceOf and sumPrices. */
@@ -66,6 +81,16 @@ const LOOKS: { id: Exclude<ExplainerLook, "photo">; name: string; blurb: string 
   { id: "comic", name: "Comic book", blurb: "A narrated video in bold comic book panels." },
   { id: "cartoon3d", name: "3D cartoon", blurb: "A narrated video with bright, rounded 3D characters." },
   { id: "storybook", name: "Storybook", blurb: "A narrated video in soft watercolour pictures." },
+  // the animated stories (Fastlane's Studio > Create, 11 Nov), in our own names
+  { id: "bricks", name: "Brick figures", blurb: "A narrated story in stop-motion toy brick figures and sets." },
+  { id: "dolls", name: "Fashion dolls", blurb: "A narrated story with stop-motion fashion dolls." },
+  { id: "skeleton", name: "Skeleton explainer", blurb: "A friendly 3D skeleton walks through your point, scene by scene." },
+  { id: "anime", name: "Painted anime", blurb: "A hand-painted anime short, with a storyteller narrating." },
+  { id: "metaphor", name: "3D metaphor story", blurb: "A 3D short in several cuts that explains your idea through a metaphor." },
+  { id: "object", name: "Talking object", blurb: "An everyday object with a face tells your story to the viewer." },
+  { id: "animal", name: "Talking animal", blurb: "An animal in clothes goes about a human day and tells your story." },
+  { id: "puppet", name: "Marionette puppet", blurb: "A wooden string puppet tells your story from its little stage." },
+  { id: "host", name: "Expert in the corner", blurb: "A cartoon expert explains from the corner while the scenes change behind." },
 ];
 
 const TALKS: { slug: string; talk: "news" | "stage" | "spokesperson"; name: string; blurb: string }[] = [
@@ -73,6 +98,22 @@ const TALKS: { slug: string; talk: "news" | "stage" | "spokesperson"; name: stri
   { slug: "stage-talk", talk: "stage", name: "Stage talk", blurb: "One idea told from a conference stage, like a short talk." },
   { slug: "spokesperson", talk: "spokesperson", name: "Spokesperson", blurb: "Someone presenting your offer, with its picture on screen." },
 ];
+
+/** Each editor template's Create section: a clip from a prompt is Make your own, one with someone talking is a person. */
+export const TEMPLATE_SECTIONS: Record<string, FormatSection> = {
+  "product-commercial-shotlist": "own",
+  "timeline-shot-script": "own",
+  "travel-city-walk": "own",
+  "food-asmr": "own",
+  "pov-continuous-take": "own",
+  ...Object.fromEntries(
+    [
+      "ugc-creator-review", "handheld-ugc-vlog", "character-reference-lock", "street-interview", "three-levels", "two-host-podcast",
+      "reaction-claim", "unboxing", "notes-presenter", "comment-reply", "question-box", "car-call", "front-camera-chat", "car-split",
+      "whiteboard-presenter", "baby-podcast",
+    ].map((id) => [id, "person"]),
+  ),
+};
 
 /** One card per editor template, leaving out the ones the editor hides. */
 export function templateFormats(list: VideoTemplate[]): FormatDef[] {
@@ -84,10 +125,11 @@ export function templateFormats(list: VideoTemplate[]): FormatDef[] {
       blurb: t.blurb,
       kind: "video",
       group: 2,
+      section: TEMPLATE_SECTIONS[t.id],
       cap: "ai-clip",
       // the editor opens at 8 s and 720p, so the card prices what pressing it makes (the gallery check, 21 Oct)
       price: () => priceOf("ai-clip", { seconds: 8, quality: "720p" }),
-      needs: t.needsPhoto ? "photo" : undefined,
+      needs: t.needsPhoto === "product" ? "product-photo" : t.needsPhoto ? "photo" : undefined,
       to: () => links.edit({ panel: ["ai"], kind: "template", template: t.id }),
       ready: true,
     }));
@@ -101,6 +143,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "Photo slides with words on them, for Instagram and TikTok.",
     kind: "slides",
     group: 1,
+    section: "words",
     cap: "remix-make",
     price: () => priceOf("remix-make"),
     Component: lazy(() => import("@/components/make/Slideshow")),
@@ -115,6 +158,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "Bold words over a video, the kind people stop to read.",
     kind: "video",
     group: 1,
+    section: "words",
     cap: "remix-make",
     price: () => priceOf("remix-make"),
     Component: lazy(() => import("@/components/make/WallOfText")),
@@ -127,6 +171,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "A client's worries pop up one by one as phone notifications, then one big word.",
     kind: "video",
     group: 1,
+    section: "words",
     // Jev picks the stock clip; nothing is written or generated
     cap: "montage-pick",
     price: () => priceOf("montage-pick"),
@@ -139,6 +184,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "One designed picture with your words: a headline, a quote, a stat or a client's words.",
     kind: "image",
     group: 1,
+    section: "own",
     cap: "remix-make",
     price: () => priceOf("remix-make"),
     to: (o) => links.image({ source: o.source }),
@@ -151,6 +197,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "A picture with a joke your audience gets, in a layout they know.",
     kind: "image",
     group: 1,
+    section: "words",
     cap: "remix-make",
     price: () => priceOf("remix-make"),
     to: (o) => links.image({ layout: "top-bottom", source: o.source }),
@@ -163,6 +210,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "Swipe-through slides drawn from your post.",
     kind: "slides",
     group: 1,
+    section: "words",
     price: () => null,
     to: () => links.carousel(),
     ready: true,
@@ -173,6 +221,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "A written post in your voice for LinkedIn, Instagram or Facebook.",
     kind: "text",
     group: 1,
+    section: "own",
     price: () => WRITE_PRICE,
     to: () => links.generate({ format: "text-post" }),
     ready: true,
@@ -183,6 +232,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "A script to film yourself, with the hook first.",
     kind: "text",
     group: 1,
+    section: "own",
     price: () => WRITE_PRICE,
     to: () => links.generate({ format: "short-video" }),
     ready: true,
@@ -193,6 +243,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "Free stock clips cut to a theme, ready for your words.",
     kind: "video",
     group: 1,
+    section: "words",
     cap: "montage-beats",
     price: () => priceOf("montage-beats"),
     to: () => links.edit({ panel: ["ai"], kind: "montage" }),
@@ -205,6 +256,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "A film of your product, made from your brand and app screens.",
     kind: "video",
     group: 1,
+    section: "footage",
     cap: "launch-film",
     price: () => priceOf("launch-film"),
     Component: lazy(() => import("@/components/make/LaunchFilm")),
@@ -217,10 +269,24 @@ export const FORMATS: FormatDef[] = [
     blurb: "Your words over a short clip we make for you: a kitchen, a walk, an interview.",
     kind: "video",
     group: 2,
+    section: "words",
     cap: "ai-clip",
     price: () => sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: 8, quality: "480p" })),
     Component: lazy(() => import("@/components/make/TextOverClip")),
     alsoMake: true,
+    ready: true,
+  },
+  {
+    // the interview scene on its own card, as Fastlane lists its interview clip
+    slug: "documentary-interview",
+    name: "Documentary interview",
+    blurb: "Your words over a made clip of someone seated for a documentary interview.",
+    kind: "video",
+    group: 2,
+    section: "words",
+    cap: "ai-clip",
+    price: () => sumPrices(priceOf("remix-make"), priceOf("ai-clip", { seconds: 8, quality: "480p" })),
+    to: (o) => links.makeFormat("text-over-clip", { scene: "interview", source: o.source, mention: o.mention }),
     ready: true,
   },
   {
@@ -229,6 +295,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "A voiceover over pictures made for each scene of your script.",
     kind: "video",
     group: 2,
+    section: "words",
     cap: "ai-video",
     price: explainerPrice,
     to: () => links.edit({ panel: ["ai"], kind: "explainer" }),
@@ -241,10 +308,11 @@ export const FORMATS: FormatDef[] = [
       blurb: l.blurb,
       kind: "video",
       group: 2,
+      section: "animated",
       cap: "ai-video",
       price: explainerPrice,
       to: () => links.edit({ panel: ["ai"], kind: "explainer", look: l.id }),
-      ready: false,
+      ready: true,
     }),
   ),
   ...templateFormats(TEMPLATES),
@@ -255,6 +323,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "You, or an AI presenter, saying your script to the phone camera.",
     kind: "video",
     group: 3,
+    section: "person",
     cap: "ai-video",
     price: () => sumPrices(priceOf("remix-make"), priceOf("ai-video", { seconds: 15 }), priceOf("ai-voice"), priceOf("ai-image")),
     Component: lazy(() => import("@/components/make/TalkingHead")),
@@ -267,6 +336,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "You in front of a list, a demo or a picture.",
     kind: "video",
     group: 3,
+    section: "person",
     cap: "remix-make",
     price: () => from(priceOf("remix-make")),
     Component: lazy(() => import("@/components/make/GreenScreen")),
@@ -278,6 +348,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "A hook that stops the scroll, then your demo.",
     kind: "video",
     group: 3,
+    section: "footage",
     cap: "remix-make",
     price: () => from(priceOf("remix-make")),
     needs: "demo-video",
@@ -293,10 +364,11 @@ export const FORMATS: FormatDef[] = [
       blurb: t.blurb,
       kind: "video",
       group: 3,
+      section: "person",
       cap: "ai-video",
       price: presenterTalkPrice,
       to: () => links.edit({ panel: ["ai"], kind: "avatar", talk: t.talk }),
-      ready: false,
+      ready: true,
     }),
   ),
   {
@@ -307,6 +379,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "A reel's cuts, on-screen text and pacing, rebuilt with your words.",
     kind: "video",
     group: 3,
+    section: "footage",
     cap: "ai-video",
     price: () => sumPrices(priceOf("remix-make"), priceOf("ai-video", { seconds: 15 }), priceOf("ai-voice")),
     needs: "reel-video",
@@ -320,6 +393,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "Your footage or photos with words, captions and sound.",
     kind: "video",
     group: 4,
+    section: "own",
     cap: "own-words",
     price: () => sumPrices(priceOf("own-words"), priceOf("ai-voice")),
     needs: "own-media",
@@ -332,6 +406,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "A webinar, podcast or call recording cut into ranked short clips.",
     kind: "video",
     group: 4,
+    section: "footage",
     cap: "video-clips",
     price: () => sumPrices(priceOf("video-transcribe", { minutes: 60 }), priceOf("video-clips", { passes: 2 })),
     needs: "own-video",
@@ -344,6 +419,7 @@ export const FORMATS: FormatDef[] = [
     blurb: "Captions, cuts and stickers on a video you filmed.",
     kind: "video",
     group: 4,
+    section: "footage",
     price: () => null,
     needs: "own-video",
     to: () => links.edit(),
@@ -360,10 +436,20 @@ export function formatHref(f: FormatDef, o: LinkOpts = {}): string {
   return f.to ? f.to(o) : links.makeFormat(f.slug, { source: o.source, mention: o.mention });
 }
 
-/** The gallery's filters: a kind ("all" or none for every kind), and only the formats that need nothing extra. */
-export function filterFormats(list: FormatDef[], o: { kind?: FormatKind | "all"; needsNone?: boolean }): FormatDef[] {
-  return list.filter((f) => (!o.kind || o.kind === "all" || f.kind === o.kind) && (!o.needsNone || !f.needs));
+export const FORMAT_FILTERS = ["all", "ready", "needs"] as const;
+export type FormatFilter = (typeof FORMAT_FILTERS)[number];
+
+/** The Create page's chips: every card, the ones the brand has what they need for, or the ones still missing it. */
+export function filterFormats(list: FormatDef[], show: FormatFilter, missing: (n: FormatNeed) => boolean): FormatDef[] {
+  return show === "all" ? list : list.filter((f) => (show === "needs") === (!!f.needs && missing(f.needs)));
 }
+
+/** The cards in each section, in SECTIONS' order and the registry's order inside one; empty sections left out. */
+export const bySection = (list: FormatDef[]) =>
+  SECTIONS.map((s) => ({ ...s, list: list.filter((f) => f.section === s.id) })).filter((s) => s.list.length > 0);
+
+/** The Static ads tab: the static formats whose page has shipped. */
+export const readyStatics = (list: StaticFormat[] = STATIC_FORMATS) => list.filter((f) => f.ready);
 
 /** The Remix sheet's "Also make" links: ready ones only; go (make on arrival) only under US$1, so a dearer one asks first on its page. */
 export function alsoMakeList(list: FormatDef[]): { f: FormatDef; go: boolean }[] {

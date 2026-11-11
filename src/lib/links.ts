@@ -2,7 +2,7 @@
 // in-app navigation that carries state and the tests build URLs here. The contract for jobs outside the app
 // (Telegram, Lark, email) is docs/deep-links.md: change both together, and never rename a shipped param.
 
-import type { FormatKind } from "@/data/formats";
+import type { FormatFilter } from "@/data/formats";
 import type { LibraryFormat, LibraryStatus } from "@/lib/library";
 import type { VoiceId } from "@/lib/textVoice";
 import type { SocialPlatform } from "../../supabase/functions/_shared/zernio.ts";
@@ -612,8 +612,8 @@ export const links = {
     `/library${qs({ format: o.format, status: o.status, q: o.q?.trim(), panel: o.panel })}`,
   /** A format's create page (Leo only but the `everyone` ones, src/data/formats.ts): source, from, mention=inside|no and the format's own params. Making on arrival is navigation state { go: true }, never a param. */
   makeFormat: (slug: string, p: Record<string, string | number | undefined> = {}) => `/make/${encodeURIComponent(slug)}${qs(p)}`,
-  /** The format gallery (Leo only): kind (all left out) and needs=none replace. */
-  make: (o: { kind?: FormatKind | "all"; needsNone?: boolean } = {}) => `/make${qs({ kind: o.kind !== "all" && o.kind, needs: o.needsNone && "none" })}`,
+  /** The format gallery (Leo only): tab=static (videos left out) and show=ready|needs (all left out) replace. */
+  make: (o: { tab?: "videos" | "static"; show?: FormatFilter } = {}) => `/make${qs({ tab: o.tab === "static" && o.tab, show: o.show !== "all" && o.show })}`,
   // ---- North star phase 5 (Leo only): plans and campaigns.
   /** open=<audience id>: that audience's editor (push). */
   audiences: (o: { open?: string } = {}) => `/audiences${qs({ open: o.open })}`,

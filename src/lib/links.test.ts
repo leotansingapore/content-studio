@@ -196,10 +196,10 @@ describe("links", () => {
   it("builds the phase-3 format links with defaults left out (docs/deep-links.md, Formats)", () => {
     // the gallery
     expect(links.make()).toBe("/make");
-    expect(links.make({ kind: "all", needsNone: false })).toBe("/make");
-    expect(links.make({ kind: "video", needsNone: true })).toBe("/make?kind=video&needs=none");
-    expect(links.make({ kind: "image" })).toBe("/make?kind=image");
-    expect(links.make({ needsNone: true })).toBe("/make?needs=none");
+    expect(links.make({ tab: "videos", show: "all" })).toBe("/make");
+    expect(links.make({ show: "ready" })).toBe("/make?show=ready");
+    expect(links.make({ show: "needs" })).toBe("/make?show=needs");
+    expect(links.make({ tab: "static" })).toBe("/make?tab=static");
     // the Image page
     expect(links.image()).toBe("/image");
     expect(links.image({ layout: "headline", size: "4x5" })).toBe("/image");
