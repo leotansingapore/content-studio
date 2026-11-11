@@ -61,6 +61,9 @@ function Row({ id, title, seeAll, children }: { id: string; title: string; seeAl
 
 const tile = "flex min-h-11 flex-col gap-1.5 rounded-xl border border-border/70 bg-card p-4 transition-colors hover:border-primary/40";
 
+/** Where "Write it" and the Post tile both go: the writer's last step with the topic typed, or null to ask for the topic first. */
+export const writeTarget = (topic: string): string | null => (topic.trim() ? links.generate({ detail: topic.trim() }) : null);
+
 export default function StudioPage() {
   const leo = useLeoUser();
   const navigate = useNavigate();
@@ -86,6 +89,14 @@ export default function StudioPage() {
   useEffect(() => {
     if (hash === "#topic") topicBox.current?.focus();
   }, [hash, key, leo]);
+  // Write it and the Post tile are one path: with no topic yet, the box takes the cursor and says what it needs
+  const [asked, setAsked] = useState(false);
+  const write = () => {
+    const to = writeTarget(topic);
+    if (to) return navigate(to);
+    setAsked(true);
+    topicBox.current?.focus();
+  };
   // the ads and top posts are Singapore personal finance: an adviser brand's rows only
   const adviser = adviserBrand(userId);
 
@@ -100,16 +111,21 @@ export default function StudioPage() {
         ) : leo === null ? (
           // a topic typed here opens the writer on its last step: three fewer presses to a first post
           <form
-            className="flex flex-col gap-2 sm:flex-row"
+            className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
             onSubmit={(e) => {
               e.preventDefault();
-              navigate(topic.trim() ? links.generate({ detail: topic.trim() }) : links.generate());
+              write();
             }}
           >
-            <Input ref={topicBox} id="topic" value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="What your post is about" placeholder="What's your post about?" maxLength={300} className="h-12 flex-1 text-base" />
+            <Input ref={topicBox} id="topic" value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="What your post is about" aria-describedby={asked && !topic.trim() ? "topic-ask" : undefined} placeholder="What's your post about?" maxLength={300} className="h-12 flex-1 text-base" />
             <Button type="submit" className="h-12 gap-2 px-5">
               Write it <ArrowRight className="h-4 w-4" />
             </Button>
+            {asked && !topic.trim() && (
+              <p id="topic-ask" role="status" className="text-sm text-muted-foreground sm:order-last sm:basis-full">
+                Type a topic first, a few words will do.
+              </p>
+            )}
           </form>
         ) : (
           <div className="h-12" aria-busy="true" />
@@ -119,7 +135,13 @@ export default function StudioPage() {
       <section aria-label="Ways to make" className="space-y-3">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           {CREATE_FORMATS.map((w) => (
-            <Link key={w.to} to={w.to} className={tile}>
+            <Link
+              key={w.to}
+              to={w.to}
+              className={tile}
+              // the Post tile is the topic box's twin for customers; Leo's screen has the agent's composer instead
+              onClick={w.to === "/generate" && leo === null ? (e) => (e.preventDefault(), write()) : undefined}
+            >
               <w.icon className="h-5 w-5 text-primary" />
               <span className="text-base font-semibold text-foreground">{w.name}</span>
               <span className="text-sm text-muted-foreground">{w.blurb}</span>
