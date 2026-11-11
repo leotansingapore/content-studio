@@ -40,15 +40,15 @@ describe("Recent creations", () => {
   const none = { drafts: [], carousels: [], slideshows: [], projects: [], media: [], designs: [] };
 
   it("says nothing is made yet, with the Library link, when the brand has made nothing", () => {
-    expect(recentCreations(none, [])).toEqual([]);
+    expect(recentCreations(none)).toEqual([]);
     const out = html(<RecentCreations items={[]} />);
     expect(words(out)).toContain("Nothing made yet.");
     expect(hrefs(out)).toEqual(["/library"]);
   });
 
   it("a brand whose only creation is a static ad made on Image shows it, opening in Image", () => {
-    const items = recentCreations(none, [image("img-1", 1)]);
-    expect(items).toEqual([{ key: "img:img-1", kind: "Image", status: "Ready", title: "Ad img-1", to: "/image?image=img-1" }]);
+    const items = recentCreations({ ...none, images: [image("img-1", 1)] });
+    expect(items).toEqual([{ key: "g:img-1", kind: "Image", status: "Ready", title: "Ad img-1", to: "/image?image=img-1" }]);
     expect(words(html(<RecentCreations items={items} />))).not.toContain("Nothing made yet.");
   });
 
@@ -63,8 +63,9 @@ describe("Recent creations", () => {
       ],
       slideshows: [show("s1", 6)],
       designs: [{ id: "dz1", draftId: "des" }],
+      images: [image("img-1", 4), image("img-0", 1)],
     };
-    const items = recentCreations(stores, [image("img-1", 4), image("img-0", 1)]);
+    const items = recentCreations(stores);
     expect(items.map((c) => [c.kind, c.to])).toEqual([
       ["Slideshow", "/slideshow?s=s1"],
       ["Text", "/generate?draft=post"],
@@ -76,14 +77,6 @@ describe("Recent creations", () => {
     expect(hrefs(out)).toEqual(["/library", ...items.map((c) => c.to)]);
     expect(words(out)).toContain("Text | Scheduled Hook post");
     expect(words(out)).toContain("Image | Ready Ad img-1");
-  });
-
-  it("an image with a post is one tile, the post's, opening in Image at the later of the two times", () => {
-    const items = recentCreations({ ...none, drafts: [draft("p1", { createdAt: at(1) }), draft("p2", { createdAt: at(2) })] }, [image("img-1", 3, { draftId: "p1" })]);
-    expect(items.map((c) => [c.key, c.kind, c.to])).toEqual([
-      ["d:p1", "Image", "/image?image=img-1"],
-      ["d:p2", "Text", "/generate?draft=p2"],
-    ]);
   });
 
   it("reads the open brand's images on this device", () => {

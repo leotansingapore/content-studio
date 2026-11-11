@@ -11,6 +11,7 @@ import type { Design } from "@/lib/design";
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { daysOverdue, keyToDate, localDateKey, overdueLabel, postedDay, scheduleTime, timeLabel } from "@/lib/dueDates";
 import type { FormatJob } from "@/lib/formatJob";
+import type { SavedImage } from "@/lib/images";
 import { links } from "@/lib/links";
 import type { MediaItem } from "@/lib/mediaLibrary";
 import type { MontageJob } from "@/lib/montage";
@@ -30,7 +31,7 @@ export const FORMAT_LABELS: Record<LibraryFormat, string> = { text: "Text", caro
 export const STATUS_LABELS: Record<LibraryStatus, string> = { ready: "Ready", scheduled: "Scheduled", posted: "Posted", making: "Making", failed: "Failed" };
 
 export interface LibraryItem {
-  /** "d:<draftId>", "c:<carouselId>", "s:<slideshowId>", "v:<projectId>", "i:<mediaKey>", "j:<job kind>" */
+  /** "d:<draftId>", "c:<carouselId>", "s:<slideshowId>", "v:<projectId>", "i:<mediaKey>", "g:<image design id>", "j:<job kind>" */
   key: string;
   format: LibraryFormat;
   status: LibraryStatus;
@@ -88,15 +89,23 @@ function firstBy<T>(list: T[], key: (t: T) => string | undefined): Map<string, T
   return m;
 }
 
-function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project?: VideoProject, design?: Pick<Design, "id">): LibraryItem {
+type ImageDesign = Pick<SavedImage, "id" | "words" | "updatedAt" | "draftId" | "pictureKey">;
+const imageTitle = (g: ImageDesign) => g.words.headline?.trim() || Object.values(g.words).map((w) => w.trim()).find(Boolean) || "Image";
+/** The design's own picture from this device's media library; the brand headshot and a design without one draw none. */
+const imageThumb = (g: ImageDesign) => (g.pictureKey?.startsWith("cimg-") ? { thumb: { kind: "media" as const, key: g.pictureKey } } : {});
+
+function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project?: VideoProject, design?: Pick<Design, "id">, image?: ImageDesign): LibraryItem {
   const pid = d.id.startsWith("video-") ? d.id.slice("video-".length) : null;
-  const format: LibraryFormat = show || car || d.format === "carousel" ? "carousel" : d.format === "short-video" ? "video" : "text";
+  const format: LibraryFormat = image ? "image" : show || car || d.format === "carousel" ? "carousel" : d.format === "short-video" ? "video" : "text";
   const z = d.zernio;
   const zFailed = z?.status === "failed" || z?.status === "partial";
   const st = draftStatus(d);
   const status: LibraryStatus = zFailed ? "failed" : st === "draft" ? "ready" : st;
   // a Design's post opens in Design: the carousel maker would rebuild it as text slides
-  const href = design
+  // an /image design's post opens in Image, where its picture is
+  const href = image
+    ? links.image({ image: image.id })
+    : design
     ? `/design/${design.id}`
     : show
     ? links.slideshow({ s: show.id })
@@ -111,12 +120,12 @@ function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project
     key: `d:${d.id}`,
     format,
     status,
-    title: clip(d.hook?.trim() || firstLine(d.draft) || project?.name || show?.title || car?.title || "Untitled"),
-    words: [d.hook, d.draft, d.firstComment, car && carouselWords(car), show && slideWords(show), project?.name, project?.caption].filter(Boolean).join("\n"),
-    at: latest(d.createdAt, car?.updatedAt, show?.updatedAt, project?.updatedAt),
+    title: clip(d.hook?.trim() || firstLine(d.draft) || project?.name || show?.title || car?.title || (image ? imageTitle(image) : "") || "Untitled"),
+    words: [d.hook, d.draft, d.firstComment, car && carouselWords(car), show && slideWords(show), project?.name, project?.caption, ...(image ? Object.values(image.words) : [])].filter(Boolean).join("\n"),
+    at: latest(d.createdAt, car?.updatedAt, show?.updatedAt, project?.updatedAt, image?.updatedAt),
     ...(status === "scheduled" && d.scheduledFor ? { when: d.scheduledFor } : {}),
     ...(status === "posted" && d.postedAt ? { when: d.postedAt } : {}),
-    ...(show ? { thumb: { kind: "show" as const, showId: show.id } } : car ? { thumb: { kind: "slide" as const, carouselId: car.id } } : project?.thumb ? { thumb: { kind: "url" as const, url: project.thumb } } : {}),
+    ...(show ? { thumb: { kind: "show" as const, showId: show.id } } : car ? { thumb: { kind: "slide" as const, carouselId: car.id } } : project?.thumb ? { thumb: { kind: "url" as const, url: project.thumb } } : image ? imageThumb(image) : {}),
     href,
     // month view, as SlideshowPage does: a remembered Upcoming view shows no editor for the post
     ...(status === "ready" ? { scheduleHref: `${links.calendar({ post: d.id })}&view=month` } : {}),
@@ -149,7 +158,7 @@ function jobItem(j: LibraryJob, now: Date): LibraryItem {
   };
 }
 
-/** Every store merged into one list, newest first. A carousel, slideshow or video project tied to a draft is that draft's card, never a second one. */
+/** Every store merged into one list, newest first. A carousel, slideshow, video project or /image design tied to a draft is that draft's card, never a second one. */
 export function buildLibrary(i: {
   drafts: DraftEntry[];
   carousels: SavedCarousel[];
@@ -159,6 +168,8 @@ export function buildLibrary(i: {
   jobs: LibraryJob[];
   now: Date;
   designs?: Pick<Design, "id" | "draftId">[];
+  /** The /image designs (images.ts): static ads and memes. */
+  images?: ImageDesign[];
 }): LibraryItem[] {
   const draftIds = new Set(i.drafts.map((d) => d.id));
   const tied = (id?: string) => (id && draftIds.has(id) ? id : undefined);
@@ -166,8 +177,9 @@ export function buildLibrary(i: {
   const carouselOf = firstBy(i.carousels, (c) => tied(c.draftId));
   const projectOf = firstBy(i.projects, (p) => tied(`video-${p.id}`));
   const designOf = firstBy(i.designs ?? [], (x) => tied(x.draftId));
+  const imageOf = firstBy(i.images ?? [], (g) => tied(g.draftId));
   const items: LibraryItem[] = [
-    ...i.drafts.map((d) => draftItem(d, showOf.get(d.id), carouselOf.get(d.id), projectOf.get(d.id), designOf.get(d.id))),
+    ...i.drafts.map((d) => draftItem(d, showOf.get(d.id), carouselOf.get(d.id), projectOf.get(d.id), designOf.get(d.id), imageOf.get(d.id))),
     ...i.carousels
       .filter((c) => !tied(c.draftId))
       .map((c): LibraryItem => ({
@@ -216,6 +228,18 @@ export function buildLibrary(i: {
         at: m.addedAt,
         thumb: { kind: "media", key: m.key },
         href: links.media({ item: m.key }),
+      })),
+    ...(i.images ?? [])
+      .filter((g) => !tied(g.draftId))
+      .map((g): LibraryItem => ({
+        key: `g:${g.id}`,
+        format: "image",
+        status: "ready",
+        title: clip(imageTitle(g)),
+        words: Object.values(g.words).filter(Boolean).join("\n"),
+        at: g.updatedAt,
+        ...imageThumb(g),
+        href: links.image({ image: g.id }),
       })),
     ...i.jobs.map((j) => jobItem(j, i.now)),
   ];

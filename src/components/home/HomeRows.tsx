@@ -16,7 +16,7 @@ import { loadCarousels } from "@/lib/carousel";
 import { loadDesigns } from "@/lib/design";
 import { draftStatus, postTitle, type DraftEntry } from "@/lib/draftHistory";
 import { keyToDate, localDateKey, scheduleTime, timeLabel } from "@/lib/dueDates";
-import { loadImages, onImagesChanged, type SavedImage } from "@/lib/images";
+import { loadImages, onImagesChanged } from "@/lib/images";
 import { FORMAT_LABELS, STATUS_LABELS, buildLibrary, type LibraryItem } from "@/lib/library";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
@@ -70,28 +70,11 @@ type Stores = Omit<Parameters<typeof buildLibrary>[0], "jobs" | "now">;
 
 const kindOf = (it: LibraryItem) => (it.href.startsWith("/design/") ? "Design" : it.href.startsWith("/slideshow") ? "Slideshow" : FORMAT_LABELS[it.format]);
 
-/**
- * The brand's newest `n` creations: the Library's own merge (posts, carousels, slideshows, designs, videos, AI
- * pictures) plus the /image designs it leaves out. An image with a post is that post's tile, opening in Image.
- */
-export function recentCreations(stores: Stores, images: SavedImage[], n = ROW): Creation[] {
-  const imageOf = new Map(images.filter((x) => x.draftId).map((x) => [`d:${x.draftId}`, x]));
-  const made = buildLibrary({ ...stores, jobs: [], now: new Date(0) }).map((it) => {
-    const img = imageOf.get(it.key);
-    const at = img && img.updatedAt > it.at ? img.updatedAt : it.at;
-    return { at, c: { key: it.key, kind: img ? "Image" : kindOf(it), status: STATUS_LABELS[it.status], title: it.title, to: img ? links.image({ image: img.id }) : it.href } };
-  });
-  const tied = new Set(made.map((m) => m.c.key));
-  const stills = images
-    .filter((x) => !x.draftId || !tied.has(`d:${x.draftId}`))
-    .map((x) => ({
-      at: x.updatedAt,
-      c: { key: `img:${x.id}`, kind: "Image", status: STATUS_LABELS.ready, title: (x.words.headline || Object.values(x.words).find(Boolean) || "Image").slice(0, 80), to: links.image({ image: x.id }) },
-    }));
-  return [...made, ...stills]
-    .sort((a, b) => b.at.localeCompare(a.at))
+/** The brand's newest `n` creations, from the Library's own merge (library.ts): each tile is a Library card's kind, status, title and Open. */
+export function recentCreations(stores: Stores, n = ROW): Creation[] {
+  return buildLibrary({ ...stores, jobs: [], now: new Date(0) })
     .slice(0, n)
-    .map((m) => m.c);
+    .map((it) => ({ key: it.key, kind: kindOf(it), status: STATUS_LABELS[it.status], title: it.title, to: it.href }));
 }
 
 export function RecentCreations({ items }: { items: Creation[] }) {
@@ -319,10 +302,10 @@ export default function HomeRows({ userId, drafts, className }: { userId: string
   }, []);
   const recent = useMemo(
     () =>
-      recentCreations(
-        { drafts, carousels: loadCarousels(userId), slideshows: loadSlideshows(userId), projects: loadProjects(userId), media: loadMedia(userId), designs: loadDesigns(userId) },
-        loadImages(userId),
-      ),
+      recentCreations({
+        drafts, carousels: loadCarousels(userId), slideshows: loadSlideshows(userId), projects: loadProjects(userId), media: loadMedia(userId), designs: loadDesigns(userId),
+        images: loadImages(userId),
+      }),
     [userId, drafts, saved],
   );
   const sent = useMemo(() => loadLaunches(userId).length, [userId]);

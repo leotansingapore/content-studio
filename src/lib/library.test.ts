@@ -121,6 +121,26 @@ describe("buildLibrary", () => {
     expect(byKey(items, "d:t1").scheduleHref).toBe(`${links.calendar({ post: "t1" })}&view=month`);
   });
 
+  it("lists /image designs as images opening in Image, and an image with a post once, as that post's card", () => {
+    const img = (id: string, at: string, o: object = {}) => ({ id, words: { headline: `Ad ${id}`, caption: "its caption" }, updatedAt: at, ...o });
+    const made = build({
+      drafts: [draft("p1", { createdAt: "2026-10-01T00:00:00.000Z" }), draft("p2", { createdAt: "2026-10-02T00:00:00.000Z" })],
+      images: [img("im1", "2026-10-03T00:00:00.000Z", { draftId: "p1", pictureKey: "cimg-abc123" }), img("im2", "2026-10-01T12:00:00.000Z", { pictureKey: "headshot" }), img("im3", "2026-09-01T00:00:00.000Z", { draftId: "gone" })],
+    });
+    expect(made.map((m) => [m.key, m.format, m.href])).toEqual([
+      ["d:p1", "image", "/image?image=im1"],
+      ["d:p2", "text", "/generate?draft=p2"],
+      ["g:im2", "image", "/image?image=im2"],
+      ["g:im3", "image", "/image?image=im3"],
+    ]);
+    expect(made[0].thumb).toEqual({ kind: "media", key: "cimg-abc123" });
+    expect(made[2]).toMatchObject({ status: "ready", title: "Ad im2", words: "Ad im2\nits caption" });
+    expect(made[2].thumb).toBeUndefined();
+    expect(filterLibrary(made, { format: "image", q: "" }).map((m) => m.key)).toEqual(["d:p1", "g:im2", "g:im3"]);
+    expect(filterLibrary(made, { format: null, q: "its caption" }).map((m) => m.key)).toEqual(["d:p1", "g:im2", "g:im3"]);
+    expect(countBy(made).all).toBe(4);
+  });
+
   it("opens a Design's post in Design, not the carousel maker", () => {
     const made = build({ drafts: [draft("dz", { format: "carousel" }), draft("cd2", { format: "carousel" })], designs: [{ id: "dsg_1", draftId: "dz" }, { id: "dsg_2" }] });
     expect(byKey(made, "d:dz").href).toBe("/design/dsg_1");

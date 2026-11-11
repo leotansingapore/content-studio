@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { DEFAULT_BRAND, loadBrand, loadCarousels } from "@/lib/carousel";
 import { loadDesigns } from "@/lib/design";
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
+import { loadImages, onImagesChanged } from "@/lib/images";
 import {
   FORMAT_LABELS,
   LIBRARY_FORMATS,
@@ -54,6 +55,7 @@ const readStores = (userId: string) => ({
   projects: loadProjects(userId),
   media: loadMedia(userId),
   designs: loadDesigns(userId),
+  images: loadImages(userId),
   brand: loadBrand(userId) ?? DEFAULT_BRAND,
 });
 
@@ -84,7 +86,7 @@ function Library({ userId }: { userId: string }) {
   const [stores, setStores] = useState(() => readStores(userId));
   const reload = useCallback(() => setStores(readStores(userId)), [userId]);
   useEffect(() => {
-    const offs = [onDraftsChanged(reload), onSlideshowsChanged(reload)];
+    const offs = [onDraftsChanged(reload), onSlideshowsChanged(reload), onImagesChanged(reload)];
     return () => offs.forEach((off) => off());
   }, [reload]);
   // a job that starts, ends or fails may have saved a draft, a picture or a slideshow; progress alone saves nothing
