@@ -155,7 +155,7 @@ import {
   styleLabel,
   type Word,
 } from "@/lib/videoEdit";
-import { CAPTION_LOOKS, captionLookIn, captionsAsDefault, keyCount, keyWordsFrom, keysStale, tapKeyWord, withCaptionLook, type CaptionLook } from "@/lib/captionLooks";
+import { CAPTION_LOOKS, captionLookIn, captionsAsDefault, captionStart, keyCount, keyWordsFrom, keysStale, tapKeyWord, withCaptionLook, type CaptionLook } from "@/lib/captionLooks";
 import { MAX_KEYWORD_LINES, keyCandidates } from "../../supabase/functions/video-assist/keywords.ts";
 import {
   bufferTrack,
@@ -303,7 +303,7 @@ export default function VideoEditPage() {
     if (!file.type.startsWith("video/") && !sound) return toast({ title: "That isn't a video or sound file", variant: "destructive" });
     if (file.size > MAX_LONG_BYTES) return toast({ title: "That file is over 4 GB", description: "Trim it or export a smaller copy first.", variant: "destructive" });
     const id = `v${Date.now().toString(36)}`;
-    const look = startLook(loadSkills(uid), ask?.look ?? "");
+    const look = startLook(loadSkills(uid), ask?.look ?? "", captionStart(uid));
     const pending = look.skill?.prompt ? { pendingSkill: look.skill.id } : {};
     // the own panel's words on screen for footage with little or no speech; a failure keeps the video as it is
     const withOwnWords = async (p: VideoProject, about: string): Promise<VideoProject> => {

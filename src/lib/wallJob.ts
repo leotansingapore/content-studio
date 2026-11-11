@@ -28,7 +28,8 @@ import type { RemixSource } from "@/lib/remixSource";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import { screenMeasure, type Measure } from "@/lib/slideshowDraw";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
-import { BLOCK_W, FONTS, readSeconds, wallSettings, wrapBlock } from "@/lib/videoEdit";
+import { BLOCK_W, FONTS, readSeconds, wallSettings, wrapBlock, type BlockBox, type FontId } from "@/lib/videoEdit";
+import { textStyleFor } from "@/lib/postChoices";
 import { currentJoin, ensureCaptionFonts, handToEditor, startJoin, type JoinExtra } from "@/lib/videoMedia";
 import { MADE_SCENE_WORDS, type WallScene } from "../../supabase/functions/remix/logic.ts";
 import { MAX_CANDIDATES } from "../../supabase/functions/video-assist/montage.ts";
@@ -44,6 +45,8 @@ export interface WallAsk {
   /** The steer beside a topic (a campaign post's brief): the topic is held to 200 characters, the note to 300. */
   note?: string;
   mention: boolean;
+  /** The words' font and box: startWall sets it from the brand's Post choices text styles; none is Clean, no box. */
+  style?: { font: FontId; box: BlockBox };
   bg: WallBg;
   /** The adviser's own clip with bg mine; it stays on this device. */
   file?: File | null;
@@ -142,12 +145,13 @@ export function loopTakes(file: Blob, clip: number, total: number): { file: Blob
 }
 
 const SIZES = [1, 0.9, 0.8, 0.7, 0.6, 0.5];
+const wallText = (ask: WallAsk, text: string) => ({ size: wallSize(text, screenMeasure(), ask.style?.font), font: ask.style?.font ?? ("clean" as const), box: ask.style?.box ?? ("none" as const) });
 
 /** The block's size, stepped down from 1 until its lines fit 45% of a 1080x1920 frame, as videoMedia's layoutBlock draws it. */
-export function wallSize(text: string, measure: Measure): number {
+export function wallSize(text: string, measure: Measure, font: FontId = "clean"): number {
   for (const size of SIZES) {
     const px = 52 * size;
-    const css = FONTS.clean.css.replace("{px}", px.toFixed(2));
+    const css = FONTS[font].css.replace("{px}", px.toFixed(2));
     const lines = wrapBlock(text, BLOCK_W * 1080, px, (t) => measure(t, css));
     if (lines.length * px * 1.3 <= 0.45 * 1920) return size;
   }
@@ -205,7 +209,8 @@ function mirror(j: WallJob | null): void {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function startWall(userId: string, ask: WallAsk): Promise<void> {
+export async function startWall(userId: string, asked: WallAsk): Promise<void> {
+  const ask = { ...asked, style: asked.style ?? textStyleFor(userId) ?? undefined };
   const slot = slotOf(ask);
   if (wallBusy(slot)) return;
   const id = ++seq;
@@ -253,7 +258,7 @@ async function finish(id: number, ask: WallAsk, w: Written): Promise<void> {
   try {
     const seconds = wallSeconds(w.text);
     await ensureCaptionFonts();
-    const settings = wallSettings(w.text, seconds, { size: wallSize(w.text, screenMeasure()), font: "clean", box: "none" });
+    const settings = wallSettings(w.text, seconds, wallText(ask, w.text));
     const extra: JoinExtra = {
       settings,
       caption: w.caption,
@@ -303,7 +308,7 @@ export const pendingScene = (): boolean => {
 
 /** What the scene's clip carries to the editor: the words as one block over the whole clip, with its own sound. */
 export function sceneExtra(ask: WallAsk, w: Pick<Written, "text" | "caption" | "flags">): JoinExtra {
-  const settings = wallSettings(w.text, SCENE_SECONDS, { size: wallSize(w.text, screenMeasure()), font: "clean", box: "none" });
+  const settings = wallSettings(w.text, SCENE_SECONDS, wallText(ask, w.text));
   return {
     // the scene's room or street sound plays: a wall's stock clip is muted, a made scene is not
     settings: { ...settings, volume: 1 },

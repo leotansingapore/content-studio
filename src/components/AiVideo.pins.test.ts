@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   SUPABASE_ANON_KEY: "",
   supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: null } })), onAuthStateChange: () => ({}) }, functions: { invoke: vi.fn() }, from: vi.fn() },
 }));
-vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => false }));
+vi.mock("@/lib/useLeoOnly", () => ({ storedUser: () => undefined, useLeoUser: () => null, useLeoOnly: () => false }));
 // the presenter look box starts on a random look
 vi.spyOn(Math, "random").mockReturnValue(0);
 

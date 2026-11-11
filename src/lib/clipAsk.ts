@@ -179,13 +179,14 @@ export const presetLook = (id: string) => `preset:${id}`;
 
 /**
  * What a recording starts with: a preset's recipe, a saved skill's look (its instructions run once the captions
- * land, as pendingSkill), or with "" the default skill's, exactly as an upload starts today.
+ * land, as pendingSkill), or with "" the default skill's, exactly as an upload starts today. `start`: what the skill is
+ * laid over (the brand's Post choices captions, captionLooks captionStart).
  */
-export function startLook(skills: VideoSkill[], look: string): { settings: EditSettings; skill: VideoSkill | null } {
+export function startLook(skills: VideoSkill[], look: string, start: EditSettings = defaultSettings("bold")): { settings: EditSettings; skill: VideoSkill | null } {
   const preset = PRESETS.find((p) => presetLook(p.id) === look);
   if (preset) return { settings: applyRecipe(defaultSettings("bold"), preset.recipe), skill: null };
   const skill = skills.find((s) => skillLook(s.id) === look) ?? defaultSkill(skills);
-  return { settings: withLook(defaultSettings("bold"), skill?.look), skill };
+  return { settings: withLook(start, skill?.look), skill };
 }
 
 const LOOK_KEY = "cs-clips-look";

@@ -90,7 +90,7 @@ remix= removed (replace). The sheet's choices replace the history entry and leav
 | close | loose, balanced, close | balanced |
 | more | open: "More options" (How close) shown | closed |
 | for | open: the For row's switches shown | closed |
-| mention | no: leave the brand's name out of this remix | the brand's remembered pick, else yes |
+| mention | no: leave the brand's name out of this remix; yes: name it (written only when Post choices is not Always) | Post choices' Never or Sometimes (/settings/post-choices), else the brand's remembered pick, else yes |
 | offer | an offer's name as a slug (Brand kit offers) | the brand's remembered pick, else none |
 | as | a comma list of up to 3 formats: post, carousel, script, speaking, explainer (one video at most); repeats, a fourth or a second video are dropped | the source's own format: script for a video, carousel for a carousel, else post |
 | breakdown | open: the Breakdown row under the source card shown (a breakdown is made only when it is opened or Remix is pressed) | closed |
@@ -237,6 +237,7 @@ so one that is gone shows everything.
 | /fads/:tab | (path) | personality, purpose, experience, audience, solutions, messaging, output; anything else opens personality | personality | push (Next/Back steps) | /fads/audience |
 | /recruit/:tab | (path) | /recruit (Brand Brain), /recruit/conversations, /recruit/agent | | | /recruit/conversations |
 | /feedback | tab, post, status, category, entry | owned by the shared feedback board (components/feedback/FeedbackBoard.tsx, copied from leotansingapore/feedback-board, not edited here): tab=roadmap, feedback, changelog; post=<number>; with tab=feedback, status=under_review, planned, in_progress, complete, declined and category=<category>; entry=<changelog slug> | roadmap | replace | /feedback?tab=feedback&status=planned |
+| /settings/post-choices | (none) | Settings > Post choices, any sign-in: five per-brand choices new posts start from (who appears, name your business, your influencers for Leo's sign-ins, spoken captions, post text style; src/lib/postChoices.ts). A form that saves on each pick, so nothing on it is a view or filter | | | /settings/post-choices |
 | /bio, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow (/home, /connect and /accounts have rows of their own below) | | | /bio |
 | /join, /review/:token, /l/:slug, /t/report/:slug, /roadmap | (path or #) | public pages that a link already fully names: /join#<invite token>, a preview, a bio page, a campaign report, the public roadmap | | | /join#abc123 |
 | /swipe | tab | Leo only (src/lib/useLeoOnly.ts). foryou (For you), search (Search), hooks (Hooks), and on a brand that isn't an adviser's similar (Apps like yours, the default there); anyone else gets posts, and a Leo tab shows the page skeleton while the sign-in loads. Leo also gets ads whenever Competitors or Your space holds ads | posts (similar on Leo's non-adviser brands) | replace; switching tab clears every param below too | /swipe?tab=foryou |
@@ -363,7 +364,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /design/campaigns/:id | tab | hook, content, cta (which slides the campaign's editor shows) | hook | replace | /design/campaigns/cmh2k9x01ab?tab=content |
 | /make/slideshow | source | a remix source key (the same keys as /generate?source= below): the slideshow to remix. Leo's sign-ins only (src/lib/leoOnly.ts); anyone else, and any /make/<slug> not in src/data/formats.ts, gets the not-found page. A key that no longer resolves says so and starts from a topic | none | replace | /make/slideshow?source=top%3Agrace-koh-instagram-C931K |
 | /make/slideshow | from | topic, remix (Start from) | remix with a source, else topic | replace | /make/slideshow?from=remix |
-| /make/slideshow | mention | inside: the brand once on slide 3 or 4, then a save or follow ask; no: the slides leave the brand out | yes (its own last slide) | replace | /make/slideshow?from=topic&mention=inside |
+| /make/slideshow | mention | inside: the brand once on slide 3 or 4, then a save or follow ask; no: the slides leave the brand out; yes: its own last slide, written only when the start is no | the brand's Post choices (/settings/post-choices): Always is yes (its own last slide), Never no, Sometimes either | replace | /make/slideshow?from=topic&mention=inside |
 | /make/slideshow | keep | a saved slideshow's id: its first slide comes over as it is, the topic fills from its words, and the writer writes new slides after it (the editor's Same cover, new slides); an id this device doesn't have is ignored | none | replace | /make/slideshow?from=topic&keep=ssmvunhz880w7c&mention=inside |
 | /make/slideshow | mood | sunset, sea, dark (with stock photos): every slide's picture from that kind of scene, its searches in turn, in place of a photo per point | match (a photo for each point) | replace | /make/slideshow?from=topic&mention=inside&mood=sunset |
 | /make/slideshow | size | 9x16 | 4x5 | replace | /make/slideshow?size=9x16 |
@@ -376,7 +377,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /make/slideshow | batch | open: the Make a batch card (kept hooks x looks, src/lib/slideshowBatch.ts); its picks are not in the address | closed | replace | /make/slideshow?batch=open |
 | /make/wall-of-text | source | a remix source key (the same keys as /generate?source= below): the post to remix. Leo's sign-ins only (src/lib/leoOnly.ts). A key that no longer resolves says so and asks for another | none | replace | /make/wall-of-text?source=trend%3Atrend-2026-10-20-trend-9 |
 | /make/wall-of-text | from | topic, remix (Start from) | remix with a source, else topic | replace | /make/wall-of-text?from=topic |
-| /make/wall-of-text | mention | no: the words leave the brand out | yes | replace | /make/wall-of-text?from=topic&mention=no |
+| /make/wall-of-text | mention | no: the words leave the brand out; yes: written only when the start is no | the brand's Post choices: Always is yes, Never no, Sometimes either | replace | /make/wall-of-text?from=topic&mention=no |
 | /make/wall-of-text | bg | stock, mine (Background: Stock clip or My video; the video itself stays on the device and is picked again on each visit) | this device's last pick (cs-make-wall-bg), stock on a Remix sheet link | replace | /make/wall-of-text?bg=mine |
 | /make/wall-of-text | pick | open: the list of videos that did well (trend kits, swipe file videos, followed accounts' videos), to pick one to remix | closed | replace | /make/wall-of-text?from=remix&pick=open |
 
@@ -457,7 +458,8 @@ Leo's sign-ins only (src/lib/useLeoOnly.ts): the nav hides the pages, anyone els
 and /image, and the new params on /edit, /generate, /carousel and /trends are ignored for anyone else, who keeps
 today's page. Same rules as above: built in src/lib/links.ts, defaults left out of links.
 
-Every /make/<slug> page takes the shared params source, from and mention=no (as /make/slideshow above). A format
+Every /make/<slug> page takes the shared params source, from and mention=yes|no (as /make/slideshow above; with
+neither, the brand's Post choices at /settings/post-choices decide). A format
 in src/data/formats.ts that is not ready yet still opens for Leo at /make/<slug>; the gallery lists ready ones
 only. The Remix sheet's "Also make" link starts a make on arrival through navigation state { go: true } only for a
 format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its page and waits for the press.

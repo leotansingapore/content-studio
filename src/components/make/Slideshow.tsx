@@ -54,6 +54,7 @@ import {
 import { socialConnectShown } from "@/lib/socialConnect";
 import { getAllTopPosts } from "@/lib/topPosts";
 import { useUrlFlag, useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useMentionStart } from "@/lib/postChoices";
 import { PRICES, priceText, type Price } from "@/lib/prices";
 import { cn } from "@/lib/utils";
 import { EXPLAINER_LOOKS, LOOK_IDS, type LookId } from "../../../supabase/functions/ai-video/logic.ts";
@@ -134,7 +135,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const busy = (!!job && slideshowBusy()) || batching;
   const gone = !!params.get("source") && !source;
   const [from] = useUrlState<ShowFrom>("from", startFrom(source), { allowed: ["topic", "remix"] });
-  const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "inside", "no"] });
+  const [mention, setMention] = useUrlState<"yes" | "inside" | "no">("mention", useMentionStart(userId), { allowed: ["yes", "inside", "no"] });
   const [size] = useUrlState<Size>("size", "4x5", { allowed: SIZES });
   const [pictures] = useUrlState<ShowPictures>("pictures", "stock", { allowed: ["stock", "mine", "ai"] });
   const [look] = useUrlState<LookId>("look", "photo", { allowed: LOOK_IDS });
@@ -314,9 +315,9 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
       <Card className="border-border/60 shadow-card">
         <CardContent className="space-y-4 pt-4 sm:pt-5">
           <Field label={`Mention ${brand}`} hint={`Once, inside posts the way slideshow accounts do: your hook as typed, five points, ${brand} once on slide 3 or 4, then a save or follow ask.`}>
-            <FilterChip active={mention === "yes"} onClick={() => set("mention", null)}>On the last slide</FilterChip>
-            <FilterChip active={mention === "inside"} onClick={() => set("mention", "inside")}>Once, inside</FilterChip>
-            <FilterChip active={mention === "no"} onClick={() => set("mention", "no")}>No</FilterChip>
+            <FilterChip active={mention === "yes"} onClick={() => setMention("yes")}>On the last slide</FilterChip>
+            <FilterChip active={mention === "inside"} onClick={() => setMention("inside")}>Once, inside</FilterChip>
+            <FilterChip active={mention === "no"} onClick={() => setMention("no")}>No</FilterChip>
           </Field>
           <div className="space-y-1.5">
             <Label htmlFor="make-steer" className={FIELD_LABEL}>Steer it (optional)</Label>

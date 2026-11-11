@@ -6,7 +6,7 @@ const routes = [
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/carousels", "/working", "/trends", "/clone", "/research", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/people", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star", "/campaigns", "/ideas", "/social-north-star", "/audiences",
-  "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/notifications", "/adlauncher", "/blitz",
+  "/agent", "/skills", "/activity", "/automations", "/studio", "/settings", "/notifications", "/settings/post-choices", "/adlauncher", "/blitz",
 ];
 const LEO = "tanjunsing@gmail.com";
 const ANYONE = "someone@example.com";
@@ -69,7 +69,7 @@ describe("nav", () => {
     expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/hooks", "/make/hook-demo", "/generate/batch", "/generate/answer", "/generate/vsl", "/carousel", "/edit", "/library", "/drafts", "/board", "/grid", "/media", "/slideshow", "/design", "/design/campaigns", "/design/libraries", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/clone", "/inspiration", "/profiles", "/following"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
-    expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/bio", "/links", "/connect"]);
+    expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/launch", "/linkedin", "/ideas", "/social-north-star"]);
@@ -77,7 +77,7 @@ describe("nav", () => {
       expect(pages("write", email).slice(17, 19), email).toEqual(["/blitz", "/people"]);
       expect(pages("find", email).slice(4, 6), email).toEqual(["/clone", "/research"]);
       expect(pages("find", email).slice(9, 11), email).toEqual(["/competitors", "/saved"]);
-      expect(pages("settings", email), email).toEqual(["/settings", "/notifications", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
+      expect(pages("settings", email), email).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect", "/adlauncher", "/activity", "/automations", "/skills"]);
     }
   });
 
@@ -104,7 +104,7 @@ describe("nav", () => {
     expect(pages("write", ANYONE)).toContain("/reels");
     expect(pages("settings", LEO)).not.toContain("/reels/team");
     store.set("cs-team-me", JSON.stringify({ owner: true, member: false, at: Date.now() }));
-    expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/bio", "/links", "/connect", "/reels/team"]);
+    expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect", "/reels/team"]);
     vi.unstubAllGlobals();
   });
 

@@ -49,6 +49,7 @@ import {
   type Speaker,
 } from "@/lib/remix";
 import { brandPack } from "@/lib/remixBrand";
+import { pickLook } from "@/lib/postChoices";
 import type { RemixSource } from "@/lib/remixSource";
 import { ensureTeardown, localTeardown, type Teardown } from "@/lib/remixTeardown";
 import { splitScriptCaption } from "@/lib/scriptCaption";
@@ -292,14 +293,14 @@ async function makeRow(id: number, i: number, userId: string, run: RemixRun, tex
   if (!isVideo(as)) return patch(id, i, { state: "done", step: "", href: hrefFor(draft), ...saved });
   // the script is saved before any video is paid for, so its words survive whatever happens next
   patch(id, i, { ...saved, scriptHref: hrefFor(draft) });
-  await makeVideo(id, i, run, res.result, draft.hook);
+  await makeVideo(id, i, userId, run, res.result, draft.hook);
 }
 
 /**
  * The AI video after a video row's script. aiVideo's jobs never throw, so aiJob() is read after every await to tell
  * a failure, and aiBusy() right before each paid start: another video anywhere in the app means this one waits for a retry.
  */
-async function makeVideo(id: number, i: number, run: RemixRun, r: MakeResult, hook: string) {
+async function makeVideo(id: number, i: number, userId: string, run: RemixRun, r: MakeResult, hook: string) {
   const fail = (error = NOT_THROUGH, extra: Partial<RemixRow> = {}) => patch(id, i, { state: "failed", step: "", error, refunded: false, ...extra });
   const relay = onAiJob((j) => {
     if (j?.state === "working" && j.step) patch(id, i, { step: j.step });
@@ -320,7 +321,7 @@ async function makeVideo(id: number, i: number, run: RemixRun, r: MakeResult, ho
     const vo = await sliceVoiceover(await speak(r.script, voice));
     if (vo.seconds > MAX_AVATAR_SECONDS + 0.5) return fail(tooLongLine(vo.seconds), { tooLong: true });
     if (aiBusy()) return fail(VIDEO_LIMITS.busy);
-    await makePresenter(LOOKS[Math.floor(Math.random() * LOOKS.length)], undefined, run.agent);
+    await makePresenter(pickLook(userId, LOOKS), undefined, run.agent);
     const face = aiJob();
     if (face?.kind !== "presenter" || face.state !== "done" || !face.url) return fail();
     if (aiBusy()) return fail(VIDEO_LIMITS.busy);

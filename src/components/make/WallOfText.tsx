@@ -35,6 +35,7 @@ import { currentFormatTrends } from "@/lib/formatTrends";
 import { engagementScore, getAllTopPosts } from "@/lib/topPosts";
 import { TRENDS } from "@/lib/trends";
 import { useUrlFlag, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useMentionStart } from "@/lib/postChoices";
 import { currentJoin, onJoinJob, type JoinJob } from "@/lib/videoMedia";
 import { loadProjects } from "@/lib/videoProjects";
 import {
@@ -145,7 +146,7 @@ export default function WallOfText({ userId, source, scene = false }: { userId: 
   const busy = !!job && wallBusy(slot);
   const gone = !!params.get("source") && !source;
   const [from] = useUrlState<WallFrom>("from", startFrom(source), { allowed: ["topic", "remix"] });
-  const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "no"] });
+  const [mention, setMention] = useUrlState("mention", useMentionStart(userId), { allowed: ["yes", "no"] });
   // the last background picked on this device, except on a Remix sheet link, which makes at once over stock
   const [bgDefault] = useState<WallBg>(() => (arrivedToMake.current ? "stock" : lastBg()));
   const [bg] = useUrlState<WallBg>("bg", bgDefault, { allowed: ["stock", "mine"] });
@@ -373,8 +374,8 @@ export default function WallOfText({ userId, source, scene = false }: { userId: 
             </>
           )}
           <Field label={`Mention ${brand}`} hint={`Yes works ${brand} into the text. No keeps it as pure value content.`}>
-            <FilterChip active={mention !== "no"} onClick={() => set("mention", null)}>Yes</FilterChip>
-            <FilterChip active={mention === "no"} onClick={() => set("mention", "no")}>No</FilterChip>
+            <FilterChip active={mention !== "no"} onClick={() => setMention("yes")}>Yes</FilterChip>
+            <FilterChip active={mention === "no"} onClick={() => setMention("no")}>No</FilterChip>
           </Field>
           <div className="space-y-1.5">
             <Label htmlFor="make-wall-about" className={FIELD_LABEL}>{remix ? "What it's about (optional)" : "What it's about"}</Label>

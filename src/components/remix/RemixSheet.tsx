@@ -47,6 +47,7 @@ import {
   type RemixAs,
 } from "@/lib/remix";
 import { brandName, loadRemixPrefs, offerNames, ownBrandName, saveRemixPrefs, speakerFor, type RemixPrefs } from "@/lib/remixBrand";
+import { mentionFor, mentionParam, useCoin } from "@/lib/postChoices";
 import { fitForKeep, FIT_WAIT_MS, UNKNOWN_FIT, fitAsk, fitVideo, loadFit, pressAction, requestFit, type FitResult } from "@/lib/remixFit";
 import { clearRemixJob, hrefFor, onRemixJob, remixJob, retryVersions, startRemix, type RemixJobState, type RemixRow } from "@/lib/remixJob";
 import { dayMonth, earlierRemix, seenSources, sourceNoun, type RemixSource } from "@/lib/remixSource";
@@ -175,12 +176,14 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   // Slideshow (a TikTok photo post's first choice) is made on its own page, as Also make's link makes it
   const slideshow = makeAs[0] === "slideshow";
 
-  // the URL wins (mention=no, offer=<slug>), then the remembered pick for this brand, then the default
+  // the URL wins (mention=yes|no, offer=<slug>), then Post choices' Never or Sometimes, then the remembered pick for
+  // this brand, then the default
   const [prefs, setPrefs] = useState<RemixPrefs>(() => loadRemixPrefs(userId));
   const offers = useMemo(() => offerNames(userId), [userId]);
   // with no brand name there is nothing to mention, so the post stays pure value content
   const named = useMemo(() => ownBrandName(userId) !== "", [userId]);
-  const mention = named && (params.get("mention") === "no" ? false : prefs.mention);
+  const flip = useCoin();
+  const mention = named && mentionFor(userId, params.get("mention"), prefs.mention, flip);
   const offerParam = params.get("offer");
   const offer = mention ? (offerParam && offers.find((o) => slug(o) === offerParam)) || prefs.offer : null;
   const kitSpeaker = useMemo(() => speakerFor(userId), [userId]);
@@ -474,7 +477,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           open={forOpen}
           setOpen={setForOpen}
           disabled={working}
-          onMention={(on) => savePrefs({ ...prefs, mention: on }, { mention: on ? null : "no" })}
+          onMention={(on) => savePrefs({ ...prefs, mention: on }, { mention: mentionParam(userId, on) })}
           onOffer={(name) => savePrefs({ ...prefs, offer: name }, { offer: name ? slug(name) : null })}
           onSpeaker={(next) => savePrefs({ ...prefs, speaker: next }, {})}
         />

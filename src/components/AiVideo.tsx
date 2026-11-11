@@ -24,7 +24,9 @@ import { loadProducts, productLabel, type Product } from "@/lib/products";
 import { PICTURE_FAILED, pictureFile } from "@/lib/productScan";
 import { fitScript, postFill, type PostFill } from "@/lib/scriptCaption";
 import { aiMark, defaultWho, speakerFace, speakerFile, speakerOf, useSpeakers, whoChoices, type Speaker } from "@/lib/talkingHead";
-import { useLeoOnly, useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
+import { storedUser, useLeoOnly, useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
+import { nextLook, pickLook, presenterStarts, useCoin } from "@/lib/postChoices";
+import { captionStart } from "@/lib/captionLooks";
 import { scoped } from "@/lib/profiles";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { BANNER_MAX, MUSIC_LEVEL, defaultSettings, moveTake, styleLabel, withLook } from "@/lib/videoEdit";
@@ -453,7 +455,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   const [face, setFace] = useState<"photo" | "presenter">("photo");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState("");
-  const [look, setLook] = useState(() => LOOKS[Math.floor(Math.random() * LOOKS.length)]);
+  const [look, setLook] = useState(() => pickLook(storedUser()?.id, LOOKS));
   const [presenter, setPresenter] = useState(job?.kind === "presenter" && job.state === "done" ? job.url ?? "" : "");
   // a post's script from the first paint, even while another video is being made (live-p5dog D7)
   const [script, setScript] = useState(() => fill?.say.text ?? "");
@@ -477,7 +479,8 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
   // appears preselected, Ask each time none), and the voice may be your own recording (?voice=mine), both replace.
   // Everyone else keeps My photo, AI presenter and the premade voices as local choices, a typed face= or voice= ignored.
   const people = useSpeakers(user?.id);
-  const [faceParam, pickWho] = useUrlState<string>("face", people ? defaultWho(people) : "", { allowed: people ? whoChoices(people) : [] });
+  const flip = useCoin();
+  const [faceParam, pickWho] = useUrlState<string>("face", people && user ? defaultWho(people, (l) => presenterStarts(user.id, l, flip)) : "", { allowed: people ? whoChoices(people) : [] });
   const who = people ? faceParam : "";
   const speaker = people ? speakerOf(people, who) : null;
   // a saved presenter starts in its own voice; a voice picked here (?voice=) still wins
@@ -689,7 +692,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
         <Textarea rows={2} value={look} maxLength={MAX_LOOK} onChange={(e) => setLook(e.target.value)} aria-label="How your presenter looks" className="text-sm" disabled={busy} />
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy}
-            onClick={() => setLook(LOOKS[(LOOKS.indexOf(look) + 1) % LOOKS.length])}>Another look</Button>
+            onClick={() => setLook(nextLook(storedUser()?.id, LOOKS, look))}>Another look</Button>
           <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || look.trim().length < 10 || left("ai-image") === 0}
             onClick={() => {
               // anyone else sends no setting: today's office
@@ -1418,7 +1421,7 @@ function FromPost({ draftId, fill, gone, cut, onClear }: { draftId: string | nul
 
 /** Leo: the caption look a new video starts with (the default skill's, as the editor's upload uses), as Fastlane shows it. */
 function CaptionsLine({ userId }: { userId: string }) {
-  const s = withLook(defaultSettings("bold"), defaultSkill(loadSkills(userId))?.look);
+  const s = withLook(captionStart(userId), defaultSkill(loadSkills(userId))?.look);
   // shown to Leo only, so his plain style names ("Outline", not "TikTok")
   return <p className="text-xs text-muted-foreground">Captions: {s.captions === false ? "off" : styleLabel(s.style, true)}, saved for every new video.</p>;
 }

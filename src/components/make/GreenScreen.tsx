@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatBySlug } from "@/data/formats";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { LOOKS, MAX_LOOK, aiBusy, onAiJob, pendingAvatar } from "@/lib/aiVideo";
+import { nextLook, pickLook, useMentionStart } from "@/lib/postChoices";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 import { demoVideos, type DemoVideo } from "@/lib/demoVideos";
 import { cutoutReady, findsPerson } from "@/lib/faceVision";
@@ -85,11 +86,11 @@ export default function GreenScreen({ userId, source }: { userId: string; source
   const [lengthParam, setLength] = useUrlState<string>("length", String(DEFAULT_LENGTH), { allowed: TALK_LENGTHS.map(String) });
   const length = Number(lengthParam) as TalkLength;
   const [voice, setVoice] = useUrlState<VoiceId>("voice", "alice", { allowed: VOICE_IDS });
-  const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "no"] });
+  const [mention] = useUrlState("mention", useMentionStart(userId), { allowed: ["yes", "no"] });
   const [typed, setTyped] = useState<Typed>(() => loadTyped(userId));
   const [said, setSaid] = useState<TalkTyped>(() => {
     const t = loadTalkTyped(userId);
-    return t.look ? t : { ...t, look: LOOKS[Math.floor(Math.random() * LOOKS.length)] };
+    return t.look ? t : { ...t, look: pickLook(userId, LOOKS) };
   });
   const [mine, setMine] = useState<Mine | null>(null);
   const [person, setPerson] = useState<"none" | "loading" | "looking" | "nobody" | "found">("none");
@@ -314,7 +315,7 @@ export default function GreenScreen({ userId, source }: { userId: string; source
                 <div className="min-w-0 flex-1 space-y-2">
                   <Textarea rows={3} value={said.look} maxLength={MAX_LOOK} aria-label="How your presenter looks" className="text-sm"
                     onChange={(e) => setSaid({ ...said, look: e.target.value })} />
-                  <Button size="sm" variant="outline" className={TOUCH} onClick={() => setSaid({ ...said, look: LOOKS[(LOOKS.indexOf(said.look) + 1) % LOOKS.length] })}>
+                  <Button size="sm" variant="outline" className={TOUCH} onClick={() => setSaid({ ...said, look: nextLook(userId, LOOKS, said.look) })}>
                     Another look
                   </Button>
                   <p className="text-xs text-muted-foreground">The person is made by AI.</p>
