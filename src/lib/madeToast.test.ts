@@ -32,5 +32,6 @@ describe("the made toast", () => {
     expect(readyTitle("Wall of text")).toBe("Your wall of text is ready");
     expect(readyTitle("Blitz deck")).toBe("Your blitz deck is ready");
     expect(pathOf("/make/slideshow?source=x#top")).toBe("/make/slideshow");
+    expect(pathOf("/library#making")).toBe("/library");
   });
 });
