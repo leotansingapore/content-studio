@@ -28,6 +28,8 @@ const read = (k: string) => {
 export function useNewVersion(): { ready: string | null; later: () => void } {
   const [ready, setReady] = useState<string | null>(null);
   useEffect(() => {
+    // shortcut: the shell's tests run effects against a stand-in document with no querySelector; nothing to compare there
+    if (typeof document.querySelector !== "function") return;
     const running = releaseIn(document.querySelector<HTMLScriptElement>('script[src*="/assets/index-"]')?.src ?? "");
     if (!running) return;
     let live = true;
