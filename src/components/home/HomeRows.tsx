@@ -220,8 +220,8 @@ export function PublishPromote({ adl, sent, next }: { adl: AdlRead; sent: number
         <Card
           icon={CalendarDays}
           title="Posting"
-          line={next?.scheduledFor ? `Next: ${bookedWhen(next.scheduledFor)}` : "Nothing booked yet"}
-          sub={next ? next.hook || postTitle(next.draft) : undefined}
+          // the post itself is listed in Coming up below; this card says when the queue next goes out
+          line={next?.scheduledFor ? `Next one goes out ${bookedWhen(next.scheduledFor)}` : "Nothing booked yet"}
           to={links.calendar()}
           action="Open calendar"
         />

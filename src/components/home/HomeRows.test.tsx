@@ -146,10 +146,11 @@ describe("Publish and promote", () => {
     expect(hrefs(out)).toEqual(["/adlauncher", "/calendar"]);
   });
 
-  it("filled: connected with ads sent, and the next post's day, time and title", () => {
+  it("filled: connected with ads sent, and when the next post goes out without repeating Coming up's title", () => {
     const next = draft("soon", { status: "scheduled", scheduledFor: "2026-11-13T19:30", hook: "Three CPF myths" });
     const out = words(html(<PublishPromote adl={{ connected: true, account: null }} sent={4} next={next} />));
     expect(out).toContain("AdLauncher connected, 4 ads sent");
-    expect(out).toContain("Next: Fri 13 Nov, 7:30pm Three CPF myths");
+    expect(out).toContain("Next one goes out Fri 13 Nov, 7:30pm");
+    expect(out).not.toContain("Three CPF myths");
   });
 });
