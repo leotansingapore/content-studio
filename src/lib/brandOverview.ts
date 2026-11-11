@@ -103,7 +103,7 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       ? [{
         id: "proof",
         title: "Proof",
-        rows: [{ id: "proof", label: "Real words and numbers", value: t(i.proof), to: "/brand#products", add: "Add proof" }],
+        rows: [{ id: "proof", label: "Real words and numbers", value: t(i.proof), to: "/brand#script-product", add: "Add proof" }],
       }]
       : []),
     {

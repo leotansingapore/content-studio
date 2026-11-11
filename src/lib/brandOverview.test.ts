@@ -54,6 +54,7 @@ describe("brandOverview", () => {
     expect(row(i, "price")).toMatchObject({ value: "$9", to: "/brand?product=pd-Tracker#products" });
     expect(row(i, "who").chips).toEqual(["Agents"]);
     expect(row(i, "demos").value).toBe("1 video");
+    expect(row({ ...i, proof: " 48 cafes " }, "proof")).toMatchObject({ value: "48 cafes", to: "/brand#script-product" });
     expect(isSet(row(i, "media"))).toBe(false);
   });
 });

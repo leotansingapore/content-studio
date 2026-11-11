@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
 import { loadPositioning } from "@/lib/positioning";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { brandOverview, completeness } from "@/lib/brandOverview";
@@ -14,7 +13,7 @@ import { loadProducts } from "@/lib/products";
 import { loadCompetitors } from "@/lib/competitors";
 import { demoVideos } from "@/lib/demoVideos";
 import { loadMedia } from "@/lib/mediaLibrary";
-import { useLeoUser } from "@/lib/useLeoOnly";
+import { useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
 import { useScrollToHash } from "@/lib/urlState";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
 import { adviserBrand } from "@/lib/profession";
@@ -62,7 +61,8 @@ function SectionCard({
 
 export default function PlaybookPage() {
   const leo = useLeoUser();
-  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  // the stored session answers on the first frame, so the page never paints an empty brand and then fills in
+  const user = useSignedInUser();
   const [saved, setSaved] = useState<SavedItems>({
     inspiration: [],
     creators: [],
@@ -71,21 +71,11 @@ export default function PlaybookPage() {
 
   useEffect(() => {
     document.title = "My Playbook - Postmosis";
-    let active = true;
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!active) return;
-      const id = data.user?.id ?? null;
-      if (id) setUser({ id, email: data.user?.email ?? "" });
-      setSaved(loadSaved(id));
-    })();
-    return () => {
-      active = false;
-    };
   }, []);
 
   // read on each draw: these stores change on other pages, and this page only shows them
   const uid = user?.id ?? null;
+  useEffect(() => setSaved(loadSaved(uid)), [uid]);
   const isLeo = !!leo && !!uid;
   // /playbook#look lands on that group once the sign-in is known (docs/deep-links.md)
   useScrollToHash(!!uid);
@@ -125,7 +115,7 @@ export default function PlaybookPage() {
       </header>
 
       {/* What the AI knows: one row per fact, each opening the place that edits it */}
-      <section aria-labelledby="known-title" className="space-y-4">
+      {uid && <section aria-labelledby="known-title" className="space-y-4">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <h2 id="known-title" className="font-serif text-lg font-semibold">
@@ -202,7 +192,7 @@ export default function PlaybookPage() {
             </Card>
           ))}
         </div>
-      </section>
+      </section>}
 
       {/* Saved: Inspiration and Creators are an adviser brand's libraries; another brand sees only what it saved before */}
       {(adviserBrand(user?.id) || savedInsp.length + savedAdv.length > 0) && <div className="grid gap-4 md:grid-cols-2">
