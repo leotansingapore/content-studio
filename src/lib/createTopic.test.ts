@@ -38,6 +38,18 @@ describe("a topic typed on Create goes with the tile", () => {
     }
   });
 
+  it("fills an empty Weekly batch, one with no cards yet included, and keeps its other settings", () => {
+    const s = mem({ [`${BATCH_WORK}u1`]: JSON.stringify({ topic: "", cards: {}, count: 5 }) });
+    tileHref("/generate/batch", "CPF myths", "u1", s);
+    expect(json(s, `${BATCH_WORK}u1`)).toEqual({ topic: "CPF myths", cards: {}, count: 5 });
+  });
+
+  it("carries at most 300 characters of a long topic", () => {
+    const s = mem();
+    const url = new URL(tileHref("/generate", "a".repeat(400), "u1", s), "https://x");
+    expect(url.searchParams.get("detail")).toBe("a".repeat(300));
+  });
+
   it("keeps the topic for the box on the way back, for makers with no topic field too", () => {
     const s = mem();
     expect(tileHref("/edit", "CPF myths", "u1", s)).toBe("/edit");
