@@ -20,6 +20,8 @@ import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { findWords, strayLinks } from "@/lib/platformCounters";
+import { scanCompliance } from "@/lib/compliance";
+import ComplianceChips, { ComplianceBadge } from "@/components/ComplianceChips";
 import {
   postTitle,
   upsertDraft,
@@ -101,6 +103,7 @@ export default function BatchPage() {
   );
   const [cards, setCards] = useState<Record<string, CardState>>({});
   const [running, setRunning] = useState(false);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   // Leo's facts and learnings ride in through streamOnePost; his website voice (no posts behind it) is read here
@@ -208,6 +211,7 @@ export default function BatchPage() {
     }
     if (!only && !okToDropUnsaved()) return;
     setRunning(true);
+    setDismissed((d) => (only ? d.filter((id) => !id.startsWith(`${only.key}:`)) : []));
     const targets = only ? [only] : activeTargets;
     if (only) {
       setCards((prev) => ({ ...prev, [only.key]: { status: "streaming", text: "" } }));
@@ -456,6 +460,7 @@ export default function BatchPage() {
             const card = cards[t.key];
             if (!card) return null;
             const Icon = t.icon;
+            const flags = card.status === "done" || card.status === "saved" ? scanCompliance(card.text).filter((f) => !dismissed.includes(`${t.key}:${f.id}`)) : [];
             return (
               <Card key={t.key} className="border-border/60 shadow-card">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -491,6 +496,7 @@ export default function BatchPage() {
                   {card.status !== "streaming" && findWords(card.text, avoidWords).length > 0 && (
                     <p className="text-xs font-medium text-warning">Words you never use: {findWords(card.text, avoidWords).map((w) => `"${w}"`).join(", ")}.</p>
                   )}
+                  <ComplianceChips flags={flags} onDismiss={(id) => setDismissed((d) => [...d, `${t.key}:${id}`])} />
                   {card.status === "done" || card.status === "saved" ? (
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -506,9 +512,10 @@ export default function BatchPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleCopy(card.text, t.platform, topic)}
-                        className="gap-1.5"
+                        className="relative gap-1.5"
                       >
                         <Copy className="h-3.5 w-3.5" /> Copy
+                        <ComplianceBadge flags={flags} />
                       </Button>
                     </div>
                   ) : null}

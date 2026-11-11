@@ -3,7 +3,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import ComplianceChips from "./ComplianceChips";
+import ComplianceChips, { ComplianceBadge } from "./ComplianceChips";
 import { scanCompliance } from "@/lib/compliance";
 
 // an icon by its class only, so a lucide upgrade that redraws one doesn't fail this
@@ -35,5 +35,16 @@ describe("ComplianceChips", () => {
     expect(out).toContain("text-amber-600");
     expect(out).toContain(">guaranteed</span>");
     expect(out).toContain("Compliance error");
+  });
+});
+
+describe("ComplianceBadge", () => {
+  const badge = (text: string) => renderToStaticMarkup(createElement(ComplianceBadge, { flags: scanCompliance(text) }));
+  it("shows Write's ! on Copy for an error only", () => {
+    expect(badge("A no-risk plan.")).toBe(
+      '<span title="Compliance error flag detected - review before posting" class="absolute -right-1.5 -top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-destructive bg-destructive text-[10px] font-bold leading-none text-destructive-foreground">!</span>',
+    );
+    expect(badge("Earn 8% returns, guaranteed.")).toBe("");
+    expect(badge("")).toBe("");
   });
 });

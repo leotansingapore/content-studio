@@ -2,7 +2,17 @@
 // dismissable. Moved out of Write (GeneratePage.tsx) unchanged, so every format page shows the same chips.
 
 import { AlertTriangle, X as XIcon } from "lucide-react";
-import type { ComplianceFlag } from "@/lib/compliance";
+import { hasComplianceErrors, type ComplianceFlag } from "@/lib/compliance";
+
+export const ComplianceBadge = ({ flags }: { flags: ComplianceFlag[] }) =>
+  hasComplianceErrors(flags) ? (
+    <span
+      title="Compliance error flag detected - review before posting"
+      className="absolute -right-1.5 -top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-destructive bg-destructive text-[10px] font-bold leading-none text-destructive-foreground"
+    >
+      !
+    </span>
+  ) : null;
 
 export default function ComplianceChips({
   flags,

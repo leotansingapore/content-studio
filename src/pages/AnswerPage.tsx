@@ -12,7 +12,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import ComplianceChips, { ComplianceBadge } from "@/components/ComplianceChips";
 import { ANSWER_COUNT, streamAnswers } from "@/lib/batchGenerate";
+import { scanCompliance } from "@/lib/compliance";
 import { stripDashes } from "@/lib/plainText";
 import { professionFor } from "@/lib/profession";
 import { scoped } from "@/lib/profiles";
@@ -54,6 +56,7 @@ export default function AnswerPage() {
   const [shape, setShape] = useUrlState<AnswerShape>("shape", "reply", { allowed: ANSWER_SHAPES });
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const writing = answers.some((a) => a.status === "writing");
@@ -96,6 +99,7 @@ export default function AnswerPage() {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+    setDismissed([]);
     setAnswers(Array.from({ length: ANSWER_COUNT }, () => ({ status: "writing", text: "" })));
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     const { data } = await supabase.auth.getUser();
@@ -189,6 +193,7 @@ export default function AnswerPage() {
         <div ref={resultsRef} className="grid gap-4 lg:grid-cols-3">
           {answers.map((a, i) => {
             const { title, body } = splitTitle(a.text);
+            const flags = a.status === "done" ? scanCompliance(a.text).filter((f) => !dismissed.includes(`${i}:${f.id}`)) : [];
             return (
               <Card key={i} className="border-border/60 shadow-card">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -209,6 +214,7 @@ export default function AnswerPage() {
                       <p className="whitespace-pre-line text-[13px] leading-relaxed text-foreground/85">{body || "..."}</p>
                     </>
                   )}
+                  <ComplianceChips flags={flags} onDismiss={(id) => setDismissed((d) => [...d, `${i}:${id}`])} />
                   {a.status === "done" && (
                     <div className="flex flex-wrap gap-2">
                       {title && (
@@ -216,8 +222,9 @@ export default function AnswerPage() {
                           {copied === `${i}-title` ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />} Copy title
                         </Button>
                       )}
-                      <Button size="sm" className="min-h-11 gap-1.5 sm:min-h-9" onClick={() => void copy(`${i}`, body)}>
+                      <Button size="sm" className="relative min-h-11 gap-1.5 sm:min-h-9" onClick={() => void copy(`${i}`, body)}>
                         {copied === `${i}` ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {title ? "Copy post" : "Copy answer"}
+                        <ComplianceBadge flags={flags} />
                       </Button>
                     </div>
                   )}

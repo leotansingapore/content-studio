@@ -10,7 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import ComplianceChips, { ComplianceBadge } from "@/components/ComplianceChips";
 import { VSL_COUNT, streamVsl } from "@/lib/batchGenerate";
+import { scanCompliance } from "@/lib/compliance";
 import { stripDashes } from "@/lib/plainText";
 import { professionFor } from "@/lib/profession";
 import { supabase } from "@/lib/supabase";
@@ -40,6 +42,7 @@ export default function VslPage() {
   const setAnswer = (key: VslKey, value: string) => setParams((prev) => withParam(prev, key, value, ""), { replace: true });
   const [versions, setVersions] = useState<Version[]>([]);
   const [copied, setCopied] = useState<number | null>(null);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const writing = versions.some((v) => v.status === "writing");
@@ -52,6 +55,7 @@ export default function VslPage() {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+    setDismissed([]);
     setVersions(Array.from({ length: VSL_COUNT }, () => ({ status: "writing", text: "" })));
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     const { data } = await supabase.auth.getUser();
@@ -122,6 +126,7 @@ export default function VslPage() {
         <div ref={resultsRef} className="grid gap-4 lg:grid-cols-2">
           {versions.map((v, i) => {
             const stats = v.status === "done" ? scriptStats(v.text) : null;
+            const flags = v.status === "done" ? scanCompliance(v.text).filter((f) => !dismissed.includes(`${i}:${f.id}`)) : [];
             return (
               <Card key={i} className="border-border/60 shadow-card">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -147,10 +152,12 @@ export default function VslPage() {
                       })}
                     </div>
                   )}
+                  <ComplianceChips flags={flags} onDismiss={(id) => setDismissed((d) => [...d, `${i}:${id}`])} />
                   {stats && (
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                      <Button size="sm" className="min-h-11 gap-1.5 sm:min-h-9" onClick={() => void copy(i, v.text)}>
+                      <Button size="sm" className="relative min-h-11 gap-1.5 sm:min-h-9" onClick={() => void copy(i, v.text)}>
                         {copied === i ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} Copy script
+                        <ComplianceBadge flags={flags} />
                       </Button>
                       <span className="text-xs text-muted-foreground">
                         About {stats.minutes} min spoken{stats.needs > 0 && `, ${stats.needs} ${stats.needs === 1 ? "gap" : "gaps"} to fill`}
