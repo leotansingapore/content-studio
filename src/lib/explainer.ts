@@ -23,6 +23,7 @@ import { searchStock, type StockItem } from "@/lib/stockMedia";
 import type { VoiceId } from "@/lib/textVoice";
 import type { JoinExtra } from "@/lib/videoMedia";
 import { memoryLine } from "@/lib/voiceMemory";
+import { speakerFor } from "@/lib/remixBrand";
 import { ALL_LOOK_IDS, MAX_NOTES, type LookId, type NarratedSeconds, type Scene } from "../../supabase/functions/ai-video/logic.ts";
 import { MAX_CANDIDATES } from "../../supabase/functions/video-assist/montage.ts";
 
@@ -277,7 +278,8 @@ export async function writeNarrated(userId: string, a: { from: From; seconds: Na
     const notes = memoryLine(userId, "videos", MAX_NOTES);
     const r = await callFn<{ scenes: Scene[]; look: { id: LookId; p: number } | null; mas: boolean | null }>(
       "ai-video",
-      { mode: "script", topic, seconds: a.seconds, ...(source ? { source } : {}), ...(notes ? { notes } : {}) },
+      // a business brand's script says we and us, and never ends on "message me"
+      { mode: "script", topic, seconds: a.seconds, ...(source ? { source } : {}), ...(notes ? { notes } : {}), ...(speakerFor(userId) === "business" ? { speaker: "business" as const } : {}) },
       WRITE_FAILED,
     );
     const written = r.scenes.map((s) => ({ say: s.say, picture: s.picture, search: s.search ?? "" }));

@@ -763,7 +763,7 @@ describe("a business brand's narrated script (replay D14: the agent's explainer 
   it("speaks as the business and ends with its next step, never message me or a consultant's rules", () => {
     const biz = narratedSystem({ speaker: "business" });
     expect(biz).toContain("in the business's own voice: we and our, never I or me.");
-    expect(biz).toContain("End with a soft next step for the business, such as following it or trying what it offers, never asking anyone to message me.");
+    expect(biz).toContain("End with a soft next step for the business, such as following us, trying what we offer or messaging us. The business is always we and us, so never write message me.");
     for (const words of ["financial consultants", "message you", "insurer", "personal advice"]) expect(biz).not.toContain(words);
     expect(narratedSystem({ speaker: "business", source: { kind: "script", text: "My own words here today and more." } })).not.toContain("next step");
   });
