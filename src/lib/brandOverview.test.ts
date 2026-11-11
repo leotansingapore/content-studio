@@ -56,5 +56,7 @@ describe("brandOverview", () => {
     expect(row(i, "demos").value).toBe("1 video");
     expect(row({ ...i, proof: " 48 cafes " }, "proof")).toMatchObject({ value: "48 cafes", to: "/brand#script-product" });
     expect(isSet(row(i, "media"))).toBe(false);
+    // the website reads as its address, without the https:// in front
+    expect(row({ ...i, kit: { ...DEFAULT_BRAND, website: "https://acme.sg/about" } }, "website").value).toBe("acme.sg/about");
   });
 });
