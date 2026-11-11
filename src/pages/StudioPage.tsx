@@ -1,15 +1,23 @@
 // /studio (Studio > Overview, after Fastlane's Studio, docs/fastlane-nav-gap.md): where making starts. The agent's
 // composer for Leo, then a row each of formats, ads running now, trending posts and your latest, each opening the page
 // that already does the work. Reads only what this device and the bundled drops hold; calls no AI.
-import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, Clapperboard, Image as ImageIcon, Layers, Type, type LucideIcon } from "lucide-react";
 import { CREATE_FORMATS } from "@/lib/createFormats";
 import ReelCard from "@/components/ReelCard";
-import CopyLinkButton from "@/components/CopyLinkButton";
+import { CreationTile, recentCreations } from "@/components/home/HomeRows";
+import { readThumbSources, useFontsReady } from "@/components/library/LibraryThumb";
 import { FORMATS, formatHref, type FormatKind } from "@/data/formats";
 import { ADS, daysRunning } from "@/lib/adsSwipe";
-import { draftsOfBrand, draftStatus } from "@/lib/draftHistory";
+import { loadCarousels } from "@/lib/carousel";
+import { loadDesigns } from "@/lib/design";
+import { loadDrafts } from "@/lib/draftHistory";
+import { loadImages } from "@/lib/images";
+import { madeCount, buildLibrary } from "@/lib/library";
+import { loadMedia } from "@/lib/mediaLibrary";
+import { loadSlideshows } from "@/lib/slideshow";
+import { loadProjects } from "@/lib/videoProjects";
 import { links } from "@/lib/links";
 import { buildCreatorAverages, enrich, sortPosts, type ScoredPost } from "@/lib/postInsights";
 import { adviserBrand } from "@/lib/profession";
@@ -64,8 +72,15 @@ export default function StudioPage() {
     void supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id ?? null));
   }, []);
   const brand = userId ? activeProfile(userId)?.name : "";
-  const mine = userId ? draftsOfBrand(userId, activeProfile(userId).id) : [];
-  const latest = mine.slice(0, ROW);
+  // Your latest is the Library's newest five, drawn as the Library draws them (the stores it reads, on this device)
+  const stores = useMemo(
+    () => (userId ? { drafts: loadDrafts(userId), carousels: loadCarousels(userId), slideshows: loadSlideshows(userId), projects: loadProjects(userId), media: loadMedia(userId), designs: loadDesigns(userId), images: loadImages(userId) } : null),
+    [userId],
+  );
+  const latest = useMemo(() => (stores ? recentCreations(stores, ROW) : []), [stores]);
+  const made = useMemo(() => (stores ? madeCount(buildLibrary({ ...stores, jobs: [], now: new Date(0) })) : 0), [stores]);
+  const fontsReady = useFontsReady(latest.some((c) => c.item.thumb?.kind === "show"));
+  const sources = useMemo(() => (userId && stores ? readThumbSources(userId, stores, fontsReady) : undefined), [userId, stores, fontsReady]);
   const formats = leo ? READY.slice(0, 10) : null;
   // the ads and top posts are Singapore personal finance: an adviser brand's rows only
   const adviser = adviserBrand(userId);
@@ -89,7 +104,7 @@ export default function StudioPage() {
           {[
             ["#formats", "Formats", formats ? READY.length : WRITE.length],
             ...(adviser ? [["#ads", "Ads running now", ADS.length], ["#trending", "Trending", TOTAL_TOP_POSTS]] : []),
-            ["#latest", "Your latest", mine.length],
+            ["#latest", "Your latest", made],
           ].map(([href, label, n]) => (
             <a key={href} href={String(href)} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border/70 px-3 text-sm text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11">
               {label} <span className="tabular-nums">{n}</span>
@@ -139,24 +154,13 @@ export default function StudioPage() {
       </Row>
       </>}
 
-      <Row id="latest" title="Your latest" seeAll={{ to: leo ? "/library" : "/drafts", label: leo ? "Library" : "All posts" }}>
+      <Row id="latest" title="Your latest" seeAll={{ to: links.library(), label: "Library" }}>
         {latest.length === 0 ? (
           <p className="col-span-full text-sm text-muted-foreground">
             Nothing made yet. <Link to="/generate" className="font-medium text-primary hover:underline">Write a post</Link>
           </p>
         ) : (
-          latest.map((d) => (
-            // the whole tile opens the post (its title's link stretches over it); Copy link sits above that
-            <div key={d.id} className={`relative ${tile} focus-within:border-primary/40`}>
-              <span className="flex items-start justify-between gap-1">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{draftStatus(d)}</span>
-                <CopyLinkButton path={`/generate?draft=${encodeURIComponent(d.id)}`} label={`Copy link to ${(d.hook || "this post").slice(0, 60)}`} className="relative z-10 -mr-1.5 -mt-1.5" />
-              </span>
-              <Link to={`/generate?draft=${encodeURIComponent(d.id)}`} className="line-clamp-3 text-sm font-medium text-foreground after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none">
-                {(d.hook || d.draft.split("\n")[0] || "Untitled post").slice(0, 120)}
-              </Link>
-            </div>
-          ))
+          latest.map((c) => <CreationTile key={c.key} c={c} sources={sources} />)
         )}
       </Row>
     </div>
