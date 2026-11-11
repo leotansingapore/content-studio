@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The worker's door with the database faked: the secret, who a claim may serve, what a claim hands over, and that only
 // the claiming worker's answer lands.
@@ -39,10 +39,12 @@ const OTHER = "00000000-0000-0000-0000-00000000b002";
 const SECRET = "s".repeat(40);
 let env: Record<string, string> = {};
 
-beforeAll(async () => {
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past a 30 s
+// hook timeout under load, and collection has no timeout
+{
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   await import("./index.ts");
-}, 30_000);
+}
 
 beforeEach(() => {
   env = { SCRIPT_WORKER_SECRET: SECRET, NORTH_STAR_USERS: `*,${LEO}`, SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k" };

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The handler's gate: Telegram's secret (the shared bot's, or an own bot's by the id in the URL) or the cron's, before
 // anything is read, written or sent; the token never in an answer or a log. The queries that carry the rules are
@@ -38,7 +38,9 @@ const env: Record<string, string | undefined> = {};
 const telegram: string[] = [];
 const logged: string[] = [];
 
-beforeAll(async () => {
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past a 30 s
+// hook timeout under load, and collection has no timeout
+{
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (h.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
     telegram.push(String(u));
@@ -46,7 +48,7 @@ beforeAll(async () => {
     return new Response(answer ? JSON.stringify({ ok: true, result: answer(JSON.parse(String(init?.body ?? "{}"))) }) : "{}");
   });
   await import("./index.ts");
-}, 30_000);
+}
 
 beforeEach(() => {
   h.clients = 0;

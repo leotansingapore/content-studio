@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CREATOR_FIT_QUESTIONS,
   FIT_BATCH,
@@ -132,19 +132,22 @@ const db = vi.hoisted(() => ({
 }));
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
+const jev: string[] = [];
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past a 30 s
+// hook timeout under load (12 Nov), and collection has no timeout
+{
+  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", NORTH_STAR_USERS: "leo-uid", TYPESAFE_API_KEY: "k" };
+  vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
+  vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) => {
+    if (!String(u).includes("typesafe")) throw new Error(`unexpected fetch ${u}`);
+    jev.push(String(JSON.parse(String(init?.body)).state.creator));
+    return new Response(JSON.stringify({ answers: { fit: { type: "noul", noul: 0.8 } } }));
+  });
+  vi.spyOn(console, "log").mockImplementation(() => {});
+  await import("./index.ts");
+}
+
 describe("remix's creator-fit mode", () => {
-  const jev: string[] = [];
-  beforeAll(async () => {
-    const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", NORTH_STAR_USERS: "leo-uid", TYPESAFE_API_KEY: "k" };
-    vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
-    vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) => {
-      if (!String(u).includes("typesafe")) throw new Error(`unexpected fetch ${u}`);
-      jev.push(String(JSON.parse(String(init?.body)).state.creator));
-      return new Response(JSON.stringify({ answers: { fit: { type: "noul", noul: 0.8 } } }));
-    });
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    await import("./index.ts");
-  }, 30_000);
   afterAll(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
