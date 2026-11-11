@@ -12,10 +12,11 @@ import {
   AD_BUSY, AD_MADE, AD_SWAP_MADE, adCounts, adViews, countsLine, editAdLink, groupTitle, handOff, layoutMix, makeAd, notTaken, sendBlock, sendPlan, sheetKey,
   sheetPrefill, skipAd, swapAdLayout,
 } from "./campaignAds";
-import { getCampaign, planAds, saveCampaigns, type Campaign, type CampaignAd } from "./campaigns";
+import { adLayouts, getCampaign, planAds, saveCampaigns, type Campaign, type CampaignAd } from "./campaigns";
 import { EdgeError } from "./edgeFn";
 import { blankImage, imageWrite, loadImages, saveImage, type SavedImage } from "./images";
 import type { MakeResponse } from "./remix";
+import { parseMakeRequest } from "../../supabase/functions/remix/logic";
 
 class MemStorage {
   s = new Map<string, string>();
@@ -81,7 +82,7 @@ describe("the ads group", () => {
     expect(groupTitle(k.live)).toBe("9 ads launch together");
     expect(countsLine(k)).toBe("1 made, 8 drafts");
     expect(countsLine({ made: 9, drafts: 1 })).toBe("9 made, 1 draft");
-    expect(layoutMix(views)).toBe("4 Quote card, 3 Headline ad, 2 Stat card");
+    expect(layoutMix(views)).toBe("2 Quote card, 1 Us vs them, 1 A friend recommends you, 1 Lo-fi note, 1 AI chat answer, 1 Forum thread, 1 Concern and answer, 1 Story reply");
     expect(adCounts(adViews({}, [], null))).toEqual({ live: 0, made: 0, drafts: 0 });
   });
 });
@@ -120,6 +121,51 @@ describe("Make, Swap layout, Skip and Edit", () => {
     expect(view(1).design?.source).toEqual({ key: "ad:777", label: "Finch, 41 days running" });
   });
 
+  it("a static format is written by the same make /image sends for it, with the product photo and the flyer's price in the design", async () => {
+    storage.setItem(`content-studio-products-${U}`, JSON.stringify({ items: [{ id: "pd-brew1", name: "Brew", what: "", forWho: "", price: "$6 a bottle", pictures: ["cimg-photo1"], sources: [""] }] }));
+    const layouts = ["us-vs-them", "tear-off-flyer", "text-chat", "phone-share"] as const;
+    store(campaign({ ads: planAds(ANGLES, []).map((a, i) => (layouts[i] ? { ...a, layout: layouts[i] } : a)) }));
+    for (const [i, layout] of layouts.entries()) {
+      make.mockResolvedValueOnce(reply({ layout: layout as never, words: { headline: "H", one: "hello", message: "look at this" } as never }));
+      expect((await makeAd(U, "c1", i + 1)).ok).toBe(true);
+      const body = make.mock.calls[i][0];
+      expect(body).toMatchObject({ mode: "make", as: "image", layout });
+      // the server takes this body as it is
+      expect(parseMakeRequest(body).ok).toBe(true);
+      expect(view(i + 1).design?.layout).toBe(layout);
+    }
+    // best with a photo, and needs one: the product photo; a chat shows none
+    expect(view(1).design?.pictureKey).toBe("cimg-photo1");
+    expect(view(4).design?.pictureKey).toBe("cimg-photo1");
+    expect(view(3).design?.pictureKey).toBeUndefined();
+    expect(view(2).design?.words.price).toBe("$6 a bottle");
+    expect(view(1).design?.words.price).toBeUndefined();
+    expect(sendBlock(view(4))).toBeNull();
+    // the photo gone from the design: the sheet stays shut until one is added in Edit
+    expect(sendBlock({ ...view(4), design: { ...view(4).design!, pictureKey: undefined } })).toBe("Add a picture first.");
+  });
+
+  it("names the business as Post choices says: always by default, never when set to Never, a coin flip on Sometimes", async () => {
+    store(campaign());
+    storage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#123456", name: "Hilltop", handle: "" }));
+    const choose = (mention: string) => storage.setItem(`content-studio-post-choices-${U}`, JSON.stringify({ mention }));
+    const named = async (n: number) => {
+      make.mockResolvedValueOnce(reply({ layout: "headline", words: { headline: "H" } }));
+      await makeAd(U, "c1", n);
+      return make.mock.calls.at(-1)?.[0].brand.mention;
+    };
+    expect(await named(1)).toBe(true);
+    choose("never");
+    expect(await named(2)).toBe(false);
+    choose("sometimes");
+    const flip = vi.spyOn(Math, "random");
+    flip.mockReturnValue(0.9);
+    expect(await named(3)).toBe(false);
+    flip.mockReturnValue(0.1);
+    expect(await named(4)).toBe(true);
+    flip.mockRestore();
+  });
+
   it("one static ad at a time; a failed Make keeps its line and the next Make reuses the same design", async () => {
     store(campaign());
     let finish: (v: MakeResponse) => void = () => {};
@@ -146,14 +192,27 @@ describe("Make, Swap layout, Skip and Edit", () => {
   it("Swap layout takes the next layout on a draft, Undo puts it back, and a made ad changes its layout in Edit", () => {
     store(campaign());
     const r = swapAdLayout(U, "c1", 1);
-    expect(r).toMatchObject({ ok: true, toast: "Ad 1 is a quote card now." });
+    expect(r).toMatchObject({ ok: true, toast: "Ad 1 is now: Quote card." });
     expect(ad(1).layout).toBe("quote");
-    expect(swapAdLayout(U, "c1", 1).ok).toBe(true);
-    expect(ad(1).layout).toBe("stat");
-    expect(swapAdLayout(U, "c1", 1).ok).toBe(true);
-    expect(ad(1).layout).toBe("headline");
+    // the same list the plan chose from, the registry's name on each, and round again after the last
+    const list = adLayouts({});
+    const seen = ["quote"];
+    for (let i = 0; i < list.length - 1; i++) {
+      const s = swapAdLayout(U, "c1", 1);
+      expect(s.ok).toBe(true);
+      seen.push(ad(1).layout);
+    }
+    expect(seen).toEqual([...list.slice(1), "headline"]);
+    expect(seen).not.toContain("phone-share");
+    expect(swapAdLayout(U, "c1", 1)).toMatchObject({ toast: "Ad 1 is now: Quote card." });
+    expect(swapAdLayout(U, "c1", 1)).toMatchObject({ toast: "Ad 1 is now: Text message chat." });
     if (r.ok) r.undo();
     expect(ad(1).layout).toBe("headline");
+    // with a product photo the formats that need one join the cycle
+    storage.setItem(`content-studio-products-${U}`, JSON.stringify({ items: [{ id: "pd-brew1", name: "Brew", what: "", forWho: "", pictures: ["cimg-photo1"], sources: [""] }] }));
+    store(campaign({ ads: planAds(ANGLES, []).map((a) => (a.n === 1 ? { ...a, layout: "email-screenshot" as const } : a)) }));
+    expect(swapAdLayout(U, "c1", 1).ok).toBe(true);
+    expect(ad(1).layout).toBe("phone-share");
     saveImage(U, made("img-made1x"));
     store(campaign({ ads: planAds(ANGLES, []).map((a) => (a.n === 1 ? { ...a, designId: "img-made1x" } : a)) }));
     expect(swapAdLayout(U, "c1", 1)).toEqual({ ok: false, error: AD_SWAP_MADE });
@@ -177,8 +236,8 @@ describe("Make, Swap layout, Skip and Edit", () => {
     expect(editAdLink(U, "c1", 1)).toBe("/image?layout=quote&size=1x1&image=img-made1x");
     const link = editAdLink(U, "c1", 3);
     const id = ad(3).designId;
-    expect(link).toBe(`/image?layout=stat&image=${id}`);
-    expect(loadImages(U).find((d) => d.id === id)).toMatchObject({ layout: "stat", words: { topic: "Plan early: Care costs land on the family." } });
+    expect(link).toBe(`/image?layout=text-chat&image=${id}`);
+    expect(loadImages(U).find((d) => d.id === id)).toMatchObject({ layout: "text-chat", words: { topic: "Plan early: Care costs land on the family." } });
     expect(view(3).state).toBe("draft");
     expect(make).not.toHaveBeenCalled();
   });

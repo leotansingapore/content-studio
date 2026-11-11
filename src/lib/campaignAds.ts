@@ -7,11 +7,13 @@
 // here calls AdLauncher, switches an ad on or spends.
 
 import type { MakeOutcome } from "@/lib/campaignActions";
-import { AD_LAYOUTS, getCampaign, loadCampaigns, saveCampaigns, type AdBudget, type Campaign, type CampaignAd } from "@/lib/campaigns";
-import { imageBlock, LAYOUT_LABELS, mainWords } from "@/lib/imageLayout";
+import { adBits, adLayouts, getCampaign, loadCampaigns, saveCampaigns, type AdBudget, type Campaign, type CampaignAd } from "@/lib/campaigns";
+import { imageBlock, LAYOUT_LABELS, mainWords, pictureBlock, staticPhoto } from "@/lib/imageLayout";
 import { blankImage, imageWrite, imageWriteBusy, loadImages, saveImage, startImageWrite, WRITE_FAILED, type ImageWrite, type SavedImage } from "@/lib/images";
 import { links, type ImageLayout } from "@/lib/links";
 import { MAX_DAYS, type AdForm, type AdLaunch } from "@/lib/adlauncher";
+import { mentionFor } from "@/lib/postChoices";
+import { loadProducts } from "@/lib/products";
 import { rememberSource, seenSources } from "@/lib/remixSource";
 import { resolveSource } from "@/lib/resolveSource";
 import { countryName } from "@/lib/campaignWizard";
@@ -104,7 +106,11 @@ export function adNote(c: Pick<Campaign, "angles" | "audienceName">, ad: Campaig
 /** The ad's design: its unwritten one again (a failed or stopped Make, or Edit), else a new one; saved and linked. */
 function designFor(userId: string, c: Campaign, ad: CampaignAd, existing: SavedImage | null): SavedImage | null {
   const base = existing ?? blankImage({ layout: ad.layout, size: "4x5", ...(ad.source ? { source: ad.source } : {}) });
-  const design: SavedImage = { ...base, layout: ad.layout, words: { ...base.words, topic: adTopic(c, ad) } };
+  // as a static format's own page starts its design: the product photo when the format shows one, the price on a flyer
+  const bits = adBits(loadProducts(userId));
+  const picture = !base.pictureKey && bits.picture && staticPhoto(ad.layout) ? bits.picture : undefined;
+  const price = ad.layout === "tear-off-flyer" && !base.words.price?.trim() ? bits.price?.slice(0, 40) : undefined;
+  const design: SavedImage = { ...base, layout: ad.layout, words: { ...base.words, topic: adTopic(c, ad), ...(price ? { price } : {}) }, ...(picture ? { pictureKey: picture } : {}) };
   saveImage(userId, design);
   return updateAd(userId, c.id, ad.n, { designId: design.id, error: undefined }) ? design : null;
 }
@@ -123,7 +129,7 @@ export async function makeAd(userId: string, campaignId: string, n: number): Pro
   if (!design) return { ok: false, error: SAVE_LINE };
   // the seam's layout, never Jev's pick; a competitor ad's picture link expires, so it is never read (read: false)
   const run = startImageWrite(userId, {
-    designId: design.id, source, topic: adTopic(c, ad), layout: ad.layout, mention: true, note: source ? adNote(c, ad) : "", size: "4x5", read: false,
+    designId: design.id, source, topic: adTopic(c, ad), layout: ad.layout, mention: mentionFor(userId), note: source ? adNote(c, ad) : "", size: "4x5", read: false,
   });
   const id = imageWrite()?.id;
   await run;
@@ -137,15 +143,16 @@ export async function makeAd(userId: string, campaignId: string, n: number): Pro
 /** Undo for Make: the ad is a draft again; its design stays in Your images (the remix make was spent). */
 export const undoMakeAd = (userId: string, campaignId: string, n: number) => updateAd(userId, campaignId, n, { designId: undefined, error: undefined });
 
-/** The next of today's layouts for a draft; Undo puts the one before back. */
+/** The next of the brand's layouts (adLayouts, the list the plan chose from) for a draft; Undo puts the one before back. */
 export function swapAdLayout(userId: string, campaignId: string, n: number): MakeOutcome {
   const f = find(userId, campaignId, n);
   if (!f) return { ok: false, error: AD_GONE };
   if (f.view.state === "made" || f.view.state === "making") return { ok: false, error: f.view.state === "made" ? AD_SWAP_MADE : AD_MAKING };
   const was = f.ad.layout;
-  const layout = AD_LAYOUTS[(AD_LAYOUTS.indexOf(was) + 1) % AD_LAYOUTS.length];
+  const list = adLayouts(adBits(loadProducts(userId)));
+  const layout = list[(list.indexOf(was) + 1) % list.length];
   if (!updateAd(userId, campaignId, n, { layout })) return { ok: false, error: SAVE_LINE };
-  return { ok: true, toast: `Ad ${n} is a ${LAYOUT_LABELS[layout].toLowerCase()} now.`, undo: () => void updateAd(userId, campaignId, n, { layout: was }) };
+  return { ok: true, toast: `Ad ${n} is now: ${LAYOUT_LABELS[layout]}.`, undo: () => void updateAd(userId, campaignId, n, { layout: was }) };
 }
 
 /** Skip toggles: a skipped ad leaves the counts and the hand-off; Skip again (or Undo) brings it back. */
@@ -193,8 +200,8 @@ export function sendPlan(c: Pick<Campaign, "budget" | "weeks">, views: AdView[],
   };
 }
 
-/** Why a made ad can't open Run as an ad yet (/image keeps the sheet shut), else null: a stat card's own number. */
-export const sendBlock = (v: AdView) => (v.design ? imageBlock(v.design.layout, v.design.words) : AD_GONE);
+/** Why a made ad can't open Run as an ad yet (/image keeps the sheet shut), else null: a stat card's own number, a format's photo. */
+export const sendBlock = (v: AdView) => (v.design ? (imageBlock(v.design.layout, v.design.words) ?? pictureBlock(v.design.layout, v.design.pictureKey ? 1 : 0)) : AD_GONE);
 
 /** What the sheet starts on: a website ad to the landing page, the per-ad budget and the campaign's days. */
 export const sheetPrefill = (c: Pick<Campaign, "budget">, plan: Pick<SendPlan, "perAd" | "days">): Pick<AdForm, "goal" | "url" | "dailyBudget" | "days"> => ({

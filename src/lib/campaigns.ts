@@ -5,6 +5,7 @@
 // "Posts and ads") also carries its budget and 10 ad drafts (planAds; made and sent in src/lib/campaignAds.ts).
 
 import type { FunnelStageId } from "@/data/funnelFramework";
+import { STATIC_FORMATS } from "@/data/staticFormats";
 import { loadAudiences } from "@/lib/audiences";
 import { loadCompetitorAds, runLabel } from "@/lib/competitorAds";
 import { generatePlan, planItemDate, planOptionsFor, steerFor, upcomingMonday, type GeneratePlanOptions, type PlanPillar } from "@/lib/contentPlan";
@@ -14,7 +15,9 @@ import { getTrackedPosts, postingTimeOn } from "@/lib/analytics";
 import { loadBrand } from "@/lib/carousel";
 import { freeTimeOn, monFirst, slotTimesFor, type Held } from "@/lib/postingSlots";
 import { EMPTY_POSITIONING, loadPositioning, type PlanPlatform, type Positioning } from "@/lib/positioning";
+import { STATIC_LAYOUT_IDS } from "@/lib/links";
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
+import { loadProducts, type Products } from "@/lib/products";
 import { scoped } from "@/lib/profiles";
 import { sourceKey } from "@/lib/remixSource";
 import { BREAKOUT_RATIO, median } from "../../supabase/functions/_shared/socialAudit.ts";
@@ -39,9 +42,8 @@ export interface CampaignPost {
 export type CampaignRuns = "organic" | "ads" | "both";
 /** What the ads spend and who sees them: US$ a day, the https landing page, ISO country codes (up to 10) and ages. */
 export interface AdBudget { daily: number; url: string; countries: string[]; ages: [number, number] }
-/** The layouts an ad takes today: /image's headline ad, quote card and stat card (a testimonial is a customer's own words). */
-export const AD_LAYOUTS = ["headline", "quote", "stat"] as const;
-export type CampaignAdLayout = (typeof AD_LAYOUTS)[number];
+/** The layouts an ad takes: /image's headline ad, quote card and stat card (a testimonial is a customer's own words), and every static ad format that is drawn. */
+export type CampaignAdLayout = "headline" | "quote" | "stat" | (typeof STATIC_LAYOUT_IDS)[number];
 /**
  * One of the campaign's ads: an angle, a layout and, when the brand's competitors have running ads, the one it remixes.
  * `designId` is its /image design once Make or Edit made one; made, making and draft are read from that design.
@@ -210,15 +212,37 @@ function freeTimes(userId: string, posts: CampaignPost[], platform: string, exce
 
 // ---- The ads ----------------------------------------------------------------------
 
-/**
- * THE SEAM where an ad's layout is chosen: ad i takes /image's three ad layouts in turn. Once the static ad formats
- * (src/data/staticFormats.ts) can be made from here, pick among them in this one function.
- */
-export const adLayoutFor = (i: number): CampaignAdLayout => AD_LAYOUTS[i % AD_LAYOUTS.length];
+/** What the brand has for an ad: its product photo (a used product's first) and its first price, as the static format page reads them. */
+export function adBits(p: Products): { picture?: string; price?: string } {
+  const items = [...p.items.filter((x) => x.use), ...p.items.filter((x) => !x.use)];
+  return { picture: items.find((x) => x.pictures[0])?.pictures[0], price: items.find((x) => x.price?.trim())?.price?.trim() };
+}
 
-/** 10 ad drafts: ad i takes angle i mod n, the seam's layout and, while they last, source i. */
-export const planAds = (angles: Campaign["angles"], sources: { key: string; label: string }[]): CampaignAd[] =>
-  Array.from({ length: AD_COUNT }, (_, i) => ({ n: i + 1, angleId: angles[i % angles.length]?.id ?? "", layout: adLayoutFor(i), ...(sources[i] ? { source: sources[i] } : {}) }));
+/**
+ * The layouts this brand's ads can take, the list Swap layout cycles: headline ad, quote card, each ready static
+ * format in the registry's order, then stat card. A format that needs a photo is in only with a product photo, and
+ * the tear-off flyer only with a price.
+ */
+export function adLayouts(have: { picture?: string; price?: string }): CampaignAdLayout[] {
+  const drawn = STATIC_LAYOUT_IDS as readonly string[];
+  const statics = STATIC_FORMATS.filter((f) => f.ready && drawn.includes(f.slug) && (f.needs !== "photo" || !!have.picture) && (f.slug !== "tear-off-flyer" || !!have.price))
+    .map((f) => f.slug as CampaignAdLayout);
+  return ["headline", "quote", ...statics, "stat"];
+}
+
+/**
+ * THE SEAM where an ad's layout is chosen: slot i of the brand's layouts taken in turn, so a campaign's 10 ads are 10
+ * different layouts. A stat card needs a typed number, so it comes up once every two rounds of the others.
+ */
+export function adLayoutFor(i: number, layouts: CampaignAdLayout[] = adLayouts({})): CampaignAdLayout {
+  const rest = layouts.filter((l) => l !== "stat");
+  const round = layouts.includes("stat") ? [...rest, ...rest, "stat" as const] : rest;
+  return round[i % round.length] ?? "headline";
+}
+
+/** 10 ad drafts: ad i takes angle i mod n, the seam's layout from slot `from` + i and, while they last, source i. */
+export const planAds = (angles: Campaign["angles"], sources: { key: string; label: string }[], layouts: CampaignAdLayout[] = adLayouts({}), from = 0): CampaignAd[] =>
+  Array.from({ length: AD_COUNT }, (_, i) => ({ n: i + 1, angleId: angles[i % angles.length]?.id ?? "", layout: adLayoutFor(from + i, layouts), ...(sources[i] ? { source: sources[i] } : {}) }));
 
 /**
  * The brand's competitors' running ads to remix, one competitor after another so the 10 aren't all one rival's:
@@ -262,7 +286,8 @@ export function planCampaign(userId: string, ask: CampaignAsk, today: Date): Cam
     target: { posts: posts.length, winners: winnersFor(posts.length) },
     posts,
     ...(runs !== "organic" && ask.budget
-      ? { runs, budget: { ...ask.budget, countries: [...ask.budget.countries], ages: [...ask.budget.ages] as AdBudget["ages"] }, ads: planAds(ask.angles, runningAdSources(userId, today.getTime())) }
+      ? { runs, budget: { ...ask.budget, countries: [...ask.budget.countries], ages: [...ask.budget.ages] as AdBudget["ages"] }, // each campaign of the brand starts where the one before stopped, so two campaigns' ads differ too
+        ads: planAds(ask.angles, runningAdSources(userId, today.getTime()), adLayouts(adBits(loadProducts(userId))), loadCampaigns(userId).filter((x) => x.ads?.length).length * AD_COUNT) }
       : {}),
   };
 }
