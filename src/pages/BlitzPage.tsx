@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   CAPPED_LINE, FORMAT_LABELS, keptCount, keyAction, loadBlitz, onBlitzChanged, openCards, pending, sourceChip, type BlitzCard,
 } from "@/lib/blitz";
-import { blitzBusy, editHref, keepCard, nothingToDraw, onBlitzJob, retryCard, skipCard, startDeck, undoKeep, whyEmpty } from "@/lib/blitzJob";
+import { alsoMake, blitzBusy, editHref, keepCard, nothingToDraw, onBlitzJob, retryCard, skipCard, startDeck, undoKeep, whyEmpty } from "@/lib/blitzJob";
 import { links } from "@/lib/links";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlUpdate } from "@/lib/urlState";
@@ -178,7 +178,12 @@ function Blitz({ userId }: { userId: string }) {
               </button>
             </div>
             {why && <p id="bz-why" className="text-center text-sm text-muted-foreground">{card.why}</p>}
-            <div key={card.id} className={cn("mx-auto motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-4", card.format === "wall" ? "max-w-[220px] sm:max-w-[260px]" : "max-w-[320px]")}>
+            {/* on a phone the card is sized to the screen, so Skip, Edit and Keep stay above the bottom bar */}
+            <div
+              key={card.id}
+              className="mx-auto [--bz-h:calc(100svh-470px)] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-4 sm:[--bz-h:2000px]"
+              style={{ maxWidth: card.format === "wall" ? "min(260px, max(170px, calc(var(--bz-h) * 9 / 16)))" : "min(320px, max(200px, calc(var(--bz-h) * 4 / 5)))" }}
+            >
               {card.state === "failed" ? (
                 <div className="flex aspect-[4/5] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border p-6 text-center">
                   <p className="text-sm font-medium">{card.error || "Couldn't make this one."}</p>
@@ -210,6 +215,15 @@ function Blitz({ userId }: { userId: string }) {
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">Keep <Key k="K" /></span>
               </div>
             </div>
+            {card.state === "new" && alsoMake(card).length > 0 && (
+              <p className="flex flex-wrap justify-center gap-x-4 text-xs">
+                {alsoMake(card).map((a) => (
+                  <Link key={a.href} to={a.href} className="inline-flex min-h-9 items-center text-muted-foreground underline-offset-4 hover:text-foreground hover:underline [@media(pointer:coarse)]:min-h-11">
+                    {a.label}
+                  </Link>
+                ))}
+              </p>
+            )}
           </div>
         </div>
       ) : running || (!s.cards.length && !s.capped) ? (
