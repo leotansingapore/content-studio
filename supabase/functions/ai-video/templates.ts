@@ -265,6 +265,247 @@ const PHASE3_TEMPLATES: VideoTemplate[] = [
   },
 ];
 
+// ---- A person on camera, after Fastlane's Studio > Create (11 Nov meeting: "all of these formats") ----
+// One-take clips in our own words, Leo's like the skits: the server refuses them for anyone not on NORTH_STAR_USERS.
+// Words a model would garble (a comment, a question box, a notes list) go on in the editor, so each clip leaves room.
+
+const STICKER_ROOM = "Leave the top third of the frame calm and clear: a sticker goes there in the editor";
+const SPEAKER = { ...PERSON, label: "Who is on camera", placeholder: "A Chinese woman in her 20s in a cream knit top" };
+
+const PERSON_TEMPLATES: VideoTemplate[] = [
+  {
+    id: "reaction-claim",
+    title: "Reaction to a claim",
+    blurb: "Someone hears a claim on their phone, then looks up and answers it.",
+    fields: [
+      { key: "question", label: "The claim they hear", placeholder: "I've tried everything and nothing works", required: true, maxWords: 8 },
+      { key: "answer", label: "Their answer", placeholder: "You're missing one simple step" },
+      SPEAKER,
+    ],
+    photos: ["person"],
+    warnings: SKIT_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, a phone camera propped at chest height, one take, at home",
+      "Who: one person holding a phone low, watching a clip on it, the phone's screen turned away from the lens",
+      "Beat 1: a voice from the phone's small speaker says the claim; they watch, eyebrows rising",
+      "Beat 2: they lower the phone, look straight into the lens and say the answer",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: [
+      "The claim sounds tinny, as from a phone speaker, in a different voice from the person on camera.",
+      "A small, honest reaction: a pause, a slight head shake, then a calm answer.",
+      "Natural light and a real room, no studio polish.",
+    ],
+    avoid: ["The phone's screen in view", "A second person in frame", "Long spoken lines"],
+    leoOnly: true,
+    rule: "The claim is heard from the phone, never spoken by the person on camera; they speak only the answer.",
+  },
+  {
+    id: "unboxing",
+    title: "Unboxing",
+    blurb: "Someone opens your box and talks through what comes out.",
+    fields: [
+      { key: "product", label: "Your product", placeholder: "A matte black planner with a gold pen", required: true },
+      { ...LINE, placeholder: "Oh, this is nicer than I thought" },
+      SPEAKER,
+    ],
+    photos: ["product"],
+    needsPhoto: "product",
+    warnings: ["Labels and logos come out garbled. Add your text in the editor.", "Keep what they say short, or the lips slip out of sync."],
+    structure: [
+      "Opening line: the length, vertical 9:16, a handheld phone over a table at home",
+      "Product lock: the product broken into its parts (shape, colours, materials, proportions)",
+      "Beats in order: a closed plain box on the table, hands lift the lid, take the product out, turn it to the light, then the person looks up and reacts",
+      "Each spoken line inside the beat where it is said",
+      "Ending: the product held up towards the lens",
+    ],
+    guidance: [
+      "A plain box with no printed words.",
+      "Realistic hands with five fingers, one hand movement per beat.",
+      "Lines are first-person reactions, not ad slogans.",
+    ],
+    avoid: ["Printed labels or brand text up close", "Hands warping around the product", "Long spoken lines"],
+    leoOnly: true,
+  },
+  {
+    id: "notes-presenter",
+    title: "Presenter over a notes list",
+    blurb: "Someone with a mic talks to camera in front of a giant phone notes page.",
+    fields: [
+      { key: "scene", label: "What the list is about", placeholder: "Three things to check before you buy cover", required: true },
+      LINE,
+      SPEAKER,
+    ],
+    photos: ["person"],
+    warnings: ["The list's words go on in the editor; the clip leaves its lines blank.", "Keep each line under 8 words, or the lips slip out of sync."],
+    structure: [
+      "Opening line: the length, vertical 9:16, a locked-off shot, the person cut out over a backdrop like a green screen",
+      "Backdrop: a giant light-coloured phone notes page filling the frame, ruled lines left blank",
+      "Who: one person, chest-up in the lower half of the frame, holding a small handheld mic, facing the lens",
+      "Beat: they glance back at the page, then say the line to camera",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: ["Keep the upper half of the page clear of the person.", "Even, bright light on the person, matching the page."],
+    avoid: ["Any words or numbers on the page", "Logos on the mic", "Long spoken lines"],
+    leoOnly: true,
+  },
+  {
+    id: "comment-reply",
+    title: "Comment reply",
+    blurb: "Someone reads a viewer's comment, then answers it to the front camera.",
+    fields: [
+      { key: "question", label: "The comment", placeholder: "Is this worth it in your 20s?", required: true },
+      { key: "answer", label: "Their answer", placeholder: "Yes, and here's why" },
+      SPEAKER,
+    ],
+    photos: ["person"],
+    warnings: ["Add the comment as a sticker in the editor; the clip leaves room at the top.", SKIT_WARNINGS[0]],
+    structure: [
+      "Opening line: the length, vertical 9:16, a selfie on the front camera held at arm's length",
+      "Who: one person at home, chest-up in the lower two thirds of the frame",
+      STICKER_ROOM,
+      "Beats in order: they glance up towards the top of the frame as if reading, then look into the lens and give the answer",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: ["Casual and direct, like replying to a friend.", "Natural light and a real room."],
+    avoid: ["Reading the comment aloud word for word", "Text or captions in the frame", "Long spoken lines"],
+    leoOnly: true,
+    rule: "The person speaks only the answer; the comment stays unspoken.",
+  },
+  {
+    id: "question-box",
+    title: "Question box answer",
+    blurb: "A follower's question on a sticker, answered selfie-style.",
+    fields: [
+      { key: "question", label: "The question", placeholder: "How much should I save each month?", required: true },
+      { key: "answer", label: "Their answer", placeholder: "Start with a fifth of your pay" },
+      SPEAKER,
+    ],
+    photos: ["person"],
+    warnings: ["Add the question as a sticker in the editor; the clip leaves room at the top.", SKIT_WARNINGS[0]],
+    structure: [
+      "Opening line: the length, vertical 9:16, a selfie on the front camera, at a desk or on a couch",
+      "Who: one person, chest-up in the lower two thirds of the frame",
+      STICKER_ROOM,
+      "Beats in order: a small nod as if they read the question, then they answer it to the lens",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: ["Warm and quick, like an answer between other things.", "One continuous take."],
+    avoid: ["Text or captions in the frame", "A second person", "Long spoken lines"],
+    leoOnly: true,
+    rule: "The person speaks only the answer; the question stays unspoken.",
+  },
+  {
+    id: "car-call",
+    title: "Call between two cars",
+    blurb: "Two friends on a hands-free call, each in her own car, in two halves.",
+    fields: [
+      { key: "question", label: "The first friend's problem", placeholder: "I never know where my money goes", required: true },
+      { key: "answer", label: "The other friend's answer", placeholder: "Track one week, then you'll see" },
+    ],
+    photos: ["person"],
+    warnings: SKIT_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, split screen: top half and bottom half, each a phone on a dashboard mount facing the driver's seat",
+      "Top half: the first friend in her car; bottom half: the other friend in a different car, different clothes and car interior",
+      "Both on a hands-free call through earbuds, eyes mostly on the road, daylight through the windscreen",
+      "Beats in order: the first friend says the problem, the other friend answers",
+      "Each spoken line inside the beat where it is said, from the half where it is said",
+    ],
+    guidance: ["A clean straight line between the halves.", "Light traffic outside, steady and calm."],
+    avoid: ["Hands off the wheel for long", "Logos in the cars", "Long spoken lines"],
+    leoOnly: true,
+    rule: SKIT_RULE,
+  },
+  {
+    id: "front-camera-chat",
+    title: "Front camera chat",
+    blurb: "Someone chats to their front camera, like a call with a friend, about the problem you fixed.",
+    fields: [
+      { key: "scene", label: "The problem you fixed", placeholder: "Clients who never reply to follow-ups", required: true },
+      { ...LINE, placeholder: "Okay so this changed everything for me" },
+      SPEAKER,
+    ],
+    photos: ["person"],
+    warnings: SKIT_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, a selfie on the front camera held close, one take",
+      "Where: a parked car, a bedroom or a kitchen, lived-in and real",
+      "Who: one person mid-story, animated, talking to the lens like a friend on a video call",
+      "Beat: they say the line, with small shrugs and hand moves",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: ["Real phone flaws: a little hand shake, natural light, no beauty filter.", "Face chest-up or wider."],
+    avoid: ["Studio lighting", "Faces filling the frame", "Long spoken lines"],
+    leoOnly: true,
+  },
+  {
+    id: "car-split",
+    title: "Two in the car",
+    blurb: "A driver with the problem and a passenger with the fix, side by side in split screen.",
+    fields: [
+      { key: "question", label: "The driver's problem", placeholder: "I keep forgetting to follow up", required: true },
+      { key: "answer", label: "The passenger's fix", placeholder: "I just let the app remind me" },
+      { key: "product", label: "What the passenger shows", placeholder: "A phone with a simple reminder list" },
+    ],
+    photos: ["person"],
+    warnings: SKIT_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, split screen: the driver in the top half, the passenger in the bottom half, the same car",
+      "Each half a phone on the dashboard facing one seat, daylight, the same street passing behind",
+      "Beats in order: the driver says the problem, the passenger answers and lifts what they show",
+      "Each spoken line inside the beat where it is said, from the half where it is said",
+    ],
+    guidance: ["The two friends look clearly different and wear different clothes.", "Steady and calm, light traffic."],
+    avoid: ["Readable screens", "Logos in the car", "Long spoken lines"],
+    leoOnly: true,
+    rule: SKIT_RULE,
+  },
+  {
+    id: "whiteboard-presenter",
+    title: "Whiteboard presenter",
+    blurb: "One idea explained to camera beside a whiteboard of simple drawings.",
+    fields: [
+      { key: "scene", label: "The idea", placeholder: "Why paying yourself first works", required: true },
+      LINE,
+      SPEAKER,
+    ],
+    photos: ["person"],
+    warnings: ["Drawings only: words on the board come out garbled, so add them in the editor.", "Keep each line under 8 words, or the lips slip out of sync."],
+    structure: [
+      "Opening line: the length, vertical 9:16, a tripod shot in a bright room",
+      "Who: one person standing beside a whiteboard, marker in hand, facing the lens",
+      "The board: simple hand-drawn shapes in black and blue marker (boxes, arrows, a stick figure, a rising line), no words",
+      "Beats in order: they tap one drawing with the marker, turn to camera and say the line",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: ["The board stays fully in frame.", "Even light, no glare on the board."],
+    avoid: ["Letters, words or numbers on the board", "Logos on the marker", "Long spoken lines"],
+    leoOnly: true,
+  },
+  {
+    id: "baby-podcast",
+    title: "Baby podcast",
+    blurb: "Two toddlers at podcast mics trade lines about your topic, straight-faced.",
+    fields: [
+      { key: "question", label: "The first host's line", placeholder: "So you still don't have a budget?", required: true },
+      { key: "answer", label: "The second host's reply", placeholder: "Budgets are for quitters" },
+    ],
+    photos: [],
+    warnings: SKIT_WARNINGS,
+    structure: [
+      "Opening line: the length, vertical 9:16, a small podcast set, warm light, one camera",
+      "Two toddlers in high chairs side by side, each at a microphone on a boom arm, wearing headphones",
+      "Beats in order: the first host says their line, a deadpan pause, the second host replies",
+      "Each spoken line inside the beat where it is said, in small serious voices",
+    ],
+    guidance: ["Completely deadpan: no laughing, slow blinks, a sip from a sippy cup.", "Both hosts stay in frame."],
+    avoid: ["Logos on the mics or the wall", "Adults in frame", "Long spoken lines"],
+    leoOnly: true,
+    rule: SKIT_RULE,
+  },
+];
+
 export const TEMPLATES: VideoTemplate[] = [
   {
     id: "ugc-creator-review",
@@ -486,6 +727,7 @@ export const TEMPLATES: VideoTemplate[] = [
     avoid: ["The camera operator's own face in frame", "A third hand", "A big jump in place within the take"],
   },
   ...PHASE3_TEMPLATES,
+  ...PERSON_TEMPLATES,
 ];
 
 export const templateById = (id: unknown) => TEMPLATES.find((t) => t.id === id);

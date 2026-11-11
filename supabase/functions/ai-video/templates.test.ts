@@ -1,10 +1,16 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { clipCredits, creditsUsd, parseVideoRequest, seedanceRequest } from "./logic";
-import { TEMPLATES, clipPrompt, editorTemplates, fixedPrompt, referenceLock, templateById, templateDetails, templateSystem } from "./templates";
+import { clipCredits, creditsUsd, northStarOnly, parseVideoRequest, seedanceRequest } from "./logic";
+import { TEMPLATES, type VideoTemplate, clipPrompt, editorTemplates, fixedPrompt, referenceLock, templateById, templateDetails, templateSystem } from "./templates";
 
 const JPEG = "/9j/4AAQSkZJRgABAQAAAQABAAD";
 const ok = (body: Record<string, unknown>) => parseVideoRequest({ mode: "template", seconds: 4, quality: "480p", ...body });
+
+// A person on camera, after Fastlane's Studio > Create (11 Nov): Leo's, like the skits
+const ON_CAMERA = [
+  "reaction-claim", "unboxing", "notes-presenter", "comment-reply", "question-box",
+  "car-call", "front-camera-chat", "car-split", "whiteboard-presenter", "baby-podcast",
+];
 
 const TODAY = [
   "ugc-creator-review", "product-commercial-shotlist", "handheld-ugc-vlog", "timeline-shot-script",
@@ -12,9 +18,9 @@ const TODAY = [
 ];
 
 describe("the template gallery", () => {
-  it("shows everyone the eight looks the brief picked, and Leo the three skits too, never a hidden one", () => {
+  it("shows everyone the eight looks the brief picked, and Leo the skits and people on camera too, never a hidden one", () => {
     expect(editorTemplates(false).map((t) => t.id)).toEqual(TODAY);
-    expect(editorTemplates(true).map((t) => t.id)).toEqual([...TODAY, "street-interview", "three-levels", "two-host-podcast"]);
+    expect(editorTemplates(true).map((t) => t.id)).toEqual([...TODAY, "street-interview", "three-levels", "two-host-podcast", ...ON_CAMERA]);
     expect(TEMPLATES.filter((t) => t.hidden).map((t) => t.id)).toEqual(["scene-kitchen", "scene-walk", "scene-interview", "spoken-hook", "crumple-hook"]);
     for (const t of editorTemplates(true)) expect(t.fields.some((f) => f.required), t.id).toBe(true);
   });
@@ -91,6 +97,41 @@ describe("phase 3's templates", () => {
     expect(templateDetails(templateById("two-host-podcast")!, details)).toBe("Question: Do you save?\nAnswer: Not really");
     expect(templateDetails(templateById("three-levels")!, details)).toBe("Scene: Orchard Road\nWhat they say: Check it yearly");
     expect(ok({ template: "street-interview", seconds: 8, fields: {} })).toMatchObject({ ok: false, error: 'Fill in "The question" first.' });
+  });
+});
+
+describe("the people on camera (Fastlane's Studio > Create, 11 Nov)", () => {
+  const filled = (t: VideoTemplate) =>
+    Object.fromEntries(t.fields.filter((f) => f.required).map((f) => [f.key, "Three short words"]));
+
+  it("are Leo's only, refused for anyone not on NORTH_STAR_USERS, and keep their prompt for any work", () => {
+    for (const id of ON_CAMERA) {
+      const t = templateById(id)!;
+      expect([t.leoOnly, t.hidden, t.open, t.fixed], id).toEqual([true, undefined, undefined, undefined]);
+      const photos = t.needsPhoto ? [{ role: t.needsPhoto, jpeg: JPEG }] : [];
+      const r = ok({ template: id, seconds: 8, fields: filled(t), photos, profession: "Bakery owner" });
+      expect(r, id).toMatchObject({ ok: true, request: { template: id, fields: filled(t) } });
+      if (!r.ok) continue;
+      expect(r.request, id).not.toHaveProperty("profession");
+      expect(northStarOnly(r.request), id).toBe(true);
+      // a blank required field is refused before anything is paid
+      expect(ok({ template: id, fields: {}, photos }), id).toMatchObject({ ok: false });
+      const s = templateSystem(t, 8, photos[0]?.role ?? null);
+      expect(s, id).toContain("Spoken lines: few, each under 8 words");
+      expect(s, id).toContain("No on-screen text, captions, logos or watermarks; text is added later in the editor.");
+    }
+  });
+
+  it("asks for a product photo before an unboxing, and leaves the sticker's room on a reply", () => {
+    expect(ok({ template: "unboxing", fields: { product: "A planner" } })).toEqual({ ok: false, error: "Add a photo first." });
+    for (const id of ["comment-reply", "question-box"]) {
+      const s = templateSystem(templateById(id)!, 8, null);
+      expect(s, id).toContain("a sticker goes there in the editor");
+      expect(s, id).toMatch(/speaks only the answer; the (comment|question) stays unspoken\.$/m);
+    }
+    expect(templateSystem(templateById("reaction-claim")!, 8, null)).toContain("The claim is heard from the phone");
+    // the claim is a spoken line too: over 8 words would slip out of sync, so it is refused before paying
+    expect(ok({ template: "reaction-claim", fields: { question: "one two three four five six seven eight nine" } })).toMatchObject({ ok: false });
   });
 });
 
