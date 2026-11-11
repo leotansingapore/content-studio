@@ -703,6 +703,7 @@ export type CompareView = Exclude<(typeof COMPARE_TABS)[number], "version">;
 export const STATIC_LAYOUT_IDS = [
   "text-chat", "friend-recommends", "ai-chat", "forum-thread", "us-vs-them", "news-headline",
   "lofi-note", "concern-answer", "story-reply", "page-post", "email-screenshot",
+  "playful-apology", "phone-share", "share-popup", "whiteboard", "anti-design",
 ] as const;
 /** /image?layout=: four ad layouts, the five meme layouts, then the static ad formats. */
 export const IMAGE_LAYOUTS = ["headline", "quote", "stat", "testimonial", "top-bottom", "nobody-me", "expectation", "pov", "post-reaction", ...STATIC_LAYOUT_IDS] as const;
