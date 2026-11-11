@@ -827,6 +827,31 @@ describe("the Zernio outbox from All posts' own actions (phase 7 decision 6)", (
     expect(undoDuplicate(UID, r.copy.id, r.dropped).map((d) => d.id).sort()).toEqual(full.map((d) => d.id).sort());
   });
 
+  it("a full list on the laptop meets the phone's: both new posts are kept, the list stays at the cap with the post Zernio holds, and open pages re-read", async () => {
+    const KEY = `content-studio-drafts-${UID}`;
+    const older = Array.from({ length: MAX_DRAFTS - 1 }, (_, i) => (i === MAX_DRAFTS - 2 ? held({ id: "held" }) : post({ id: `p${i}` })));
+    ls().setItem(KEY, JSON.stringify([post({ id: "laptop-post" }), ...older]));
+    const fromPhone = JSON.stringify([post({ id: "phone-post" }), ...older]);
+    const sent: string[] = [];
+    const events: string[] = [];
+    vi.stubGlobal("dispatchEvent", (e: Event) => void events.push(e.type));
+    const sync = createCloudSync(UID, ls(), {
+      pull: async () => ({ data: [{ key: KEY, data: fromPhone, updated_at: "2026-10-08T01:00:00.000Z" }], error: null }),
+      upsert: async (rows) => (rows.forEach((r) => sent.push(r.data)), { error: null }),
+      remove: async () => ({ error: null }),
+    });
+    await sync.start();
+    await sync.stop();
+    vi.unstubAllGlobals();
+    const ids = loadDrafts(UID).map((d) => d.id);
+    expect(ids).toHaveLength(MAX_DRAFTS);
+    expect(ids.slice(0, 2).sort()).toEqual(["laptop-post", "phone-post"]);
+    expect(ids).toContain("held");
+    expect(ids).not.toContain(`p${MAX_DRAFTS - 3}`);
+    expect(JSON.parse(sent.at(-1)!).map((d: DraftEntry) => d.id)).toEqual(ids);
+    expect(events).toContain("content-studio-drafts-changed");
+  });
+
   it("once Zernio has cancelled a post, its link is stripped on the next save, so an Undo can't bring the auto-post back", () => {
     const original = held();
     saveDrafts(UID, [original]);
