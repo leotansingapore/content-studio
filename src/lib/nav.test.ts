@@ -175,7 +175,7 @@ describe("nav", () => {
     it("names a tab after its page when it holds one, and after the job when it holds several", () => {
       // Library: four ways to look at what you made, uploads, and approvals
       const lib = sectionTabs("/drafts/", ANYONE);
-      expect(labels(lib.tabs)).toEqual(["Everything", "Media", "Leader approvals"]);
+      expect(labels(lib.tabs)).toEqual(["My work", "Media", "Leader approvals"]);
       expect(lib.tabs.find((t) => t.active)?.to).toBe("/library");
       expect(labels(lib.picker)).toEqual(["Everything", "All posts", "Board", "Grid"]);
       expect(sectionTabs("/media", ANYONE).picker).toEqual([]);

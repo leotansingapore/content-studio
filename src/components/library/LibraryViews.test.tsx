@@ -36,7 +36,7 @@ describe("the Library's view switch", () => {
     const tabs = (path: string) => renderToStaticMarkup(<MemoryRouter initialEntries={[path]}><SectionTabs email="someone@example.com" /></MemoryRouter>);
     for (const v of LIBRARY_VIEWS) {
       expect(tabs(v.to)).not.toContain("aria-haspopup");
-      expect(tabs(v.to)).toMatch(/aria-current="page"[^>]*>Everything</);
+      expect(tabs(v.to)).toMatch(/aria-current="page"[^>]*>My work</);
     }
     // another tab that holds several pages keeps its list
     expect(tabs("/generate")).toContain("aria-haspopup");

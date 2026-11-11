@@ -150,7 +150,7 @@ export const SECTIONS: NavSection[] = [
     was: "Studio",
     pages: [
       // one place for what you made, with four ways to look at it
-      { to: "/library", label: "Everything", title: "Library", group: "Everything" },
+      { to: "/library", label: "Everything", title: "Library", group: "My work" },
       { to: "/drafts", label: "All posts", was: "My posts drafts history" },
       { to: "/board", label: "Board" },
       { to: "/grid", label: "Grid", title: "Instagram grid" },
