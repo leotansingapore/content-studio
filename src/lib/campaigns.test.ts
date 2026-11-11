@@ -396,6 +396,48 @@ describe("laying a campaign out", () => {
     expect(loadCampaigns(UID)).toHaveLength(MAX_CAMPAIGNS);
   });
 
+  describe("which slot each post takes (the day's first slot nothing holds)", () => {
+    // every day at 08:30 and 19:00; the campaign starts Monday 26 October
+    const TWICE = [0, 1, 2, 3, 4, 5, 6].flatMap((d) => [`${d}T08:30`, `${d}T19:00`]);
+    const atTimes = (c: Campaign) => c.posts.map((p) => `${p.day} ${p.time}`);
+    beforeEach(() => storage.setItem(`content-studio-positioning-${UID}`, JSON.stringify(POS)));
+
+    it("moves a post to the day's second slot when a scheduled post holds the first, and ignores a post already marked posted", () => {
+      storage.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ slots: TWICE }));
+      storage.setItem(`content-studio-drafts-${UID}`, JSON.stringify([
+        draft({ id: "s", status: "scheduled", scheduledFor: "2026-10-26T08:30" }),
+        draft({ id: "p", status: "posted", scheduledFor: "2026-10-27T08:30" }),
+      ]));
+      const c = planCampaign(UID, ask({ perWeek: 7, weeks: 1, platforms: ["linkedin"] }), THU);
+      expect(atTimes(c).slice(0, 3)).toEqual(["2026-10-26 19:00", "2026-10-27 08:30", "2026-10-28 08:30"]);
+    });
+
+    it("a skipped post in another campaign frees its slot, a waiting one still holds it", () => {
+      storage.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ slots: TWICE }));
+      expect(saveCampaigns(UID, [campaign({ id: "old", posts: [post(1, { day: "2026-10-26", time: "08:30", state: "skipped" }), post(2, { day: "2026-10-27", time: "08:30", state: "waiting" })] })])).toBeNull();
+      const c = planCampaign(UID, ask({ perWeek: 7, weeks: 1, platforms: ["linkedin"] }), THU);
+      expect(atTimes(c).slice(0, 2)).toEqual(["2026-10-26 08:30", "2026-10-27 19:00"]);
+    });
+
+    it("at 2 a day puts each day's two posts at its two slots, never both at the first", () => {
+      storage.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ slots: TWICE }));
+      const c = planCampaign(UID, ask({ perWeek: 14, weeks: 1, platforms: ["linkedin"] }), THU);
+      expect(c.posts).toHaveLength(14);
+      const byDay = new Map<string, string[]>();
+      for (const p of c.posts) byDay.set(p.day, [...(byDay.get(p.day) ?? []), p.time ?? ""]);
+      expect(byDay.size).toBe(7);
+      for (const times of byDay.values()) expect([...times].sort()).toEqual(["08:30", "19:00"]);
+    });
+
+    it("with times per network, an Instagram campaign leaves LinkedIn's slots open for a LinkedIn one", () => {
+      storage.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ slots: TWICE, slotsBy: { linkedin: TWICE, instagram: TWICE } }));
+      expect(addCampaign(UID, planCampaign(UID, ask({ perWeek: 7, weeks: 1, platforms: ["instagram"], name: "IG" }), THU))).toBeNull();
+      expect(planCampaign(UID, ask({ perWeek: 7, weeks: 1, platforms: ["linkedin"], name: "LI" }), THU).posts.map((p) => p.time)).toEqual(Array(7).fill("08:30"));
+      // a second Instagram campaign does move along
+      expect(planCampaign(UID, ask({ perWeek: 7, weeks: 1, platforms: ["instagram"], name: "IG 2" }), THU).posts.map((p) => p.time)).toEqual(Array(7).fill("19:00"));
+    });
+  });
+
   describe("where it runs", () => {
     const BUDGET = { daily: 50, url: "https://example.com/", countries: ["SG", "MY"], ages: [25, 54] as [number, number] };
     const ad = (id: string, start: string, o: Record<string, unknown> = {}) =>
