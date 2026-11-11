@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MAX_TRIES, loadOutbox, onOutbox, queueCancel, runOutbox, saveOutbox, settleOutbox, zernioHolds, zernioOps, type Outbox, type OutboxOp } from "./zernioOutbox";
+import { MAX_TRIES, heldOn, loadOutbox, onOutbox, queueCancel, runOutbox, saveOutbox, settleOutbox, zernioHolds, zernioOps, type Outbox, type OutboxOp } from "./zernioOutbox";
 import type { DraftEntry } from "./draftHistory";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -75,6 +75,21 @@ describe("zernioOps", () => {
     expect(zernioOps([elsewhere, post({ id: "b" })], [elsewhere, post({ id: "b", draft: "Edited" })], box)).toBe(box);
     // the phone's move arrived before its drafts did: this device's post still reads Zernio's time, and keeps the op
     expect(zernioOps([held(), post({ id: "b" })], [held(), post({ id: "b", draft: "Edited" })], box)).toBe(box);
+  });
+});
+
+describe("heldOn", () => {
+  it("names the posts Zernio still holds on that platform, multi-network ones too", () => {
+    const drafts = [
+      held(),
+      held({ id: "b", hook: "Two networks", platform: "linkedin", zernio: { key: "k", postId: "67000000000000000000d002", status: "scheduled", platforms: ["linkedin", "tiktok"] } }),
+      held({ id: "c", hook: "Posted", zernio: { key: "k", postId: "67000000000000000000d003", status: "published" } }),
+      held({ id: "d", hook: "LinkedIn only", platform: "linkedin" }),
+      post({ id: "e", hook: "Not on Zernio" }),
+    ];
+    expect(heldOn(drafts, "tiktok")).toEqual(["Budget 2027", "Two networks"]);
+    expect(heldOn(drafts, "linkedin")).toEqual(["Two networks", "LinkedIn only"]);
+    expect(heldOn(drafts, "youtube")).toEqual([]);
   });
 });
 

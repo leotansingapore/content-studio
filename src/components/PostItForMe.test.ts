@@ -70,7 +70,7 @@ const local = new MemStorage();
 vi.stubGlobal("localStorage", local);
 vi.stubGlobal("window", { localStorage: local, location: new URL("http://localhost/calendar"), addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true });
 
-const { PostItForMePanel, ZernioStatus, chipText } = await import("./PostItForMe");
+const { PostItForMePanel, ZernioStatus, chipText, useZernioRefresh } = await import("./PostItForMe");
 const { whenLabel } = await import("@/lib/autoPost");
 const { activityMonths, loadActivity, setActivityOn } = await import("@/lib/activity");
 const { EdgeError } = await import("@/lib/edgeFn");
@@ -381,5 +381,43 @@ describe("the posted chip's views (learn-real-numbers, Leo only)", () => {
     expect(chipText("Posted", { views: 1240 })).toBe("Posted, 1,240 views");
     expect(chipText("Posted", { views: 0 })).toBe("Posted");
     expect(chipText("Posted")).toBe("Posted");
+  });
+});
+
+describe("a post whose account was disconnected (account_gone)", () => {
+  const gone = () => {
+    throw new EdgeError("The account this post goes out from isn't connected now. Reconnect it on Social accounts to see or cancel the post.", 410, "account_gone");
+  };
+
+  it("the chip keeps the link and says to reconnect, rather than calling it gone", async () => {
+    const linked = { ...dated, zernio: { key: "k1", postId: "zp1", status: "scheduled" } };
+    local.setItem(DRAFTS, JSON.stringify([linked]));
+    fn.answers.post = gone;
+    const onDrafts = vi.fn();
+    const props = { userId: UID, draft: linked, onDrafts };
+    button(await draw(ZernioStatus, props), (w) => w === "Scheduled").props.onClick!();
+    await settle();
+    expect(onDrafts).not.toHaveBeenCalled();
+    expect(toasts).toEqual([]);
+    expect(text(await draw(ZernioStatus, props))).toContain("Reconnect it on Social accounts");
+  });
+
+  it("the page-load refresh keeps its link and goes on to the next post", async () => {
+    const one = { ...dated, zernio: { key: "k1", postId: "zp1", status: "scheduled" } };
+    const two = { ...dated, id: "d2", zernio: { key: "k2", postId: "zp2", status: "scheduled" } };
+    local.setItem(DRAFTS, JSON.stringify([one, two]));
+    let n = 0;
+    fn.answers.post = () => (n++ ? { post: { ...view("published"), id: "zp2" } } : gone());
+    const onDrafts = vi.fn();
+    const Host = (p: { drafts: DraftEntry[] }) => {
+      useZernioRefresh(UID, p.drafts, onDrafts);
+      return null;
+    };
+    await draw(Host, { drafts: [one, two] });
+    await settle();
+    expect(fn.calls.map((c) => c.postId)).toEqual(["zp1", "zp2"]);
+    const last = onDrafts.mock.calls.at(-1)![0] as DraftEntry[];
+    expect(last.find((d) => d.id === "d1")?.zernio).toEqual(one.zernio);
+    expect(last.find((d) => d.id === "d2")?.zernio?.status).toBe("published");
   });
 });

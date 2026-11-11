@@ -78,6 +78,7 @@ async function carouselPngs(userId: string, c: SavedCarousel): Promise<MediaFile
 
 /** A 404 that isn't "not enabled": the post is gone from Zernio (or was never this brand's). */
 const gone = (e: unknown) => e instanceof EdgeError && e.status === 404 && !isNotEnabled(e);
+const unlinked = (e: unknown) => e instanceof EdgeError && e.status === 410 && e.code === "account_gone";
 
 /** On page load: asks Zernio about up to 10 posts whose time has come, so My posts and Calendar show what happened. */
 export function useZernioRefresh(userId: string | null, drafts: DraftEntry[], onDrafts: (d: DraftEntry[]) => void) {
@@ -94,7 +95,7 @@ export function useZernioRefresh(userId: string | null, drafts: DraftEntry[], on
           onDrafts(applyView(userId, d, (await readPost(profileId, d.zernio!.postId!)).post));
         } catch (e) {
           if (gone(e)) onDrafts(setDraftZernio(userId, d.id, null));
-          else return; // off, offline or over the cap: try on the next visit
+          else if (!unlinked(e)) return; // off, offline or over the cap: try on the next visit
         }
       }
     })();

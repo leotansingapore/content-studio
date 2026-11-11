@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NotYours, ZernioError, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
+import { AccountGone, NotYours, ZernioError, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
+import { errorReply } from "./logic";
 import { PDF_LINKEDIN_ONLY, THREAD_MIXED, checkSchedule, checkUpload, isPdf, isTimeZone, northStarOnly, parsePostRequest, platformProblem, postBody, postErrorReply, runPost, type PostRequest, type ScheduleInput } from "./posts";
 
 const MINE = "0123456789abcdef01234561";
@@ -37,7 +38,7 @@ function fake(routes: Record<string, unknown>) {
 }
 
 /** GET /accounts answers the profile's own accounts, as Zernio does with profileId. */
-const accounts = (req?: ZernioRequest) => ({ accounts: TEAM.filter((a) => a.profileId === req?.query?.profileId) });
+const accounts = (req?: ZernioRequest) => ({ accounts: req?.query?.profileId ? TEAM.filter((a) => a.profileId === req.query!.profileId) : TEAM });
 
 // Shape from https://zernio.com/openapi.json (Post, PlatformTarget).
 const zPost = (id: string, accountIds: string[], extra: Record<string, unknown> = {}) => ({
@@ -610,8 +611,44 @@ describe("post, cancel and retry", () => {
     for (const action of ["post", "cancel", "retry"] as const) {
       const f = fake({ "GET /accounts": accounts, [`GET /posts/${THEIR_POST}`]: zPost(THEIR_POST, [IG, VICTIM], { status: "failed" }) });
       await expect(runPost(f.z, MINE, UID, act(action, THEIR_POST)), action).rejects.toBeInstanceOf(NotYours);
-      expect(f.keys()).toEqual(["GET /accounts", `GET /posts/${THEIR_POST}`]);
+      expect(f.keys()).toEqual(["GET /accounts", `GET /posts/${THEIR_POST}`, "GET /accounts"]);
     }
+  });
+
+  it("still reads, cancels and retries a post when one of its accounts was disconnected", async () => {
+    const GONE = "65000000000000000000a00f";
+    const two = zPost(POST, [LI, GONE], { platforms: [{ platform: "linkedin", accountId: LI, status: "pending" }, { platform: "tiktok", accountId: GONE, status: "pending" }] });
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: two, [`DELETE /posts/${POST}`]: { message: "Deleted" } });
+    expect((await runPost(f.z, MINE, UID, act("post"))).body.post).toMatchObject({ id: POST, status: "scheduled" });
+    expect(await runPost(f.z, MINE, UID, act("cancel"))).toEqual({ status: 200, body: { cancelled: true } });
+    expect(f.req("GET /accounts")!.query).toEqual({ profileId: MINE, includeOverLimit: "true" });
+    expect(f.calls.filter((c) => c.key === "GET /accounts").map((c) => c.req?.query)).toContainEqual({ includeOverLimit: "true" });
+
+    const failed = { post: { ...two.post, status: "failed" } };
+    const g = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: failed, [`POST /posts/${POST}/retry`]: { post: { ...two.post, status: "publishing" } } });
+    expect(await runPost(g.z, MINE, UID, act("retry"))).toMatchObject({ status: 200, body: { post: { id: POST, status: "publishing" } } });
+  });
+
+  it("answers 410 account_gone, not a plain 404, when every account on the post was disconnected", async () => {
+    const GONE = "65000000000000000000a00f";
+    for (const action of ["post", "cancel", "retry"] as const) {
+      const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [GONE], { status: "failed" }) });
+      const e = await runPost(f.z, MINE, UID, act(action)).catch((x) => x);
+      expect(e, action).toBeInstanceOf(AccountGone);
+      expect(errorReply(e)).toMatchObject({ status: 410, body: { code: "account_gone" } });
+      expect(f.keys(), action).toEqual(["GET /accounts", `GET /posts/${POST}`, "GET /accounts"]);
+    }
+  });
+
+  it("still refuses a post naming another adviser's account beside a disconnected one", async () => {
+    const GONE = "65000000000000000000a00f";
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${THEIR_POST}`]: zPost(THEIR_POST, [GONE, VICTIM]) });
+    await expect(runPost(f.z, MINE, UID, act("cancel", THEIR_POST))).rejects.toBeInstanceOf(NotYours);
+    const g = fake({ "GET /accounts": accounts, [`GET /posts/${THEIR_POST}`]: zPost(THEIR_POST, [IG, GONE, VICTIM]) });
+    await expect(runPost(g.z, MINE, UID, act("cancel", THEIR_POST))).rejects.toBeInstanceOf(NotYours);
+    expect(g.keys()).not.toContain(`DELETE /posts/${THEIR_POST}`);
+    const team = fake({ "GET /accounts": (req?: ZernioRequest) => (req?.query?.profileId ? accounts(req) : new ZernioError(502, "", "down")), [`GET /posts/${POST}`]: zPost(POST, [IG, GONE]) });
+    await expect(runPost(team.z, MINE, UID, act("cancel"))).rejects.toBeInstanceOf(ZernioError);
   });
 
   it("cancels a scheduled post and refuses a published one plainly", async () => {
@@ -712,7 +749,7 @@ describe("move (publish-calendar)", () => {
   it("never moves another adviser's post (H2), or hands back one Zernio answers with (H4)", async () => {
     const f = fake({ "GET /accounts": accounts, [`GET /posts/${THEIR_POST}`]: zPost(THEIR_POST, [VICTIM]) });
     await expect(runPost(f.z, MINE, UID, move(THEIR_POST), NOW)).rejects.toBeInstanceOf(NotYours);
-    expect(f.keys()).toEqual(["GET /accounts", `GET /posts/${THEIR_POST}`]);
+    expect(f.keys()).toEqual(["GET /accounts", `GET /posts/${THEIR_POST}`, "GET /accounts"]);
     const gone = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: new ZernioError(404, "", "Not found") });
     await expect(runPost(gone.z, MINE, UID, move(), NOW)).rejects.toBeInstanceOf(NotYours);
     const leaky = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG]), [`PUT /posts/${POST}`]: { post: zPost(THEIR_POST, [VICTIM]).post } });

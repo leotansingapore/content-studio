@@ -10,7 +10,7 @@ import {
   SOCIAL_PLATFORMS,
   ZernioError,
   callerAccounts,
-  checkPost,
+  checkPostKept,
   idempotencyKey,
   isProfileId,
   isZernioId,
@@ -636,7 +636,7 @@ export async function runPost(z: Zernio, mapped: string | null, uid: string, q: 
   }
 
   // H2: the post is the caller's before anything else
-  const post = (await checkPost(z, ids, q.postId)) as Record<string, unknown>;
+  const { post, ids: kept } = await checkPostKept(z, ids, q.postId);
   const view = postView(post);
   const path = `/posts/${pathId(q.postId)}`;
 
@@ -650,7 +650,7 @@ export async function runPost(z: Zernio, mapped: string | null, uid: string, q: 
     // Zernio reschedules a cancelled post like a draft, which would send a post the person took down
     if (view.status === "cancelled") return { status: 409, body: { code: "cancelled", error: "It was cancelled on Zernio, so it can't move." } };
     const data = await z("PUT", path, { body: { scheduledFor: q.scheduledFor, timezone: q.timezone ?? TIMEZONE } });
-    return ok({ post: postView(ownPost(data?.post, ids)) });
+    return ok({ post: postView(ownPost(data?.post, kept)) });
   }
 
   if (q.action === "cancel") {
@@ -665,7 +665,7 @@ export async function runPost(z: Zernio, mapped: string | null, uid: string, q: 
   // retry: Zernio documents it for a failed post; a partial one has failed platforms too
   if (view.status !== "failed" && view.status !== "partial") return { status: 409, body: { code: "not_failed", error: "Only a post that failed can be tried again." } };
   const data = await z("POST", `${path}/retry`);
-  return ok({ post: postView(ownPost(data?.post, ids)) });
+  return ok({ post: postView(ownPost(data?.post, kept)) });
 }
 
 /** Zernio's refusals of a post in plain words; null leaves it to the shared errorReply. */

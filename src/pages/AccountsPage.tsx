@@ -16,6 +16,8 @@ import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useScrollToHash } from "@/lib/urlState";
 import { activeProfile, DEFAULT_PROFILE_ID } from "@/lib/profiles";
+import { loadDrafts } from "@/lib/draftHistory";
+import { heldOn } from "@/lib/zernioOutbox";
 import { ZERNIO_IG_BRANDS } from "@/lib/reelsBoard";
 import {
   capLine,
@@ -163,7 +165,9 @@ export default function AccountsPage() {
 
   const disconnect = async (a: AccountView) => {
     const label = a.username ? `@${a.username} on ${platformName(a.platform)}` : `this ${platformName(a.platform)} account`;
-    if (!window.confirm(`Disconnect ${label}? You can connect it again later.`)) return;
+    const held = heldOn(loadDrafts(userId), a.platform);
+    const posts = held.length ? `\n\nScheduled auto-posts on ${platformName(a.platform)}: ${held.slice(0, 3).map((t) => `"${t}"`).join(", ")}${held.length > 3 ? ` and ${held.length - 3} more` : ""}. Cancel them first if they shouldn't go out.` : "";
+    if (!window.confirm(`Disconnect ${label}? You can connect it again later.${posts}`)) return;
     setBusy(`x${a.id}`);
     try {
       await disconnectOne(profile.id, a.id);

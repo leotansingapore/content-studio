@@ -3,6 +3,7 @@
 // Zernio sees it (_shared/zernio.ts, docs/zernio-connection.md). Pure: Zernio and the row come in.
 
 import {
+  AccountGone,
   NotYours,
   SOCIAL_PLATFORMS,
   USER_ACCOUNT_CAP,
@@ -303,6 +304,7 @@ export async function disconnect(z: Zernio, c: Caller, accountId: string | null)
 /** What the caller sees when a step throws. Never Zernio's own words for a key or scope problem. */
 export function errorReply(e: unknown): Reply {
   if (e instanceof NotYours) return { status: 404, body: { error: "Not found." } };
+  if (e instanceof AccountGone) return { status: 410, body: { code: "account_gone", error: "The account this post goes out from isn't connected now. Reconnect it on Social accounts to see or cancel the post." } };
   if (e instanceof ZernioError) {
     if (e.status === 402) return { status: 402, body: { code: e.code || "payment_required", error: "No more accounts can be connected right now." } };
     if (e.status === 429) return { status: 429, body: { code: "rate_limited", error: "Too many tries. Wait a minute and try again." } };

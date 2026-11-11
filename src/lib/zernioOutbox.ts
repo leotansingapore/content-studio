@@ -31,6 +31,9 @@ const EMPTY: Outbox = { ops: [], gone: [] };
 export const zernioHolds = (d: Pick<DraftEntry, "zernio">): boolean =>
   !!d.zernio?.postId && !["published", "partial", "failed", "cancelled"].includes(d.zernio.status ?? "");
 
+export const heldOn = (drafts: DraftEntry[], platform: string): string[] =>
+  drafts.filter((d) => zernioHolds(d) && (d.zernio!.platforms?.length ? d.zernio!.platforms : [d.platform]).includes(platform)).map(titleOf);
+
 /** Held and not going out right now (a publishing post can't move or be cancelled). */
 const changeable = (d: Pick<DraftEntry, "zernio">, gone: string[]) => zernioHolds(d) && d.zernio!.status !== "publishing" && !gone.includes(d.zernio!.postId!);
 

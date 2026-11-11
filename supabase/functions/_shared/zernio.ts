@@ -168,6 +168,25 @@ export async function checkPost(z: Zernio, own: Set<string>, postId: unknown) {
   return data.post;
 }
 
+export class AccountGone extends Error {
+  constructor() {
+    super("account gone");
+    this.name = "AccountGone";
+  }
+}
+
+export async function checkPostKept(z: Zernio, own: Set<string>, postId: unknown): Promise<{ post: Record<string, unknown>; ids: Set<string> }> {
+  const data = await getOwned(z, `/posts/${pathId(postId)}`);
+  const accounts = postAccounts(data?.post);
+  if (allOwn(accounts, own)) return { post: data.post, ids: own };
+  if (!accounts.length || !accounts.every(isZernioId)) throw new NotYours("post not yours");
+  const others = accounts.filter((id) => !own.has(id));
+  const team = new Set((await teamAccounts(z)).map((a) => refId(a?._id)));
+  if (others.some((id) => team.has(id))) throw new NotYours("post not yours");
+  if (others.length === accounts.length) throw new AccountGone();
+  return { post: data.post, ids: new Set([...own, ...others]) };
+}
+
 /**
  * H4: a post Zernio hands back (a create, an Idempotency-Key replay, a retry) passes the same rule as
  * checkPost before the caller sees it: a well-formed id and every platform from an account in their set.
