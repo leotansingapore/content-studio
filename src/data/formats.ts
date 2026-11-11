@@ -444,6 +444,19 @@ export function filterFormats(list: FormatDef[], show: FormatFilter, missing: (n
   return show === "all" ? list : list.filter((f) => (show === "needs") === (!!f.needs && missing(f.needs)));
 }
 
+/**
+ * The Create page's search: every typed word must be in the card's name, line or section title ("clay", "person
+ * podcast"), any case. Nothing typed keeps the list. Static formats pass no section.
+ */
+export function searchFormats<T extends { name: string; blurb: string; section?: FormatSection }>(list: T[], q: string): T[] {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return list;
+  return list.filter((f) => {
+    const text = `${f.name} ${f.blurb} ${SECTIONS.find((s) => s.id === f.section)?.title ?? ""}`.toLowerCase();
+    return words.every((w) => text.includes(w));
+  });
+}
+
 /** The cards in each section, in SECTIONS' order and the registry's order inside one; empty sections left out. */
 export const bySection = (list: FormatDef[]) =>
   SECTIONS.map((s) => ({ ...s, list: list.filter((f) => f.section === s.id) })).filter((s) => s.list.length > 0);

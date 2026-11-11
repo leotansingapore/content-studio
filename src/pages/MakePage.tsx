@@ -2,19 +2,21 @@
 // Studio > Create: a Videos tab with every ready entry in src/data/formats.ts in its section (Make your own, Your words
 // over a clip, A person on camera, Animated stories, Built from your footage), each with its price and today's uses
 // left before anything is spent, and a Static ads tab with every ready static format (src/data/staticFormats.ts),
-// shown once one is. Tab and filter live in the URL (?tab=static, ?show=ready|needs, replace). "Needs something" is
+// shown once one is. Tab, filter and search live in the URL (?tab=static, ?show=ready|needs, ?q=, replace); both tabs
+// share the chips and the search box, which looks in a card's name, line and section. "Needs something" is
 // what the open brand is missing on this device (a demo video, a product photo, a face or presenter, its own
 // footage), read once on arrival; a card's need line links to where it is added, beside the card's own link.
 // The page calls no AI and stores nothing; the only read is today's usage counts.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clapperboard, Diamond, Image as ImageIcon, Layers, Type, VolumeX, type LucideIcon } from "lucide-react";
+import { Clapperboard, Diamond, Image as ImageIcon, Layers, Search, Type, VolumeX, type LucideIcon } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
+import { Input } from "@/components/ui/input";
 import {
-  FORMATS, FORMAT_FILTERS, NEED_LINES, bySection, filterFormats, formatHref, readyStatics,
+  FORMATS, FORMAT_FILTERS, NEED_LINES, bySection, filterFormats, formatHref, readyStatics, searchFormats,
   type FormatDef, type FormatFilter, type FormatKind, type FormatNeed,
 } from "@/data/formats";
 import { STATIC_NEED_LINES, staticFormatHref, type StaticFormat } from "@/data/staticFormats";
@@ -27,7 +29,7 @@ import { loadProducts } from "@/lib/products";
 import { activeProfile } from "@/lib/profiles";
 import { speakers } from "@/lib/talkingHead";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
@@ -77,9 +79,19 @@ function Gallery({ userId }: { userId: string }) {
   const leftOf = useUsesLeft(false);
   const [missing] = useState(() => readMissing(userId));
   const [brand] = useState(() => activeProfile(userId)?.name || "your brand");
-  const count = (f: FormatFilter) => filterFormats(VIDEOS, f, missing).length;
+  const [text, setText, q] = useUrlSearch("q");
+  const statics = tab === "static";
+  // a static format waits only for a photo, and only when the brand has none at all (StaticFormatPage's own rule)
+  const [noPhoto] = useState(() => missing("product-photo") && !loadMedia(userId).some((m) => m.kind !== "video"));
+  const staticLacks = (f: StaticFormat) => f.needs === "photo" && noPhoto;
+  const filterStatics = (f: FormatFilter) => (f === "all" ? STATICS : STATICS.filter((x) => (f === "needs") === staticLacks(x)));
+  // the chips count the whole tab; the search narrows what the picked chip shows
+  const count = (f: FormatFilter) => (statics ? filterStatics(f).length : filterFormats(VIDEOS, f, missing).length);
   const labels: Record<FormatFilter, string> = { all: "All", ready: `Ready for ${brand}`, needs: "Needs something" };
-  const sections = bySection(filterFormats(VIDEOS, show, missing));
+  const sections = bySection(searchFormats(filterFormats(VIDEOS, show, missing), q));
+  const staticList = searchFormats(filterStatics(show), q);
+  const none = statics ? staticList.length === 0 : sections.length === 0;
+  const what = statics ? "static ads" : "formats";
 
   return (
     <div className="space-y-5">
@@ -99,52 +111,54 @@ function Gallery({ userId }: { userId: string }) {
         </div>
       )}
 
-      {tab === "static" ? (
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div role="group" aria-label={`Filter ${what}`} className="scrollbar-none -mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          {FORMAT_FILTERS.map((f) => {
+            const n = count(f);
+            return (
+              <FilterChip key={f} active={show === f} count={n} disabled={n === 0 && show !== f} onClick={() => setShow(f)}>
+                {labels[f]}
+              </FilterChip>
+            );
+          })}
+        </div>
+        <div className="relative w-full sm:w-64">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={`Search ${what}`} aria-label={`Search ${what}`} className={`pl-8 ${TOUCH}`} />
+        </div>
+      </div>
+
+      {none ? (
+        <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center" role="status">
+          <p className="text-sm text-muted-foreground">{q ? `No ${what} match "${q}".` : `No ${what} match this filter.`}</p>
+          <Button variant="outline" onClick={() => { setText(""); update({ show: null, q: null }); }} className={TOUCH}>
+            Show all
+          </Button>
+        </div>
+      ) : statics ? (
         <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {STATICS.map((f) => (
+          {staticList.map((f) => (
             <li key={f.slug} className="flex min-w-0">
               <StaticCard f={f} />
             </li>
           ))}
         </ul>
       ) : (
-        <>
-          <div role="group" aria-label="Filter formats" className="scrollbar-none -mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-            {FORMAT_FILTERS.map((f) => {
-              const n = count(f);
-              return (
-                <FilterChip key={f} active={show === f} count={n} disabled={n === 0 && show !== f} onClick={() => setShow(f)}>
-                  {labels[f]}
-                </FilterChip>
-              );
-            })}
-          </div>
-
-          {sections.length === 0 ? (
-            <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
-              <p className="text-sm text-muted-foreground">No formats match this filter.</p>
-              <Button variant="outline" onClick={() => update({ show: null })} className={TOUCH}>
-                Show all
-              </Button>
-            </div>
-          ) : (
-            sections.map((s) => (
-              <section key={s.id} aria-labelledby={`make-${s.id}`} className="space-y-3">
-                <h2 id={`make-${s.id}`} className="flex items-center gap-2 text-base font-semibold text-foreground">
-                  {s.title}
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{s.list.length}</span>
-                </h2>
-                <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                  {s.list.map((f) => (
-                    <li key={f.slug} className="flex min-w-0">
-                      <FormatCard f={f} left={f.cap ? leftOf(f.cap) : null} lacking={!!f.needs && missing(f.needs)} />
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))
-          )}
-        </>
+        sections.map((s) => (
+          <section key={s.id} aria-labelledby={`make-${s.id}`} className="space-y-3">
+            <h2 id={`make-${s.id}`} className="flex items-center gap-2 text-base font-semibold text-foreground">
+              {s.title}
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{s.list.length}</span>
+            </h2>
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {s.list.map((f) => (
+                <li key={f.slug} className="flex min-w-0">
+                  <FormatCard f={f} left={f.cap ? leftOf(f.cap) : null} lacking={!!f.needs && missing(f.needs)} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
       )}
     </div>
   );
