@@ -19,6 +19,7 @@ import { workOf } from "@/lib/agentWork";
 import { links } from "@/lib/links";
 import { useUrlItem } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { SAVE_FAILED } from "@/lib/voiceMemory";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const CAPABILITIES_ASK = "What can you make?";
@@ -119,6 +120,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
   const toThread = (id: string) => navigate(links.agent({ thread: id }));
   const turn = threadId ? turnOf(threadId) : null;
   const busy = !!turn && ["starting", "thinking", "writing", "making"].includes(turn.state);
+  const [askFailed, setAskFailed] = useState<string | null>(null);
   const identity = { id: userId, email, name: email.split("@")[0] || null };
 
   return (
@@ -135,6 +137,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
             disabled={busy}
             onClick={() => {
               const id = send(userId, threadId, CAPABILITIES_ASK);
+              setAskFailed(id ? null : (threadId ?? ""));
               if (id && id !== threadId) toThread(id);
             }}
             className={`ml-auto h-11 shrink-0 px-3 sm:ml-0 sm:h-9 ${thread ? "hidden sm:inline-flex" : ""}`}
@@ -147,6 +150,11 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
           </Button>
           {thread && <CopyLinkButton path={links.agent({ thread: thread.id })} />}
         </header>
+        {askFailed === (threadId ?? "") && (
+          <p className="pt-2 text-xs text-destructive" role="alert">
+            {SAVE_FAILED}
+          </p>
+        )}
         {from && (
           // shortcut: the way back rides in navigation state, so a reload drops the chip; keep it on the thread if Leo wants it to stay
           <p className="pt-2 text-xs text-muted-foreground">

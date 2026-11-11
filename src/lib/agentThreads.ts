@@ -141,8 +141,10 @@ export function newThread(userId: string, messages: AgentMsg[], now = new Date()
 export const seedThread = (userId: string, title: string, agentText: string, go: AgentMsg["go"] = [], now = new Date(), quotes = false): Saved<AgentThread> =>
   newThread(userId, [newMsg("agent", { text: agentText, ...(go.length ? { go } : {}), ...(quotes ? { quotes: true as const } : {}) }, now)], now, title);
 
-export const appendMsg = (userId: string, threadId: string, msg: AgentMsg, now = new Date()): Saved<AgentThread> =>
-  edit(userId, threadId, ({ archived, ...t }) => ({ ...t, ...(archived && msg.role === "agent" ? { archived } : {}), messages: [...t.messages, clip(msg)] }), now);
+export const appendMsg = (userId: string, threadId: string, msg: AgentMsg | AgentMsg[], now = new Date()): Saved<AgentThread> => {
+  const add = ([] as AgentMsg[]).concat(msg);
+  return edit(userId, threadId, ({ archived, ...t }) => ({ ...t, ...(archived && add.every((m) => m.role === "agent") ? { archived } : {}), messages: [...t.messages, ...add.map(clip)] }), now);
+};
 
 /** Changes one message; refused when it is gone (trimmed, or the chat deleted). */
 export function patchMsg(userId: string, threadId: string, msgId: string, patch: Partial<Omit<AgentMsg, "id">>, now = new Date()): Saved<AgentThread> {

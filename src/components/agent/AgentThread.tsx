@@ -21,6 +21,7 @@ import { inFlight } from "@/lib/agentWork";
 import { GONE_LINE, loadThreads, onThreadsChanged, patchMsg, type AgentMsg } from "@/lib/agentThreads";
 import { links } from "@/lib/links";
 import { cn } from "@/lib/utils";
+import { SAVE_FAILED } from "@/lib/voiceMemory";
 
 const RUNNING = new Set<Turn["state"]>(["starting", "thinking", "writing", "making"]);
 const NEAR = 200;
@@ -168,8 +169,9 @@ export default function AgentThread({
     if (near.current) setReady(null);
   };
 
-  const sendHere = (text: string, o: { source?: string } = {}) => {
+  const sendHere = (at: string, text: string, o: { source?: string } = {}) => {
     const id = send(userId, threadId, text, o);
+    setChipLine(id ? null : { msg: at, line: SAVE_FAILED });
     near.current = true;
     if (id && id !== threadId) onThread(id);
   };
@@ -284,7 +286,7 @@ export default function AgentThread({
               {m.text && (
                 <p className={cn("max-w-[92%] whitespace-pre-wrap break-words text-sm leading-relaxed", m.error && "text-destructive")}>{m.text}</p>
               )}
-              {m.card && threadId && <ActionCard userId={userId} threadId={threadId} msg={m as AgentMsg & { card: NonNullable<AgentMsg["card"]> }} usage={usage} onSend={(t) => sendHere(t)} />}
+              {m.card && threadId && <ActionCard userId={userId} threadId={threadId} msg={m as AgentMsg & { card: NonNullable<AgentMsg["card"]> }} usage={usage} onSend={(t) => sendHere(m.id, t)} />}
               {/* a priced make on its way; a saved change (a note, a move) lands at once and shows none */}
               {inFlight(m) && (m.job || m.card?.price) && (
                 <MakingBlock title={m.job?.title ?? m.card?.title ?? ""} startedAt={m.job?.startedAt ?? m.card?.decidedAt ?? m.at} step={turn?.msg === m.id ? turn.line : undefined} />
@@ -302,7 +304,7 @@ export default function AgentThread({
               {(!!m.go?.length || (m.error && prev?.text)) && (
                 <div className="flex max-w-[92%] flex-wrap gap-1.5">
                   {m.error && prev?.text && (
-                    <Button type="button" size="sm" variant="outline" className="h-11 sm:h-9" disabled={live} onClick={() => sendHere(prev.text!, prev.source ? { source: prev.source } : {})}>
+                    <Button type="button" size="sm" variant="outline" className="h-11 sm:h-9" disabled={live} onClick={() => sendHere(m.id, prev.text!, prev.source ? { source: prev.source } : {})}>
                       {m.text === "This was interrupted." ? "Send again" : "Try again"}
                     </Button>
                   )}

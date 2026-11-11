@@ -169,21 +169,9 @@ export function send(userId: string, threadId: string | null, text: string, o: {
   const at = new Date(clock());
   const user = newMsg("user", { text: said, ...(o.source ? { source: o.source } : {}) }, at);
   const agent = newMsg("agent", { turn: "starting" }, at);
-  let id = threadId ?? "";
-  const saved = threadId ? appendMsg(userId, threadId, user, at) : newThread(userId, [user, agent], at);
-  if (saved.ok === false) {
-    turns.set(id, { thread: id, msg: "", state: "failed", startedAt: at.getTime(), steps: 0, line: saved.error });
-    emit();
-    return id;
-  }
-  if (threadId) {
-    const b = appendMsg(userId, threadId, agent, at);
-    if (b.ok === false) {
-      turns.set(id, { thread: id, msg: "", state: "failed", startedAt: at.getTime(), steps: 0, line: b.error });
-      emit();
-      return id;
-    }
-  } else id = saved.item.id;
+  const saved = threadId ? appendMsg(userId, threadId, [user, agent], at) : newThread(userId, [user, agent], at);
+  if (saved.ok === false) return "";
+  const id = saved.item.id;
   turns.set(id, { thread: id, msg: agent.id, state: "starting", startedAt: at.getTime(), steps: 0 });
   emit();
   void runTurn(userId, id, agent.id, said, o);

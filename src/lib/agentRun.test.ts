@@ -312,6 +312,18 @@ describe("a turn", () => {
     expect(last(id).go?.map((g) => g.label)).toEqual(["Open Swipe file", "Open All posts"]);
   });
 
+  it("in an open chat, a message the device can't save returns no id and leaves the chat and its turn as they were", async () => {
+    const id = await say("what can you do", { act: "capabilities" });
+    const before = thread(id).messages.length;
+    const spy = vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+    expect(send(UID, id, "and videos?")).toBe("");
+    spy.mockRestore();
+    expect(thread(id).messages).toHaveLength(before);
+    expect(turnOf(id)?.state).toBe("done");
+  });
+
   it("names the step before a make's card and counts its seconds from when it began", async () => {
     const lines: (string | undefined)[] = [];
     const off = onAgent(() => {

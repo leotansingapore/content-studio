@@ -120,6 +120,10 @@ describe("titles", () => {
     expect(saved(appendMsg(UID, a.id, newMsg("agent", { text: "Made it." }), at(6))).archived).toBe(at(5).toISOString());
     expect(saved(appendMsg(UID, a.id, newMsg("user", { text: "Again" }), at(7))).archived).toBeUndefined();
     archiveThread(UID, a.id, true, at(8));
+    const both = saved(appendMsg(UID, a.id, [newMsg("user", { text: "More" }), newMsg("agent", { turn: "starting" })], at(9)));
+    expect(both.archived).toBeUndefined();
+    expect(both.messages.slice(-2).map((m) => m.role)).toEqual(["user", "agent"]);
+    archiveThread(UID, a.id, true, at(10));
     expect("archived" in saved(archiveThread(UID, a.id, false))).toBe(false);
   });
 });
