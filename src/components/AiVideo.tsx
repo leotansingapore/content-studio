@@ -346,7 +346,8 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
       <div className="flex flex-wrap items-center justify-between gap-1">
         <h3 className="text-sm font-semibold">{pick.title}</h3>
         <div className="flex items-center">
-          <a href={examplesUrl(pick.id)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center px-2 text-xs text-muted-foreground underline sm:h-9 [@media(pointer:coarse)]:h-11">Examples</a>
+          {/* Leo's own templates (skits, people on camera) have no page in awesome-seedance to link to */}
+          {!pick.leoOnly && <a href={examplesUrl(pick.id)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center px-2 text-xs text-muted-foreground underline sm:h-9 [@media(pointer:coarse)]:h-11">Examples</a>}
           <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={closeTemplate} disabled={busy}>All templates</Button>
         </div>
       </div>
