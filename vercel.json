@@ -18,6 +18,10 @@
       "destination": "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/tracked-link/:slug"
     },
     {
+      "source": "/t/:slug/",
+      "destination": "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/tracked-link/:slug"
+    },
+    {
       "source": "/:path((?!api/|og/|assets/|news/|ads/|covers/|t/).*)",
       "has": [
         {

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { clientIp, parsePath, visitorKey } from "./logic";
 
@@ -54,5 +55,16 @@ describe("visitorKey", () => {
     expect(await visitorKey("203.0.113.7", "Safari")).not.toBe(a);
     expect(a).toMatch(/^[0-9a-f]{64}$/);
     expect(await visitorKey(null, "Mozilla/5.0")).toBeNull();
+  });
+});
+
+describe("vercel.json", () => {
+  it("sends /t/<slug> and /t/<slug>/ to the function before the app catch-all", () => {
+    const rewrites: { source: string; destination: string }[] = JSON.parse(readFileSync("vercel.json", "utf8")).rewrites;
+    const at = (source: string) => rewrites.findIndex((r) => r.source === source);
+    const fn = "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/tracked-link/:slug";
+    expect(rewrites[at("/t/:slug")].destination).toBe(fn);
+    expect(rewrites[at("/t/:slug/")].destination).toBe(fn);
+    expect(at("/t/:slug/")).toBeLessThan(at("/((?!api/).*)"));
   });
 });
