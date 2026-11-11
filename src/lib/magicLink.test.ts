@@ -6,7 +6,7 @@ const auth = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/supabase", () => ({ supabase: { auth } }));
 
-import { sendSignInLink, verifySignInCode } from "@/lib/magicLink";
+import { linkFailed, returnTo, sendSignInLink, verifySignInCode } from "@/lib/magicLink";
 
 const refuse = (message: string, status = 400) => ({ error: { message, status } });
 
@@ -48,5 +48,22 @@ describe("the emailed sign-in code", () => {
     expect(auth.verifyOtp).toHaveBeenCalledWith({ email: "mei@acme.sg", token: "123456", type: "email" });
     auth.verifyOtp.mockResolvedValueOnce(refuse("Token has expired or is invalid", 403));
     expect(await verifySignInCode("mei@acme.sg", "000000")).toBe("That code didn't work. Check it, or ask for a new email.");
+  });
+});
+
+describe("a sign-in link that came back without a session", () => {
+  it("is failed with a code in the query or an error in the query or hash", () => {
+    expect(linkFailed("?code=abcdef", "")).toBe(true);
+    expect(linkFailed("", "#error=access_denied&error_code=otp_expired&error_description=x")).toBe(true);
+    expect(linkFailed("?error=access_denied", "")).toBe(true);
+    expect(linkFailed("?a=1", "#website")).toBe(false);
+    expect(linkFailed("?mirror=1", "#terror")).toBe(false);
+  });
+
+  it("returns to the page without the dead code or error, and keeps a real deep link's hash", () => {
+    expect(returnTo("/", "?code=abcdef", "")).toEqual({ from: "/", linkFailed: true });
+    expect(returnTo("/brand", "?a=1&code=abcdef", "")).toEqual({ from: "/brand?a=1", linkFailed: true });
+    expect(returnTo("/", "", "#error=access_denied&error_code=otp_expired")).toEqual({ from: "/", linkFailed: true });
+    expect(returnTo("/brand", "?a=1", "#website")).toEqual({ from: "/brand?a=1#website", linkFailed: false });
   });
 });

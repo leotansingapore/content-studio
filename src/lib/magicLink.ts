@@ -22,3 +22,20 @@ export async function verifySignInCode(email: string, code: string): Promise<str
   const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.replace(/\s/g, ""), type: "email" });
   return error ? "That code didn't work. Check it, or ask for a new email." : null;
 }
+
+export const LINK_FAILED = "That sign-in link didn't work. It may have expired or been used, or it opened in a different browser from the one that asked. Type the code from the email, or send a new link.";
+
+const LINK_PARAMS = ["code", "error", "error_code", "error_description"];
+
+export const linkFailed = (search: string, hash: string): boolean => {
+  const q = new URLSearchParams(search);
+  return q.has("code") || q.has("error") || new URLSearchParams(hash.replace(/^#/, "")).has("error");
+};
+
+export const returnTo = (pathname: string, search: string, hash: string): { from: string; linkFailed: boolean } => {
+  if (!linkFailed(search, hash)) return { from: pathname + search + hash, linkFailed: false };
+  const q = new URLSearchParams(search);
+  LINK_PARAMS.forEach((k) => q.delete(k));
+  const rest = q.toString();
+  return { from: pathname + (rest ? `?${rest}` : ""), linkFailed: true };
+};

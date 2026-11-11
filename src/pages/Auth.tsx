@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { sendSignInLink, verifySignInCode } from "@/lib/magicLink";
+import { LINK_FAILED, sendSignInLink, verifySignInCode } from "@/lib/magicLink";
 
 export default function Auth() {
   const { toast } = useToast();
@@ -26,6 +26,7 @@ export default function Auth() {
     (location.state as { from: string }).from !== "/auth"
       ? (location.state as { from: string }).from
       : "/";
+  const failedLink = (location.state as { linkFailed?: boolean } | null)?.linkFailed === true;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,14 +55,14 @@ export default function Auth() {
     setLoading(true);
     if (mode === "email") {
       const to = String(form.get("email") ?? email).trim();
-      const problem = await sendSignInLink(to, window.location.origin + from, false);
+      const problem = await sendSignInLink(to, window.location.origin + from.split("#")[0], false);
       setLoading(false);
       if (problem) return toast({ title: "Couldn't send the link", description: problem, variant: "destructive" });
       setSentTo(to);
       setMode("code");
       return;
     }
-    const problem = await verifySignInCode(sentTo, String(form.get("code") ?? ""));
+    const problem = await verifySignInCode(sentTo || String(form.get("email") ?? email).trim(), String(form.get("code") ?? ""));
     setLoading(false);
     if (problem) return toast({ title: "Couldn't sign in", description: problem, variant: "destructive" });
     navigate(from, { replace: true });
@@ -134,12 +135,14 @@ export default function Auth() {
             <CardTitle className="font-serif text-xl">Sign in</CardTitle>
             {mode !== "password" && (
               <CardDescription>
-                {mode === "code" ? <>If an account uses <span className="font-semibold text-foreground">{sentTo}</span>, a sign-in link is on its way. Tap it in this browser, or type the code from the email.</>
+                {mode === "code" && !sentTo ? "Type your email and the code from the sign-in email."
+                  : mode === "code" ? <>If an account uses <span className="font-semibold text-foreground">{sentTo}</span>, a sign-in link is on its way. Tap it in this browser, or type the code from the email.</>
                   : "We'll email you a sign-in link. No password needed."}
               </CardDescription>
             )}
           </CardHeader>
           <CardContent>
+            {failedLink && <p className="mb-4 text-sm text-destructive" role="alert">{LINK_FAILED}</p>}
             {mode === "password" ? (
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-1.5">
@@ -183,13 +186,14 @@ export default function Auth() {
               </form>
             ) : (
               <form onSubmit={handleEmail} className="space-y-4" key={mode}>
-                {mode === "email" ? (
+                {(mode === "email" || !sentTo) && (
                   <div className="space-y-1.5">
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" name="email" type="email" required autoComplete="email" value={email}
                       onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
                   </div>
-                ) : (
+                )}
+                {mode === "code" && (
                   <div className="space-y-1.5">
                     <Label htmlFor="code">Code from the email</Label>
                     <Input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9 ]{6,12}" placeholder="123456" />
@@ -203,7 +207,8 @@ export default function Auth() {
               </form>
             )}
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-primary">
-              {mode === "code" && <button type="button" onClick={() => setMode("email")}>Use a different email</button>}
+              {mode === "code" && <button type="button" onClick={() => setMode("email")}>{sentTo ? "Use a different email" : "Email me a link instead"}</button>}
+              {mode === "email" && <button type="button" onClick={() => setMode("code")}>I have a code</button>}
               {mode !== "password" && <button type="button" onClick={() => setMode("password")}>Use a password instead</button>}
               {mode === "password" && <button type="button" onClick={() => setMode("email")}>Email me a link instead</button>}
             </div>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
-import { sendSignInLink, verifySignInCode } from "@/lib/magicLink";
+import { LINK_FAILED, sendSignInLink, verifySignInCode } from "@/lib/magicLink";
 import { ROLE_HELP, ROLE_NAMES, claimInvite, errorText, fetchBoard, forgetMe, type Role } from "@/lib/reelsBoard";
 
 // /join#<token>: someone Leo invited to his posts board signs in by an email link (or its code, or a password)
@@ -31,13 +31,14 @@ const linkFailed = () => /error/.test(window.location.search + window.location.h
 export default function JoinPage() {
   const token = useRef(takeToken()).current;
   const viaEmail = useRef(fromEmail()).current;
+  const failedLink = useRef(linkFailed()).current;
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [asEmail, setAsEmail] = useState("");
   const [mode, setMode] = useState<"email" | "code" | "password">("email");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   // a fixed message: the wording in the address could say anything
-  const [error, setError] = useState(() => (linkFailed() ? "That sign-in link has expired or was already used. Send yourself a new one." : ""));
+  const [error, setError] = useState(() => (failedLink ? "That sign-in link has expired or was already used. Send yourself a new one." : ""));
   const [done, setDone] = useState<{ role: Role; brands: string[] } | null>(null);
 
   const claim = async () => {
@@ -69,6 +70,7 @@ export default function JoinPage() {
       setAsEmail(data.session?.user.email ?? "");
       // back from their own email link: they just proved who they are, so join straight away
       if (data.session && token && viaEmail) void claim();
+      else if (!data.session && viaEmail) setError(LINK_FAILED);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -94,7 +96,7 @@ export default function JoinPage() {
       return;
     }
     if (mode === "code") {
-      const problem = await verifySignInCode(email, String(form.get("code") ?? ""));
+      const problem = await verifySignInCode(email || String(form.get("email") ?? "").trim(), String(form.get("code") ?? ""));
       if (problem) {
         setBusy(false);
         return setError(problem);
@@ -130,6 +132,13 @@ export default function JoinPage() {
               <Button asChild size="lg" className="w-full">
                 <Link to="/reels">Open the posts board</Link>
               </Button>
+            </CardContent>
+          </Card>
+        ) : !token && (viaEmail || failedLink) ? (
+          <Card>
+            <CardContent className="space-y-3 pt-6 text-center">
+              <h1 className="font-serif text-xl font-semibold">Finish joining in the browser you started in</h1>
+              <p className="text-sm text-muted-foreground">This sign-in link only works in the browser where you opened Leo's invite. Type the code from the email there, or open Leo's invite link again in this browser.</p>
             </CardContent>
           </Card>
         ) : !token ? (
@@ -168,14 +177,15 @@ export default function JoinPage() {
             <CardHeader>
               <CardTitle className="font-serif text-xl">Join Leo's posts board</CardTitle>
               <CardDescription>
-                {mode === "code" ? <>We sent a sign-in link to <span className="font-semibold text-foreground">{email}</span>. Tap it, or type the code from the email here.</>
+                {mode === "code" && !email ? "Type your email and the code from the sign-in email."
+                  : mode === "code" ? <>We sent a sign-in link to <span className="font-semibold text-foreground">{email}</span>. Tap it, or type the code from the email here.</>
                   : mode === "password" ? "Sign in with your Postmosis or Academy password."
                   : "Enter your email and we'll send you a sign-in link. No password needed."}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={submit} className="space-y-4" key={mode}>
-                {mode !== "code" && (
+                {(mode !== "code" || !email) && (
                   <div className="space-y-1.5">
                     <Label htmlFor="join-email">Email</Label>
                     <Input id="join-email" name="email" type="email" required autoComplete="email" defaultValue={email} placeholder="you@example.com" />
@@ -200,7 +210,8 @@ export default function JoinPage() {
                 </Button>
               </form>
               <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-primary">
-                {mode === "code" && <button type="button" onClick={() => { setMode("email"); setError(""); }}>Use a different email</button>}
+                {mode === "code" && <button type="button" onClick={() => { setMode("email"); setError(""); }}>{email ? "Use a different email" : "Email me a link instead"}</button>}
+                {mode === "email" && <button type="button" onClick={() => { setMode("code"); setError(""); }}>I have a code</button>}
                 {mode !== "password" && <button type="button" onClick={() => { setMode("password"); setError(""); }}>Use a password instead</button>}
                 {mode === "password" && <button type="button" onClick={() => { setMode("email"); setError(""); }}>Email me a link instead</button>}
               </div>

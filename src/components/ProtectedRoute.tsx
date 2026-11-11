@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
 import { cloudSyncOutOfRoom, initCloudSync } from "@/lib/cloudSync";
+import { returnTo } from "@/lib/magicLink";
 import { rememberUser } from "@/lib/profiles";
 import { toast } from "@/hooks/use-toast";
 
@@ -65,7 +66,7 @@ export default function ProtectedRoute({
       <Navigate
         to="/auth"
         replace
-        state={{ from: location.pathname + location.search }}
+        state={returnTo(location.pathname, location.search, location.hash)}
       />
     );
   }
