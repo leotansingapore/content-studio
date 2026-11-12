@@ -348,6 +348,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /media | item | a picture's key: scrolled to and marked; Copy link on every picture. the picture list lives on the device that added it, so the link opens there; anywhere else it says "That picture is not on this device" | none | set by links | /media?item=cimg-mh2k9x01ab |
 | /academy | lesson | a lesson's YouTube id: opens and plays it | none | push | /academy?lesson=0Q1AQAxpdGg |
 | /playbook | #section | identity, offer, personas, proof, look, tone, on-file: a group of "What the AI knows" (proof and on-file on Leo's sign-ins only); each row links to the page that edits it | top | (anchor) | /playbook#look |
+| /playbook | edit | a row id (name, does, price, edge, who, topics, proof, logo, colours, avoid, signoff): that row open in place for editing; only rows that edit in place open | none | push | /playbook?edit=signoff |
 | /brand | #section | you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
 | /create-guide | #step | idea, draft, carousel, reel, reverse-engineer, compliance, schedule | top | (anchor) | /create-guide#reel |
 | /tutorial | #section | why, voice, guided-flow, after, tabs, design, campaigns, claude-design, rules, rhythm, first-action | top | (anchor) | /tutorial#tabs |
