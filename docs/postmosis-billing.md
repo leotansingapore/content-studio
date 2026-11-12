@@ -133,8 +133,8 @@ Do the whole thing in Stripe test mode first, then repeat steps 1, 2 and 5 in li
    supabase functions deploy postmosis-portal  --project-ref hgdbflprrficdoyxmdxe --use-api
    supabase functions deploy social            --project-ref hgdbflprrficdoyxmdxe --use-api
    ```
-   Check: `curl -sI "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start?plan=pay"` answers 302 to `pricing?checkout=off`.
-7. Merge `cs-billing` and push to main (that is the Vercel deploy). Check `curl -sI "https://app.postmosis.com/start?plan=pay"` gives the same 302, and that the app opens as before for an existing account.
+   Check: `curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start?plan=pay"` (a GET; HEAD answers 405) answers 302 to `pricing?checkout=off`.
+7. Merge `cs-billing` and push to main (that is the Vercel deploy). Check the same GET on `https://app.postmosis.com/start?plan=pay` gives the same 302, and that the app opens as before for an existing account.
 8. Set the secrets with the test-mode values, flag last:
    ```
    supabase secrets set --project-ref hgdbflprrficdoyxmdxe POSTMOSIS_STRIPE_SECRET_KEY=... POSTMOSIS_STRIPE_WEBHOOK_SECRET=... POSTMOSIS_PRICE_ID=...
