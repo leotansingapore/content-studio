@@ -10,7 +10,7 @@
 // URL (docs/deep-links.md): play=mine|crumple|spoken (stock left out) and mention=no replace; topic=<words> fills
 // what it shows once, then leaves the address. Device hints: cs-make-hook-play (the last way picked) and cs-make-hook-demo
 // (the typed words); the demo's key and name ride in sessionStorage for this tab (hookDemoJob.ts). The brand's saved
-// demos (/brand#demo-videos) are listed first and the first is picked when this tab has none, so a saved demo makes
+// demos (/brand/demo-videos) are listed first and the first is picked when this tab has none, so a saved demo makes
 // a video with no file picked again; it plays its window and is never cleared from this device here.
 
 import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";

@@ -1,4 +1,4 @@
-// What you sell (brand-products, wave 3). After offers on /brand, #products, Leo only (BrandPage mounts it).
+// What you sell (brand-products, wave 3). Brand > Products, /brand/products, Leo only (BrandPage mounts it).
 // The list of products or services (src/lib/products.ts), a scan of the brand's site that runs outside React
 // (src/lib/productScan.ts) and waits on this device for review at ?products=review, and the editor at ?product=<id>.
 // Each item opens Write with its brief or the AI panel's product template with its first picture in the slot.

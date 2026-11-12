@@ -1,4 +1,4 @@
-// One product or service, edited in a dialog over /brand (brand-products, Leo only). Opened by ?product=<id>#products,
+// One product or service, edited in a dialog over /brand/products (brand-products, Leo only). Opened by ?product=<id>,
 // or ?product=new for a blank one (push, so Back closes it). What is typed is kept for the tab until Save, Delete or
 // Back, so a reload never loses it; Close, Escape or a tap outside with unsaved changes keeps it too and offers
 // "Keep editing". Pictures: up to 4, the first used first, from Media or an upload; each joins Media's

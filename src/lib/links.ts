@@ -584,16 +584,18 @@ export const links = {
   /**
    * A section of the brand kit. Leo only: review opens this device's waiting website read or products scan, product a
    * product's editor (new for a blank one) and demo one demo (push); each lands on its own section unless one is named.
+   * Products and demo videos are Brand tabs of their own (/brand/products, /brand/demo-videos, Fastlane's addresses).
    */
   brand: (o: { section?: BrandSection; review?: "website" | "products"; product?: string; demo?: string; preview?: "end" } = {}) => {
     const section = o.section ?? o.review ?? (o.product ? "products" : o.demo ? "demo-videos" : undefined);
-    return `/brand${qs({
+    const own = section === "products" || section === "demo-videos" ? section : null;
+    return `/brand${own ? `/${own}` : ""}${qs({
       website: o.review === "website" && "review",
       products: o.review === "products" && "review",
       product: o.product,
       demo: o.demo,
       preview: o.preview,
-    })}${section ? `#${section}` : ""}`;
+    })}${section && !own ? `#${section}` : ""}`;
   },
   /** Faces and voices (Leo only): tab (face left out) replaces; record, presenter and make open something (push). */
   people: (o: { tab?: "face" | "presenters"; record?: true; presenter?: string; make?: true } = {}) =>
@@ -687,6 +689,19 @@ export const SCHEDULE_STEPS = ["where", "when", "caption"] as const;
 export type ScheduleStep = (typeof SCHEDULE_STEPS)[number];
 export const EDIT_TABS = ["style", "cuts", "frame", "face", "stickers", "broll", "words"] as const;
 export type EditTab = (typeof EDIT_TABS)[number];
+/** Where a /brand address that names products or demo videos (an old link, a phone alert) opens now: its own tab,
+ *  with the rest of the address kept. Null when it is the brand kit's own. */
+export function brandPartAddress(search: string, hash: string): string | null {
+  const p = new URLSearchParams(search);
+  const part =
+    hash === "#products" || hash === "#script-product" || p.has("product") || p.get("products") === "review" ? "products"
+    : hash === "#demo-videos" || p.has("demo") ? "demo-videos"
+    : null;
+  if (!part) return null;
+  // the hash named the section; on the section's own page only the script card's is a place to scroll to
+  return `/brand/${part}${search}${hash === "#script-product" ? hash : ""}`;
+}
+
 export type BrandSection =
   | "you" | "dm-links" | "offers" | "emoji-and-hashtags" | "avoid-words" | "colour" | "sign-off" | "posting-times" | "logo"
   // north star phase 4, Leo only

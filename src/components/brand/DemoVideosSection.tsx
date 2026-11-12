@@ -1,4 +1,4 @@
-// Demo videos (brand-demo-videos, wave 4). After products on /brand, #demo-videos, Leo only (BrandPage mounts it).
+// Demo videos (brand-demo-videos, wave 4). Brand > Demo videos, /brand/demo-videos, Leo only (BrandPage mounts it).
 // A short clip of the brand's app, site or tool in use, kept in Media (src/lib/demoVideos.ts, which runs the upload
 // and the read outside React). One demo opens at ?demo=<key> (push; closing replaces): the looping window, its slider,
 // What it shows, Save and Delete with Undo. Also here: DemoThumb and SavedDemos, which hook plus demo and green screen

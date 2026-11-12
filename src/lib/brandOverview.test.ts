@@ -51,10 +51,10 @@ describe("brandOverview", () => {
     const a = (name: string, offAt?: string) => ({ id: name, name, who: "", lifeStage: "general" as const, cares: [], source: "you" as const, createdAt: "", offAt });
     const i: OverviewInput = { ...empty, leo: true, products: [p("Off", false), p("Tracker", true)], audiences: [a("Agents"), a("Gone", "2026-01-01")], competitors: [{ name: "Outfield" }], demos: 1, media: 0 };
     expect(row(i, "sells").chips).toEqual(["Tracker"]);
-    expect(row(i, "price")).toMatchObject({ value: "$9", to: "/brand?product=pd-Tracker#products" });
+    expect(row(i, "price")).toMatchObject({ value: "$9", to: "/brand/products?product=pd-Tracker" });
     expect(row(i, "who").chips).toEqual(["Agents"]);
     expect(row(i, "demos").value).toBe("1 video");
-    expect(row({ ...i, proof: " 48 cafes " }, "proof")).toMatchObject({ value: "48 cafes", to: "/brand#script-product" });
+    expect(row({ ...i, proof: " 48 cafes " }, "proof")).toMatchObject({ value: "48 cafes", to: "/brand/products#script-product" });
     expect(isSet(row(i, "media"))).toBe(false);
     // the website reads as its address, without the https:// in front
     expect(row({ ...i, kit: { ...DEFAULT_BRAND, website: "https://acme.sg/about" } }, "website").value).toBe("acme.sg/about");

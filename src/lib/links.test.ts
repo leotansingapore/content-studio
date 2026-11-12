@@ -5,7 +5,7 @@ import { APP_ORIGIN as BIO_ORIGIN } from "../../supabase/functions/link-in-bio/l
 import { APP_ORIGIN as SOCIAL_ORIGIN } from "../../supabase/functions/social/logic";
 import { COPY } from "../../supabase/functions/telegram-hook/logic";
 import { ORIGIN as PREVIEW_ORIGIN } from "./linkPreview";
-import { APP_ORIGIN, CAROUSEL_DESIGNS, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, STATIC_LAYOUT_IDS, absolute, links, slug, withDock, withRemix } from "./links";
+import { APP_ORIGIN, CAROUSEL_DESIGNS, brandPartAddress, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, STATIC_LAYOUT_IDS, absolute, links, slug, withDock, withRemix } from "./links";
 
 describe("links", () => {
   it("builds the calendar links the team-posts job sends (docs/deep-links.md)", () => {
@@ -301,14 +301,30 @@ describe("links", () => {
     expect(links.media()).toBe("/media");
   });
 
+  it("sends an old /brand address for products or demo videos to its own tab, and leaves the kit's own", () => {
+    expect(brandPartAddress("", "#products")).toBe("/brand/products");
+    expect(brandPartAddress("?products=review", "#products")).toBe("/brand/products?products=review");
+    expect(brandPartAddress("?product=pd-lq3k9z", "#products")).toBe("/brand/products?product=pd-lq3k9z");
+    expect(brandPartAddress("?product=new", "")).toBe("/brand/products?product=new");
+    // the Playbook's Proof row: the script product card sits with the products
+    expect(brandPartAddress("", "#script-product")).toBe("/brand/products#script-product");
+    expect(brandPartAddress("", "#demo-videos")).toBe("/brand/demo-videos");
+    expect(brandPartAddress("?demo=cvid-mh2k9x01ab", "#demo-videos")).toBe("/brand/demo-videos?demo=cvid-mh2k9x01ab");
+    for (const [search, hash] of [["", ""], ["", "#logo"], ["?website=review", "#website"], ["?preview=end", ""], ["?profile=p2", "#colour"]])
+      expect(brandPartAddress(search, hash), search + hash).toBeNull();
+  });
+
   it("builds the phase-4 /brand sections, reviews and open items", () => {
-    expect(links.brand({ review: "products" })).toBe("/brand?products=review#products");
+    // products and demo videos are Brand tabs of their own (Fastlane's /brand/products and /brand/demo-videos)
+    expect(links.brand({ review: "products" })).toBe("/brand/products?products=review");
     expect(links.brand({ review: "website" })).toBe("/brand?website=review#website");
     expect(links.brand({ preview: "end" })).toBe("/brand?preview=end");
-    expect(links.brand({ product: "new" })).toBe("/brand?product=new#products");
-    expect(links.brand({ product: "pd-lq3k9z" })).toBe("/brand?product=pd-lq3k9z#products");
-    expect(links.brand({ demo: "cvid-mh2k9x01ab" })).toBe("/brand?demo=cvid-mh2k9x01ab#demo-videos");
-    for (const section of ["website", "products", "demo-videos", "people", "font", "on-every-post", "language"] as const) {
+    expect(links.brand({ product: "new" })).toBe("/brand/products?product=new");
+    expect(links.brand({ product: "pd-lq3k9z" })).toBe("/brand/products?product=pd-lq3k9z");
+    expect(links.brand({ demo: "cvid-mh2k9x01ab" })).toBe("/brand/demo-videos?demo=cvid-mh2k9x01ab");
+    expect(links.brand({ section: "products" })).toBe("/brand/products");
+    expect(links.brand({ section: "demo-videos" })).toBe("/brand/demo-videos");
+    for (const section of ["website", "people", "font", "on-every-post", "language"] as const) {
       expect(links.brand({ section })).toBe(`/brand#${section}`);
     }
     // a named section wins over the one an item implies

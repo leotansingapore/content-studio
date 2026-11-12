@@ -2,8 +2,12 @@
 // colour and sign-off that carousels, videos and copied posts reuse. It edits
 // the per-profile brand the carousel maker already saves (carousel.ts), so
 // nothing set up there is lost.
+// Products and demo videos (Leo only) are Brand tabs of their own, as on Fastlane: /brand/products and
+// /brand/demo-videos render this page with `part`, so they load and save the kit exactly as it does. An older /brand
+// address that names one (#products, ?product=, #demo-videos, ?demo=) moves there (links.ts brandPartAddress).
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Check, Copy, ImagePlus, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +64,8 @@ import OnEveryPost from "@/components/brand/OnEveryPost";
 import KitFromSite, { kitLockLine } from "@/components/brand/KitFromSite";
 import { KIT_FEEDS, cachedKit, refreshKit, withKit, type KitRefresh } from "@/lib/brandKitFeed";
 import { activeProfile } from "@/lib/profiles";
+import { brandPartAddress } from "@/lib/links";
+import NotFoundPage from "@/pages/NotFoundPage";
 import { loadDrafts } from "@/lib/draftHistory";
 import { platformName, SOCIAL_PLATFORMS, socialConnectShown, socialStatus } from "@/lib/socialConnect";
 import { isAdviser } from "@/lib/profession";
@@ -400,7 +406,11 @@ export function PostingTimes({ brand, update, userId }: { brand: CarouselBrand; 
   );
 }
 
-export default function BrandPage() {
+/** The Brand tabs this page draws alone, with their page titles (the nav's labels). */
+const PARTS = { products: "Products", "demo-videos": "Demo videos" } as const;
+export type BrandPart = keyof typeof PARTS;
+
+export default function BrandPage({ part }: { part?: BrandPart } = {}) {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -421,6 +431,13 @@ export default function BrandPage() {
   const endCanvas = useRef<HTMLCanvasElement>(null);
   // /brand#logo (and the other section ids, docs/deep-links.md) lands on that section once the kit has loaded
   useScrollToHash(ready);
+  // an older address for products or demo videos opens their own tab (Leo's: nobody else has those sections)
+  const { search, hash } = useLocation();
+  const navigate = useNavigate();
+  const moved = !part && leo ? brandPartAddress(search, hash) : null;
+  useEffect(() => {
+    if (moved) navigate(moved, { replace: true });
+  }, [moved, navigate]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -534,14 +551,40 @@ export default function BrandPage() {
       () => toast({ title: "Copy failed", description: url, variant: "destructive" }),
     );
 
+  // fixed, so an edit far down the page still shows it saved
+  const savedPill = (
+    <span aria-live="polite" className={`pointer-events-none fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold text-success shadow-elegant transition-opacity lg:bottom-6 ${saved ? "opacity-100" : "opacity-0"}`}>
+          <Check className="h-3.5 w-3.5" /> Saved
+        </span>
+  );
+
+  if (part) {
+    if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
+    if (!leo) return <NotFoundPage notOnAccount />;
+    return (
+      <div className="space-y-6">
+        {/* the section's own card heading is the title a reader sees; this one names the page for screen readers */}
+        <h1 className="sr-only">{PARTS[part]}</h1>
+        {savedPill}
+        {/* the section waits for the account, so nothing typed before it loads is dropped */}
+        {ready && userId && (part === "products" ? (
+          <>
+            <ProductsSection userId={userId} brand={brand} setBrand={setKit} />
+            {/* #script-product: where the Profile's Proof row lands (the card has no id of its own) */}
+            <div id="script-product" className="scroll-mt-20"><ProductCard userId={userId} /></div>
+          </>
+        ) : (
+          <DemoVideosSection userId={userId} brand={brand} setBrand={setKit} />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex items-center gap-3">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Brand kit</h1>
-        {/* fixed, so an edit far down the page still shows it saved */}
-        <span aria-live="polite" className={`pointer-events-none fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold text-success shadow-elegant transition-opacity lg:bottom-6 ${saved ? "opacity-100" : "opacity-0"}`}>
-          <Check className="h-3.5 w-3.5" /> Saved
-        </span>
+        {savedPill}
       </header>
 
       {/* the form waits for the account, so nothing typed before it loads is dropped */}
@@ -656,10 +699,6 @@ export default function BrandPage() {
               </Button>
             )}
           </section>
-          {leo && userId && <ProductsSection userId={userId} brand={brand} setBrand={setKit} />}
-          {/* /brand#script-product: where the Playbook's Proof row lands (the card has no id of its own) */}
-          {leo && userId && <div id="script-product" className="scroll-mt-20"><ProductCard userId={userId} /></div>}
-          {leo && userId && <DemoVideosSection userId={userId} brand={brand} setBrand={setKit} />}
 
           <section id="emoji-and-hashtags" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="policies">
             <div className="flex items-center gap-1">

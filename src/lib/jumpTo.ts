@@ -33,6 +33,8 @@ const KEYWORDS: Record<string, string> = {
   "/reels/team": "team invite teammate teammates people roles members access",
   "/notifications": "alerts reminders notification settings email push",
   "/brand": "posting times best time when slots logo photo colours sign-off fonts font",
+  "/brand/products": "price offer sell product photos",
+  "/brand/demo-videos": "demo clip screen recording walkthrough app in use",
   "/voice": "tone writing style",
   "/people": "face voice presenter faces and voices",
   "/bio": "link in bio page",

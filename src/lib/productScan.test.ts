@@ -33,14 +33,14 @@ class MemStorage {
   removeItem(k: string) { this.s.delete(k); }
 }
 let storage: MemStorage;
-let path = "/brand";
+let path = "/brand/products";
 beforeEach(() => {
   storage = new MemStorage();
   vi.stubGlobal("localStorage", storage);
   vi.stubGlobal("window", { localStorage: storage, dispatchEvent: () => true });
   vi.stubGlobal("location", { get pathname() { return path; } });
   vi.stubGlobal("fetch", async (u: string) => ({ blob: async () => new Blob([u.slice(0, 30)], { type: "image/jpeg" }) }));
-  path = "/brand";
+  path = "/brand/products";
   callFn.mockReset();
   toast.mockReset();
   files.clear();
@@ -124,11 +124,15 @@ describe("startScan", () => {
     expect(s.loadWaiting("u1")).toBeNull();
   });
 
-  it("tells you where you are when it finishes after you left /brand", async () => {
+  it("tells you where you are when it finishes after you left Brand > Products, and nothing while you are on it", async () => {
+    callFn.mockResolvedValueOnce(answer([]));
+    path = "/brand/products";
+    await s.startScan("u1", "acme.sg");
+    expect(toast).not.toHaveBeenCalled();
     callFn.mockResolvedValueOnce(answer([]));
     path = "/calendar";
     await s.startScan("u1", "acme.sg");
-    expect(toast).toHaveBeenCalledWith({ title: "Your products scan is ready", description: "Open Brand kit to check it." });
+    expect(toast).toHaveBeenCalledWith({ title: "Your products scan is ready", description: "Open Brand > Products to check it." });
   });
 });
 

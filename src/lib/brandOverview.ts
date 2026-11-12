@@ -83,9 +83,9 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       title: "Offer",
       rows: [
         i.leo
-          ? { id: "sells", label: "What you sell", value: "", chips: products.length ? products.map((p) => p.name) : offers, to: "/brand#products", add: "Add what you sell" }
+          ? { id: "sells", label: "What you sell", value: "", chips: products.length ? products.map((p) => p.name) : offers, to: "/brand/products", add: "Add what you sell" }
           : { id: "sells", label: "What you sell", value: "", chips: offers, to: "/brand#offers", add: "Add an offer" },
-        ...(i.leo ? [{ id: "price", label: "Price point", value: t(main?.price), to: main ? `/brand?product=${main.id}#products` : "/brand#products", add: "Add a price" }] : []),
+        ...(i.leo ? [{ id: "price", label: "Price point", value: t(main?.price), to: main ? `/brand/products?product=${main.id}` : "/brand/products", add: "Add a price" }] : []),
         { id: "edge", label: "Why they choose you", value: t(pos?.edge), to: "/plan", add: "Say why you" },
       ],
     },
@@ -103,7 +103,7 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       ? [{
         id: "proof",
         title: "Proof",
-        rows: [{ id: "proof", label: "Real words and numbers", value: t(i.proof), to: "/brand#script-product", add: "Add proof" }],
+        rows: [{ id: "proof", label: "Real words and numbers", value: t(i.proof), to: "/brand/products#script-product", add: "Add proof" }],
       }]
       : []),
     {
@@ -132,7 +132,7 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       title: "On file",
       rows: [
         { id: "competitors", label: "Competitors", value: "", chips: names, to: "/competitors?view=list", add: "Add a competitor" },
-        { id: "demos", label: "Demo videos", value: count(i.demos ?? 0, "video"), to: "/brand#demo-videos", add: "Upload a demo", optional: true },
+        { id: "demos", label: "Demo videos", value: count(i.demos ?? 0, "video"), to: "/brand/demo-videos", add: "Upload a demo", optional: true },
         { id: "media", label: "Photos and videos", value: count(i.media ?? 0, "file"), to: "/media", add: "Add photos" },
       ],
     });

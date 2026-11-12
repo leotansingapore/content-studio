@@ -80,6 +80,8 @@ export const PAGES: Record<string, string> = {
   "/playbook": "Profile",
   "/voice": "Your voice",
   "/brand": "Brand kit",
+  "/brand/products": "Products",
+  "/brand/demo-videos": "Demo videos",
   "/audiences": "Audiences",
   "/people": "Faces and voices",
   "/blitz": "Blitz",

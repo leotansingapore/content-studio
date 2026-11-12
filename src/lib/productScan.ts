@@ -332,7 +332,7 @@ export async function startScan(userId: string, address: string, now = Date.now)
     emit();
   }
   if (!line) fetchReviewPictures(userId);
-  // left /brand while it ran: say so where they are
-  if (typeof location !== "undefined" && location.pathname !== "/brand")
-    toast(line ? { title: line, variant: "destructive" } : { title: "Your products scan is ready", description: "Open Brand kit to check it." });
+  // left Brand > Products while it ran: say so where they are
+  if (typeof location !== "undefined" && location.pathname !== "/brand/products")
+    toast(line ? { title: line, variant: "destructive" } : { title: "Your products scan is ready", description: "Open Brand > Products to check it." });
 }

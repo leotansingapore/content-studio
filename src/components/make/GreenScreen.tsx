@@ -8,7 +8,7 @@
 // replace. Nothing makes on arrival: the presenter costs more than US$1, and the green screen has no Also make link.
 // Device: cs-make-green-screen-<scoped uid> keeps the typed note and the demo or picture picked; the presenter's script
 // and look are the talking head page's (cs-make-talking-head-<scoped uid>). Behind them, the brand's saved demos that
-// play whole (/brand#demo-videos) are listed first; one picked is copied to its own bd-gs- key (greenScreen.ts).
+// play whole (/brand/demo-videos) are listed first; one picked is copied to its own bd-gs- key (greenScreen.ts).
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";

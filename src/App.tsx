@@ -239,6 +239,8 @@ export default function App() {
           <Route path="/create-guide" element={<CreateGuidePage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/brand" element={<BrandPage />} />
+          <Route path="/brand/products" element={<BrandPage part="products" />} />
+          <Route path="/brand/demo-videos" element={<BrandPage part="demo-videos" />} />
           <Route path="/audiences" element={<AudiencesPage />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/blitz" element={<BlitzPage />} />
