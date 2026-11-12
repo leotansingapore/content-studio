@@ -479,10 +479,11 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /make/text-over-clip | scene | Leo only. kitchen, walk, interview | kitchen | replace | /make/text-over-clip?scene=walk |
 | /make/text-over-clip | quality | Leo only. 480p, 720p | 480p | replace | /make/text-over-clip?quality=720p |
 | /make/text-over-clip | pick | Leo only. open: the list of videos that did well, as on /make/wall-of-text | closed | replace | /make/text-over-clip?from=remix&pick=open |
-| /make/talking-head | who | Leo only. presenter (a new AI presenter), mine (your saved face), or a saved presenter's id; a typed photo falls back to the default | the brand's "Who appears" | replace | /make/talking-head?who=mine |
-| /make/talking-head | setting | Leo only. office, car, kitchen, couch, cafe | office | replace | /make/talking-head?who=presenter&setting=car |
-| /make/talking-head | length | Leo only. 8, 15, 20, 30 (seconds) | 15 | replace | /make/talking-head?length=30 |
-| /make/talking-head | voice | Leo only. alice, lily, george, eric, matilda, sarah, liam (the voices in supabase/functions/text-voice/logic.ts) | alice (as You speaking) | replace | /make/talking-head?voice=george |
+| /make/talking-head | who | Leo only. presenter (a new AI presenter), mine (your saved face), or a saved presenter's id; a typed photo falls back to the default | the brand's "Who appears" while that person is on, else your saved face, else a new presenter | replace | /make/talking-head?who=mine |
+| /make/talking-head | setting | Leo only. office, car, kitchen, couch, cafe | the last one picked on this device, else office | replace | /make/talking-head?who=presenter&setting=car |
+| /make/talking-head | length | Leo only. 8, 15, 20, 30 (seconds) | the last one picked on this device, else 15 | replace | /make/talking-head?length=30 |
+| /make/talking-head | voice | Leo only. alice, lily, george, eric, matilda, sarah, liam (the voices in supabase/functions/text-voice/logic.ts) | a saved presenter's own voice, else one that fits who speaks, starting from the last one picked on this device | replace | /make/talking-head?voice=george |
+| /make/talking-head | more | Leo only. open: More settings unfolded (voice, and a new presenter's look and setting) | shut | replace | /make/talking-head?who=presenter&more=open |
 | /make/green-screen | who | Leo only. mine (your video), presenter (an AI presenter) | mine | replace | /make/green-screen?who=presenter |
 | /make/green-screen | behind | Leo only. notes, demo, picture | notes | replace | /make/green-screen?behind=demo |
 | /make/green-screen | stand | Leo only. bottom, corner | bottom | replace | /make/green-screen?stand=corner |
