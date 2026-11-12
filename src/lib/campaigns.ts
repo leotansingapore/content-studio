@@ -122,6 +122,9 @@ export function updatePost(userId: string, id: string, n: number, patch: Partial
   return saveCampaigns(userId, list.map((x) => (x.id === id ? next : x))) ? null : next;
 }
 
+/** The post's day of the campaign, 1 on its start day ("Day 3"). */
+export const dayOf = (c: Pick<Campaign, "startDay">, p: Pick<CampaignPost, "day">) => Math.round((keyToDate(p.day).getTime() - keyToDate(c.startDay).getTime()) / 86_400_000) + 1;
+
 /** Removes a campaign; returns it for the Undo toast (restoreCampaign), or null when it wasn't there. */
 export function deleteCampaign(userId: string, id: string): Campaign | null {
   const list = loadCampaigns(userId);

@@ -95,6 +95,8 @@ export interface DraftEntry {
   score?: { v: number; down: FactorId[]; key: string; at: string };
   /** The live post it went out as without Post it for me, matched or linked by hand (learn-real-numbers). */
   live?: LiveLink;
+  /** The campaign post it was made from (campaignActions.ts postDraft): the campaign's id, the post's number and its day of the campaign. */
+  campaign?: { id: string; post: number; day: number };
 }
 
 export interface NetworkVersion {
@@ -496,6 +498,7 @@ export function upsertDraft(
   if (prev?.set && !("set" in entry)) entry = { ...entry, set: prev.set };
   if (prev?.versions && !("versions" in entry)) entry = { ...entry, versions: prev.versions };
   if (prev?.live && !entry.live) entry = { ...entry, live: prev.live };
+  if (prev?.campaign && !entry.campaign) entry = { ...entry, campaign: prev.campaign };
   if (prev?.score && !("score" in entry) && prev.draft === entry.draft && prev.platform === entry.platform) entry = { ...entry, score: prev.score };
   return saveDrafts(userId, [entry, ...current.filter((d) => d.id !== entry.id)]);
 }

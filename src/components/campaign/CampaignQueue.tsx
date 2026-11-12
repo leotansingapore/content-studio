@@ -27,7 +27,7 @@ import {
 } from "@/lib/campaignActions";
 import { boardCounts, countsText, scriptBlocks } from "@/lib/campaignBoard";
 import { FAILED_POST, PAUSED_LINE, retryFailed } from "@/lib/campaignJob";
-import { FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignFormat, type CampaignPost, type QueueAction } from "@/lib/campaigns";
+import { dayOf, FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignFormat, type CampaignPost, type QueueAction } from "@/lib/campaigns";
 import { FORMAT_HINT, FORMAT_NAME, shortDay } from "@/lib/campaignWizard";
 import { scanCompliance } from "@/lib/compliance";
 import { keyToDate, timeLabel } from "@/lib/dueDates";
@@ -82,7 +82,6 @@ function keepEdit(campaignId: string, n: number, w: Words | null): void {
 
 /** "Thu 8pm", or the day alone. */
 const slotText = (p: Pick<CampaignPost, "day" | "time">) => `${shortDay(keyToDate(p.day)).split(" ")[0]}${p.time ? ` ${timeLabel(p.time)}` : ""}`;
-const dayIndex = (c: Pick<Campaign, "startDay">, p: Pick<CampaignPost, "day">) => Math.round((keyToDate(p.day).getTime() - keyToDate(c.startDay).getTime()) / 86_400_000) + 1;
 function Key({ k }: { k: string }) {
   return <kbd className="ml-1.5 hidden rounded border border-current/30 px-1 font-sans text-[10px] font-medium opacity-70 lg:inline [@media(pointer:coarse)]:hidden">{k}</kbd>;
 }
@@ -350,7 +349,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         <p className="text-sm tabular-nums" aria-live="polite">{countsText(boardCounts(posts))}</p>
         {nextDraft && (
           <Link to={{ search: toPost(nextDraft.n) }} replace className="inline-flex min-h-11 items-center gap-0.5 text-sm font-medium text-primary hover:underline sm:min-h-0">
-            Next draft: Day {dayIndex(c, nextDraft)} <ChevronRight className="h-4 w-4" aria-hidden />
+            Next draft: Day {dayOf(c, nextDraft)} <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
         )}
         {hasVideo && (
@@ -365,7 +364,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
             <li key={p.n}>
               <Link to={{ search: toPost(p.n) }} replace className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 text-xs hover:border-primary/60 sm:min-h-8">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden />
-                <span className="font-medium">Day {dayIndex(c, p)}</span>
+                <span className="font-medium">Day {dayOf(c, p)}</span>
                 <span className="text-muted-foreground">{step}</span>
               </Link>
             </li>
@@ -610,7 +609,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
 
         <aside aria-label={`Post ${cur.n}`} className="min-w-0 space-y-3 text-sm">
           <div className="flex items-center justify-between gap-2">
-            <p className={LABEL}>Day {dayIndex(c, cur)} | {shortDay(keyToDate(cur.day))}</p>
+            <p className={LABEL}>Day {dayOf(c, cur)} | {shortDay(keyToDate(cur.day))}</p>
             <span className="rounded-full border border-border/70 px-2 py-0.5 text-[11px]">{FREE_FORMATS.includes(cur.format) ? "Free" : cur.format === "ai-video" ? "AI video" : "Made at Make"}</span>
           </div>
           <p className="flex flex-wrap items-center gap-x-2">
@@ -623,7 +622,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
             )}
           </p>
           {picking === "format" && cur.state === "ready" && !work && !swapOff && (
-            <div id="swap-format" role="group" aria-label={`Swap day ${dayIndex(c, cur)}'s format`} className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+            <div id="swap-format" role="group" aria-label={`Swap day ${dayOf(c, cur)}'s format`} className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
               <p className="text-xs text-muted-foreground">Same day and angle, written again in the format you pick. Undo brings this draft back.</p>
               <ul className="space-y-1">
                 {(Object.keys(FORMAT_NAME) as CampaignFormat[]).map((f) => {

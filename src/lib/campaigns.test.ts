@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  AD_COUNT, adBits, adLayoutFor, adLayouts, addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignFormats, campaignsKey,
+  AD_COUNT, adBits, adLayoutFor, adLayouts, addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, dayOf, campaignFormats, campaignsKey,
   campaignStatus, type CampaignFormat, type CampaignPost, deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
   planAds, planCampaign, type PostState, REMIX_MAKE, replanCampaign, runningAdSources, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
 } from "./campaigns";
@@ -42,6 +42,14 @@ const campaign = (o: Partial<Campaign> = {}, count = 12): Campaign => ({
 const withVideos = (states: Partial<Record<number, PostState>> = {}) =>
   campaign({ posts: Array.from({ length: 12 }, (_, i) => post(i + 1, { format: (i + 1) % 3 === 0 ? "ai-video" : i % 2 ? "carousel" : "text-post", state: states[i + 1] ?? "ready" })) });
 const draft = (o: Partial<DraftEntry> = {}): DraftEntry => ({ id: "d", createdAt: "", hook: "", draft: "", pillar: "", pillarDetail: "", audience: "", format: "text-post", platform: "linkedin", ctaType: "", ...o });
+
+describe("a post's day of the campaign", () => {
+  it("counts a post's day from the campaign's start day", () => {
+    expect(dayOf({ startDay: "2026-11-01" }, { day: "2026-11-01" })).toBe(1);
+    expect(dayOf({ startDay: "2026-11-01" }, { day: "2026-11-23" })).toBe(23);
+    expect(dayOf({ startDay: "2026-10-26" }, { day: "2026-11-02" })).toBe(8);
+  });
+});
 
 describe("the store", () => {
   it("saves and loads per brand, and says it changed", () => {

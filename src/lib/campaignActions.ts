@@ -15,7 +15,7 @@ import { loadAudiences } from "@/lib/audiences";
 import { presenterVoice } from "@/lib/presenters";
 import { applyBrandRules, avoidList } from "@/lib/brandRules";
 import { campaignRequest, startDrafting } from "@/lib/campaignJob";
-import { AI_VIDEO, dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignFormat, type CampaignPost } from "@/lib/campaigns";
+import { AI_VIDEO, dayOf, dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignFormat, type CampaignPost } from "@/lib/campaigns";
 import { FORMAT_NAME, shortDay } from "@/lib/campaignWizard";
 import { loadBrand } from "@/lib/carousel";
 import { keyToDate, scheduleAt, timeLabel } from "@/lib/dueDates";
@@ -82,7 +82,7 @@ export const postSlides = (p: Pick<CampaignPost, "format" | (typeof FIELDS)[numb
  * The scheduled My posts entry for a post: a wall and an AI video wait in it as a short video script, an AI video's
  * with its caption under it in Clone a reel's shape (script, a --- line, CAPTION:), which the AI panel carries to the editor.
  */
-export function postDraft(userId: string, c: Pick<Campaign, "id" | "audience" | "angles" | "platforms">, p: CampaignPost, now: Date): DraftEntry {
+export function postDraft(userId: string, c: Pick<Campaign, "id" | "audience" | "angles" | "platforms" | "startDay">, p: CampaignPost, now: Date): DraftEntry {
   const caption = p.format === "ai-video" ? videoCaption(p) : "";
   return {
     id: draftIdOf(c.id, p.n),
@@ -98,6 +98,7 @@ export function postDraft(userId: string, c: Pick<Campaign, "id" | "audience" | 
     ...(p.formulaId ? { hookFormula: p.formulaId } : {}),
     status: "scheduled",
     scheduledFor: scheduleAt(p.day, p.time),
+    campaign: { id: c.id, post: p.n, day: dayOf(c, p) },
   };
 }
 
@@ -213,7 +214,7 @@ async function makeShow(userId: string, c: Campaign, p: CampaignPost, now: Date)
   const linked = { ...show, draftId };
   saveSlideshow(userId, linked);
   const base = postDraft(userId, c, p, now);
-  writeDraft(userId, { ...slideshowToDraft(linked, now.toISOString()), pillar: base.pillar, pillarDetail: base.pillarDetail, audience: base.audience, ctaType: base.ctaType, ...(base.hookFormula ? { hookFormula: base.hookFormula } : {}), status: "scheduled", scheduledFor: base.scheduledFor });
+  writeDraft(userId, { ...slideshowToDraft(linked, now.toISOString()), pillar: base.pillar, pillarDetail: base.pillarDetail, audience: base.audience, ctaType: base.ctaType, ...(base.hookFormula ? { hookFormula: base.hookFormula } : {}), status: "scheduled", scheduledFor: base.scheduledFor, campaign: base.campaign });
   updatePost(userId, c.id, p.n, { state: "made", draftId, made: { kind: "slideshow", id: show.id }, error: undefined });
   return { ok: true, toast: `Post ${p.n} is on your calendar for ${whenText(p)}, with its slides.`, undo: undoOf(userId, c.id, p.n) };
 }
