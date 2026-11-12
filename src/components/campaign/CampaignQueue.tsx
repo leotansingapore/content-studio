@@ -135,7 +135,8 @@ function MadeShow({ userId, id }: { userId: string; id: string }) {
   );
 }
 
-export default function CampaignQueue({ userId, campaign: c, angle }: { userId: string; campaign: Campaign; angle: string | null }) {
+/** `ads`: the campaign's ads group, first in All posts as Fastlane has it (the page shows it under the deck in Review). */
+export default function CampaignQueue({ userId, campaign: c, angle, ads }: { userId: string; campaign: Campaign; angle: string | null; ads?: ReactNode }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [, redraw] = useReducer((n: number) => n + 1, 0);
@@ -313,14 +314,6 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
 
   // ---- the toolbar ----
 
-  const kept = c.posts.filter((p) => p.state !== "skipped");
-  const count = (f: CampaignPost["format"]) => kept.filter((p) => p.format === f).length;
-  const tallies = [
-    [kept.filter((p) => FREE_FORMATS.includes(p.format)).length, "free", "free"],
-    [count("slideshow"), "slideshow", "slideshows"],
-    [count("wall"), "wall of text", "walls of text"],
-    [count("ai-video"), "AI video", "AI videos"],
-  ].filter(([n]) => n) as [number, string, string][];
   const finished = posts.every((p) => !open(p));
   const lastDay = sorted.reduce((m, p) => (p.day > m ? p.day : m), "");
   const toPost = (n: number) => withParam(withParam(params, "view", null), "post", String(n)).toString();
@@ -355,7 +348,6 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         {hasVideo && (
           <p className="text-sm"><span className={LABEL}>AI videos left today</span> <span className="tabular-nums">{videos ?? "?"}</span></p>
         )}
-        <p className="text-sm text-muted-foreground sm:ml-auto">{tallies.map(([n, one, many]) => `${n} ${n === 1 ? one : many}`).join(" | ")}</p>
       </div>
       {jobs.length > 0 && (
         <ul role="status" aria-label="Being made" className="flex flex-wrap items-center gap-2 text-sm">
@@ -380,6 +372,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
     return (
       <div className="space-y-4">
         {toolbar}
+        {ads}
         <AllPosts userId={userId} campaign={c} posts={posts} to={toPost} />
         <p className="text-xs text-muted-foreground">{SAFETY}</p>
       </div>

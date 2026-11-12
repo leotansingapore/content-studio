@@ -1,13 +1,14 @@
 // One campaign (/campaigns/:id, Leo's sign-ins only; docs/north-star/items/plan-campaign-page.md): the header with
-// Configure (?configure=1: name, pace and length), Rename and Delete (Undo), the paused and finished states, then a
-// campaign with ads shows its ads group first (?ads=all, ?ads=send; src/components/campaign/AdsGroup.tsx), then the
-// cost, where and goal panels on one row and the review queue under #queue (none of these for Ads only). Opening it resumes any posts still to be written
+// Configure (?configure=1: name, pace and length), Rename and Delete (Undo), the paused and finished states, then, in
+// Fastlane's order, the review queue under #queue (Review, or All posts with the ads group first), the ads group under
+// the deck in Review (?ads=all, ?ads=send; src/components/campaign/AdsGroup.tsx), and the cost, where and goal panels
+// on one row last. Ads only shows the ads group alone. Opening it resumes any posts still to be written
 // (src/lib/campaignJob.ts, outside React). ?angle= filters the queue; ?post= and ?view= are the queue's own.
 // Everyone else gets the 404 page.
 
 import { useEffect, useReducer, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { DotsThreeIcon } from "@phosphor-icons/react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { DotsThreeIcon, SlidersHorizontalIcon } from "@phosphor-icons/react";
 import AdsGroup from "@/components/campaign/AdsGroup";
 import CampaignQueue from "@/components/campaign/CampaignQueue";
 import ConfigurePanel from "@/components/campaign/ConfigurePanel";
@@ -81,6 +82,7 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
   }, [menu]);
   const [renaming, setRenaming] = useState(false);
   const [configure, openConfigure, closeConfigure] = useUrlItem("configure");
+  const grid = useSearchParams()[0].get("view") === "grid";
   const cancelled = useRef(false);
 
   if (!c) {
@@ -98,6 +100,7 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
   const who = loadAudiences(userId).find((a) => a.id === c.audience)?.who || c.audienceName;
   const paused = c.waitUntil && Date.now() < Date.parse(c.waitUntil) ? PAUSED_LINE : draftingOf(c.id)?.paused;
   const finished = c.posts.length > 0 && c.posts.every((p) => p.state === "made" || p.state === "skipped");
+  const ads = c.ads?.length ? <AdsGroup userId={userId} campaign={c} /> : null;
 
   const rename = (value: string) => {
     setRenaming(false);
@@ -168,9 +171,9 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
             <span className={`${CHIP} ${status === "running" ? "border-primary/40 bg-primary/10 text-primary" : status === "done" ? "border-success/40 bg-success/10 text-success" : "bg-muted/50"}`}>
               {STATUS[status]}
             </span>
-            <Button variant="outline" className={BIG} aria-expanded={configure === "1"} aria-controls="configure"
+            <Button variant="ghost" className={`${BIG} gap-1.5 ${configure === "1" ? "bg-accent" : ""}`} aria-expanded={configure === "1"} aria-controls="configure"
               onClick={() => (configure === "1" ? closeConfigure() : openConfigure("1"))}>
-              Configure
+              <SlidersHorizontalIcon className="h-4 w-4" aria-hidden /> Configure
             </Button>
             <div ref={menuRef} className="relative">
               <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-10 sm:w-10" aria-label="More for this campaign" aria-haspopup="menu" aria-expanded={menu === "open"}
@@ -225,10 +228,14 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
         </section>
       )}
 
-      {c.ads?.length ? <AdsGroup userId={userId} campaign={c} /> : null}
-
-      {c.runs !== "ads" && (
+      {c.runs === "ads" ? ads : (
         <>
+          <section id="queue" aria-label="Review queue" className="scroll-mt-20">
+            <CampaignQueue userId={userId} campaign={c} angle={angle || null} ads={grid ? ads : null} />
+          </section>
+
+          {!grid && ads}
+
           {/* one row from lg up (cost, where, goal); stacked below as cost, goal, where */}
           <div className="grid items-start gap-4 lg:grid-cols-3">
             <div className="order-1 min-w-0 empty:hidden"><CostPanel userId={userId} campaign={c} /></div>
@@ -237,10 +244,6 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
               <GoalPanel userId={userId} campaign={c} angle={angle || null} onAngle={(a) => setAngle(a ?? "")} />
             </div>
           </div>
-
-          <section id="queue" aria-label="Review queue" className="scroll-mt-20">
-            <CampaignQueue userId={userId} campaign={c} angle={angle || null} />
-          </section>
         </>
       )}
     </div>

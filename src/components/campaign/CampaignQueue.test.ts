@@ -279,3 +279,19 @@ describe("Make it a launch film on an AI video slot (formats-launch-film)", () =
     expect(html(4)).not.toContain("Make it a launch film");
   });
 });
+
+describe("the ads group's place (wave 8: Fastlane's All posts opens on its ads; Review is the deck alone)", () => {
+  const draw = (view: string) =>
+    renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/campaigns/${CAMPAIGN.id}?post=3${view}`] },
+      createElement(CampaignQueue, { userId: "u-1", campaign: CAMPAIGN, angle: null, ads: createElement("section", { id: "ads-slot" }) })));
+  it("puts the ads group under the toolbar and above the weeks in All posts", () => {
+    const out = draw("&view=grid");
+    expect(out.indexOf('id="ads-slot"')).toBeGreaterThan(out.indexOf('aria-label="View"'));
+    expect(out.indexOf('id="ads-slot"')).toBeLessThan(out.indexOf('aria-label="Week 1"'));
+  });
+  it("leaves it out of Review, and drops the format tallies the cost panel already gives", () => {
+    const out = draw("");
+    expect(out).not.toContain('id="ads-slot"');
+    expect(out).not.toMatch(/\d+ free \|/);
+  });
+});

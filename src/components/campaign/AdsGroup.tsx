@@ -213,7 +213,8 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
             {open ? <>Hide ads <CaretUpIcon className="h-4 w-4" /></> : <>Show all {views.length} ads <CaretDownIcon className="h-4 w-4" /></>}
           </Button>
           {k.made > 0 && ads !== "send" && (
-            <Button className="h-11 sm:h-10" onClick={() => setAds("send")}>Send the ads to AdLauncher</Button>
+            // outline: Make on the post being reviewed is the page's one filled button; Send in its panel is the panel's
+            <Button variant="outline" className="h-11 sm:h-10" onClick={() => setAds("send")}>Send the ads to AdLauncher</Button>
           )}
         </div>
       </div>
