@@ -4,7 +4,8 @@
 //                                          card up front). app.postmosis.com/start is a vercel.json rewrite here.
 //   GET /postmosis-start/done?session_id=  Stripe's success_url (app.postmosis.com/start/done): checks the session
 //                                          with Stripe, makes sure the account and its cs_subscriptions row
-//                                          exist, and signs a brand new account in once, within the hour.
+//                                          exist, then sends the browser to /auth, which emails the sign-in
+//                                          link. It never signs anyone in.
 //
 // Off (302 to postmosis.com/pricing?checkout=off, no Stripe call) unless POSTMOSIS_CHECKOUT_ON and the three
 // POSTMOSIS_ Stripe secrets are set. Visitors send no Supabase JWT, so this deploys WITHOUT JWT verification:

@@ -7,8 +7,6 @@ import { GRANTS, hasAccess, type SubRow } from "./subscription.ts";
 export const APP = "https://app.postmosis.com";
 export const SITE = "https://postmosis.com";
 export const TRIAL_DAYS = 7;
-/** How long after a Checkout session was created /start/done will sign its payer in. */
-export const SIGNIN_WINDOW_MS = 60 * 60_000;
 
 export type Config = { key: string; whsec: string; price: string };
 
@@ -49,18 +47,21 @@ export type StripeApi = {
 };
 
 export type Row = SubRow & { user_id: string; email: string; stripe_subscription_id?: string | null };
+export type Hold = { stripe_subscription_id: string; stripe_customer_id: string; email: string; status: string; reason: "account_without_subscription" | "second_subscription"; updated_at: string };
+// Nothing here can mint a session, a token or a sign-in link: the public endpoints have no way to sign anyone in.
 export type Db = {
-  accountForEmail(email: string): Promise<{ userId: string; checkout: string | null } | null>;
-  /** A new account stamped with the checkout that made it; null when the email is already someone's. */
-  createAccount(email: string, checkout: string): Promise<string | null>;
+  /** The account an email belongs to, and the subscription that created it (stamped at creation), if one did. */
+  accountForEmail(email: string): Promise<{ userId: string; madeBy: string | null } | null>;
+  /** A new account stamped with the subscription that made it; null when the email is already someone's. */
+  createAccount(email: string, madeBy: string): Promise<string | null>;
   rowBySubscription(subscriptionId: string): Promise<Row | null>;
   rowByUser(userId: string): Promise<Row | null>;
   saveRow(row: Row & { updated_at: string }): Promise<void>;
-  /** Takes an id once: false when it was already taken. */
+  /** A paid checkout that was not attached to any account: the owner attaches or refunds it by hand. */
+  saveHold(hold: Hold): Promise<void>;
+  /** Logs a finished event: false when it was already logged. */
   claim(id: string, type: string): Promise<boolean>;
   seen(id: string): Promise<boolean>;
-  /** A one-use sign-in token for this account's email (the app verifies it), or null. */
-  signInToken(email: string): Promise<string | null>;
 };
 export type Deps = {
   env: (k: string) => string | undefined;
@@ -77,7 +78,7 @@ const text = (status: number, body: string) =>
   new Response(body, { status, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Robots-Tag": "noindex" } });
 
 const EMAIL = /^[^\s@<>"'\\]{1,64}@[^\s@<>"'\\]{1,180}\.[a-z]{2,24}$/i;
-export const SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]{8,250}$/;
+const SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]{8,250}$/;
 
 export const planOf = (v: string | null): "pay" | "trial" | null => (v === "pay" || v === "trial" ? v : null);
 
@@ -106,35 +107,44 @@ const customerOf = (sub: StripeSub) => (typeof sub.customer === "string" ? { id:
 /**
  * Makes cs_subscriptions say what Stripe says about one subscription, creating the account first when a paid or
  * trialing subscription has none. Run by the webhook and by /start/done, in either order, any number of times.
- * Returns null when nothing is on file for it (not ours, or nothing paid yet), else the account, and `mine`: this
- * very Checkout session created the account (the only case /start/done may sign someone in).
+ *
+ * An email typed at Stripe proves nothing about who owns the inbox, so a checkout is attached to an account that
+ * already exists only when that account is a customer already: this subscription created it, or it has a
+ * cs_subscriptions row whose subscription no longer gives access. An account with no row (from before billing)
+ * is never given one here, or a stranger could pay under its email, cancel, and paywall it. Such a checkout, and a
+ * second one beside a subscription that still gives access, is HELD (cs_held_checkouts) for the owner to attach or
+ * refund by hand, and gates nobody.
+ *
+ * Returns null when nothing is on file for it (not ours, or nothing paid yet), else the checkout's email.
  */
-export async function syncSubscription(db: Db, sub: StripeSub, o: { price: string; sessionId: string | null; now: number }): Promise<{ userId: string; email: string; mine: boolean } | null> {
+export async function syncSubscription(db: Db, sub: StripeSub, o: { price: string; now: number }): Promise<{ email: string; held: boolean } | null> {
   if (!isOurs(sub, o.price)) return null;
   const customer = customerOf(sub);
   const stripeEmail = (customer.email ?? "").trim().toLowerCase();
+  const updated_at = new Date(o.now).toISOString();
   const existing = await db.rowBySubscription(sub.id);
   let userId = existing?.user_id ?? null;
-  let mine = false;
   if (!userId) {
-    // nothing paid and no trial started: no account, no row
-    if (!GRANTS.has(sub.status) || !EMAIL.test(stripeEmail)) return null;
+    if (!EMAIL.test(stripeEmail)) return null;
+    // nothing paid and no trial started: no account and no row
+    const grants = GRANTS.has(sub.status);
     let account = await db.accountForEmail(stripeEmail);
     if (!account) {
-      const made = await db.createAccount(stripeEmail, o.sessionId ?? sub.id);
+      if (!grants) return null;
+      const made = await db.createAccount(stripeEmail, sub.id);
       // null: the other of webhook and /start/done made it a moment ago
-      account = made ? { userId: made, checkout: o.sessionId ?? sub.id } : await db.accountForEmail(stripeEmail);
+      account = made ? { userId: made, madeBy: sub.id } : await db.accountForEmail(stripeEmail);
       if (!account) throw new Error("account neither created nor found");
     }
+    const row = await db.rowByUser(account.userId);
+    const reason = !row ? (account.madeBy === sub.id ? null : "account_without_subscription") : hasAccess(row, o.now) ? "second_subscription" : null;
+    if (reason) {
+      // kept in step with Stripe afterwards, so the owner sees whether it is still being paid for
+      await db.saveHold({ stripe_subscription_id: sub.id, stripe_customer_id: customer.id, email: stripeEmail, status: sub.status, reason, updated_at });
+      return grants ? { email: stripeEmail, held: true } : null;
+    }
+    if (!grants) return null;
     userId = account.userId;
-    mine = !!o.sessionId && account.checkout === o.sessionId;
-    // An account that already holds another subscription with access keeps it: a second checkout under someone's
-    // email (theirs or a stranger's) must not replace a live subscription with one its payer can cancel.
-    const held = await db.rowByUser(userId);
-    if (held && held.stripe_subscription_id !== sub.id && hasAccess(held, o.now)) return { userId, email: held.email, mine: false };
-  } else if (o.sessionId && EMAIL.test(stripeEmail)) {
-    const account = await db.accountForEmail(stripeEmail);
-    mine = account?.userId === userId && account.checkout === o.sessionId;
   }
   const email = existing?.email || stripeEmail;
   await db.saveRow({
@@ -146,17 +156,14 @@ export async function syncSubscription(db: Db, sub: StripeSub, o: { price: strin
     trial_end: iso(sub.trial_end),
     current_period_end: iso(sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end),
     cancel_at_period_end: sub.cancel_at_period_end === true,
-    past_due_since: sub.status === "past_due" ? existing?.past_due_since ?? new Date(o.now).toISOString() : null,
-    updated_at: new Date(o.now).toISOString(),
+    past_due_since: sub.status === "past_due" ? existing?.past_due_since ?? updated_at : null,
+    updated_at,
   });
-  return { userId, email, mine };
+  return { email, held: false };
 }
 
-/** A session id is a bearer credential: it signs in only the account it created, inside the window. */
-export const maySignIn = (mine: boolean, sessionCreatedSec: number, now: number): boolean =>
-  mine && now - sessionCreatedSec * 1000 < SIGNIN_WINDOW_MS;
-
-const authUrl = (email: string) => `${APP}/auth?email=${encodeURIComponent(email)}`;
+/** Where /start/done ends: the app's sign-in page, which emails that address its sign-in link. Never a session. */
+const inboxUrl = (email: string) => `${APP}/auth?email=${encodeURIComponent(email)}&checkout=done`;
 
 /** GET /postmosis-start?plan=pay|trial[&email=] and GET /postmosis-start/done?session_id= (public, no JWT). */
 export async function handleStart(req: Request, deps: Deps): Promise<Response> {
@@ -192,16 +199,10 @@ export async function handleStart(req: Request, deps: Deps): Promise<Response> {
   // the hub's sessions live in the same Stripe account: only a finished session this function made counts
   if (session.metadata?.app !== "postmosis" || session.status !== "complete" || !subId) return redirect(302, `${SITE}/pricing?checkout=pending`);
   try {
-    const db = deps.db();
-    const now = deps.now();
-    const done = await syncSubscription(db, await stripe.subscription(subId), { price: cfg.price, sessionId: session.id, now });
+    const done = await syncSubscription(deps.db(), await stripe.subscription(subId), { price: cfg.price, now: deps.now() });
     if (!done) return redirect(302, `${SITE}/pricing?checkout=pending`);
-    if (maySignIn(done.mine, session.created, now) && (await db.claim(session.id, "signin"))) {
-      const token = await db.signInToken(done.email).catch(() => null);
-      // the fragment never reaches a server log; the app trades it for a session and lands on /welcome
-      if (token) return redirect(303, `${authUrl(done.email)}#token_hash=${encodeURIComponent(token)}`);
-    }
-    return redirect(303, authUrl(done.email));
+    // the same answer whether the checkout was attached or held: the payer learns nothing about the account
+    return redirect(303, inboxUrl(done.email));
   } catch (e) {
     console.error("postmosis-start: done failed", (e as { code?: string })?.code ?? (e instanceof Error ? e.message : "unknown"));
     return text(503, "Your payment went through. Your account is still being set up: reload this page in a minute.\n");
@@ -241,8 +242,7 @@ export async function handleWebhook(req: Request, deps: Deps): Promise<Response>
       step = "subscription lookup";
       const sub = await stripe.subscription(subId);
       step = "subscription write";
-      const o = event.data.object as { id?: unknown };
-      await syncSubscription(db, sub, { price: cfg.price, sessionId: event.type === "checkout.session.completed" && typeof o.id === "string" ? o.id : null, now: deps.now() });
+      await syncSubscription(db, sub, { price: cfg.price, now: deps.now() });
     }
     step = "event log";
     await db.claim(event.id, event.type);

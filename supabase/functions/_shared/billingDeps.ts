@@ -1,6 +1,7 @@
 // The real Stripe and database behind _shared/billing.ts, for postmosis-start, postmosis-webhook and
-// postmosis-portal. The service key is used for exactly this: cs_subscriptions, cs_subscription_events,
-// cs_account_for_email (035), creating one account for a finished checkout, and one sign-in token for it.
+// postmosis-portal. The service key is used for exactly this: cs_subscriptions, cs_held_checkouts,
+// cs_subscription_events, cs_account_for_email (035) and creating one account for a finished checkout. It never
+// makes a session, a token or a sign-in link.
 
 // pinned: these run with the service key
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
@@ -40,11 +41,11 @@ function database(): Db {
       const { data, error } = await admin.rpc("cs_account_for_email", { p_email: email });
       if (error) throw error;
       const hit = Array.isArray(data) ? data[0] : data;
-      return hit?.user_id ? { userId: hit.user_id, checkout: hit.checkout ?? null } : null;
+      return hit?.user_id ? { userId: hit.user_id, madeBy: hit.made_by ?? null } : null;
     },
-    createAccount: async (email, checkout) => {
+    createAccount: async (email, madeBy) => {
       // No email goes out. handle_new_user gives the account a profiles row with no roles.
-      const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true, app_metadata: { postmosis_checkout: checkout } });
+      const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true, app_metadata: { postmosis_subscription: madeBy } });
       if (data?.user?.id) return data.user.id;
       if (error && (error.code === "email_exists" || error.status === 422)) return null;
       throw error ?? new Error("createUser returned nothing");
@@ -57,7 +58,7 @@ function database(): Db {
     },
     claim: async (id, type) => {
       const { error } = await admin.from("cs_subscription_events").insert({ id, type });
-      // 23505: already taken (a repeat delivery, or a session id used before)
+      // 23505: a repeat delivery logged it first
       if (error && error.code !== "23505") throw error;
       return !error;
     },
@@ -66,10 +67,9 @@ function database(): Db {
       if (error) throw error;
       return !!data;
     },
-    signInToken: async (email) => {
-      const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+    saveHold: async (hold) => {
+      const { error } = await admin.from("cs_held_checkouts").upsert(hold, { onConflict: "stripe_subscription_id" });
       if (error) throw error;
-      return data?.properties?.hashed_token ?? null;
     },
   };
 }

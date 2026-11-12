@@ -32,7 +32,7 @@ begin
 end $$;
 
 insert into auth.users (id, email, raw_app_meta_data) values
-  ('00000000-0000-0000-0000-00000000b001', 'cs-test-sub-a@example.test', '{"postmosis_checkout": "cs_test_abc"}'),
+  ('00000000-0000-0000-0000-00000000b001', 'cs-test-sub-a@example.test', '{"postmosis_subscription": "sub_a"}'),
   ('00000000-0000-0000-0000-00000000b002', 'cs-test-sub-b@example.test', '{}');
 insert into public.cs_subscriptions (user_id, email, status, stripe_customer_id, stripe_subscription_id) values
   ('00000000-0000-0000-0000-00000000b001', 'cs-test-sub-a@example.test', 'trialing', 'cus_a', 'sub_a'),
@@ -48,18 +48,23 @@ select public.cs_test_expect_error(
 
 -- 3-4: the email lookup ignores case and spaces, and says which checkout made the account
 select public.cs_test_assert(
-  (select user_id = '00000000-0000-0000-0000-00000000b001' and checkout = 'cs_test_abc' from public.cs_account_for_email('  CS-Test-Sub-A@Example.test ')),
-  '3 an email finds its account and the checkout that made it');
+  (select user_id = '00000000-0000-0000-0000-00000000b001' and made_by = 'sub_a' from public.cs_account_for_email('  CS-Test-Sub-A@Example.test ')),
+  '3 an email finds its account and the subscription that made it');
 select public.cs_test_assert(
-  (select checkout is null from public.cs_account_for_email('cs-test-sub-b@example.test'))
+  (select made_by is null from public.cs_account_for_email('cs-test-sub-b@example.test'))
   and not exists (select 1 from public.cs_account_for_email('cs-test-nobody@example.test')),
-  '4 an older account has no checkout, and an unknown email no row');
+  '4 an older account was made by no subscription, and an unknown email has no row');
 
--- 5: a session id (or event id) is taken once
-insert into public.cs_subscription_events (id, type) values ('cs_test_abc', 'signin');
+-- 5: an event is logged once, and a held checkout is one row per subscription with a known reason
+insert into public.cs_subscription_events (id, type) values ('evt_test_abc', 'customer.subscription.updated');
 select public.cs_test_expect_error(
-  $$insert into public.cs_subscription_events (id, type) values ('cs_test_abc', 'signin')$$,
-  '%cs_subscription_events_pkey%', '5 a session signs in once');
+  $$insert into public.cs_subscription_events (id, type) values ('evt_test_abc', 'customer.subscription.updated')$$,
+  '%cs_subscription_events_pkey%', '5 an event is logged once');
+insert into public.cs_held_checkouts (stripe_subscription_id, stripe_customer_id, email, status, reason)
+  values ('sub_held', 'cus_held', 'cs-test-sub-b@example.test', 'trialing', 'account_without_subscription');
+select public.cs_test_expect_error(
+  $$insert into public.cs_held_checkouts (stripe_subscription_id, stripe_customer_id, email, status, reason) values ('sub_held2', 'cus_x', 'x@example.test', 'active', 'because')$$,
+  '%violates%', '5b a held checkout needs a known reason');
 
 -- 6-9: a signed-in account reads its own row only, and writes nothing
 set local role authenticated;
@@ -75,6 +80,8 @@ select public.cs_test_expect_error(
 select public.cs_test_expect_error(
   $$select * from public.cs_subscription_events$$, '%permission denied%', '8 the event log is closed to accounts');
 select public.cs_test_expect_error(
+  $$select * from public.cs_held_checkouts$$, '%permission denied%', '8b held checkouts are closed to accounts');
+select public.cs_test_expect_error(
   $$select * from public.cs_account_for_email('cs-test-sub-b@example.test')$$, '%permission denied%', '9 an account cannot look up emails');
 reset role;
 
@@ -85,6 +92,11 @@ select public.cs_test_expect_error(
 select public.cs_test_expect_error(
   $$select * from public.cs_account_for_email('cs-test-sub-a@example.test')$$, '%permission denied%', '10b a visitor cannot look up emails');
 reset role;
+
+-- 10c: a held checkout gives its email's account no subscription row
+select public.cs_test_assert(
+  (select count(*) = 1 from public.cs_subscriptions where email = 'cs-test-sub-b@example.test'),
+  '10c holding a checkout writes nothing to cs_subscriptions');
 
 -- 11: deleting the account takes its row
 delete from auth.users where id = '00000000-0000-0000-0000-00000000b002';
