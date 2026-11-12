@@ -153,6 +153,27 @@ describe("the phone bar on Getting started", () => {
   });
 });
 
+describe("the shell's layout (Fastlane's, 12 Nov)", () => {
+  const main = (html: string) => html.match(/<main[^>]*class="([^"]*)"/)?.[1] ?? "";
+  it("gives the agent's chat the whole panel from lg, for its three columns, and every other page the centred column", async () => {
+    expect(main((await load("/agent")).first)).toContain("lg:max-w-none");
+    expect(main((await load("/agent/t1")).first)).toContain("lg:p-0");
+    for (const p of ["/home", "/calendar", "/agents"]) expect(main((await load(p)).first), p).not.toContain("lg:max-w-none");
+  });
+
+  it("puts New post where Leo's chats go, and Settings in the workspace card's menu, not the sidebar", async () => {
+    auth.user = { id: UID, email: "someone@example.com" };
+    const { loaded } = await load();
+    const sidebar = loaded.slice(loaded.indexOf("<aside"), loaded.indexOf("</aside>"));
+    expect(sidebar).toContain("New post");
+    expect(sidebar).toContain("account menu");
+    // the menu is shut at rest: no Settings, Help or Brand button in the foot
+    expect(sidebar).not.toContain('href="/settings"');
+    expect(sidebar.match(/>Brand</g)).toHaveLength(1);
+    expect(sidebar).not.toContain(">Chats<");
+  });
+});
+
 describe("StudioLayout for everyone else", () => {
   it("draws today's first frame", async () => {
     await expect((await load()).first).toMatchFileSnapshot("./__pins__/studio-layout-everyone.html");
