@@ -122,11 +122,10 @@ export default function DemoVideosSection({ userId }: { userId: string; brand: C
   };
 
   return (
-    <section id="demo-videos" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="demo-videos">
-      <div className="flex items-center gap-1">
-        <h2 className="font-serif text-lg font-semibold">Demo videos</h2>
-        <InfoTip label="About demo videos">A short clip of your app, site or tool in use. Video hook posts open with a hook, then play it.</InfoTip>
-      </div>
+    // Fastlane's Demo videos tab: what a demo is for, then one card holding Upload, the limits and the clips
+    <section id="demo-videos" className="scroll-mt-20 space-y-3" data-testid="demo-videos">
+      <p className="text-sm text-muted-foreground">A short clip of your app, site or tool in use. Video hook posts open with a hook, then play it.</p>
+      <div className="space-y-3 rounded-xl border border-border/60 bg-card p-4 shadow-card">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <Button className={TOUCH} onClick={() => (clearRefused(), input.current?.click())} disabled={full || !!s.saving}>
           Upload a demo
@@ -149,7 +148,7 @@ export default function DemoVideosSection({ userId }: { userId: string; brand: C
       {full && <p className="text-xs text-muted-foreground">{DEMOS_FULL}</p>}
       {s.refused && <p role="alert" className="text-sm text-destructive">{s.refused}</p>}
       {list.length === 0 && !s.saving ? (
-        <p className="text-sm text-muted-foreground">No demo videos yet.</p>
+        <p data-demo-empty className="rounded-lg border border-dashed border-border/60 py-8 text-center text-sm text-muted-foreground">No demo videos yet.</p>
       ) : (
         <ul className="divide-y divide-border/60 border-t border-border/60">
           {s.saving && (
@@ -165,6 +164,7 @@ export default function DemoVideosSection({ userId }: { userId: string; brand: C
           ))}
         </ul>
       )}
+      </div>
       {open && found && <DemoEditor key={open} userId={userId} demoKey={open} left={left} picking={s.picking.has(open)} onClose={closeDemo} />}
     </section>
   );
