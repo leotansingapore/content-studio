@@ -19,9 +19,11 @@ import { callFn, EdgeError } from "@/lib/edgeFn";
 import type { PostLang } from "@/lib/links";
 import { logoColours, logoForKit } from "@/lib/logoImage";
 import { NEW_POST } from "@/lib/newPost";
+import { reviewRows, scanOf } from "@/lib/productScan";
+import { loadProducts, mergeScan, saveProducts, type Scan } from "@/lib/products";
 import { markOnboarded } from "@/lib/onboarding";
 import {
-  ADDRESS_ERROR, APP_SECTIONS, distinctColours, foundNetworks, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS,
+  ADDRESS_ERROR, APP_SECTIONS, distinctColours, KEPT_SECTIONS, PRODUCT_SECTIONS, foundNetworks, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS,
   slideFontFor, STEPS, webAddress, type Answers, type Mode, type Network, type Section, type Step,
 } from "@/lib/onboardingFlow";
 import { goalChips } from "@/lib/positioning";
@@ -40,6 +42,8 @@ const SLIDE_FONTS: readonly SlideFont[] = ["classic", "modern", "serif"];
 const ZERNIO_PARAMS = ["connected", "error", "error_message", "platform", "profileId", "accountId", "username"];
 
 type ReadStatus = "idle" | "running" | "done" | "failed";
+type Found = { status: ReadStatus; scan: Scan | null; ticks: Record<number, boolean>; error: string };
+const NO_FOUND: Found = { status: "idle", scan: null, ticks: {}, error: "" };
 type Read = { status: ReadStatus; host: string; target: string; error: string; started: number; finished: number; appStep: number };
 const IDLE: Read = { status: "idle", host: "", target: "", error: "", started: 0, finished: 0, appStep: 0 };
 
@@ -84,15 +88,25 @@ interface Kept {
   slideFont: SlideFont;
   networks: Network[];
   main: Network | null;
+  found: Found;
   networksTouched: boolean;
   read: Read;
   resumeRead: boolean;
+  resumeFind: boolean;
   step: Step | null;
   saved: boolean;
 }
 
+function keptFound(raw: unknown, read: boolean): Found {
+  const f = raw as { scan?: unknown; ticks?: unknown } | null;
+  const scan = read && f ? scanOf(f.scan, "") : null;
+  if (!scan?.items.length) return NO_FOUND;
+  const ticks = Object.fromEntries(Object.entries((f?.ticks as Record<string, unknown>) ?? {}).filter(([, t]) => typeof t === "boolean")) as Record<number, boolean>;
+  return { ...NO_FOUND, status: "done", scan, ticks };
+}
+
 function restore(raw: string | null, mode: Mode): Kept {
-  const base = keptBrand(raw, APP_SECTIONS);
+  const base = keptBrand(raw, KEPT_SECTIONS);
   let extra: Record<string, unknown> = {};
   try {
     extra = (raw && JSON.parse(raw)) || {};
@@ -108,6 +122,7 @@ function restore(raw: string | null, mode: Mode): Kept {
       ? { ...IDLE, status: "done", host: target.startsWith("app:") ? "App Store" : typeof extra.readHost === "string" ? extra.readHost : hostOf(address), target }
       : IDLE;
   const picked = Array.isArray(extra.colours) ? distinctColours(extra.colours as string[], 4, 1) : [];
+  const resumeFind = extra.finding === true && read.status === "done" && !read.target.startsWith("app:") && read.target === targetOf(address);
   return {
     address,
     noSite: base?.justName ?? false,
@@ -122,9 +137,11 @@ function restore(raw: string | null, mode: Mode): Kept {
     slideFont: SLIDE_FONTS.includes(extra.slideFont as SlideFont) ? (extra.slideFont as SlideFont) : "modern",
     networks: keptNetworks(extra.networks),
     main: keptNetworks([extra.main])[0] ?? null,
+    found: resumeFind ? { ...NO_FOUND, status: "running" } : keptFound(extra.found, !!dna),
     networksTouched: extra.networksTouched === true,
     read,
     resumeRead: mode === "first" && !dna && !base?.justName && extra.readStatus === "running" && (!!appStoreLink(address) || !!webAddress(address)),
+    resumeFind,
     step,
     saved: mode === "first" && extra.saved === true,
   };
@@ -160,6 +177,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
   const [slideFont, setSlideFont] = useState<SlideFont>(start.slideFont);
   const [networks, setNetworks] = useState<Network[]>(start.networks);
   const [main, setMain] = useState<Network | null>(start.main);
+  const [found, setFound] = useState<Found>(start.found);
   const [read, setRead] = useState<Read>(start.read);
   const [saved, setSaved] = useState(start.saved);
   const [now, setNow] = useState(() => Date.now());
@@ -183,7 +201,9 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
   answersRef.current = answers;
   const fromApp = useMemo(cameFromApp, []);
   const startIdx = useRef(first ? historyIndex() : 0);
-  const left = useUsesLeft(read.status === "running" || !leo)("brand-dna");
+  const usesLeft = useUsesLeft(read.status === "running" || found.status === "running" || !leo);
+  const left = usesLeft("brand-dna");
+  const productsLeft = usesLeft("brand-products");
   const why = reasonText({ left, leo });
 
   const snapshot = useCallback(
@@ -207,13 +227,15 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
             slideFont,
             networks,
             main,
+            found: found.status === "done" ? { scan: found.scan, ticks: found.ticks } : null,
+            finding: found.status === "running",
             networksTouched: networksTouched.current,
             readStatus: read.status,
             readTarget: read.status === "done" ? read.target : "",
             readHost: read.host,
             saved,
           }),
-    [first, prefill, step, address, noSite, profession, dna, done, app, answers, colours, fromLogo, lang, slideFont, networks, main, read.status, read.target, read.host, saved],
+    [first, prefill, step, address, noSite, profession, dna, done, app, answers, colours, fromLogo, lang, slideFont, networks, main, found, read.status, read.target, read.host, saved],
   );
   const latest = useRef(snapshot);
   latest.current = snapshot;
@@ -366,8 +388,20 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     }
   };
 
+  const findProducts = async (myId: number, target: string) => {
+    setFound({ ...NO_FOUND, status: "running" });
+    try {
+      const scan = scanOf(await callFn<unknown>("brand-dna", { mode: "products", url: target }), new Date().toISOString());
+      if (myId !== readId.current) return;
+      setFound(scan?.items.length ? { ...NO_FOUND, status: "done", scan } : { ...NO_FOUND, status: "failed", error: `No products or services found on ${hostOf(target)}.` });
+    } catch (e) {
+      if (myId === readId.current) setFound({ ...NO_FOUND, status: "failed", error: e instanceof EdgeError ? e.message : `We couldn't list what ${hostOf(target)} sells.` });
+    }
+  };
+
   const clearRead = () => {
     if (!networksTouched.current) setNetworks([]);
+    setFound(NO_FOUND);
     setDna(null);
     setApp(null);
     setDone(new Set());
@@ -387,13 +421,23 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     setRead({ ...IDLE, status: "running", host: link ? "App Store" : hostOf(address), target: targetOf(address), started: Date.now() });
     if (next) setStep(next);
     if (link) void readApp(myId, link);
-    else void readSite(myId, address.trim());
+    else {
+      void readSite(myId, address.trim());
+      if (leo && productsLeft !== 0) void findProducts(myId, address.trim());
+    }
     return true;
   };
 
   useEffect(() => {
     if (start.resumeRead) beginRead(null);
   }, []);
+
+  const findResumed = useRef(false);
+  useEffect(() => {
+    if (!start.resumeFind || !leo || findResumed.current) return;
+    findResumed.current = true;
+    void findProducts(readId.current, address.trim());
+  }, [leo]);
 
   const startRead = () => {
     if (!appStoreLink(address) && !webAddress(address)) {
@@ -457,7 +501,15 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     setMain(n);
   };
 
-  const sections = app ? APP_SECTIONS : SITE_SECTIONS;
+  const sections = app ? APP_SECTIONS : leo && !noSite && (found.status === "running" || found.status === "done") ? PRODUCT_SECTIONS : SITE_SECTIONS;
+  const productRows = () => (found.scan ? reviewRows(first ? loadProducts(uid).items : [], { scan: found.scan, ticks: found.ticks, pics: {} }) : []);
+
+  const keepProducts = () => {
+    if (!leo || found.status !== "done" || !found.scan) return;
+    const list = loadProducts(uid);
+    const ticked = reviewRows(list.items, { scan: found.scan, ticks: found.ticks, pics: {} }).filter((r) => r.ticked).map((r) => r.i);
+    if (ticked.length) saveProducts(uid, mergeScan(list, found.scan, ticked).next);
+  };
   const current = nextSection(done, sections);
 
   const extras = () => ({
@@ -486,6 +538,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
         return;
       }
       renameProfile(uid, DEFAULT_PROFILE_ID, title);
+      keepProducts();
       setSaved(true);
       setStep(canConnect ? "connect" : "finish");
       return;
@@ -495,6 +548,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
       setTriedEmpty(true);
       return;
     }
+    keepProducts();
     createdOnce.current = true;
     setLeaving(true);
     markOnboarded(uid);
@@ -594,6 +648,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
             leo ? (
               <div className="flex flex-wrap items-center gap-2 px-1 pt-1.5">
                 <PriceChip feature="brand-dna" left={left} />
+                <PriceChip feature="brand-products" left={productsLeft} />
                 {why && <span className="text-xs text-destructive">{why}</span>}
               </div>
             ) : null
@@ -691,6 +746,9 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
           slideFont={slideFont}
           onSlideFont={setSlideFont}
           app={app}
+          products={sections.includes("products") ? { busy: found.status === "running", host: read.host || hostOf(address), rows: productRows() } : null}
+          productsNote={leo && found.status === "failed" ? `${found.error} You can add them on Brand > Products.` : ""}
+          onProductTick={(i, on) => setFound((f) => ({ ...f, ticks: { ...f.ticks, [i]: on } }))}
           onTick={(key, v, on) => setApp((a) => a && { ...a, [key]: on ? [...a[key], v] : a[key].filter((x) => x !== v) })}
         />
       )}

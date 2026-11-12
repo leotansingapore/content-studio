@@ -50,9 +50,11 @@ export function keptStep(raw: string | null): Step | null {
   }
 }
 
-export type Section = "identity" | "look" | "voice" | "social" | "proof" | "pains";
+export type Section = "identity" | "look" | "voice" | "social" | "proof" | "pains" | "products";
 export const SITE_SECTIONS: readonly Section[] = ["identity", "look", "voice", "social"];
 export const APP_SECTIONS: readonly Section[] = [...SITE_SECTIONS, "proof", "pains"];
+export const PRODUCT_SECTIONS: readonly Section[] = [...SITE_SECTIONS, "products"];
+export const KEPT_SECTIONS: readonly Section[] = [...APP_SECTIONS, "products"];
 
 export const ADDRESS_ERROR = "Enter a web address like acme.sg, or an App Store link.";
 
@@ -235,6 +237,8 @@ export function sectionTitle(s: Section, leo: boolean): string {
       return "From the App Store";
     case "pains":
       return "What users of apps like it complain about";
+    case "products":
+      return "What you sell";
   }
 }
 
@@ -249,12 +253,14 @@ export function confirmLabel(s: Section, last: boolean, name: string, leo = fals
       return "Confirm voice";
     case "social":
       return "Confirm accounts";
+    case "products":
+      return "Confirm products";
     default:
       return "Confirm";
   }
 }
 
-export function nextLine(next: Section | null, done: number, total: number, leo: boolean): string {
-  if (!next) return "All set. Create your brand when you're ready.";
+export function nextLine(next: Section | null, done: number, total: number, leo: boolean, mode: Mode = "add"): string {
+  if (!next) return mode === "first" ? "All set. Save your brand when you're ready." : "All set. Create your brand when you're ready.";
   return `Confirm ${sectionTitle(next, leo).toLowerCase()} to reach ${scoreOf(done + 1, total)}%`;
 }

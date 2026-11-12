@@ -52,6 +52,8 @@ describe("progress and the brand set up score", () => {
     expect(nextLine("look", 1, 4, false)).toBe("Confirm brand colour to reach 50%");
     expect(nextLine("look", 1, 4, true)).toBe("Confirm colours and font to reach 50%");
     expect(nextLine(null, 4, 4, false)).toBe("All set. Create your brand when you're ready.");
+    expect(nextLine(null, 4, 4, false, "first")).toBe("All set. Save your brand when you're ready.");
+    expect(nextLine("products", 4, 5, true)).toBe("Confirm what you sell to reach 100%");
   });
 
   it("opens the first section not yet confirmed, in order", () => {

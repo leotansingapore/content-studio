@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ArrowSquareOutIcon, CaretDownIcon, FacebookLogoIcon, InstagramLogoIcon, LinkedinLogoIcon, PlusIcon, StarIcon, TiktokLogoIcon, TrashIcon, UploadSimpleIcon, type Icon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, CaretDownIcon, CircleNotchIcon, FacebookLogoIcon, InstagramLogoIcon, LinkedinLogoIcon, PlusIcon, StarIcon, TiktokLogoIcon, TrashIcon, UploadSimpleIcon, type Icon } from "@phosphor-icons/react";
 import { FieldLabel, PrimaryPill, ScoreRing, StatusPill, StepTitle, fieldClass } from "@/components/onboarding/parts";
 import { AUDIENCE_NAMES, NETWORKS, parseTopics, shownTopics, type BrandDna } from "@/lib/addBrand";
 import { MAX_PAINS, proofLines, type AppRead } from "@/lib/appStore";
@@ -8,6 +8,7 @@ import type { PostLang } from "@/lib/links";
 import { LOGO_FILE_ERROR, LOGO_TYPES, logoFromFile } from "@/lib/logoImage";
 import { colourGap, confirmLabel, hexOf, nextLine, readableInk, scoreOf, sectionTitle, type Mode, type Section } from "@/lib/onboardingFlow";
 import type { PlanAudience } from "@/lib/positioning";
+import type { ReviewRow } from "@/lib/productScan";
 import { LANG_NAMES } from "@/lib/translate";
 
 const NETWORK_ICONS: Record<string, Icon> = { instagram: InstagramLogoIcon, facebook: FacebookLogoIcon, linkedin: LinkedinLogoIcon, tiktok: TiktokLogoIcon };
@@ -272,7 +273,12 @@ export interface ReviewProps {
   onSlideFont: (f: SlideFont) => void;
   app: AppRead | null;
   onTick: (key: "proof" | "pains", v: string, on: boolean) => void;
+  products?: { busy: boolean; host: string; rows: ReviewRow[] } | null;
+  onProductTick?: (i: number, on: boolean) => void;
+  productsNote?: string;
 }
+
+const PRODUCT_GROUPS: [ReviewRow["group"], string | null][] = [["yours", null], ["maybe", "Maybe not yours"], ["unsorted", "Check each one: we couldn't sort these."]];
 
 export function ReviewStep(p: ReviewProps) {
   const { dna, patch, leo, sections, done, current } = p;
@@ -288,7 +294,8 @@ export function ReviewStep(p: ReviewProps) {
     document.getElementById(`${id}-${current}-h`)?.focus({ preventScroll: true });
   }, [current, id]);
 
-  const valid = (s: Section) => (s === "identity" ? !!dna.name.trim() : s === "look" ? p.colours.length > 0 : true);
+  const finding = !!p.products?.busy;
+  const valid = (s: Section) => (s === "identity" ? !!dna.name.trim() : s === "look" ? p.colours.length > 0 : s === "products" ? !finding : true);
   const summary = (s: Section): ReactNode => {
     switch (s) {
       case "identity":
@@ -310,6 +317,8 @@ export function ReviewStep(p: ReviewProps) {
         return `${p.app?.proof.length ?? 0} ${p.app?.proof.length === 1 ? "fact" : "facts"} to save`;
       case "pains":
         return p.app?.pains.length ? `${p.app.pains.length} picked` : "None picked";
+      case "products":
+        return finding ? "Finding what you sell..." : `${p.products?.rows.filter((r) => r.ticked).length ?? 0} of ${p.products?.rows.length ?? 0} to save`;
     }
   };
 
@@ -501,6 +510,43 @@ export function ReviewStep(p: ReviewProps) {
             </fieldset>
           )
         ) : null;
+      case "products":
+        return p.products ? (
+          finding ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CircleNotchIcon size={16} className="shrink-0 animate-spin" />
+              Reading {p.products.host} for what you sell. This takes up to a minute.
+            </p>
+          ) : (
+            <fieldset className="space-y-3">
+              <legend className="text-[13px] text-muted-foreground">
+                Found {p.products.rows.length} on {p.products.host}. Untick any that aren't yours. Pictures come in when you open Brand &gt; Products.
+              </legend>
+              {PRODUCT_GROUPS.map(([g, title]) => {
+                const these = p.products!.rows.filter((r) => r.group === g);
+                if (!these.length) return null;
+                return (
+                  <div key={g} className="space-y-2">
+                    {title && <p className="text-xs font-semibold text-muted-foreground">{title}</p>}
+                    {these.map((r) => (
+                      <label key={r.i} className={`flex items-start gap-2.5 rounded-xl border border-border/60 p-2.5 text-sm [@media(pointer:coarse)]:min-h-11 ${r.added ? "opacity-60" : "cursor-pointer"}`}>
+                        <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-primary" checked={r.ticked} disabled={r.added} onChange={(e) => p.onProductTick?.(r.i, e.target.checked)} />
+                        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                          <span className="block font-semibold text-foreground">
+                            {r.row.name}
+                            {r.row.price && <span className="font-normal text-muted-foreground">, {r.row.price}</span>}
+                          </span>
+                          {r.row.what && <span className="mt-0.5 block text-xs text-muted-foreground line-clamp-2">{r.row.what}</span>}
+                          {r.added && <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Already added</span>}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                );
+              })}
+            </fieldset>
+          )
+        ) : null;
     }
   };
 
@@ -522,9 +568,10 @@ export function ReviewStep(p: ReviewProps) {
         <ScoreRing value={score} />
         <div className="min-w-0">
           <p className="text-[15px] font-semibold text-foreground">Brand set up</p>
-          <p className="text-[13px] text-muted-foreground sm:text-sm">{nextLine(current, done.size, sections.length, leo)}</p>
+          <p className="text-[13px] text-muted-foreground sm:text-sm">{nextLine(current, done.size, sections.length, leo, p.mode)}</p>
         </div>
       </div>
+      {p.productsNote && <p className="-mt-2 px-1 text-[13px] text-muted-foreground">{p.productsNote}</p>}
       {shown.map((s) => {
         const isOpen = s === current || p.expanded.has(s);
         const ok = valid(s);
@@ -549,7 +596,7 @@ export function ReviewStep(p: ReviewProps) {
                   <span className="block text-[15px] font-semibold text-foreground sm:text-base">{sectionTitle(s, leo)}</span>
                   {!isOpen && <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{summary(s)}</span>}
                 </span>
-                {(!ok || done.has(s)) && <StatusPill state={ok && done.has(s) ? "done" : "required"} />}
+                {(!ok || done.has(s)) && !(s === "products" && finding) && <StatusPill state={ok && done.has(s) ? "done" : "required"} />}
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted text-foreground">
                   <CaretDownIcon size={16} weight="bold" className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                 </span>
@@ -563,7 +610,7 @@ export function ReviewStep(p: ReviewProps) {
             {s === current && (
               <div className="flex flex-col items-stretch gap-2 sm:items-end">
                 <PrimaryPill disabled={last(s) ? !sections.every(valid) : !ok} onClick={() => (last(s) ? p.onCreate() : p.onConfirm(s))} className="w-full sm:w-auto">
-                  {confirmLabel(s, last(s), dna.name, leo, p.mode)}
+                  {s === "products" && finding ? "Finding products..." : confirmLabel(s, last(s), dna.name, leo, p.mode)}
                 </PrimaryPill>
                 {last(s) && ok && !sections.every(valid) && <p className="text-sm font-medium text-destructive">Fill in the parts marked Required first.</p>}
                 {last(s) && p.createNote}
