@@ -1,10 +1,12 @@
-// Leo's Home under "Ask the agent for", after Fastlane's Home (read live 11 Nov 2026): Recent creations, Start from a
-// format, Remix a competitor ad, and Publish and promote. AgentHome loads this chunk lazily, so Home paints and the
-// composer works before any row reads. The rows are views over props; the default export reads this device's stores
-// and AdLauncher's connection row (our own function's status, which never calls AdLauncher). No AI call.
+// Home under Next up, after Fastlane's Home (read live 11 Nov 2026): Recent creations, Start from a format, Remix a
+// competitor ad, and Publish and promote, for every sign-in since 12 Nov. Home loads this chunk lazily, so it paints and
+// the composer works before any row reads. The rows are views over props; the default export reads this device's
+// stores, and on Leo's sign-ins his competitors and AdLauncher's connection row (our own function's status, which never
+// calls AdLauncher). Everyone else gets the makers they can open, the bundled ads on an adviser brand, and no Ads card,
+// since AdLauncher and Competitors are Leo's. No AI call.
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CalendarDotsIcon, CaretRightIcon, FilmSlateIcon, ImageIcon, ImageBrokenIcon, StackIcon, MegaphoneIcon, TextTIcon, type Icon as IconType } from "@phosphor-icons/react";
+import { CalendarDotsIcon, CaretRightIcon, FilmSlateIcon, ImageIcon, ImageBrokenIcon, StackIcon, MegaphoneIcon, RepeatIcon, TextTIcon, type Icon as IconType } from "@phosphor-icons/react";
 import LibraryThumb, { readThumbSources, useFontsReady, useOnScreen, type ThumbSources } from "@/components/library/LibraryThumb";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
@@ -15,8 +17,11 @@ import { type CompetitorAd, type CompetitorAdsState, canReadAds, loadCompetitorA
 import { type Competitor, loadCompetitors } from "@/lib/competitors";
 import { loadCarousels } from "@/lib/carousel";
 import { loadDesigns } from "@/lib/design";
+import { ADS, daysRunning, type SwipeAd } from "@/lib/adsSwipe";
+import { CREATE_FORMATS, MORE_FORMATS } from "@/lib/createFormats";
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
-import { localDateKey } from "@/lib/dueDates";
+import { keyToDate, localDateKey, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { adviserBrand } from "@/lib/profession";
 import { loadImages, onImagesChanged } from "@/lib/images";
 import { STATUS_LABELS, buildLibrary, statusLine, type LibraryItem } from "@/lib/library";
 import { links } from "@/lib/links";
@@ -27,7 +32,7 @@ import { useScrollToHash } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 import { loadProjects } from "@/lib/videoProjects";
 
-const ROW = 5;
+const ROW = 6;
 const FORMAT_TILES = 8;
 const IDS = ["recent", "formats", "remix-ads", "publish"];
 const KIND_ICONS: Record<FormatKind, IconType> = { video: FilmSlateIcon, slides: StackIcon, text: TextTIcon, image: ImageIcon };
@@ -37,12 +42,13 @@ const STRIP = "-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid
 const CELL = "w-[44%] shrink-0 snap-start sm:w-auto";
 const TILE = "flex h-full min-h-11 flex-col gap-1.5 rounded-xl border border-border/70 bg-card p-3 transition-colors hover:border-primary/40";
 
-function Row({ id, title, more, children }: { id: string; title: string; more?: { to: string; label: string }; children: ReactNode }) {
+function Row({ id, title, count, more, children }: { id: string; title: string; count?: number; more?: { to: string; label: string }; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-h`} className="scroll-mt-20 space-y-2">
       <div className="flex min-h-9 items-center justify-between gap-3">
-        <h2 id={`${id}-h`} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <h2 id={`${id}-h`} className="flex items-center gap-2 text-lg font-semibold text-foreground">
           {title}
+          {count !== undefined && <span className="rounded-md bg-muted px-1.5 text-xs font-semibold tabular-nums text-muted-foreground">{count}</span>}
         </h2>
         {more && (
           <Link to={more.to} className={MORE}>
@@ -106,7 +112,7 @@ export function RecentCreations({ items, sources }: { items: Creation[]; sources
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nothing made yet.</p>
       ) : (
-        <ul className={cn(STRIP, "lg:grid-cols-5")}>
+        <ul className={cn(STRIP, "lg:grid-cols-6")}>
           {items.map((c) => (
             <li key={c.key} className={CELL}>
               <CreationTile c={c} sources={sources} />
@@ -141,9 +147,13 @@ export function homeFormats(formats: FormatDef[], statics: StaticFormat[], n = F
     .slice(0, n);
 }
 
-export function StartFromFormat({ tiles }: { tiles: FormatTile[] }) {
+/** Everyone else's: the makers every sign-in can open (createFormats.ts), Create's six then the rest, `n` at most. */
+export const customerFormats = (n = FORMAT_TILES): FormatTile[] =>
+  [...CREATE_FORMATS, ...MORE_FORMATS].slice(0, n).map((w) => ({ key: w.to, name: w.name, line: w.blurb, to: w.to, icon: w.icon }));
+
+export function StartFromFormat({ tiles, all = links.make() }: { tiles: FormatTile[]; all?: string }) {
   return (
-    <Row id="formats" title="Start from a format" more={{ to: links.make(), label: "All formats" }}>
+    <Row id="formats" title="Start from a format" more={{ to: all, label: "All formats" }}>
       <ul className={cn(STRIP, "lg:grid-cols-4")}>
         {tiles.map((t) => (
           <li key={t.key} className={CELL}>
@@ -231,6 +241,39 @@ function AdCard({ ad, c, now }: RunningAd & { now: number }) {
   );
 }
 
+/** The bundled ads (Singapore personal finance), longest running first, `n` at most: an adviser brand's to remix. */
+export const longestSwipeAds = (list: SwipeAd[] = ADS, n = ROW, now = Date.now()) =>
+  [...list].sort((a, b) => (daysRunning(b, now) ?? 0) - (daysRunning(a, now) ?? 0)).slice(0, n);
+
+const days = (n: number | null) => (n === null ? "" : n === 1 ? "1 day running" : `${n} days running`);
+
+/** Remix a competitor ad for a sign-in without Competitors: ads running now in their market, each opening in the ads library. */
+export function RemixMarketAd({ ads, total = ADS.length, now = Date.now() }: { ads: SwipeAd[]; total?: number; now?: number }) {
+  if (!ads.length) return null;
+  return (
+    <Row id="remix-ads" title="Remix a competitor ad" count={total} more={{ to: links.swipe({ tab: "ads" }), label: "See all" }}>
+      <ul className={cn(STRIP, "lg:grid-cols-6")}>
+        {ads.map((ad) => (
+          <li key={ad.adId} className={CELL}>
+            <Link to={links.swipe({ tab: "ads", ad: ad.adId })} className="group flex h-full flex-col overflow-hidden rounded-xl border border-border/70 bg-card hover:border-primary/40">
+              <span className="relative block aspect-square w-full bg-muted">
+                <img src={ad.image} alt="" loading="lazy" className="h-full w-full object-cover" />
+                <span className="absolute left-2 top-2 rounded-md bg-background/85 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">{ad.format === "video" ? "Video" : "Static"}</span>
+              </span>
+              <span className="block space-y-0.5 px-3 py-2">
+                <span className="block truncate text-sm font-medium text-foreground group-hover:underline">{ad.advertiser}</span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <RepeatIcon className="h-3 w-3" aria-hidden /> {days(daysRunning(ad, now)) || "Remix"}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Row>
+  );
+}
+
 // ---- Publish and promote ----
 
 /** undefined while the connection is read, null when it couldn't be. */
@@ -243,29 +286,70 @@ export function adsLine(adl: AdlRead, sent: number): string {
   return adl.reconnect ? "AdLauncher needs connecting again" : "AdLauncher not connected";
 }
 
-/** How many of the open brand's posts are booked from `today` on. */
-export const bookedCount = (drafts: DraftEntry[], today = localDateKey()) =>
-  drafts.filter((d) => draftStatus(d) === "scheduled" && (d.scheduledFor ?? "").slice(0, 10) >= today).length;
+/** The open brand's posts booked from `today` on, soonest first. */
+export const booked = (drafts: DraftEntry[], today = localDateKey()) =>
+  drafts
+    .filter((d) => draftStatus(d) === "scheduled" && (d.scheduledFor ?? "").slice(0, 10) >= today)
+    .sort((a, b) => (a.scheduledFor! < b.scheduledFor! ? -1 : 1));
+/** How many of them there are. */
+export const bookedCount = (drafts: DraftEntry[], today = localDateKey()) => booked(drafts, today).length;
 
-export function PublishPromote({ adl, sent, booked }: { adl: AdlRead; sent: number; booked: number }) {
+/** "Thu 13 Nov, 7:30pm", or the day alone when no time was picked. */
+export function bookedWhen(scheduledFor: string): string {
+  const day = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(keyToDate(scheduledFor.slice(0, 10)));
+  const time = scheduleTime(scheduledFor);
+  return time ? `${day}, ${timeLabel(time)}` : day;
+}
+
+/** A slideshow campaign on Home's Campaigns card: its name, status word and next posting time when live. */
+export interface HomeCampaign {
+  id: string;
+  name: string;
+  status: string;
+  next?: Date;
+}
+
+const atWords = (at: Date) => `${new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(at)}, ${timeLabel(`${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`)}`;
+
+/**
+ * Publish and promote, as Fastlane's: Posting (what goes out next, which used to be Home's Coming up), Campaigns when
+ * there are any, and Ads on Leo's sign-ins (AdLauncher is his).
+ */
+export function PublishPromote({ ads, posts, campaigns = [] }: { ads?: { adl: AdlRead; sent: number } | null; posts: DraftEntry[]; campaigns?: HomeCampaign[] }) {
+  const next = campaigns.filter((c) => c.next).sort((a, b) => a.next!.getTime() - b.next!.getTime())[0];
   return (
     <Row id="publish" title="Publish and promote">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Card icon={MegaphoneIcon} title="Ads" line={adsLine(adl, sent)} busy={adl === undefined} to={links.adlauncher()} action="Open ads" />
-        <Card
-          icon={CalendarDotsIcon}
-          title="Posting"
-          // which posts and when is Next up's and Coming up's to say, once each: this card only counts the queue
-          line={booked ? `${booked} post${booked === 1 ? "" : "s"} booked` : "Nothing booked yet"}
-          to={links.calendar()}
-          action="Open calendar"
-        />
+        <Card icon={CalendarDotsIcon} title="Posting" line={posts.length ? `${posts.length} post${posts.length === 1 ? "" : "s"} booked` : "Nothing booked yet"} to={links.calendar()} action="Open calendar">
+          {posts.length > 0 && (
+            <ul className="mt-1.5 space-y-1">
+              {posts.slice(0, 3).map((d) => (
+                <li key={d.id} className="min-w-0">
+                  <Link to={`/generate?draft=${encodeURIComponent(d.id)}`} className="flex min-h-9 min-w-0 items-baseline gap-2 text-sm hover:underline [@media(pointer:coarse)]:min-h-11">
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{bookedWhen(d.scheduledFor!)}</span>
+                    <span className="min-w-0 truncate text-foreground">{d.hook || d.draft.slice(0, 80)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        {campaigns.length > 0 && (
+          <Card
+            icon={StackIcon}
+            title="Campaigns"
+            line={next ? `${next.name} posts next ${atWords(next.next!)}` : `${campaigns.length} slideshow campaign${campaigns.length === 1 ? "" : "s"}`}
+            to="/design/campaigns"
+            action="Open campaigns"
+          />
+        )}
+        {ads && <Card icon={MegaphoneIcon} title="Ads" line={adsLine(ads.adl, ads.sent)} busy={ads.adl === undefined} to={links.adlauncher()} action="Open ads" />}
       </div>
     </Row>
   );
 }
 
-function Card({ icon: Icon, title, line, sub, busy, to, action }: { icon: IconType; title: string; line: string; sub?: string; busy?: boolean; to: string; action: string }) {
+function Card({ icon: Icon, title, line, sub, busy, to, action, children }: { icon: IconType; title: string; line: string; sub?: string; busy?: boolean; to: string; action: string; children?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card p-4">
       <div className="flex min-w-0 flex-1 basis-48 items-start gap-3">
@@ -278,6 +362,7 @@ function Card({ icon: Icon, title, line, sub, busy, to, action }: { icon: IconTy
             {line}
           </p>
           {sub && <p className="truncate text-xs text-muted-foreground">{sub}</p>}
+          {children}
         </div>
       </div>
       <Button asChild variant="outline" size="sm" className="gap-1 [@media(pointer:coarse)]:min-h-11">
@@ -291,15 +376,19 @@ function Card({ icon: Icon, title, line, sub, busy, to, action }: { icon: IconTy
 
 // ---- The four rows, read from this device ----
 
-export default function HomeRows({ userId, drafts, className }: { userId: string; drafts: DraftEntry[]; className?: string }) {
+export default function HomeRows({ userId, drafts, leo = false, campaigns, className }: { userId: string; drafts: DraftEntry[]; leo?: boolean; campaigns?: HomeCampaign[]; className?: string }) {
   const { hash } = useLocation();
   // Home's own landing ran before this chunk drew the rows: land again on a row's anchor
   useScrollToHash(IDS.includes(hash.slice(1)));
-  const tiles = useMemo(() => homeFormats(FORMATS, STATIC_FORMATS), []);
+  // /make and its formats are Leo's; everyone else starts from the makers they can open, all of them on /studio
+  const tiles = useMemo(() => (leo ? homeFormats(FORMATS, STATIC_FORMATS) : customerFormats()), [leo]);
   const competitors = useMemo(() => {
+    if (!leo) return null;
     const list = loadCompetitors(userId).list;
     return { watching: list.length, ads: longestRunning(list, loadCompetitorAds(userId)) };
-  }, [userId]);
+  }, [userId, leo]);
+  // the bundled ads are Singapore personal finance: an adviser brand's only
+  const marketAds = useMemo(() => (!leo && adviserBrand(userId) ? longestSwipeAds() : []), [userId, leo]);
   // the stores LibraryPage reads, read again when a picture or slideshow is saved here (posts arrive as props)
   const [saved, setSaved] = useState(0);
   useEffect(() => {
@@ -313,9 +402,10 @@ export default function HomeRows({ userId, drafts, className }: { userId: string
   const recent = useMemo(() => recentCreations(stores), [stores]);
   const fontsReady = useFontsReady(recent.some((c) => c.item.thumb?.kind === "show"));
   const sources = useMemo(() => readThumbSources(userId, stores, fontsReady), [userId, stores, fontsReady]);
-  const sent = useMemo(() => loadLaunches(userId).length, [userId]);
+  const sent = useMemo(() => (leo ? loadLaunches(userId).length : 0), [userId, leo]);
   const [adl, setAdl] = useState<AdlRead>(undefined);
   useEffect(() => {
+    if (!leo) return;
     let live = true;
     adlStatus().then(
       (s) => live && setAdl(s),
@@ -324,14 +414,14 @@ export default function HomeRows({ userId, drafts, className }: { userId: string
     return () => {
       live = false;
     };
-  }, [userId]);
+  }, [userId, leo]);
 
   return (
     <div className={cn("space-y-8", className)}>
       <RecentCreations items={recent} sources={sources} />
-      <StartFromFormat tiles={tiles} />
-      <RemixCompetitorAd {...competitors} />
-      <PublishPromote adl={adl} sent={sent} booked={bookedCount(drafts)} />
+      <StartFromFormat tiles={tiles} all={leo ? links.make() : "/studio"} />
+      {competitors ? <RemixCompetitorAd {...competitors} /> : <RemixMarketAd ads={marketAds} />}
+      <PublishPromote ads={leo ? { adl, sent } : null} posts={booked(drafts)} campaigns={campaigns} />
     </div>
   );
 }

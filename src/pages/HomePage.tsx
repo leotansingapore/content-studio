@@ -1,6 +1,4 @@
-import { newPostHref } from "@/lib/newPost";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,51 +17,23 @@ import {
   type DraftStats,
   type PostingActivity,
   onDraftsChanged,
-  draftsOfBrand,
 } from "@/lib/draftHistory";
 import { GOAL_PLATFORMS, MAX_WEEKLY_GOAL, loadGoals, saveGoals, sgDay, weekProgress, type WeeklyGoals } from "@/lib/goals";
-import {
-  daysOverdue,
-  dueHeading,
-  localDateKey,
-  overdueLabel,
-  scheduleTime,
-  timeLabel,
-} from "@/lib/dueDates";
+import { localDateKey } from "@/lib/dueDates";
 import { loadCoachHistory } from "@/lib/coach";
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
 import { isOnboarded } from "@/lib/onboarding";
 import { loadResult, nextAction, type NextAction } from "@/lib/diagnosis";
-import {
-  PencilSimpleIcon,
-  LightbulbIcon,
-  UsersIcon,
-  ArrowRightIcon,
-  CheckCircleIcon,
-  CaretRightIcon,
-  CircleIcon,
-  ClockIcon,
-  FileTextIcon,
-  SparkleIcon,
-  CalendarDotsIcon,
-  GaugeIcon,
-  FireIcon,
-  TargetIcon,
-  MinusIcon,
-  PlusIcon,
-  TrayIcon,
-  EyeIcon,
-  HeartIcon,
-  ChatCircleIcon,
-  ShareNetworkIcon,
-} from "@phosphor-icons/react";
+import { PencilSimpleIcon, LightbulbIcon, UsersIcon, CheckCircleIcon, ClockIcon, FileTextIcon, SparkleIcon, FireIcon, MinusIcon, PlusIcon, TrayIcon, EyeIcon, HeartIcon, ChatCircleIcon, ShareNetworkIcon } from "@phosphor-icons/react";
 import { loadBrand } from "@/lib/carousel";
 import { adviserBrand } from "@/lib/profession";
 import { checkMe, sharedBoard, waitsOnMe, type Board, type Me } from "@/lib/reelsBoard";
-import { campaignsToReview, homeToday, type PlanCounts } from "@/lib/needsYou";
+import { campaignsToReview, heldOrLive, type NextUpItem, type PlanCounts } from "@/lib/needsYou";
+import HomeWriter from "@/components/home/HomeWriter";
+import NextUp from "@/components/home/NextUp";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { marketShown } from "@/lib/market";
-import { activeProfileId, loadProfiles } from "@/lib/profiles";
+import { activeProfile, activeProfileId } from "@/lib/profiles";
 import WhatMovedCard from "@/components/WhatMovedCard";
 import PaceCard from "@/components/home/PaceCard";
 import GoalLine from "@/components/GoalLine";
@@ -71,29 +41,19 @@ import type { Campaign } from "@/lib/campaigns";
 import { lastPull, onNumbers, postsInDays, pullBrand, realNumbersOn, realTotals, type Pulled } from "@/lib/realNumbers";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { browserTimeZone } from "@/lib/autoPost";
-import { STATUS_LABEL as CAMPAIGN_STATUS, cadence } from "@/lib/campaignLabels";
+import { STATUS_LABEL as CAMPAIGN_STATUS } from "@/lib/campaignLabels";
 import { nextRunAt, sanitizeSchedule } from "../../supabase/functions/_shared/slideCampaign.ts";
 
 // Leo's Home (agent-home): its own chunk, so the agent engine never loads for anyone else.
-const QUIET = "inline-flex min-h-9 items-center hover:text-foreground hover:underline [@media(pointer:coarse)]:min-h-11";
 const AgentHome = lazy(() => import("@/components/home/AgentHome"));
+// Recent creations, formats, ads and Publish and promote load after Home paints; a chunk gone after a deploy draws none
+const HomeRows = lazy(() => import("@/components/home/HomeRows").catch(() => ({ default: () => null })));
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  posted: "border-success/40 bg-success/10 text-success",
-  scheduled: "border-primary/40 bg-primary/10 text-primary",
-  draft: "border-border bg-muted text-muted-foreground",
-};
-const STATUS_LABEL: Record<string, string> = {
-  posted: "Posted",
-  scheduled: "Scheduled",
-  draft: "Draft",
 };
 
 export interface CampaignTime {
@@ -113,21 +73,38 @@ export function campaignTimes(rows: { id: string; name: string; status: string; 
     .slice(0, n);
 }
 
-const comingDay = (at: Date) => at.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-
-/** Home's one filled button: finish the newest unfinished post, else write one. */
-export function homePrimary(drafts: DraftEntry[], writeHref: string): { label: string; to: string; title?: string } {
-  const open = drafts.find((d) => draftStatus(d) === "draft");
-  if (!open) return { label: "Write a post", to: writeHref };
-  return { label: "Finish your post", to: `/generate?draft=${encodeURIComponent(open.id)}`, title: (open.hook || open.draft.split("\n")[0] || "").trim().slice(0, 80) || undefined };
+/**
+ * A customer's Next up (12 Nov, Fastlane's Home): needsYouItems' list plus the page's own, in its order. The newest
+ * unfinished post comes before the plans and setup (Home's one filled button when nothing more urgent waits), unless a
+ * made post already leads that group; then the adviser diagnosis's next move and the next "Get set up" step.
+ */
+export function customerItems(
+  items: NextUpItem[],
+  o: { drafts: DraftEntry[]; setup: { label: string; to: string; line: string } | null; nextAct: NextAction | null },
+): NextUpItem[] {
+  const out = [...items];
+  const open = o.drafts.find((d) => draftStatus(d) === "draft" && !heldOrLive(d));
+  if (open && !out.some((i) => i.kind === "unscheduled")) {
+    const at = out.findIndex((i) => LATER.has(i.kind));
+    const quote = open.hook?.trim() || open.draft.split("\n")[0]?.trim() || undefined;
+    out.splice(at < 0 ? out.length : at, 0, { id: `finish:${open.id}`, kind: "unscheduled", title: "Finish your post", quote, actions: [{ label: "Open", to: `/generate?draft=${encodeURIComponent(open.id)}` }] });
+  }
+  const act = o.nextAct;
+  if (act?.kind === "mission" && act.mission)
+    out.push({ id: "mission", kind: "setup", title: `Mission: ${act.mission.title}`, line: act.mission.objective, actions: [{ label: "Start mission", to: act.mission.to }] });
+  if (act?.kind === "diagnose") out.push({ id: "diagnose", kind: "setup", title: "Get your Content Score", line: act.detail, actions: [{ label: "Start", to: "/coach" }] });
+  if (o.setup) out.push({ id: "setup", kind: "setup", title: o.setup.label, line: o.setup.line, actions: [{ label: "Open", to: o.setup.to }] });
+  return out;
 }
+const LATER = new Set<NextUpItem["kind"]>(["autopilot", "campaign", "ideas", "social", "market", "setup"]);
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
-}
+/** The heading's brand: the brand kit's name, else the profile's unless it is the default "Me". */
+const brandName = (uid: string | null) => {
+  if (!uid) return "";
+  const kit = loadBrand(uid)?.name?.trim();
+  const profile = activeProfile(uid).name.trim();
+  return kit || (profile && profile !== "Me" ? profile : "");
+};
 
 function StatCard({
   icon: Icon,
@@ -160,11 +137,6 @@ function StatCard({
 }
 
 /** The greeting's name: the email's prefix when it is 2 to 18 letters. */
-function nameOf(email: string): string {
-  const prefix = email.split("@")[0].replace(/[._-]+/g, " ").trim();
-  return /^[a-zA-Z ]{2,18}$/.test(prefix) ? prefix : "";
-}
-
 export default function HomePage() {
   // Leo's sign-in is known from the stored session on the first frame, so his Home reads the device at once (uid)
   // rather than after the Auth round trip; everyone else starts empty, as before.
@@ -181,7 +153,6 @@ export default function HomePage() {
   const [goals, setGoals] = useState<WeeklyGoals>(() => (leo ? loadGoals(leo.id) : {}));
   // Goal being edited on the This week card (null = not editing).
   const [goalDraft, setGoalDraft] = useState<WeeklyGoals | null>(null);
-  const [name, setName] = useState<string>(() => (leo ? nameOf(leo.email) : ""));
   const [nextAct, setNextAct] = useState<NextAction | null>(null);
   const [contentScore, setContentScore] = useState<number | null>(null);
   // Posts board users: who they are on the team and the board (null when it didn't answer).
@@ -238,7 +209,6 @@ export default function HomePage() {
         return;
       }
       setUserId(id);
-      setName(nameOf(data.user?.email ?? ""));
       setDrafts(loadDrafts(id));
       setVoiceReady(isVoiceProfileUsable(loadVoiceProfile(id)));
       setCoachRuns(loadCoachHistory(id).length);
@@ -264,28 +234,10 @@ export default function HomePage() {
   const stats = useMemo<DraftStats | null>(() => (userId ? getDraftStats(userId) : null), [userId, drafts]);
   const activity = useMemo<PostingActivity>(() => getPostingActivity(userId), [userId, drafts]);
 
-  const recent = useMemo(() => {
-    const inProgress = drafts.filter((d) => draftStatus(d) === "draft");
-    return (inProgress.length ? inProgress : drafts).slice(0, 3);
-  }, [drafts]);
   const hasPosts = drafts.length > 0;
-  const primary = homePrimary(drafts, newPostHref(uid));
 
-  const upcoming = useMemo(() => {
-    const today = localDateKey();
-    return drafts
-      .filter(
-        (d) =>
-          draftStatus(d) === "scheduled" &&
-          d.scheduledFor &&
-          d.scheduledFor.slice(0, 10) > today, // today's are in the due card
-      )
-      .sort((a, b) => (a.scheduledFor! < b.scheduledFor! ? -1 : 1))
-      .slice(0, 3);
-  }, [drafts]);
-
-  // Coming up also lists the open brand's live slideshow campaigns' next posting times (owner-only select, as on
-  // /design/campaigns). Campaigns need posting on, so nobody else is asked.
+  // Publish and promote's Campaigns card: the open brand's slideshow campaigns and the live ones' next posting times
+  // (owner-only select, as on /design/campaigns). Campaigns need posting on, so nobody else is asked.
   const [campaigns, setCampaigns] = useState<CampaignTime[]>([]);
   // the Campaigns card: the brand's three most recently changed campaigns, any status (Volume's home lists them)
   const [recentCampaigns, setRecentCampaigns] = useState<{ id: string; name: string; status: keyof typeof CAMPAIGN_STATUS; schedule: unknown }[]>([]);
@@ -308,13 +260,12 @@ export default function HomePage() {
       active = false;
     };
   }, [uid]);
-  const comingUp = useMemo(() => {
-    const at = (d: DraftEntry) => new Date(scheduleTime(d.scheduledFor) ? d.scheduledFor! : `${d.scheduledFor!.slice(0, 10)}T00:00`).getTime();
-    return [
-      ...upcoming.map((d) => ({ draft: d, campaign: undefined, t: at(d) })),
-      ...campaigns.map((c) => ({ draft: undefined, campaign: c, t: c.at.getTime() })),
-    ].sort((a, b) => a.t - b.t);
-  }, [upcoming, campaigns]);
+  const homeCampaigns = useMemo(
+    () => recentCampaigns.map((c) => ({ id: c.id, name: c.name, status: CAMPAIGN_STATUS[c.status] ?? c.status, next: campaigns.find((t) => t.id === c.id)?.at })),
+    [recentCampaigns, campaigns],
+  );
+  // how many things Next up lists: none, and Write it is the page's one filled button
+  const [waiting, setWaiting] = useState<number | null>(null);
 
   // Last 30 days (Volume's Home): Your real numbers' last pull on this page load, else one pull, for sign-ins that use them
   const [pulled, setPulled] = useState<Pulled | null>(null);
@@ -332,22 +283,6 @@ export default function HomePage() {
     };
   }, [uid]);
   const last30 = useMemo(() => (pulled ? realTotals(postsInDays(pulled.posts, 30, browserTimeZone())) : null), [pulled]);
-
-  // Posts due today or overdue — the in-app reminder that drives the habit.
-  // Most recently due first, each with how late it is.
-  const dueNow = useMemo(() => {
-    const today = localDateKey();
-    return drafts
-      .filter(
-        (d) =>
-          draftStatus(d) === "scheduled" &&
-          d.scheduledFor &&
-          d.scheduledFor.slice(0, 10) <= today,
-      )
-      .map((d) => ({ draft: d, days: daysOverdue(d.scheduledFor!, today) }))
-      .sort((a, b) => a.days - b.days || (a.draft.scheduledFor! < b.draft.scheduledFor! ? -1 : 1));
-  }, [drafts]);
-  const overdueCount = dueNow.filter((d) => d.days > 0).length;
 
   const week = useMemo(() => weekProgress(drafts, goals), [drafts, goals]);
   const goalHit = week.goal > 0 && week.rows.every((r) => r.posted >= r.goal);
@@ -377,15 +312,6 @@ export default function HomePage() {
     });
   };
 
-  // Board users' daily jobs, counts and links only (needsYou.homeToday). Leo's "Posting today" counts every brand's
-  // drafts; his plan rows count the open brand's, and show even when the board has not answered.
-  const today = useMemo(() => {
-    if (!userId || (!day && !plan)) return [];
-    const open = activeProfileId(userId);
-    const all = day?.me.owner ? [...drafts, ...loadProfiles(userId).filter((p) => p.id !== open).flatMap((p) => draftsOfBrand(userId, p.id))] : [];
-    return homeToday(day?.me ?? null, day?.board ?? null, all, localDateKey(), marketShown(), plan ?? undefined);
-  }, [day, userId, drafts, plan]);
-
   const kit = loadBrand(uid);
   const checklist = [
     { done: voiceReady, label: "Set your voice", to: "/voice" },
@@ -393,45 +319,48 @@ export default function HomePage() {
     { done: !!kit && !!(kit.photo || kit.signOff?.trim()), label: "Set up your brand kit", to: "/brand" },
     { done: hasPosts, label: "Write your first post", to: "/generate" },
     // a post that went out was scheduled or posted first, so the step stays done once it leaves the calendar
-    { done: upcoming.length > 0 || (stats?.scheduled ?? 0) > 0 || (stats?.posted ?? 0) > 0, label: "Schedule a post", to: "/calendar" },
+    { done: (stats?.scheduled ?? 0) > 0 || (stats?.posted ?? 0) > 0, label: "Schedule a post", to: "/calendar" },
     { done: coachRuns > 0, label: "Check your content in Coach", to: "/coach" },
   ];
   const checklistDone = checklist.filter((c) => c.done).length;
-  const showChecklist = checklistDone < checklist.length;
-  const greet = (
-    <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground">
-      {greeting()}
-      {name ? (
-        <span className="capitalize">, {name}</span>
-      ) : null}
-    </h1>
+  const step = checklist.find((c) => !c.done);
+  const firstSetup = step ? { label: step.label, to: step.to, line: `${checklistDone} of ${checklist.length} set up` } : null;
+  const brand = brandName(uid);
+  const header = (
+    <header className="mx-auto w-full max-w-3xl space-y-2 text-center">
+      <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+        {leoId ? "What should the agent make" : "What do you want to make"}
+        {brand ? ` for ${brand}` : ""}?
+      </h1>
+      <div className="flex justify-center text-left">
+        <GoalLine />
+      </div>
+    </header>
   );
 
   return (
     <div className="space-y-8">
       {leoId ? (
-        // the greeting paints at once; Next up, the tiles and the composer follow with the chunk
+        // the heading paints at once; the composer, Next up and the rows follow with the chunk
         <Suspense
           fallback={
             <>
-              <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3"><div className="min-w-0">{greet}<GoalLine /></div></header>
-              {/* Next up, Agent now and the composer's room, so the page below doesn't jump when they arrive */}
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]" aria-busy="true" aria-label="Loading">
-                <div className="h-60 animate-pulse rounded-2xl border border-border/60 bg-card" />
-                <div className="hidden h-28 animate-pulse rounded-2xl border border-border/60 bg-card lg:block" />
-              </div>
-              <div className="h-28 animate-pulse rounded-2xl border border-border/60 bg-card" />
+              {header}
+              {/* the composer's and Next up's room, so the page below doesn't jump when they arrive */}
+              <div className="mx-auto h-28 w-full max-w-3xl animate-pulse rounded-2xl border border-border/60 bg-card" aria-busy="true" aria-label="Loading" />
+              <div className="h-48 animate-pulse rounded-2xl border border-border/60 bg-card" />
             </>
           }
         >
           <AgentHome
             userId={leoId}
-            greeting={<>{greet}<GoalLine /></>}
+            greeting={header}
             drafts={drafts}
             day={day}
             plan={plan}
             market={marketShown()}
             setup={checklist.find((c) => !c.done) ?? null}
+            campaigns={homeCampaigns}
             markPosted={markDuePosted}
             blocked={(id) => {
               const d = drafts.find((x) => x.id === id);
@@ -441,238 +370,34 @@ export default function HomePage() {
         </Suspense>
       ) : (
         <>
-          {today.length > 0 && (
-            <section aria-labelledby="home-today" className="space-y-2">
-              <h2 id="home-today" className="text-sm font-semibold text-foreground">
-                Today
-              </h2>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {today.map((r) => (
-                  <Link
-                    key={r.to}
-                    to={r.to}
-                    className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm shadow-card transition-colors hover:border-primary/40 [@media(pointer:coarse)]:min-h-11"
-                  >
-                    <span className="min-w-0 flex-1 truncate font-medium text-foreground">{r.label}</span>
-                    {r.n !== undefined && <span className="shrink-0 font-semibold tabular-nums text-foreground">{r.n}</span>}
-                    <ArrowRightIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-                  </Link>
-                ))}
-              </div>
-            </section>
+          {/* Fastlane's Home, 11 Nov: the question, the composer (our writer), Next up, then the rows */}
+          {header}
+          <HomeWriter userId={uid} primary={waiting === 0} className="mx-auto w-full max-w-3xl" />
+          {uid && (
+            <NextUp
+              userId={uid}
+              today={localDateKey()}
+              usage={null}
+              markPosted={markDuePosted}
+              blocked={(id) => {
+                const d = drafts.find((x) => x.id === id);
+                return d ? reviews.blockReason(d) : null;
+              }}
+              input={{ drafts, me: day?.me ?? null, board: day?.board ?? null }}
+              shape={(items) => customerItems(items, { drafts, setup: firstSetup, nextAct })}
+              onCount={setWaiting}
+              empty="Nothing needs you right now. Write something new above."
+            />
           )}
-
-          {/* Due today / overdue reminder */}
-          {dueNow.length > 0 && (
-            <section className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-4">
-              <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                <CalendarDotsIcon className="h-4 w-4 text-warning" />
-                {dueHeading(dueNow.length, overdueCount)}
-              </p>
-              <div className="space-y-1.5">
-                {dueNow.slice(0, 3).map(({ draft: d, days }) => (
-                  <div
-                    key={d.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2"
-                  >
-                    <div className="w-full min-w-0 sm:w-auto sm:flex-1">
-                      <p className="line-clamp-2 text-sm font-medium text-foreground sm:truncate">
-                        {d.hook || d.draft.slice(0, 60) || "Untitled"}
-                      </p>
-                      <p
-                        className={`text-[11px] ${days > 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}
-                      >
-                        {overdueLabel(days, scheduleTime(d.scheduledFor))}
-                        {days > 0 && (
-                          <>
-                            {" "}
-                            · scheduled{" "}
-                            {new Date(d.scheduledFor!.slice(0, 10) + "T00:00:00").toLocaleDateString(undefined, {
-                              day: "numeric",
-                              month: "short",
-                            })}
-                            {scheduleTime(d.scheduledFor) && `, ${timeLabel(scheduleTime(d.scheduledFor)!)}`}
-                          </>
-                        )}
-                      </p>
-                      {/* why Mark posted is off, in words: a phone shows no tooltip */}
-                      {reviews.blockReason(d) && (
-                        <p className="text-[11px] text-muted-foreground">Team rule: {reviews.blockReason(d)}</p>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11">
-                        <Link to={`/generate?draft=${d.id}`}>Open</Link>
-                      </Button>
-                      {days > 0 && (
-                        <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11">
-                          <Link to="/calendar#overdue">Reschedule</Link>
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        onClick={() => markDuePosted(d.id)}
-                        disabled={reviews.blockReason(d) !== null}
-                        title={reviews.blockReason(d) ?? undefined}
-                        className="h-9 gap-1 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11"
-                      >
-                        <CheckCircleIcon className="h-3 w-3" /> Mark posted
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {dueNow.length > 3 && (
-                <Link
-                  to="/calendar"
-                  className="inline-block py-1 text-xs font-medium text-primary hover:underline [@media(pointer:coarse)]:py-3"
-                >
-                  See all {dueNow.length} on the calendar
-                </Link>
-              )}
-            </section>
-          )}
-
-          {/* Greeting + primary actions */}
-          <section className="space-y-5">
-            <header>
-              {greet}
-              <GoalLine />
-            </header>
-
-            {/* Your next move — the single most important thing to do now. Driven
-                by the Content Diagnosis so the Home never leaves you wondering. */}
-            {nextAct?.kind === "mission" && nextAct.mission && (
-              <Card className="border-primary/30 bg-primary/[0.05] shadow-card">
-                <CardContent className="space-y-3 py-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-                      Your next move
-                    </p>
-                    {contentScore !== null && (
-                      <Link
-                        to="/coach"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
-                      >
-                        <GaugeIcon className="h-3.5 w-3.5" /> Score {contentScore}/100
-                      </Link>
-                    )}
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <TargetIcon className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">
-                        {nextAct.headline}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-foreground">
-                        Mission: {nextAct.mission.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {nextAct.mission.objective}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button asChild variant="outline" className="gap-2">
-                      <Link to={nextAct.mission.to}>
-                        Start mission <ArrowRightIcon className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                      <ClockIcon className="h-3.5 w-3.5" /> ~{nextAct.mission.effortMins} min
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {nextAct?.kind === "maintain" && contentScore !== null && (
-              <Card className="border-success/30 bg-success/[0.05] shadow-card">
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-                  <div className="flex items-start gap-2.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
-                      <SparkleIcon className="h-4 w-4" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        {nextAct.headline}
-                      </p>
-                      <p className="max-w-md text-xs text-muted-foreground">
-                        {nextAct.detail}
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    to="/coach"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
-                  >
-                    <GaugeIcon className="h-3.5 w-3.5" /> Score {contentScore}/100
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* one filled button: the next thing to do. Everything else on the page is quieter (UX law 7) */}
-            <div className="flex flex-col gap-x-5 gap-y-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <div className="min-w-0">
-                <Button asChild size="lg" className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 sm:w-auto">
-                  <Link to={primary.to}>
-                    <PencilSimpleIcon className="h-4 w-4" /> {primary.label}
-                  </Link>
-                </Button>
-                {primary.title && <p className="mt-1.5 max-w-sm truncate text-xs text-muted-foreground">{primary.title}</p>}
-              </div>
-              <nav aria-label="Other ways to start" className={`flex flex-wrap gap-x-5 text-sm font-medium text-muted-foreground ${primary.title ? "sm:self-start sm:pt-3" : ""}`}>
-                {primary.title && <Link to={newPostHref(uid)} className={QUIET}>Write a new post</Link>}
-                <Link to="/plan" className={QUIET}>Plan a week</Link>
-                <Link to="/generate/batch" className={QUIET}>Weekly batch</Link>
-                {nextAct?.kind === "diagnose" && <Link to="/coach" className={QUIET}>Get your Content Score</Link>}
-              </nav>
-            </div>
-          </section>
-
-          {/* Get-started checklist (until every step is done) */}
-          {showChecklist && (
-            <details className="group rounded-xl border border-border/70 bg-card">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 text-sm [&::-webkit-details-marker]:hidden">
-                <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
-                <span className="font-medium text-foreground">Get set up</span>
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {checklistDone} of {checklist.length} done
-                </span>
-              </summary>
-              <div className="px-4 pb-4">
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {checklist.map((c) => (
-                    <Link
-                      key={c.label}
-                      to={c.to}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors [@media(pointer:coarse)]:min-h-11 ${
-                        c.done
-                          ? "border-success/30 bg-success/5 text-muted-foreground"
-                          : "border-border/70 bg-card text-foreground hover:border-primary/40"
-                      }`}
-                    >
-                      {c.done ? (
-                        <CheckCircleIcon className="h-4 w-4 shrink-0 text-success" />
-                      ) : (
-                        <CircleIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      )}
-                      <span className={c.done ? "line-through" : "font-medium"}>
-                        {c.label}
-                      </span>
-                      {!c.done && (
-                        <ArrowRightIcon className="ml-auto h-3.5 w-3.5 text-primary" />
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </details>
+          {uid && (
+            <Suspense fallback={null}>
+              <HomeRows userId={uid} drafts={drafts} campaigns={homeCampaigns} />
+            </Suspense>
           )}
         </>
       )}
+
+      {/* Below Fastlane's five blocks: our own numbers, which Fastlane keeps on Analytics */}
 
       {/* What moved this week (Leo only; /home#what-moved) */}
       {userId && <WhatMovedCard userId={userId} />}
@@ -689,85 +414,6 @@ export default function HomePage() {
             <StatCard icon={ChatCircleIcon} value={last30.comments} label="Comments" tint="bg-success/10 text-success" />
             <StatCard icon={ShareNetworkIcon} value={last30.shares} label="Shares" tint="bg-accent text-foreground" />
           </div>
-        </section>
-      )}
-
-      {/* Coming up (scheduled posts, and live campaigns' next posting times) */}
-      {comingUp.length > 0 && (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-1.5 font-serif text-lg font-semibold text-foreground">
-              <CalendarDotsIcon className="h-4 w-4 text-primary" /> Coming up
-            </h2>
-            <Link
-              to="/calendar"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
-            >
-              Calendar <ArrowRightIcon className="h-3 w-3" />
-            </Link>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {comingUp.map(({ draft: d, campaign: c }) =>
-              c ? (
-                <Link
-                  key={`campaign-${c.id}`}
-                  to={`/design/campaigns/${c.id}`}
-                  className="flex flex-col rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
-                >
-                  <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                    {comingDay(c.at)}, {timeLabel(`${String(c.at.getHours()).padStart(2, "0")}:${String(c.at.getMinutes()).padStart(2, "0")}`)}
-                  </span>
-                  <p className="line-clamp-2 text-sm leading-snug text-foreground">{c.name}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">Slideshow campaign</p>
-                </Link>
-              ) : (
-                d && (
-              <Link
-                key={d.id}
-                to={`/generate?draft=${encodeURIComponent(d.id)}`}
-                className="flex flex-col rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
-              >
-                <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                  {d.scheduledFor
-                    ? new Date(d.scheduledFor.slice(0, 10) + "T00:00:00").toLocaleDateString(
-                        undefined,
-                        { weekday: "short", month: "short", day: "numeric" },
-                      ) + (scheduleTime(d.scheduledFor) ? `, ${timeLabel(scheduleTime(d.scheduledFor)!)}` : "")
-                    : "Scheduled"}
-                </span>
-                <p className="line-clamp-2 text-sm leading-snug text-foreground">
-                  {d.hook || d.draft.slice(0, 80)}
-                </p>
-              </Link>
-                )
-              ),
-            )}
-          </div>
-        </section>
-      )}
-
-      {recentCampaigns.length > 0 && (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-serif text-lg font-semibold text-foreground">Campaigns</h2>
-            <Link
-              to="/design/campaigns"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
-            >
-              See all <ArrowRightIcon className="h-3 w-3" />
-            </Link>
-          </div>
-          <ul className="divide-y divide-border/60 rounded-xl border border-border/70 bg-card shadow-card">
-            {recentCampaigns.map((c) => (
-              <li key={c.id}>
-                <Link to={`/design/campaigns/${c.id}`} className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-muted/40">
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{c.name}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] ${c.status === "live" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>{CAMPAIGN_STATUS[c.status] ?? c.status}</span>
-                  <span className="w-full text-xs text-muted-foreground sm:w-auto">{cadence(c.schedule)}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
         </section>
       )}
 
@@ -926,77 +572,6 @@ export default function HomePage() {
           </Card>
         </section>
       )}
-
-      {/* Pick up where you left off */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-lg font-semibold text-foreground">
-            {hasPosts ? "Pick up where you left off" : "Your posts"}
-          </h2>
-          {hasPosts && (
-            <Link
-              to="/drafts"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
-            >
-              See all <ArrowRightIcon className="h-3 w-3" />
-            </Link>
-          )}
-        </div>
-
-        {hasPosts ? (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {recent.map((d) => {
-              const s = draftStatus(d);
-              return (
-                // the whole card opens the post (Open's link stretches over it); Copy link sits above that
-                <div
-                  key={d.id}
-                  className="relative flex flex-col rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors focus-within:border-primary/40 hover:border-primary/40"
-                >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${STATUS_STYLE[s]}`}
-                    >
-                      {STATUS_LABEL[s]}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                      {PLATFORM_LABEL[d.platform] ?? d.platform}
-                    </span>
-                  </div>
-                  <p className="line-clamp-3 text-sm leading-relaxed text-foreground">
-                    {d.hook || d.draft.slice(0, 90)}
-                  </p>
-                  <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-                    <Link
-                      to={`/generate?draft=${encodeURIComponent(d.id)}`}
-                      className="text-[11px] font-medium text-primary after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
-                    >
-                      Open &rarr;
-                    </Link>
-                    <CopyLinkButton path={`/generate?draft=${encodeURIComponent(d.id)}`} label={`Copy link to ${(d.hook || "this post").slice(0, 60)}`} className="relative z-10 -my-2 -mr-2" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <Card className="border-border/60 shadow-card">
-            <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <PencilSimpleIcon className="h-5 w-5" />
-              </span>
-              <p className="text-sm text-muted-foreground">
-                No posts yet.
-              </p>
-              <Button asChild size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11">
-                <Link to={newPostHref(uid)}>
-                  <PencilSimpleIcon className="h-3.5 w-3.5" /> Write your first post
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </section>
 
       {/* Discover: Inspiration and Creators are Singapore personal-finance libraries, for an adviser's brand only */}
       {(adviserBrand(uid) || plan) && <section className="space-y-3">

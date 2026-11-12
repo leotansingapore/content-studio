@@ -14,7 +14,7 @@ import type { DraftEntry } from "@/lib/draftHistory";
 import type { SavedImage } from "@/lib/images";
 import type { Slideshow } from "@/lib/slideshow";
 import { brandDevice } from "@/test/brandDevice";
-import HomeRows, { PublishPromote, RecentCreations, RemixCompetitorAd, StartFromFormat, adsLine, bookedCount, homeFormats, longestRunning, recentCreations } from "./HomeRows";
+import HomeRows, { PublishPromote, RecentCreations, RemixCompetitorAd, RemixMarketAd, StartFromFormat, adsLine, booked, bookedCount, customerFormats, homeFormats, longestRunning, longestSwipeAds, recentCreations } from "./HomeRows";
 
 vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supabase: {} }));
 
@@ -52,7 +52,7 @@ describe("Recent creations", () => {
     expect(words(html(<RecentCreations items={items} />))).not.toContain("Nothing made yet.");
   });
 
-  it("mixes posts, slideshows, images, designs and carousels newest first, 5 at most, each opening in its own editor", () => {
+  it("mixes posts, slideshows, images, designs and carousels newest first, 6 at most, each opening in its own editor", () => {
     const stores = {
       ...none,
       drafts: [
@@ -72,6 +72,7 @@ describe("Recent creations", () => {
       ["Image", "/image?image=img-1"],
       ["Design", "/design/dz1"],
       ["Carousel", "/carousel?draft=car"],
+      ["Image", "/image?image=img-0"],
     ]);
     const out = html(<RecentCreations items={items} />);
     expect(hrefs(out)).toEqual(["/library", ...items.map((c) => c.to)]);
@@ -118,8 +119,8 @@ describe("Remix a competitor ad", () => {
     n: entry([ad("n1", "2025-01-01")]),
   };
 
-  it("keeps running ads only, each once, from readable competitors, longest running first, 5 at most", () => {
-    expect(longestRunning(list, store).map((x) => x.ad.id)).toEqual(["b1", "b3", "b4", "a1", "b2"]);
+  it("keeps running ads only, each once, from readable competitors, longest running first, 6 at most", () => {
+    expect(longestRunning(list, store, 5).map((x) => x.ad.id)).toEqual(["b1", "b3", "b4", "a1", "b2"]);
     expect(longestRunning(list, store, 10).map((x) => x.ad.id)).toEqual(["b1", "b3", "b4", "a1", "b2", "a3"]);
   });
 
@@ -146,9 +147,11 @@ describe("Remix a competitor ad", () => {
     brandDevice("u1");
     localStorage.setItem(competitorsKey("u1"), JSON.stringify({ list, dismissed: [] }));
     localStorage.setItem(competitorAdsKey("u1"), JSON.stringify(store));
-    const out = words(html(<HomeRows userId="u1" drafts={[]} />));
+    const out = words(html(<HomeRows userId="u1" drafts={[]} leo />));
     expect(out).toContain("Beta");
     expect(out).not.toContain("Watch a competitor");
+    // Competitors are Leo's: everyone else's Home never reads them
+    expect(words(html(<HomeRows userId="u1" drafts={[]} />))).not.toContain("Beta");
   });
 });
 
@@ -174,18 +177,56 @@ describe("Publish and promote", () => {
     expect(adsLine({ connected: false, reconnect: true, account: null }, 0)).toBe("AdLauncher needs connecting again");
   });
 
-  it("empty: not connected and nothing booked, with Open ads and Open calendar", () => {
-    const out = html(<PublishPromote adl={{ connected: false, account: null }} sent={0} booked={0} />);
-    expect(words(out)).toContain("Ads AdLauncher not connected Open ads");
-    expect(words(out)).toContain("Posting Nothing booked yet Open calendar");
-    expect(hrefs(out)).toEqual(["/adlauncher", "/calendar"]);
+  it("empty: nothing booked, Open calendar, and Ads only on Leo's sign-in", () => {
+    const leo = html(<PublishPromote ads={{ adl: { connected: false, account: null }, sent: 0 }} posts={[]} />);
+    expect(words(leo)).toContain("Posting Nothing booked yet Open calendar");
+    expect(words(leo)).toContain("Ads AdLauncher not connected Open ads");
+    expect(hrefs(leo)).toEqual(["/calendar", "/adlauncher"]);
+    const anyone = html(<PublishPromote ads={null} posts={[]} />);
+    expect(words(anyone)).not.toContain("AdLauncher");
+    expect(hrefs(anyone)).toEqual(["/calendar"]);
   });
 
-  it("filled: counts the booked posts and never names the next one, which Next up and Coming up already show", () => {
-    const out = words(html(<PublishPromote adl={{ connected: true, account: null }} sent={4} booked={2} />));
-    expect(out).toContain("AdLauncher connected, 4 ads sent");
-    expect(out).toContain("Posting 2 posts booked Open calendar");
-    expect(out).not.toMatch(/goes out|Next/);
-    expect(words(html(<PublishPromote adl={null} sent={0} booked={1} />))).toContain("1 post booked");
+  it("filled: Posting lists the next three booked posts with their day, as Home's Coming up did", () => {
+    const posts = booked(
+      [
+        draft("p4", { status: "scheduled", scheduledFor: "2026-11-21", hook: "Fourth" }),
+        draft("p1", { status: "scheduled", scheduledFor: "2026-11-13T19:30", hook: "Three CPF myths" }),
+        draft("p2", { status: "scheduled", scheduledFor: "2026-11-14", hook: "Second" }),
+        draft("p3", { status: "scheduled", scheduledFor: "2026-11-15T09:00", hook: "Third" }),
+        draft("gone", { status: "scheduled", scheduledFor: "2026-11-01", hook: "Past" }),
+      ],
+      "2026-11-11",
+    );
+    const out = html(<PublishPromote ads={{ adl: { connected: true, account: null }, sent: 4 }} posts={posts} />);
+    expect(words(out)).toContain("Posting 4 posts booked Fri 13 Nov, 7:30pm Three CPF myths Sat 14 Nov Second Sun 15 Nov, 9am Third Open calendar");
+    expect(words(out)).not.toContain("Fourth");
+    expect(words(out)).toContain("AdLauncher connected, 4 ads sent");
+    expect(hrefs(out)).toContain("/generate?draft=p1");
+  });
+
+  it("shows Campaigns when there are any, naming the next one to post", () => {
+    const at = new Date(2026, 10, 14, 19, 30);
+    const out = words(html(<PublishPromote posts={[]} campaigns={[{ id: "c1", name: "Money mistakes", status: "Live", next: at }, { id: "c2", name: "Paused one", status: "Paused" }]} />));
+    expect(out).toContain("Campaigns Money mistakes posts next Sat 14 Nov, 7:30pm Open campaigns");
+    expect(words(html(<PublishPromote posts={[]} campaigns={[{ id: "c2", name: "Paused one", status: "Paused" }]} />))).toContain("1 slideshow campaign Open campaigns");
+    expect(words(html(<PublishPromote posts={[]} />))).not.toContain("Campaigns");
+  });
+});
+
+describe("everyone else's rows", () => {
+  it("start from the makers every sign-in can open, with All formats on Studio", () => {
+    const tiles = customerFormats();
+    expect(tiles.map((t) => t.to)).toEqual(["/generate", "/carousel", "/slideshow", "/edit", "/generate/batch", "/generate/answer", "/design", "/design/campaigns"]);
+    expect(hrefs(html(<StartFromFormat tiles={tiles} all="/studio" />))[0]).toBe("/studio");
+  });
+
+  it("remix the bundled ads on an adviser brand, longest running first, each opening in the ads library", () => {
+    const ad = (adId: string, start: string) => ({ adId, advertiser: `Adv ${adId}`, format: "image", image: `/ads/${adId}.jpg`, start }) as never;
+    const list = longestSwipeAds([ad("new", "2026-11-01"), ad("old", "2026-05-01"), ad("mid", "2026-09-01")], 2, NOW);
+    const out = html(<RemixMarketAd ads={list} total={3} now={NOW} />);
+    expect(words(out)).toMatch(/Remix a competitor ad 3 See all .*Adv old \d+ days running .*Adv mid/);
+    expect(hrefs(out)).toEqual(["/swipe?tab=ads", "/swipe?tab=ads&ad=old", "/swipe?tab=ads&ad=mid"]);
+    expect(html(<RemixMarketAd ads={[]} />)).toBe("");
   });
 });

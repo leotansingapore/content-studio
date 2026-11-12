@@ -137,20 +137,22 @@ describe("the diagnosis quiz", () => {
 
   it("drives an adviser brand's next move on Home, and nothing on another brand's", async () => {
     device(ADVISER, A_DRAFT);
-    // the diagnosis is a quiet link beside Home's one filled button (wave 5)
-    expect(await loaded(HomePage, "/home")).toMatch(/href="\/coach">Get your Content Score<\/a>/);
+    // the diagnosis is a row in Next up, under the unfinished post (12 Nov, Fastlane's Home)
+    const before = await loaded(HomePage, "/home");
+    expect(before).toContain("Get your Content Score");
+    expect(before).toMatch(/href="\/coach">Start<\/a>/);
+    expect(before.indexOf("Finish your post")).toBeLessThan(before.indexOf("Get your Content Score"));
     device(ADVISER, { ...A_DRAFT, ...DIAGNOSED });
-    expect(await loaded(HomePage, "/home")).toContain("Your next move");
+    expect(await loaded(HomePage, "/home")).toContain("Start mission");
 
     device(COACH, A_DRAFT);
     const fresh = await loaded(HomePage, "/home");
     expect(fresh).toContain("Finish your post");
-    expect(fresh).toContain("Write a new post");
     expect(fresh).not.toContain("Start diagnosis");
     expect(fresh).not.toContain("Content Score");
     device(COACH, { ...A_DRAFT, ...DIAGNOSED });
     const taken = await loaded(HomePage, "/home");
-    expect(taken).not.toContain("Your next move");
+    expect(taken).not.toContain("Mission:");
     expect(taken).not.toContain("Start mission");
   });
 });
