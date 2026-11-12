@@ -199,7 +199,8 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
     items.push({
       id: "today", kind: "today", title: goOut === 1 ? "1 post goes out today" : `${goOut} posts go out today`,
       quote: d && hookOf(d), line: time ? timeLabel(time) : undefined,
-      actions: [{ label: "Open", to: d ? draftLink(d.id) : "/calendar?view=week" }],
+      // a post of the open brand's due today can be marked posted here, as an overdue one can (Home's due card had it)
+      actions: d ? [{ label: "Open", to: draftLink(d.id) }, { label: "Mark posted", markPosted: d.id }] : [{ label: "Open", to: "/calendar?view=week" }],
     });
   }
 

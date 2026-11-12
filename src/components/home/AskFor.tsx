@@ -1,5 +1,6 @@
-// "Ask the agent for" on Leo's Home (docs/north-star/items/agent-home.md): five tiles, each putting its example in the
-// composer without sending, or, folded, one line of words that do the same. The fold is remembered on this device.
+// "Ask the agent for" on Leo's Home (docs/north-star/items/agent-home.md): one line of words under the composer, each
+// putting its example in the box without sending, or, with Show examples, five tiles that do the same. Folded by default
+// since 12 Nov (Fastlane's Home keeps the composer's chips and no tiles); the choice is remembered on this device.
 
 import { useState } from "react";
 import { CalendarBlankIcon, StackIcon, PencilLineIcon, RepeatIcon, VideoCameraIcon } from "@phosphor-icons/react";
@@ -10,22 +11,22 @@ import { speakerFor } from "@/lib/remixBrand";
 import { cn } from "@/lib/utils";
 
 const ICONS = [RepeatIcon, StackIcon, VideoCameraIcon, CalendarBlankIcon, PencilLineIcon];
-const LINK = "inline-flex min-h-9 items-center rounded-md px-2 text-sm font-medium text-primary hover:bg-accent [@media(pointer:coarse)]:min-h-11";
+const LINK = "inline-flex min-h-9 items-center rounded-md px-2 text-sm font-medium text-foreground hover:bg-accent [@media(pointer:coarse)]:min-h-11";
 
 export default function AskFor({ userId, onPick, className }: { userId: string; onPick: (text: string) => void; className?: string }) {
   const key = `cs-home-askfor-${scoped(userId)}`;
   const [compact, setCompact] = useState(() => {
     try {
-      return localStorage.getItem(key) === "compact";
+      return localStorage.getItem(key) !== "tiles";
     } catch {
-      return false;
+      return true;
     }
   });
   const fold = (on: boolean) => {
     setCompact(on);
     try {
-      if (on) localStorage.setItem(key, "compact");
-      else localStorage.removeItem(key);
+      if (on) localStorage.removeItem(key);
+      else localStorage.setItem(key, "tiles");
     } catch {
       /* blocked storage: folded for this visit only */
     }
@@ -36,7 +37,7 @@ export default function AskFor({ userId, onPick, className }: { userId: string; 
     <section id="ask" aria-labelledby="ask-label" className={cn("scroll-mt-20", className)}>
       {compact ? (
         <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
-          <h2 id="ask-label" className="mr-1 text-sm font-semibold text-foreground">
+          <h2 id="ask-label" className="mr-1 text-sm text-muted-foreground">
             Ask the agent for
           </h2>
           {tiles.map((t) => (

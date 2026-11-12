@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import HomePage, { campaignTimes, homePrimary } from "./HomePage";
+import HomePage, { campaignTimes, customerItems } from "./HomePage";
 
 const html = (path = "/home") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(HomePage)));
 
@@ -40,20 +40,37 @@ describe("Home for everyone else", () => {
   });
 });
 
-describe("Home's one filled button", () => {
+describe("Home in Fastlane's order (12 Nov)", () => {
   const d = (id: string, o: object = {}) => ({ id, createdAt: "", hook: `Hook ${id}`, draft: "", pillar: "", pillarDetail: "", audience: "", format: "", platform: "", ctaType: "", ...o }) as never;
-  it("finishes the newest unfinished post, naming it", () => {
-    expect(homePrimary([d("s", { status: "scheduled", scheduledFor: "2026-11-20" }), d("a b"), d("older")], "/studio#topic")).toEqual({ label: "Finish your post", to: "/generate?draft=a%20b", title: "Hook a b" });
-  });
-  it("writes a post when nothing is unfinished", () => {
-    expect(homePrimary([], "/studio#topic")).toEqual({ label: "Write a post", to: "/studio#topic" });
-    expect(homePrimary([d("p", { status: "posted", postedAt: "2026-11-01" })], "/x").label).toBe("Write a post");
-  });
-  it("is the page's only filled button, with the other ways as links", () => {
+  const item = (id: string, kind: string) => ({ id, kind, title: id, actions: [{ label: "Open", to: `/${id}` }] }) as never;
+
+  it("opens on the question and the writer, whose Write it stays quiet until a topic is typed", () => {
     const out = html();
-    expect(out.match(/bg-gradient-primary/g)).toHaveLength(1);
-    expect(out).toMatch(/<a[^>]*href="\/plan"[^>]*>Plan a week<\/a>/);
-    expect(out).not.toContain("Start diagnosis");
+    expect(out).toMatch(/<h1[^>]*>What do you want to make\?<\/h1>/);
+    expect(out).toContain('id="topic"');
+    for (const chip of ["Carousel", "Slideshow", "Video", "Weekly batch"]) expect(out).toContain(`>${chip}</button>`);
+    // nothing on the first frame is filled: Next up's first button is, once the posts are read
+    expect(out).not.toMatch(/bg-gradient-primary|class="[^"]*\bbg-primary text-primary-foreground/);
+    expect(out).not.toContain("Plan a week");
+  });
+
+  it("puts the newest unfinished post before the plans and setup, naming it", () => {
+    const list = customerItems([item("overdue", "overdue"), item("ideas", "ideas")], { drafts: [d("s", { status: "scheduled", scheduledFor: "2026-11-20" }), d("a b"), d("older")], setup: null, nextAct: null });
+    expect(list.map((i) => i.id)).toEqual(["overdue", "finish:a b", "ideas"]);
+    expect(list[1]).toMatchObject({ title: "Finish your post", quote: "Hook a b", actions: [{ label: "Open", to: "/generate?draft=a%20b" }] });
+  });
+
+  it("leaves the unfinished post out when a made post already leads, and when nothing is unfinished", () => {
+    expect(customerItems([item("draft:x", "unscheduled")], { drafts: [d("a")], setup: null, nextAct: null }).map((i) => i.id)).toEqual(["draft:x"]);
+    expect(customerItems([], { drafts: [d("p", { status: "posted", postedAt: "2026-11-01" })], setup: null, nextAct: null })).toEqual([]);
+  });
+
+  it("ends with the diagnosis's next move and the next setup step, with how far setup is", () => {
+    const list = customerItems([], { drafts: [], setup: { label: "Set your voice", to: "/voice", line: "2 of 5 set up" }, nextAct: { kind: "diagnose", detail: "14 questions." } as never });
+    expect(list.map((i) => [i.title, i.line, i.actions[0].to])).toEqual([
+      ["Get your Content Score", "14 questions.", "/coach"],
+      ["Set your voice", "2 of 5 set up", "/voice"],
+    ]);
   });
 });
 
@@ -69,7 +86,7 @@ describe("Home for Leo", () => {
   it("shows the GOAL line under the greeting, empty", () => {
     leo();
     const out = html();
-    expect(out).toMatch(/<\/h1><div class="mt-2 space-y-3">/);
+    expect(out).toMatch(/<\/h1><div class="flex justify-center text-left"><div class="mt-2 space-y-3">/);
     expect(out).toContain("Set a goal for this brand");
     expect(out).toContain(">Set goal</button>");
     expect(out).toContain('aria-label="About the goal"');

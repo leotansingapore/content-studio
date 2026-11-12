@@ -1,4 +1,4 @@
-// The Library's four views as one switch, at the top of each of the four pages: Everything (/library), Posts
+// The Library's four views as one switch, quiet text tabs at the top of each of the four pages (the open one tinted): Everything (/library), Posts
 // (/drafts), Board (/board) and Grid (/grid). Each is still its own page and address; the switch reopens a view with
 // the filters it last had in this tab, so going to Board and back does not clear a search.
 import { ColumnsIcon, GridNineIcon, SquaresFourIcon, ListIcon, type Icon } from "@phosphor-icons/react";
@@ -22,11 +22,11 @@ export default function LibraryViews() {
   const { pathname, search } = useLocation();
   rememberView(pathname, search);
   return (
-    <nav aria-label="Library view" data-library-views className="inline-flex max-w-full rounded-lg border border-border/70 bg-muted/30 p-0.5">
+    <nav aria-label="Library view" data-library-views className="scrollbar-none -mx-1 flex max-w-full gap-0.5 overflow-x-auto px-1">
       {LIBRARY_VIEWS.map((v) => {
         const on = pathname.replace(/\/+$/, "") === v.to;
         const cls = `inline-flex h-9 min-w-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-colors sm:px-3 [@media(pointer:coarse)]:h-11 ${
-          on ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          on ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
         }`;
         const inner = (
           <>

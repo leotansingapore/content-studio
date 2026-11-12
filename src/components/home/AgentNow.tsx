@@ -17,8 +17,20 @@ export function nowWords(now: Now): { title: string; line?: string } {
   return { title: made ? `${made[1][0].toUpperCase()}${made[1].slice(1)} ready` : now.line };
 }
 
-export default function AgentNow({ now, className }: { now: Now; className?: string }) {
+export default function AgentNow({ now, className, compact = false }: { now: Now; className?: string; compact?: boolean }) {
   const { title, line } = nowWords(now);
+  // Home since 12 Nov: one line over the composer, where Fastlane's Home shows the agent working
+  if (compact)
+    return (
+      <p id="agent-now" aria-live="polite" className={cn("flex min-h-9 scroll-mt-20 flex-wrap items-center justify-center gap-x-2 text-xs text-muted-foreground", className)}>
+        <span className={cn("h-2 w-2 shrink-0 rounded-full", now.kind === "running" ? "animate-pulse bg-primary" : now.kind === "idle" ? "bg-muted-foreground/40" : "bg-warning")} aria-hidden />
+        <span className="font-medium text-foreground">{title}</span>
+        {line && now.kind !== "idle" && <span className="max-w-xs truncate">{line}</span>}
+        <Link to={now.kind === "idle" ? links.agent() : now.to} className="inline-flex min-h-9 items-center font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+          {now.kind === "idle" ? "Open chat" : "Open"}
+        </Link>
+      </p>
+    );
   return (
     <section id="agent-now" aria-labelledby="agent-now-label" className={cn("scroll-mt-20 rounded-2xl border border-border/70 bg-card p-4 shadow-card", className)}>
       <div className="flex min-h-9 items-center justify-between gap-2">

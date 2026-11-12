@@ -216,7 +216,7 @@ describe("needsYouItems", () => {
     expect(by["failed:m5"]).toMatchObject({ title: "Something you asked for wasn't made", quote: "Picture: CPF", line: "Nothing was used.", actions: [{ label: "Open", to: links.agent({ thread: "t2", m: "m5" }) }] });
     expect(by.overdue).toEqual({ id: "overdue", kind: "overdue", title: "2 posts are overdue", quote: "Newest overdue", line: "1 day overdue", actions: [{ label: "Reschedule", to: "/calendar#overdue" }, { label: "Mark posted", markPosted: "o2" }] });
     // two of this brand's, one board post and one other brand's
-    expect(by.today).toEqual({ id: "today", kind: "today", title: "4 posts go out today", quote: "Due first", line: "8am", actions: [{ label: "Open", to: links.generate({ draft: "d2" }) }] });
+    expect(by.today).toEqual({ id: "today", kind: "today", title: "4 posts go out today", quote: "Due first", line: "8am", actions: [{ label: "Open", to: links.generate({ draft: "d2" }) }, { label: "Mark posted", markPosted: "d2" }] });
     expect(by.team).toEqual({ id: "team", kind: "team", title: "Team posts to review", n: 2, line: "Approve or skip each one.", actions: [{ label: "Review", to: links.calendar({ business: "team-posts", teampost: "tp1" }) }] });
     expect(by["review:radiant"]).toMatchObject({ title: "Radiant posts to review", n: 1, actions: [{ label: "Review", to: "/reels?brand=radiant&stage=all" }] });
     expect(by["notes:radiant"]).toMatchObject({ title: "Team notes: Radiant", n: 1, actions: [{ label: "Open", to: "/reels?brand=radiant&view=feed&stage=notes" }] });
@@ -307,7 +307,13 @@ describe("needsYouItems", () => {
     const sg = needsYouItems({ drafts }, "2026-10-14", NOW);
     expect(sg.map((i) => [i.id, i.title])).toEqual([["overdue", "1 post is overdue"], ["today", "1 post goes out today"]]);
     expect(sg[0].actions[1]).toEqual({ label: "Mark posted", markPosted: "b" });
+    // a post due today keeps Mark posted too (12 Nov: Home's due card folded into Next up)
+    expect(sg[1].actions).toEqual([{ label: "Open", to: links.generate({ draft: "a" }) }, { label: "Mark posted", markPosted: "a" }]);
     expect(needsYouItems({ drafts }, "2026-10-13", NOW).map((i) => i.title)).toEqual(["1 post goes out today"]);
+    // only other brands' posts going out today: no draft of this brand to mark, so Open goes to the week
+    const board = { brands: [{ id: "x", name: "X" }], cards: [{ id: "c1", stage: "approved", schedule: "2026-10-14T09:00", brand: "x", comments: [] }] };
+    const owner = needsYouItems({ drafts: [], me: { owner: true } as never, board: board as never }, "2026-10-14", NOW).find((i) => i.id === "today");
+    expect(owner?.actions).toEqual([{ label: "Open", to: "/calendar?view=week" }]);
   });
 
   it("drops what was hidden today and ignores yesterday's hides", () => {

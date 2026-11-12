@@ -29,7 +29,8 @@ export type LibraryStatus = "ready" | "scheduled" | "posted" | "making" | "faile
 export const LIBRARY_FORMATS: LibraryFormat[] = ["text", "carousel", "video", "image"];
 export const LIBRARY_STATUSES: LibraryStatus[] = ["ready", "scheduled", "posted", "making", "failed"];
 export const FORMAT_LABELS: Record<LibraryFormat, string> = { text: "Text", carousel: "Carousel", video: "Video", image: "Image" };
-export const STATUS_LABELS: Record<LibraryStatus, string> = { ready: "Ready", scheduled: "Scheduled", posted: "Posted", making: "Making", failed: "Failed" };
+// Fastlane's Library words (11 Nov): a piece being made is Building; the address keeps ?status=making
+export const STATUS_LABELS: Record<LibraryStatus, string> = { ready: "Ready", scheduled: "Scheduled", posted: "Posted", making: "Building", failed: "Failed" };
 
 export interface LibraryItem {
   /** "d:<draftId>", "c:<carouselId>", "s:<slideshowId>", "v:<projectId>", "i:<mediaKey>", "g:<image design id>", "x:<Design id>", "j:<job kind>" */

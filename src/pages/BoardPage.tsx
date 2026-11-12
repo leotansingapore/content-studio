@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRightIcon, ColumnsIcon, DotsSixVerticalIcon, LightbulbIcon, PencilSimpleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, DotsSixVerticalIcon, LightbulbIcon, PencilSimpleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
 
 import LibraryViews from "@/components/library/LibraryViews";
 import { Button } from "@/components/ui/button";
@@ -419,15 +419,14 @@ export default function BoardPage() {
 
   return (
     <div className="space-y-4">
-      <LibraryViews />
-      <div className="flex items-center gap-1">
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-          <ColumnsIcon className="h-5 w-5" /> Board
-        </h1>
+      {/* as the Library's other views: the switch says Board, so the title is for screen readers */}
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <LibraryViews />
+        <h1 className="sr-only">Board</h1>
         <InfoTip label="About moving cards">
           Drag a card, or pick its column in Move to.
         </InfoTip>
-      </div>
+      </header>
 
       {drafts.length === 0 && feed.length === 0 && (
         <Card>

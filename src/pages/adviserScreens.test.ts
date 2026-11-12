@@ -137,20 +137,22 @@ describe("the diagnosis quiz", () => {
 
   it("drives an adviser brand's next move on Home, and nothing on another brand's", async () => {
     device(ADVISER, A_DRAFT);
-    // the diagnosis is a quiet link beside Home's one filled button (wave 5)
-    expect(await loaded(HomePage, "/home")).toMatch(/href="\/coach">Get your Content Score<\/a>/);
+    // the diagnosis is a row in Next up, under the unfinished post (12 Nov, Fastlane's Home)
+    const before = await loaded(HomePage, "/home");
+    expect(before).toContain("Get your Content Score");
+    expect(before).toMatch(/href="\/coach">Start<\/a>/);
+    expect(before.indexOf("Finish your post")).toBeLessThan(before.indexOf("Get your Content Score"));
     device(ADVISER, { ...A_DRAFT, ...DIAGNOSED });
-    expect(await loaded(HomePage, "/home")).toContain("Your next move");
+    expect(await loaded(HomePage, "/home")).toContain("Start mission");
 
     device(COACH, A_DRAFT);
     const fresh = await loaded(HomePage, "/home");
     expect(fresh).toContain("Finish your post");
-    expect(fresh).toContain("Write a new post");
     expect(fresh).not.toContain("Start diagnosis");
     expect(fresh).not.toContain("Content Score");
     device(COACH, { ...A_DRAFT, ...DIAGNOSED });
     const taken = await loaded(HomePage, "/home");
-    expect(taken).not.toContain("Your next move");
+    expect(taken).not.toContain("Mission:");
     expect(taken).not.toContain("Start mission");
   });
 });
@@ -196,11 +198,11 @@ describe("Top posts, the Singapore ads and Trends", () => {
   it("keep every way in on an adviser brand's pages", () => {
     device(ADVISER);
     expect(ADS.length).toBeGreaterThan(0);
+    // Studio's overview (12 Nov, Fastlane's): the Singapore ads are its Remix a competitor ad; top posts are under Find posts
     const studio = draw(createElement(StudioPage), "/studio");
-    expect(studio).toContain('id="ads"');
+    expect(studio).toContain('id="remix-ads"');
     expect(studio).toContain('href="/swipe?tab=ads"');
-    expect(studio).toContain('id="trending"');
-    expect(studio).toContain(">All top posts");
+    expect(studio).not.toContain('id="trending"');
     const guide = draw(createElement(CreateGuidePage), "/create-guide");
     expect(guide).toContain("Find an idea that already works");
     expect(guide.match(/href="\/swipe"/g)).toHaveLength(2);
@@ -220,8 +222,7 @@ describe("Top posts, the Singapore ads and Trends", () => {
     device(COACH);
     const studio = draw(createElement(StudioPage), "/studio");
     expect(studio).toContain("Ways to make");
-    expect(studio).toContain('id="latest"');
-    for (const gone of ["/swipe", 'id="ads"', 'id="trending"', "Ads running now", "Trending"]) expect(studio, gone).not.toContain(gone);
+    for (const gone of ["/swipe", 'id="remix-ads"', 'id="trending"', "Remix a competitor ad", "Trending"]) expect(studio, gone).not.toContain(gone);
     const guide = draw(createElement(CreateGuidePage), "/create-guide");
     expect(guide).not.toContain("/swipe");
     expect(guide).not.toContain("Find an idea that already works");

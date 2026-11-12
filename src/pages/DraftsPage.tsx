@@ -1,21 +1,15 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import LibraryChip from "@/components/library/LibraryChip";
 import LibraryViews from "@/components/library/LibraryViews";
 import CampaignPostLink from "@/components/campaign/CampaignPostLink";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { links } from "@/lib/links";
 import { draftLine } from "@/lib/remixSource";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -26,28 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
-import {
-  TrashIcon,
-  MagnifyingGlassIcon,
-  PencilSimpleIcon,
-  SparkleIcon,
-  CheckCircleIcon,
-  ArrowUUpLeftIcon,
-  CalendarDotsIcon,
-  MagicWandIcon,
-  XIcon,
-  CardsIcon,
-  TagIcon,
-  CopySimpleIcon,
-  UploadSimpleIcon,
-  DotsThreeIcon,
-  LinkIcon,
-  ChatTextIcon,
-  PaperclipIcon,
-  PaperPlaneTiltIcon,
-  ListNumbersIcon,
-  TranslateIcon,
-} from "@phosphor-icons/react";
+import { TrashIcon, MagnifyingGlassIcon, PencilSimpleIcon, SparkleIcon, CheckCircleIcon, ArrowUUpLeftIcon, CalendarDotsIcon, MagicWandIcon, XIcon, CardsIcon, TagIcon, CopySimpleIcon, UploadSimpleIcon, DotsThreeIcon, LinkIcon, ChatTextIcon, PaperclipIcon, PaperPlaneTiltIcon, ListNumbersIcon, TranslateIcon } from "@phosphor-icons/react";
 import {
   deleteDraft,
   loadDrafts,
@@ -228,6 +201,9 @@ const firstWords = (text: string, n = 6) => {
 };
 // Write's score colours (GeneratePage's Predicted engagement)
 const scoreTone = (v: number) => (v >= 7.5 ? "bg-success/15 text-success" : v >= 5 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning");
+
+// a filter at rest reads as its value ("All platforms") with no box, tinted on hover, as the Library's chips
+const QUIET_SELECT = "h-8 w-auto shrink-0 gap-1 border-transparent bg-transparent px-2.5 text-xs text-muted-foreground shadow-none hover:bg-accent hover:text-foreground focus:ring-1 [@media(pointer:coarse)]:h-11";
 
 export default function DraftsPage() {
   const { toast, toasts } = useToast();
@@ -780,17 +756,16 @@ export default function DraftsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <LibraryViews />
+    <div className="space-y-4">
+      {/* as the Library's other views: the switch and this view's own actions on one row, the title for screen readers */}
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          All posts
-        </h1>
+        <LibraryViews />
+        <h1 className="sr-only">All posts</h1>
         {job && <span aria-live="polite" className="mr-auto">{numbersChip(job)}</span>}
         {/* Leo only: My posts' first frame stays as pinned for everyone else (DraftsPage.test.ts) */}
         {leo && <CopyLinkButton label="Copy link to this view" className="ml-auto" />}
         {!importOpen && userId && (
-          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5 [@media(pointer:coarse)]:h-11">
+          <Button size="sm" variant="ghost" onClick={() => setImportOpen(true)} className="gap-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">
             <UploadSimpleIcon className="h-3.5 w-3.5" /> Import CSV
           </Button>
         )}
@@ -806,46 +781,26 @@ export default function DraftsPage() {
 
       {drafts.length > 0 && (
         <>
-      <div className="scrollbar-none flex gap-1.5 overflow-x-auto">
-        {(
-          [
-            ["all", `All (${drafts.length})`],
-            ["draft", `Drafts (${counts.draft})`],
-            ["scheduled", `Scheduled (${counts.scheduled})`],
-            ["posted", `Posted (${counts.posted})`],
-          ] as [("all" | DraftStatus), string][]
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => update({ status: key === "all" ? null : key, fill: null })}
-            aria-pressed={statusFilter === key}
-            className={`h-9 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11 ${
-              statusFilter === key
-                ? "border-primary/60 bg-primary/10 text-primary"
-                : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <Card className="border-border/60 shadow-card">
-        <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
-          <CardTitle className="font-serif text-xl">
-            Filter your posts
-          </CardTitle>
-          {!manageLabels && (
-            <Button size="sm" variant="ghost" onClick={openManager} className="gap-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">
-              <TagIcon className="h-3.5 w-3.5" /> Labels
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className={`grid gap-3 ${labels.length ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
-          <div className="space-y-1.5">
-            <Label>Platform</Label>
+      {/* the Library's filter row: states on the left, platform, pillar and label on the right, search under them */}
+      <div className="space-y-2">
+        <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
+          <div role="group" aria-label="Status" className="scrollbar-none -mx-1 flex gap-0.5 overflow-x-auto px-1">
+            {(
+              [
+                ["all", "All", drafts.length],
+                ["draft", "Drafts", counts.draft],
+                ["scheduled", "Scheduled", counts.scheduled],
+                ["posted", "Posted", counts.posted],
+              ] as [("all" | DraftStatus), string, number][]
+            ).map(([key, label, n]) => (
+              <LibraryChip key={key} on={statusFilter === key} onClick={() => update({ status: key === "all" ? null : key, fill: null })} count={n}>
+                {label}
+              </LibraryChip>
+            ))}
+          </div>
+          <div className="scrollbar-none -mx-1 flex items-center gap-0.5 overflow-x-auto px-1">
             <Select value={platformFilter} onValueChange={setPlatformFilter}>
-              <SelectTrigger aria-label="Platform" className="[@media(pointer:coarse)]:h-11">
+              <SelectTrigger aria-label="Platform" className={QUIET_SELECT}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -856,11 +811,8 @@ export default function DraftsPage() {
                 <SelectItem value="tiktok">TikTok</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Pillar</Label>
             <Select value={pillarFilter} onValueChange={setPillarFilter}>
-              <SelectTrigger aria-label="Pillar" className="[@media(pointer:coarse)]:h-11">
+              <SelectTrigger aria-label="Pillar" className={QUIET_SELECT}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -871,12 +823,9 @@ export default function DraftsPage() {
                 <SelectItem value="market">Market</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          {labels.length > 0 && (
-            <div className="space-y-1.5">
-              <Label>Label</Label>
+            {labels.length > 0 && (
               <Select value={labelFilter} onValueChange={setLabelFilter}>
-                <SelectTrigger aria-label="Label" className="[@media(pointer:coarse)]:h-11">
+                <SelectTrigger aria-label="Label" className={QUIET_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -889,22 +838,25 @@ export default function DraftsPage() {
                   <SelectItem value="none">No label</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          )}
-          <div className="space-y-1.5">
-            <Label>Search</Label>
-            <div className="relative">
-              <MagnifyingGlassIcon className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Hook or body keyword"
-                className="pl-7 [@media(pointer:coarse)]:h-11"
-              />
-            </div>
+            )}
+            {!manageLabels && (
+              <Button size="sm" variant="ghost" onClick={openManager} className="shrink-0 gap-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">
+                <TagIcon className="h-3.5 w-3.5" /> Labels
+              </Button>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="relative max-w-sm">
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Hook or body keyword"
+            aria-label="Search"
+            className="h-9 pl-8 [@media(pointer:coarse)]:h-11"
+          />
+        </div>
+      </div>
       {manageLabels && userId && (
         <LabelManager
           userId={userId}

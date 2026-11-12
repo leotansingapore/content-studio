@@ -1,27 +1,28 @@
-// Next up on Leo's Home (docs/north-star/items/agent-home.md): needsYouItems' list, the first drawn large with its
-// buttons, the next two as rows and the rest behind "+<k> more waiting" (?waiting=all, replace). A waiting card on top
-// is decided here, as Fastlane's Home does: Approve with its price, or Not now, through the engine the chat's card uses.
+// Next up on Home (docs/north-star/items/agent-home.md), for every sign-in since 12 Nov: needsYouItems' list, the first
+// drawn large with its buttons, the next two as rows and the rest behind "View all <n>" (?waiting=all, replace), as
+// Fastlane's Home lays it out. A customer's Home passes `shape` to add its own items (an unfinished post, setup). On
+// Leo's, a waiting card on top is decided here with Approve and its price (NextUpDecide, its own chunk, so the agent
+// engine still loads for Leo only).
 // Each "..." menu snoozes its item until tomorrow or for a week, or dismisses it until it changes, on this device
 // (cs-home-hidden-<scoped>), with Undo.
 
-import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircleIcon, DotsThreeIcon } from "@phosphor-icons/react";
-import PriceChip from "@/components/PriceChip";
+import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { CheckCircleIcon, CaretRightIcon, DotsThreeIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
-import { leftOf } from "@/lib/agentBudget";
 import type { AgentCard } from "@/lib/agentCards";
-import { approveLabel, blockedReason, NOT_MADE, press } from "@/lib/agentRun";
 import type { Usage } from "@/lib/aiUsage";
 import { addDays, keyToDate } from "@/lib/dueDates";
-import { itemSig, needsYouItems, nextUpLabel, type NextUpInput, type NextUpItem } from "@/lib/needsYou";
+import { isHidden, itemSig, needsYouItems, type NextUpInput, type NextUpItem } from "@/lib/needsYou";
 import { scoped } from "@/lib/profiles";
 import { cn } from "@/lib/utils";
 
+const Decide = lazy(() => import("@/components/home/NextUpDecide"));
+
 type Hidden = Record<string, string>;
-type Waiting = NonNullable<NextUpInput["cards"]>[number] & { card: AgentCard };
+export type Waiting = NonNullable<NextUpInput["cards"]>[number] & { card: AgentCard };
 const hiddenKey = (userId: string) => `cs-home-hidden-${scoped(userId)}`;
 function readHidden(userId: string): Hidden {
   try {
@@ -40,20 +41,27 @@ interface Props {
   today: string;
   /** Today's uses, for Approve's price and the reason it waits. */
   usage: Usage | null;
+  /** The page's own items added to needsYouItems' list (a customer's unfinished post and setup step). */
+  shape?: (items: NextUpItem[]) => NextUpItem[];
+  /** Said when nothing waits. */
+  empty?: ReactNode;
+  /** Told how many items show, so the page can give its one filled button elsewhere when there are none. */
+  onCount?: (n: number) => void;
   markPosted: (draftId: string) => void;
   /** Why a post can't be marked posted yet (the team approval rule), or null. */
   blocked: (draftId: string) => string | null;
   className?: string;
 }
 
-export default function NextUp({ userId, input, today, usage, markPosted, blocked, className }: Props) {
+export default function NextUp({ userId, input, today, usage, markPosted, blocked, shape = (i) => i, empty = "Nothing needs you right now.", onCount, className }: Props) {
   const [hidden, setHidden] = useState(() => readHidden(userId));
   const [menu, setMenu] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
   const { toast } = useToast();
   const all = params.get("waiting") === "all";
-  const items = needsYouItems({ ...input, hidden }, today);
+  const items = shape(needsYouItems({ ...input, hidden }, today)).filter((i) => !hidden[i.id] || !isHidden(hidden[i.id], i, today));
   const [first, ...rest] = items;
+  useEffect(() => onCount?.(items.length), [items.length, onCount]);
   const more = rest.length - 2;
   const waiting = first?.kind === "card" ? input.cards?.find((w) => `card:${w.card.id}` === first.id) : undefined;
   // a competitor card needs its name typed in the chat, so Open is its only way on
@@ -77,7 +85,7 @@ export default function NextUp({ userId, input, today, usage, markPosted, blocke
   const hide = (item: NextUpItem, c: (typeof choices)[number]) => {
     setMenu(null);
     // keep snoozes still running and dismissals of items still listed, so the map never outgrows the list
-    const live = new Set(needsYouItems({ ...input, hidden: {} }, today).map((i) => i.id));
+    const live = new Set(shape(needsYouItems({ ...input, hidden: {} }, today)).map((i) => i.id));
     const kept = (h: Hidden) => Object.fromEntries(Object.entries(h).filter(([id, v]) => (v.startsWith("=") ? live.has(id) : v >= today)));
     update((h) => ({ ...kept(h), [item.id]: c.value(item) }));
     toast({
@@ -137,30 +145,47 @@ export default function NextUp({ userId, input, today, usage, markPosted, blocke
     </div>
   );
   const count = (n?: number) => n !== undefined && <span className="ml-1.5 font-semibold tabular-nums text-muted-foreground">{n}</span>;
+  const fallback = <Button asChild size="sm" variant="outline">{first?.actions[0]?.to ? <Link to={first.actions[0].to}>Open</Link> : <span />}</Button>;
 
   return (
-    <section id="next-up" aria-labelledby="next-up-label" className={cn("scroll-mt-20 rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5", className)}>
-      <div className="flex min-h-9 items-center justify-between gap-2">
-        <p id="next-up-label" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-          {nextUpLabel(items.length)}
-        </p>
-        {first && menuFor(first)}
+    <section id="next-up" aria-labelledby="next-up-label" className={cn("scroll-mt-20 space-y-2", className)}>
+      {/* Fastlane's Home: "Next up" with its count, View all at the right; the list itself is one card */}
+      <div className="flex min-h-9 items-center justify-between gap-3">
+        <h2 id="next-up-label" className="flex items-center gap-2 text-lg font-semibold text-foreground">
+          Next up
+          {items.length > 0 && <span className="rounded-md bg-muted px-1.5 text-xs font-semibold tabular-nums text-muted-foreground">{items.length}</span>}
+        </h2>
+        {more > 0 && (
+          <button type="button" onClick={toggle} aria-expanded={all} className="inline-flex min-h-9 items-center gap-0.5 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:min-h-11">
+            {all ? "Show fewer" : `View all ${items.length}`} <CaretRightIcon className={cn("h-4 w-4 transition-transform", all && "-rotate-90")} />
+          </button>
+        )}
       </div>
+      <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5">
       {!first ? (
-        <p className="mt-1 text-sm text-muted-foreground">Nothing needs you right now.</p>
+        <p className="text-sm text-muted-foreground">{empty}</p>
       ) : (
         <>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
             <div className="min-w-0 flex-1 basis-64">
-              <h2 className="font-serif text-xl font-semibold leading-snug text-foreground sm:text-2xl">
-                {first.title}
-                {count(first.n)}
-              </h2>
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-serif text-xl font-semibold leading-snug text-foreground sm:text-2xl">
+                  {first.title}
+                  {count(first.n)}
+                </h3>
+                {menuFor(first)}
+              </div>
               {first.quote && <p className="mt-1 line-clamp-2 text-sm text-foreground">{first.quote}</p>}
               {/* a card's price line rides on its Approve button */}
               {first.line && !decide && <p className="mt-0.5 text-sm text-muted-foreground">{first.line}</p>}
             </div>
-            {decide ? <Decide userId={userId} waiting={decide} usage={usage} open={first.actions[0]?.to} /> : actionsOf(first, true)}
+            {decide ? (
+              <Suspense fallback={fallback}>
+                <Decide userId={userId} waiting={decide} usage={usage} open={first.actions[0]?.to} />
+              </Suspense>
+            ) : (
+              actionsOf(first, true)
+            )}
           </div>
           {rest.length > 0 && (
             <ul className="mt-4 divide-y divide-border/60 border-t border-border/60">
@@ -181,62 +206,9 @@ export default function NextUp({ userId, input, today, usage, markPosted, blocke
               ))}
             </ul>
           )}
-          {more > 0 && (
-            <button type="button" onClick={toggle} aria-expanded={all} className="mt-1 inline-flex min-h-9 items-center text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
-              {all ? "Show fewer" : `+${more} more waiting`}
-            </button>
-          )}
         </>
       )}
-    </section>
-  );
-}
-
-/** Approve (its price on it) and Not now for the waiting card on top, then Open for the whole card in its chat. The
- * engine checks the uses again on the press; one it refuses keeps the card here with its line. */
-function Decide({ userId, waiting, usage, open }: { userId: string; waiting: Waiting; usage: Usage | null; open?: string }) {
-  const { card, thread, msg } = waiting;
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const reason = blockedReason(userId, card, usage);
-  const left = card.needs[0] ? leftOf(usage, card.needs[0].feature) : null;
-  const run = (button: "approve" | "decline") => {
-    // the press marks the card at once, so it leaves Next up (and a second press does nothing); the promise ends with the make
-    press(userId, thread, msg, button).catch(() => toast({ title: "That didn't go through. Try again.", variant: "destructive" }));
-    toast(
-      button === "decline"
-        ? { title: NOT_MADE }
-        : {
-            title: "Started. It shows in the chat when it's ready.",
-            action: open ? (
-              <ToastAction altText="Open the chat" onClick={() => navigate(open)}>
-                Open chat
-              </ToastAction>
-            ) : undefined,
-          },
-    );
-  };
-  return (
-    <div className="flex min-w-0 max-w-full flex-col items-start gap-1.5 sm:items-end">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" onClick={() => run("approve")} disabled={!!reason} className="h-auto min-h-9 gap-2 whitespace-normal py-1.5 text-left [@media(pointer:coarse)]:min-h-11">
-          <span>{approveLabel(card)}</span>
-          {card.price && (
-            <span className="text-[11px] [&>span]:text-primary-foreground/85">
-              <PriceChip price={card.price} left={card.step === "script" ? null : left} uses={card.needs[0]?.n} />
-            </span>
-          )}
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => run("decline")} className="[@media(pointer:coarse)]:h-11">
-          Not now
-        </Button>
-        {open && (
-          <Button asChild size="sm" variant="outline" className="[@media(pointer:coarse)]:h-11">
-            <Link to={open}>Open</Link>
-          </Button>
-        )}
       </div>
-      {(reason || card.error) && <p className="max-w-xs text-xs text-muted-foreground sm:text-right">{reason ?? card.error}</p>}
-    </div>
+    </section>
   );
 }
