@@ -1675,7 +1675,8 @@ export default function CalendarPage() {
     </button>
   );
 
-  const filtersOn = (platform === "all" ? 0 : 1) + (status === "all" ? 0 : 1);
+  // Open slots sits behind Filter too: Filter says when anything in there is on
+  const filtersOn = (platform === "all" ? 0 : 1) + (status === "all" ? 0 : 1) + (showSlots && slots.length > 0 ? 1 : 0);
   const dropHighlight = (key: string) => (dragOver === key ? "bg-primary/10 ring-2 ring-inset ring-primary" : "");
 
   return (
@@ -1687,27 +1688,64 @@ export default function CalendarPage() {
         </h1>
       </header>
 
-      {/* View, filters, navigation */}
+      {/* Fastlane's row: the month, the views, then quiet tools and the month's arrows on the right; filters fold behind Filter */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg border border-border/70 bg-muted/30 p-0.5">
+        {view !== "upcoming" && <h2 className="hidden min-w-[8.5rem] text-base font-semibold text-foreground sm:block">{navLabel}</h2>}
+        <div className="inline-flex rounded-lg bg-muted/40 p-0.5">
           {viewButton("month", "Month", CalendarDotsIcon)}
           {viewButton("week", "Week", CalendarBlankIcon)}
           {viewButton("upcoming", "Upcoming", ListIcon)}
         </div>
-        {/* phones: the filters fold behind one button, so the first week is on the first screen */}
-        <button
-          type="button"
-          aria-expanded={filtersOpen}
-          aria-controls="calendar-filters"
-          onClick={() => setFiltersOpen((o) => !o)}
-          className={`ml-auto inline-flex h-11 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold sm:hidden ${
-            filtersOpen || filtersOn > 0 ? "border-primary/40 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"
-          }`}
-        >
-          <SlidersHorizontalIcon className="h-3.5 w-3.5" /> Filter{filtersOn > 0 ? ` (${filtersOn})` : ""}
-        </button>
-        <div id="calendar-filters" className={`${filtersOpen ? "flex basis-full flex-wrap" : "hidden"} gap-2 sm:contents`}>
-        <div className="flex gap-2">
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            aria-expanded={filtersOpen}
+            aria-controls="calendar-filters"
+            onClick={() => setFiltersOpen((o) => !o)}
+            className={`inline-flex h-11 items-center gap-1.5 rounded-md px-3 text-xs font-semibold sm:h-8 ${
+              filtersOpen || filtersOn > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            }`}
+          >
+            <SlidersHorizontalIcon className="h-3.5 w-3.5" /> Filter{filtersOn > 0 ? ` (${filtersOn})` : ""}
+          </button>
+          {/* from sm up beside Filter; on phones it is not a filter, so it sits under the calendar (below) */}
+          <button
+            type="button"
+            onClick={() => openNote(null)}
+            className="hidden h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground sm:inline-flex [@media(pointer:coarse)]:h-11"
+          >
+            <NoteIcon className="h-3.5 w-3.5" /> Add note
+          </button>
+        </div>
+        {view !== "upcoming" && (
+          <div className="flex basis-full items-center gap-1.5 sm:basis-auto">
+            <span className="min-w-[8.5rem] flex-1 text-sm font-semibold text-foreground sm:hidden">{navLabel}</span>
+            <button
+              type="button"
+              onClick={() => shift(-1)}
+              className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+              aria-label={view === "week" ? "Previous week" : "Previous month"}
+            >
+              <CaretLeftIcon className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => showDay(todayKey)}
+              className="h-9 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => shift(1)}
+              className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+              aria-label={view === "week" ? "Next week" : "Next month"}
+            >
+              <CaretRightIcon className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        <div id="calendar-filters" className={`${filtersOpen ? "flex" : "hidden"} basis-full flex-wrap gap-2`}>
           <Select value={platform} onValueChange={setPlatform}>
             <SelectTrigger aria-label="Platform" className="h-9 w-[8rem] text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
               <SelectValue />
@@ -1731,56 +1769,19 @@ export default function CalendarPage() {
               <SelectItem value="posted">Posted</SelectItem>
             </SelectContent>
           </Select>
+          {slots.length > 0 && (
+            <button
+              type="button"
+              aria-pressed={showSlots}
+              onClick={() => setSlotsParam(showSlots ? "off" : "on")}
+              className={`inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold sm:h-8 [@media(pointer:coarse)]:h-11 ${
+                showSlots ? "border-primary/40 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Open slots
+            </button>
+          )}
         </div>
-        {/* from sm up, beside the filters; on phones it is not a filter, so it sits under the calendar (below) */}
-        <button
-          type="button"
-          onClick={() => openNote(null)}
-          className="hidden h-9 items-center gap-1.5 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:inline-flex sm:h-8 [@media(pointer:coarse)]:h-11"
-        >
-          <NoteIcon className="h-3.5 w-3.5" /> Add note
-        </button>
-        {slots.length > 0 && (
-          <button
-            type="button"
-            aria-pressed={showSlots}
-            onClick={() => setSlotsParam(showSlots ? "off" : "on")}
-            className={`inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold sm:h-8 [@media(pointer:coarse)]:h-11 ${
-              showSlots ? "border-primary/40 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Open slots
-          </button>
-        )}
-        </div>
-        {view !== "upcoming" && (
-          <div className="flex basis-full items-center gap-1.5 sm:ml-auto sm:basis-auto">
-            <button
-              type="button"
-              onClick={() => shift(-1)}
-              className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
-              aria-label={view === "week" ? "Previous week" : "Previous month"}
-            >
-              <CaretLeftIcon className="h-4 w-4" />
-            </button>
-            <span className="min-w-[8.5rem] flex-1 text-center text-sm font-semibold text-foreground sm:flex-none">{navLabel}</span>
-            <button
-              type="button"
-              onClick={() => shift(1)}
-              className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
-              aria-label={view === "week" ? "Next week" : "Next month"}
-            >
-              <CaretRightIcon className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => showDay(todayKey)}
-              className="h-9 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
-            >
-              Today
-            </button>
-          </div>
-        )}
       </div>
 
       {needsYouShown && (
@@ -1844,7 +1845,8 @@ export default function CalendarPage() {
       )}
 
       {status === "all" && (
-        <section aria-label="This week" className="space-y-1.5 rounded-xl border border-border/70 bg-card px-3 py-2.5 shadow-card">
+        // a line under the header, as Fastlane's calendar has, not a card of its own
+        <section aria-label="This week" className="space-y-1.5">
           <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-foreground">
             <CalendarBlankIcon className="h-4 w-4 text-muted-foreground" aria-hidden />
             <span className="font-semibold">This week:</span>
