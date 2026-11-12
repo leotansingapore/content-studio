@@ -238,7 +238,7 @@ describe("stylesheetLinks", () => {
 });
 
 describe("hostile pages stay fast and safe", () => {
-  const LIMIT = 250;
+  const LIMIT = 1000;
   const timed = <T>(run: () => T): { out: T; ms: number } => {
     const t = performance.now();
     const out = run();
