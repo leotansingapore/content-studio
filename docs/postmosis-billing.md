@@ -2,7 +2,7 @@
 
 Paid sign-up for app.postmosis.com: one plan at US$29 a month, bought outright or after a 7-day trial with a card up front. Nobody can sign themselves up at /auth. An account is created by a server function, and only after Stripe confirms a paid or trialing subscription.
 
-Everything here is off until the flag and the three Stripe secrets are set. Off means the app behaves as it did before this was built.
+Everything here is off until the flag and the three Stripe secrets are set. The embedded checkout on postmosis.com needs a fifth value, the publishable key. Off means the app behaves as it did before this was built.
 
 ## How it works
 
@@ -13,6 +13,30 @@ Everything here is off until the flag and the three Stripe secrets are set. Off 
 5. In the app, `ProtectedRoute` reads the signed-in account's own row. A row with no access shows the paywall instead of the studio. No row means an account from before billing: full access, no change.
 6. A customer whose subscription has ended subscribes again from the paywall. That button calls `postmosis-portal` with `{restart: true}` (JWT on), which creates the Checkout Session with `customer` set to the Stripe customer on the caller's own row. Paying returns through `/start/done` as before; they are already signed in, so /auth passes them straight to the studio.
 7. Settings > Billing (`/settings/billing`, shown only to an account with a row) and the billing line at the top of the studio open Stripe's customer portal through `postmosis-portal` (JWT on). The card, invoices and cancelling live there.
+
+### The checkout page on postmosis.com
+
+The marketing site asks the visitor for their website, shows pricing, and takes payment on its own page, `postmosis.com/checkout`, with Stripe's embedded Checkout beside an order summary. The page posts `{plan, site}` to `https://app.postmosis.com/start/session` and mounts the form with the `clientSecret` and `publishableKey` it gets back. Stripe's form asks for the email and shows Apple Pay and Google Pay once the domain is registered (runbook step 5). An answer of `{off: true}` means checkout is not switched on: the page should fall back to the plain link `/start?plan=...&site=...`, which also works with no JavaScript.
+
+The session is the same one `/start` makes (price, trial rule, promotion codes, metadata), in `ui_mode: "embedded"`, and it returns to `/start/done` the same way. Nothing after payment differs.
+
+### The visitor's website
+
+`site` travels from the marketing site to the new account so onboarding can start from it:
+
+1. The server checks it before it goes anywhere (`siteOf` in `supabase/functions/_shared/subscription.ts`): trimmed, at most 200 characters, an http or https address whose host has a dot and a real ending, no port and no login. That is the rule of the website box in the app (`webAddress` in `src/lib/onboardingFlow.ts`), and `src/lib/checkoutSite.test.ts` holds the two to the same cases. Anything else is dropped without an error.
+2. Only the host and path are kept, lower-case host, no scheme, query or fragment: `https://WWW.Acme.sg/about?x=1` becomes `www.acme.sg/about`.
+3. It goes into the Checkout Session's metadata and the subscription's metadata as `site`.
+4. When a checkout creates an account, the value is read back from the subscription, checked again, and saved as `user_metadata.postmosis_site`. It is never written onto an account that already exists.
+
+For /welcome: `checkoutSite()` in `src/lib/subscription.ts` returns that value for the signed-in user, or null.
+
+```ts
+import { checkoutSite } from "@/lib/subscription";
+const site = await checkoutSite(); // "acme.sg/about" or null
+```
+
+It reads the session, so it costs no request. `user_metadata` can be edited by the account's owner, so the helper runs the same check again and returns null for anything that is not a web address. Treat the result as the visitor's own typing: prefill the box with it, and let the box's own check run when they continue. It is null for accounts from before this, for a restart from the paywall, and when the visitor typed nothing.
 
 ### Why the browser sends the sign-in link, not the server
 
@@ -98,6 +122,9 @@ Edge secrets on the academy project. New names, so nothing collides with the Mem
 | `POSTMOSIS_STRIPE_SECRET_KEY` | The D'Marketing Agency Stripe account's secret key, or a restricted key with write on Checkout Sessions and Customer portal and read on Subscriptions and Customers. |
 | `POSTMOSIS_STRIPE_WEBHOOK_SECRET` | The signing secret of the `postmosis-webhook` endpoint. |
 | `POSTMOSIS_PRICE_ID` | The US$29 monthly price. Also how the webhook tells Postmosis subscriptions from the hub's. |
+| `POSTMOSIS_STRIPE_PUBLISHABLE_KEY` | The same Stripe account's publishable key (`pk_test_...` or `pk_live_...`), sent to the checkout page by `POST /start/session`. It is public by nature. Only the embedded checkout needs it. A value that does not start with `pk_test_` or `pk_live_` counts as missing, so a secret key pasted here is never sent to a browser. It must be from the same mode (test or live) as the secret key. |
+
+`POST /start/session` answers 200 `{off: true}` when the flag or any of the four keys is missing. The publishable key switches nothing else off.
 
 With the flag or any of the three missing, `/start` and `/start/done` answer 302 to `https://postmosis.com/pricing?checkout=off`, the webhook answers 503 and the portal answers 503 `{code:"off"}`, with no call to Stripe or the database.
 
@@ -105,7 +132,8 @@ With the flag or any of the three missing, `/start` and `/start/done` answer 302
 
 | Endpoint | JWT | Answers |
 | --- | --- | --- |
-| `GET /start?plan=pay\|trial` | no | 303 to Stripe Checkout. Another plan: 302 to `postmosis.com/pricing`. Stripe error: 302 to `pricing?checkout=error`. Off: 302 to `pricing?checkout=off`. Not GET: 405. |
+| `GET /start?plan=pay\|trial[&site=]` | no | 303 to Stripe Checkout. A valid `site` is carried in the metadata, an invalid one is dropped. Another plan: 302 to `postmosis.com/pricing`. Stripe error: 302 to `pricing?checkout=error`. Off: 302 to `pricing?checkout=off`. Not GET: 405. |
+| `POST /start/session` with JSON `{plan: "pay"\|"trial", site?}` | no | 200 `{clientSecret, publishableKey}` for an embedded Checkout Session returning to `/start/done`. Off: 200 `{off: true}`. Another plan, or a body that is not JSON or is over 2000 characters: 400 `{error: "plan"}`. Stripe failure: 502 `{error: "stripe"}`. An `Origin` other than `https://postmosis.com`, `http://localhost[:port]` or `http://127.0.0.1[:port]`: 403 `{error: "origin"}` with no CORS header. `OPTIONS`: 204. Any other method: 405. CORS allows `POST, OPTIONS` and the `content-type` header, names the caller's origin exactly, and never allows credentials. Also answered directly at `.../functions/v1/postmosis-start/session`. |
 | `GET /start/done?session_id=` | no | 303 to `app.postmosis.com/auth?email=<email>&checkout=done` once the account and row (or the hold) exist. Session not finished, not a Postmosis session, or nothing paid: 302 to `pricing?checkout=pending`. Malformed or unknown id: 302 to `pricing`. A failed write: 503 in plain text asking for a reload. |
 | `POST postmosis-webhook` | no, Stripe signature | 200 `ok` or `already handled`. 400 on a missing or bad signature. 500 on a failed read or write, so Stripe retries. 503 when off. |
 | `POST postmosis-portal` `{}` | yes | `{url}` of Stripe's portal for the caller's own Stripe customer. 401 signed out, 404 `no_subscription`, 503 `off`. |
@@ -115,33 +143,35 @@ The webhook listens for `checkout.session.completed`, `customer.subscription.upd
 
 ## Go-live runbook
 
-Do the whole thing in Stripe test mode first, then repeat steps 1, 2 and 5 in live mode.
+Do the whole thing in Stripe test mode first, then go live with step 12. Steps 5 to 9 were done on 12 November 2026 for the first release; a later change to the functions repeats step 8 for `postmosis-start`.
 
 1. Stripe, D'Marketing Agency account. Product catalogue > Add product: name `Postmosis`, recurring, US$29.00, monthly. Copy the price id (`price_...`).
 2. Stripe > Developers > Webhooks > Add endpoint. URL `https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-webhook`. Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. Copy the signing secret (`whsec_...`). Leave the hub's endpoint as it is.
 3. Stripe > Settings > Billing > Customer portal: allow customers to update payment methods, view invoices and cancel subscriptions, then save. Portal sessions fail in live mode until this is saved once.
 4. Stripe > Settings > Billing > Subscriptions and emails: switch on the reminder email before a free trial ends, and the emails for failed payments. Read the timing Stripe shows there for a 7-day trial. The card networks expect a trial reminder, and this is the only one sent.
-5. Apply the SQL, by hand, with Leo's ok. Check nothing with these names exists first:
+5. Stripe > Settings > Payments > Payment method domains > Add a new domain: `postmosis.com`. Without it the embedded form shows cards only, with no Apple Pay or Google Pay. Follow what that page asks for each wallet. If it asks for an Apple Pay verification file, that file is served by the marketing site at `postmosis.com/.well-known/`, not by this repo. Do it in test mode and again in live mode. In Settings > Payments > Payment methods, check Apple Pay and Google Pay are on.
+6. Stripe > Developers > API keys: copy the publishable key (`pk_test_...`). It is set in step 10.
+7. Apply the SQL, by hand, with Leo's ok. Check nothing with these names exists first:
    ```sql
    select to_regclass('public.cs_subscriptions'), to_regclass('public.cs_held_checkouts'), to_regclass('public.cs_subscription_events');
    ```
    Then `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/hub/035_subscriptions.sql`. Run `035_subscriptions.test.sql` on a throwaway or local database only, never through the Management API.
-6. Deploy the functions while the flag is still unset:
+8. Deploy the functions while the flag is still unset:
    ```
    supabase functions deploy postmosis-start   --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
    supabase functions deploy postmosis-webhook --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
    supabase functions deploy postmosis-portal  --project-ref hgdbflprrficdoyxmdxe --use-api
    supabase functions deploy social            --project-ref hgdbflprrficdoyxmdxe --use-api
    ```
-   Check: `curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start?plan=pay"` (a GET; HEAD answers 405) answers 302 to `pricing?checkout=off`.
-7. Merge `cs-billing` and push to main (that is the Vercel deploy). Check the same GET on `https://app.postmosis.com/start?plan=pay` gives the same 302, and that the app opens as before for an existing account.
-8. Set the secrets with the test-mode values, flag last:
+   Check: `curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start?plan=pay"` (a GET; HEAD answers 405) answers 302 to `pricing?checkout=off`. And the embedded mode: `curl -s -X POST -H "Content-Type: application/json" -d '{"plan":"pay"}' "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start/session"` answers `{"off":true}`.
+9. Merge and push to main (that is the Vercel deploy). Check the same GET on `https://app.postmosis.com/start?plan=pay` gives the same 302, the same POST on `https://app.postmosis.com/start/session` gives `{"off":true}`, and that the app opens as before for an existing account. Then check CORS from the site's origin: `curl -s -i -X OPTIONS -H "Origin: https://postmosis.com" -H "Access-Control-Request-Method: POST" https://app.postmosis.com/start/session` answers 204 with `access-control-allow-origin: https://postmosis.com`.
+10. Set the secrets with the test-mode values, flag last:
    ```
-   supabase secrets set --project-ref hgdbflprrficdoyxmdxe POSTMOSIS_STRIPE_SECRET_KEY=... POSTMOSIS_STRIPE_WEBHOOK_SECRET=... POSTMOSIS_PRICE_ID=...
+   supabase secrets set --project-ref hgdbflprrficdoyxmdxe POSTMOSIS_STRIPE_SECRET_KEY=... POSTMOSIS_STRIPE_WEBHOOK_SECRET=... POSTMOSIS_PRICE_ID=... POSTMOSIS_STRIPE_PUBLISHABLE_KEY=pk_test_...
    supabase secrets set --project-ref hgdbflprrficdoyxmdxe POSTMOSIS_CHECKOUT_ON=1
    ```
-9. Run the test-mode walkthrough below.
-10. Go live: repeat steps 1 to 4 in live mode, set the three live values over the test ones, and check one real purchase end to end. Refund it in Stripe afterwards if it was your own card.
+11. Run the test-mode walkthrough below.
+12. Go live: repeat steps 1 to 6 in live mode, set the four live values over the test ones (the publishable key must be the live one too, or the form will not load), and check one real purchase end to end. Refund it in Stripe afterwards if it was your own card.
 
 ### Test-mode walkthrough
 
@@ -157,7 +187,10 @@ Use an inbox you can read and that has no account yet. Card `4242 4242 4242 4242
 8. Held checkouts: run `/start?plan=trial` with the email of an existing account that has no row. Afterwards `cs_subscriptions` has no row for it, `cs_held_checkouts` has one (`account_without_subscription`), and that account still opens the studio. Then, with the account from step 6 cancelled again, run `/start?plan=pay` signed out under its email: the row is unchanged, and the hold says `customer_mismatch`.
 9. Reload `/start/done?session_id=...` from your history: the same /auth page, nothing new created.
 10. Social: signed in as the trial account, Settings shows Social accounts (the check is cached for 6 hours per device).
-11. Clean up: delete the test accounts in Supabase Auth (their rows go with them), delete the held rows, cancel the test subscriptions.
+11. The checkout page: open `https://postmosis.com`, type a website you own, pick the trial and land on `postmosis.com/checkout`. The payment form loads beside the order summary and asks for an email. On a device with a wallet set up, Apple Pay or Google Pay should show above the card fields. A real device in live mode is the true check. Pay with the test card and an inbox with no account. You land on /auth as in step 2.
+12. `select raw_user_meta_data ->> 'postmosis_site' from auth.users order by created_at desc limit 1;` shows the website as `host/path`. In Stripe, the subscription's metadata shows `app: postmosis` and the same `site`.
+13. With `POSTMOSIS_STRIPE_PUBLISHABLE_KEY` unset, the checkout page gets `{off: true}` and falls back to the plain link, while `/start?plan=trial&site=...` still opens Stripe's hosted page.
+14. Clean up: delete the test accounts in Supabase Auth (their rows go with them), delete the held rows, cancel the test subscriptions.
 
 Test mode writes to the production database, so the accounts it creates are real ones and the addresses must be yours.
 
@@ -203,7 +236,12 @@ To stop only new sign-ups and leave existing customers alone, take the links off
 | A leaked `/start/done` link (browser history, a shared screen) | It makes that browser ask for a sign-in link to the payer's inbox, which gives the holder no access. Still open: the /auth address it lands on shows the payer's email. |
 | `/auth?email=x&checkout=done` used to send sign-in emails to someone | The same as typing their address into /auth: Supabase limits how often an address is emailed, and nothing goes out unless an account uses it. |
 | Accounts created in bulk | An account is created only after Stripe reports a paid or trialing subscription, and that takes a card that passes Stripe's checks. |
-| Checkout Sessions created in bulk through `/start` | Each is a free Stripe API call that expires by itself, and link-preview bots get the app's preview page instead of the function (the `/start` rewrites sit after the bot rule in `vercel.json`). Still open: we add no rate limit to Stripe's own. |
+| Another site using `POST /start/session` from its visitors' browsers | CORS names only `https://postmosis.com` and a local dev server, by exact match, never a wildcard and never with credentials, and a request carrying any other `Origin` is refused with 403 before anything else is read. A caller that sends no `Origin` (curl, a server) is served: it could set any header it liked anyway, and gets only what `/start` already gives anyone. |
+| Steering the session through the request (a price, a customer, an email, a return address, a coupon, a longer trial) | The session is built from constants plus `plan` and `site`. Nothing else in the body or the address is read; a test sends every such field and compares the whole session. |
+| `site` used to inject metadata keys, oversize values or script | It must be a string that passes `siteOf`, and is stored as one value under the fixed key `site`, at most 200 characters, host and path only. It is checked on the way in, again when read back from Stripe, and again by `checkoutSite()` when the app reads it. The app should still treat it as typed text. |
+| Stripe's errors or keys leaking through the new endpoint | The answer is one of five fixed shapes. A Stripe failure answers `{error: "stripe"}` and logs only Stripe's error code. The only key ever sent is the publishable one, and only if it looks like one. |
+| The client secret of an embedded session | It lets its holder pay for that one session and nothing else: it signs nobody in and reads no account. The every-answer test covers this mode too. |
+| Checkout Sessions created in bulk through `/start` or `/start/session` | Each is a free Stripe API call that expires by itself, and link-preview bots get the app's preview page instead of the function (the `/start` rewrites sit after the bot rule in `vercel.json`). Still open: we add no rate limit to Stripe's own. |
 | The portal or a restart asked for someone else's customer | The customer id comes from the caller's own row, never from the request. |
 | Reading other people's billing | RLS lets an account read only its own `cs_subscriptions` row and write nothing; the holds, the event log and the email lookup are service-role only. |
 | Calling the API directly while lapsed | Partly closed: see "The paywall is a screen, not a lock". |
@@ -227,4 +265,5 @@ To stop only new sign-ups and leave existing customers alone, take the links off
 - `supabase/functions/postmosis-start`, `postmosis-webhook`, `postmosis-portal`
 - `supabase/functions/social/index.ts`, `supabase/functions/_shared/usageCaps.ts` (server-side checks)
 - `src/lib/subscription.ts`, `src/components/ProtectedRoute.tsx`, `Paywall.tsx`, `BillingNote.tsx`, `src/pages/BillingPage.tsx`, `src/pages/Auth.tsx`
-- `vercel.json` (the `/start` rewrites)
+- `src/lib/checkoutSite.test.ts` (the site rule against the app's website box, and `checkoutSite()`)
+- `vercel.json` (the `/start`, `/start/session` and `/start/done` rewrites)

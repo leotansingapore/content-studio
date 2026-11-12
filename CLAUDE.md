@@ -104,7 +104,9 @@
   (Jump to searches them), and keep `src/lib/nav.test.ts` green; do not add a section or a sixth tab.
 - Postmosis billing (`docs/postmosis-billing.md`): `postmosis-start` and `postmosis-webhook` are deployed WITHOUT
   JWT verification and hold the service key, `postmosis-portal` with it. All three are off until
-  `POSTMOSIS_CHECKOUT_ON` and the three Stripe secrets are set. Paying never signs anyone in, and a checkout is
+  `POSTMOSIS_CHECKOUT_ON` and the three Stripe secrets are set. `POST /start/session` (the embedded checkout on
+  postmosis.com, CORS for that origin only) also needs `POSTMOSIS_STRIPE_PUBLISHABLE_KEY`; the visitor's website
+  rides in Stripe metadata onto a NEW account as `user_metadata.postmosis_site` (`checkoutSite()`). Paying never signs anyone in, and a checkout is
   attached to an existing account only when that subscription made the account or its Stripe customer is already
   on the account's row; anything else is held in `cs_held_checkouts`. An account with no `cs_subscriptions` row is
   never gated. The access rule is one file, `supabase/functions/_shared/subscription.ts`, imported by the app too;
