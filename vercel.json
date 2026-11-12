@@ -37,6 +37,10 @@
       "destination": "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start"
     },
     {
+      "source": "/start/session",
+      "destination": "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start/session"
+    },
+    {
       "source": "/start/done",
       "destination": "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start/done"
     },

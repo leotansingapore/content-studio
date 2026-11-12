@@ -2,7 +2,7 @@
 // billing.test.ts runs every rule with fakes. No imports but the access rules. Wiring: billingDeps.ts.
 // Design, secrets, abuse cases and the go-live runbook: docs/postmosis-billing.md.
 
-import { GRANTS, hasAccess, type SubRow } from "./subscription.ts";
+import { GRANTS, hasAccess, siteOf, type SubRow } from "./subscription.ts";
 
 export const APP = "https://app.postmosis.com";
 export const SITE = "https://postmosis.com";
@@ -19,6 +19,15 @@ export function configOf(get: (k: string) => string | undefined): Config | null 
   return on && key && whsec && price ? { key, whsec, price } : null;
 }
 
+/**
+ * The publishable key the embedded checkout page needs (POST /start/session only), or null. Anything not shaped
+ * like one is treated as missing, so a secret key pasted into the wrong slot is never sent to a browser.
+ */
+export function publishableKeyOf(get: (k: string) => string | undefined): string | null {
+  const pk = (get("POSTMOSIS_STRIPE_PUBLISHABLE_KEY") ?? "").trim();
+  return /^pk_(test|live)_[A-Za-z0-9]{8,250}$/.test(pk) ? pk : null;
+}
+
 export type StripeSub = {
   id: string;
   status: string;
@@ -27,6 +36,7 @@ export type StripeSub = {
   current_period_end?: number | null;
   cancel_at_period_end?: boolean;
   items?: { data?: { price?: { id?: string }; current_period_end?: number | null }[] };
+  metadata?: Record<string, string> | null;
 };
 export type StripeSession = {
   id: string;
@@ -37,7 +47,7 @@ export type StripeSession = {
 };
 export type StripeEvent = { id: string; type: string; data: { object: Record<string, unknown> } };
 export type StripeApi = {
-  createCheckout(params: Record<string, unknown>): Promise<{ url?: string | null }>;
+  createCheckout(params: Record<string, unknown>): Promise<{ url?: string | null; client_secret?: string | null }>;
   session(id: string): Promise<StripeSession>;
   /** With the customer expanded. */
   subscription(id: string): Promise<StripeSub>;
@@ -52,8 +62,11 @@ export type Hold = { stripe_subscription_id: string; stripe_customer_id: string;
 export type Db = {
   /** The account an email belongs to, and the subscription that created it (stamped at creation), if one did. */
   accountForEmail(email: string): Promise<{ userId: string; madeBy: string | null } | null>;
-  /** A new account stamped with the subscription that made it; null when the email is already someone's. */
-  createAccount(email: string, madeBy: string): Promise<string | null>;
+  /**
+   * A new account stamped with the subscription that made it, and with the website typed before checkout when
+   * there was one (user_metadata.postmosis_site); null when the email is already someone's.
+   */
+  createAccount(email: string, madeBy: string, site: string | null): Promise<string | null>;
   rowBySubscription(subscriptionId: string): Promise<Row | null>;
   rowByUser(userId: string): Promise<Row | null>;
   /** The row a Stripe customer already pays for, if any. */
@@ -85,21 +98,24 @@ const SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]{8,250}$/;
 export const planOf = (v: string | null): "pay" | "trial" | null => (v === "pay" || v === "trial" ? v : null);
 
 /**
- * The Checkout Session for a plan. Every address is a constant and nothing comes from the request. `customer` is
- * set only by postmosis-portal's restart, from the signed-in caller's own row: the public /start never sets one.
+ * The Checkout Session for a plan. Every address is a constant, and the only thing from a request is a website
+ * that passed siteOf. `customer` is set only by postmosis-portal's restart, from the signed-in caller's own row:
+ * the public endpoints never set one. `embedded` is the session for the checkout page on postmosis.com, which
+ * returns to /start/done exactly as the hosted one does.
  */
-export function checkoutParams(plan: "pay" | "trial", price: string, customer: string | null = null): Record<string, unknown> {
+export function checkoutParams(plan: "pay" | "trial", price: string, o: { customer?: string | null; site?: string | null; embedded?: boolean } = {}): Record<string, unknown> {
+  const { customer = null, site = null } = o;
+  const done = `${APP}/start/done?session_id={CHECKOUT_SESSION_ID}`;
   return {
     mode: "subscription",
     line_items: [{ price, quantity: 1 }],
     allow_promotion_codes: true,
     // a card up front on a trial too
     payment_method_collection: "always",
-    metadata: { app: "postmosis", plan },
-    subscription_data: { metadata: { app: "postmosis" }, ...(plan === "trial" ? { trial_period_days: TRIAL_DAYS } : {}) },
+    metadata: { app: "postmosis", plan, ...(site ? { site } : {}) },
+    subscription_data: { metadata: { app: "postmosis", ...(site ? { site } : {}) }, ...(plan === "trial" ? { trial_period_days: TRIAL_DAYS } : {}) },
     ...(customer ? { customer } : {}),
-    success_url: `${APP}/start/done?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: customer ? `${APP}/` : `${SITE}/pricing`,
+    ...(o.embedded ? { ui_mode: "embedded", return_url: done } : { success_url: done, cancel_url: customer ? `${APP}/` : `${SITE}/pricing` }),
   };
 }
 
@@ -146,7 +162,8 @@ export async function syncSubscription(db: Db, sub: StripeSub, o: { price: strin
       let account = await db.accountForEmail(stripeEmail);
       if (!account) {
         if (!grants) return null;
-        const made = await db.createAccount(stripeEmail, sub.id);
+        // the website typed before checkout goes on the account here and nowhere else: never onto an existing one
+        const made = await db.createAccount(stripeEmail, sub.id, siteOf(sub.metadata?.site));
         // null: the other of webhook and /start/done made it a moment ago
         account = made ? { userId: made, madeBy: sub.id } : await db.accountForEmail(stripeEmail);
         if (!account) throw new Error("account neither created nor found");
@@ -182,8 +199,62 @@ export async function syncSubscription(db: Db, sub: StripeSub, o: { price: strin
 /** Where /start/done ends: the app's sign-in page, which emails that address its sign-in link. Never a session. */
 const inboxUrl = (email: string) => `${APP}/auth?email=${encodeURIComponent(email)}&checkout=done`;
 
-/** GET /postmosis-start?plan=pay|trial and GET /postmosis-start/done?session_id= (public, no JWT). */
+/** The checkout page's own origin, and a local dev server on any port. Nothing else is ever named in a CORS header. */
+const ALLOWED_ORIGIN = /^(https:\/\/postmosis\.com|http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?)$/;
+
+/**
+ * POST /postmosis-start/session (public, no JWT): the embedded Checkout Session for postmosis.com/checkout. Takes
+ * { plan, site? } and nothing else. Answers { clientSecret, publishableKey }, or { off: true } while checkout or
+ * the publishable key is not set. Nothing of Stripe's but the client secret ever reaches the answer.
+ */
+async function handleSession(req: Request, deps: Deps): Promise<Response> {
+  const origin = req.headers.get("Origin");
+  const allowed = !!origin && ALLOWED_ORIGIN.test(origin);
+  const answer = (body: unknown, status = 200) =>
+    new Response(body === null ? null : JSON.stringify(body), {
+      status,
+      headers: {
+        ...(body === null ? {} : { "Content-Type": "application/json" }),
+        ...(allowed ? { "Access-Control-Allow-Origin": origin!, "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "content-type", "Access-Control-Max-Age": "600" } : {}),
+        Vary: "Origin",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "X-Robots-Tag": "noindex",
+      },
+    });
+  // another site's page is refused outright; no Origin at all is a server or curl, which CORS never guarded
+  if (origin && !allowed) return answer({ error: "origin" }, 403);
+  if (req.method === "OPTIONS") return answer(null, 204);
+  if (req.method !== "POST") return answer({ error: "method" }, 405);
+  const cfg = configOf(deps.env);
+  const publishableKey = publishableKeyOf(deps.env);
+  if (!cfg || !publishableKey) return answer({ off: true });
+  const sent = await req.text().catch(() => "");
+  let body: { plan?: unknown; site?: unknown } | null = null;
+  try {
+    // 2000 characters holds a plan and a 200-character site many times over
+    body = sent.length <= 2000 ? JSON.parse(sent) : null;
+  } catch {
+    body = null;
+  }
+  const plan = planOf(typeof body?.plan === "string" ? body.plan : null);
+  if (!plan) return answer({ error: "plan" }, 400);
+  try {
+    const session = await deps.stripe(cfg.key).createCheckout(checkoutParams(plan, cfg.price, { site: siteOf(body?.site), embedded: true }));
+    if (typeof session.client_secret !== "string" || !session.client_secret) throw new Error("no client secret");
+    return answer({ clientSecret: session.client_secret, publishableKey });
+  } catch (e) {
+    console.error("postmosis-start: embedded checkout failed", (e as { code?: string })?.code ?? "unknown");
+    return answer({ error: "stripe" }, 502);
+  }
+}
+
+/**
+ * GET /postmosis-start?plan=pay|trial[&site=], GET /postmosis-start/done?session_id= and
+ * POST /postmosis-start/session (public, no JWT).
+ */
 export async function handleStart(req: Request, deps: Deps): Promise<Response> {
+  if (/\/session\/?$/.test(new URL(req.url).pathname)) return handleSession(req, deps);
   if (req.method !== "GET") return new Response(null, { status: 405, headers: { Allow: "GET" } });
   const cfg = configOf(deps.env);
   if (!cfg) return redirect(302, `${SITE}/pricing?checkout=off`);
@@ -194,7 +265,7 @@ export async function handleStart(req: Request, deps: Deps): Promise<Response> {
     const plan = planOf(url.searchParams.get("plan"));
     if (!plan) return redirect(302, `${SITE}/pricing`);
     try {
-      const session = await stripe.createCheckout(checkoutParams(plan, cfg.price));
+      const session = await stripe.createCheckout(checkoutParams(plan, cfg.price, { site: siteOf(url.searchParams.get("site")) }));
       if (!session.url || !session.url.startsWith("https://")) throw new Error("no checkout url");
       return redirect(303, session.url);
     } catch (e) {
@@ -295,7 +366,7 @@ export async function handlePortal(req: Request, deps: Deps): Promise<Response> 
     const stripe = deps.stripe(cfg.key);
     if (!restart) return json({ url: (await stripe.portal(row.stripe_customer_id, `${APP}/settings/billing`)).url });
     if (!ENDED.has(row.status)) return json({ code: "not_ended", error: "Your subscription is still open. Reload this page." }, 409);
-    const session = await stripe.createCheckout(checkoutParams("pay", cfg.price, row.stripe_customer_id));
+    const session = await stripe.createCheckout(checkoutParams("pay", cfg.price, { customer: row.stripe_customer_id }));
     if (!session.url || !session.url.startsWith("https://")) throw new Error("no checkout url");
     return json({ url: session.url });
   } catch (e) {

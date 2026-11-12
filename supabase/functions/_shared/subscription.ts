@@ -57,5 +57,33 @@ export async function readSubscription(admin: unknown, userId: string): Promise<
   }
 }
 
+/**
+ * The website a visitor typed before checkout, as "host/path" (no scheme, query or fragment), or null. The same
+ * rule as the website box in the app (webAddress in src/lib/onboardingFlow.ts; siteOf.test.ts pins the two to the
+ * same cases), plus a 200 character limit. Everything that carries a site passes it through here: the request,
+ * Stripe's metadata on the way back, and the account's user_metadata, which its owner can edit.
+ */
+export function siteOf(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const t = raw.trim();
+  if (!t || t.length > 200 || /\s/.test(t)) return null;
+  let u: URL;
+  try {
+    u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(t) ? t : `https://${t}`);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  if (u.port || u.username || u.password) return null;
+  const host = u.hostname.toLowerCase();
+  const labels = host.split(".");
+  const tld = labels[labels.length - 1];
+  if (labels.length < 2 || labels.some((l) => !l || l.length > 63)) return null;
+  if (!/^([a-z]{2,24}|xn--[a-z0-9-]{2,59})$/.test(tld)) return null;
+  if (!labels.slice(0, -1).every((l) => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$|^xn--[a-z0-9-]+$/.test(l))) return null;
+  const site = host + u.pathname.replace(/\/+$/, "");
+  return site.length <= 200 ? site : null;
+}
+
 /** A customer whose subscription has stopped giving access. Never true for an account with no row. */
 export const lapsed = (row: SubRow | null, now: number): boolean => !!row && !hasAccess(row, now);

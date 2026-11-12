@@ -43,9 +43,9 @@ function database(): Db {
       const hit = Array.isArray(data) ? data[0] : data;
       return hit?.user_id ? { userId: hit.user_id, madeBy: hit.made_by ?? null } : null;
     },
-    createAccount: async (email, madeBy) => {
+    createAccount: async (email, madeBy, site) => {
       // No email goes out. handle_new_user gives the account a profiles row with no roles.
-      const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true, app_metadata: { postmosis_subscription: madeBy } });
+      const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true, app_metadata: { postmosis_subscription: madeBy }, ...(site ? { user_metadata: { postmosis_site: site } } : {}) });
       if (data?.user?.id) return data.user.id;
       if (error && (error.code === "email_exists" || error.status === 422)) return null;
       throw error ?? new Error("createUser returned nothing");

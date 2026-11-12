@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { type Db, type Deps, type Hold, type Row, type StripeEvent, type StripeSession, type StripeSub, checkoutParams, configOf, handlePortal, handleStart, handleWebhook, subscriptionIdOf, syncSubscription } from "./billing.ts";
+import { type Db, type Deps, type Hold, type Row, type StripeEvent, type StripeSession, type StripeSub, checkoutParams, configOf, publishableKeyOf, handlePortal, handleStart, handleWebhook, subscriptionIdOf, syncSubscription } from "./billing.ts";
 import { gateOf } from "./subscription.ts";
 
 // Paid sign-up with Stripe and the database faked: what each endpoint does switched off, who gets an account,
@@ -9,6 +9,8 @@ const SEC = Math.floor(NOW / 1000);
 const PRICE = "price_postmosis";
 const SESSION = "cs_test_a1B2c3D4e5F6g7H8";
 const ON = { POSTMOSIS_CHECKOUT_ON: "1", POSTMOSIS_STRIPE_SECRET_KEY: "sk_test_x", POSTMOSIS_STRIPE_WEBHOOK_SECRET: "whsec_x", POSTMOSIS_PRICE_ID: PRICE };
+const PK = "pk_test_a1B2c3D4e5F6";
+const SITE_ORIGIN = "https://postmosis.com";
 const INBOX = "https://app.postmosis.com/auth?email=mei%40example.test&checkout=done";
 
 type Account = { id: string; email: string; madeBy: string | null };
@@ -25,6 +27,10 @@ const w = {
   subs: {} as Record<string, StripeSub>,
   events: {} as Record<string, StripeEvent>,
   portals: [] as string[],
+  // the website each new account was created with
+  madeWith: [] as [string, string | null][],
+  stripeFails: null as Error | null,
+  noSecret: false,
   dbCalls: 0,
   saveFails: false,
   user: null as string | null,
@@ -37,8 +43,9 @@ const db: Db = {
     const a = w.accounts.find((x) => x.email === email);
     return a ? { userId: a.id, madeBy: a.madeBy } : null;
   },
-  createAccount: async (email, madeBy) => {
+  createAccount: async (email, madeBy, site) => {
     if (w.accounts.some((x) => x.email === email)) return null;
+    w.madeWith.push([email, site]);
     const id = `user-${w.accounts.length + 1}`;
     w.accounts.push({ id, email, madeBy });
     return id;
@@ -62,7 +69,12 @@ const deps: Deps = {
   db: () => (w.dbCalls++, db),
   user: async () => w.user,
   stripe: () => ({
-    createCheckout: async (p) => (w.stripeCalls.push("checkout"), w.checkouts.push(p), { url: "https://checkout.stripe.com/c/pay/x" }),
+    createCheckout: async (p) => {
+      w.stripeCalls.push("checkout");
+      w.checkouts.push(p);
+      if (w.stripeFails) throw w.stripeFails;
+      return p.ui_mode === "embedded" ? { url: null, client_secret: w.noSecret ? null : "cs_test_x_secret_y" } : { url: "https://checkout.stripe.com/c/pay/x" };
+    },
     session: async (id) => {
       w.stripeCalls.push(`session ${id}`);
       if (!w.sessions[id]) throw new Error("No such checkout.session");
@@ -92,6 +104,18 @@ const keep = async (r: Promise<Response>) => {
   return res;
 };
 const start = (query: string, method = "GET") => keep(handleStart(new Request(`https://x.supabase.co/functions/v1/postmosis-start${query}`, { method }), deps));
+/** POST /start/session as the checkout page sends it; `origin: null` is a caller that sends none. */
+const embed = (body: unknown, o: { origin?: string | null; method?: string; query?: string } = {}) =>
+  keep(
+    handleStart(
+      new Request(`https://x.supabase.co/functions/v1/postmosis-start/session${o.query ?? ""}`, {
+        method: o.method ?? "POST",
+        headers: { "Content-Type": "application/json", ...(o.origin === null ? {} : { Origin: o.origin ?? SITE_ORIGIN }) },
+        ...((o.method ?? "POST") === "POST" ? { body: typeof body === "string" ? body : JSON.stringify(body) } : {}),
+      }),
+      deps,
+    ),
+  );
 const done = (id = SESSION) => start(`/done?session_id=${id}`);
 const hook = (eventKey: string, signature = "good") => keep(handleWebhook(new Request("https://x/postmosis-webhook", { method: "POST", body: eventKey, headers: { "stripe-signature": signature } }), deps));
 const portal = (body: unknown = {}) => handlePortal(new Request("https://x/postmosis-portal", { method: "POST", body: JSON.stringify(body) }), deps);
@@ -100,7 +124,7 @@ const to = (r: Response) => r.headers.get("Location") ?? "";
 const mei = (madeBy: string | null = null) => w.accounts.push({ id: "old-user", email: "mei@example.test", madeBy });
 
 beforeEach(() => {
-  Object.assign(w, { env: { ...ON }, now: NOW, accounts: [], rows: [], holds: [], logged: new Map(), stripeCalls: [], checkouts: [], sessions: { [SESSION]: session() }, subs: { sub_1: sub() }, events: {}, portals: [], dbCalls: 0, saveFails: false, user: null, publicAnswers: [] });
+  Object.assign(w, { env: { ...ON }, now: NOW, accounts: [], rows: [], holds: [], logged: new Map(), stripeCalls: [], checkouts: [], sessions: { [SESSION]: session() }, subs: { sub_1: sub() }, events: {}, portals: [], madeWith: [], stripeFails: null, noSecret: false, dbCalls: 0, saveFails: false, user: null, publicAnswers: [] });
 });
 
 // Holding a Stripe session, or forging a webhook call, must never be a way in: whatever a test did, no answer from
@@ -175,7 +199,7 @@ describe("/start", () => {
   it("gives the 7-day trial only to plan=trial", async () => {
     await start("?plan=trial");
     expect(w.checkouts[0].subscription_data).toEqual({ metadata: { app: "postmosis" }, trial_period_days: 7 });
-    expect(checkoutParams("pay", PRICE, null).subscription_data).not.toHaveProperty("trial_period_days");
+    expect(checkoutParams("pay", PRICE).subscription_data).not.toHaveProperty("trial_period_days");
   });
 
   it("sends any other plan back to pricing without a checkout", async () => {
@@ -191,6 +215,180 @@ describe("/start", () => {
     await start("?plan=pay&email=Mei%40Example.test&customer=cus_victim");
     expect(w.checkouts[0]).not.toHaveProperty("customer_email");
     expect(w.checkouts[0]).not.toHaveProperty("customer");
+  });
+});
+
+describe("POST /start/session, the embedded checkout", () => {
+  beforeEach(() => {
+    w.env = { ...ON, POSTMOSIS_STRIPE_PUBLISHABLE_KEY: PK };
+  });
+  const EMBEDDED = {
+    mode: "subscription",
+    line_items: [{ price: PRICE, quantity: 1 }],
+    allow_promotion_codes: true,
+    payment_method_collection: "always",
+    metadata: { app: "postmosis", plan: "pay" },
+    subscription_data: { metadata: { app: "postmosis" } },
+    ui_mode: "embedded",
+    return_url: "https://app.postmosis.com/start/done?session_id={CHECKOUT_SESSION_ID}",
+  };
+
+  it("answers the client secret and publishable key for an embedded session with the same price, codes and return address", async () => {
+    const r = await embed({ plan: "pay" });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ clientSecret: "cs_test_x_secret_y", publishableKey: PK });
+    expect(w.checkouts).toEqual([EMBEDDED]);
+    // embedded mode has a return_url and no success or cancel address
+    expect(w.checkouts[0]).not.toHaveProperty("success_url");
+    expect(w.checkouts[0]).not.toHaveProperty("cancel_url");
+    expect(w.dbCalls).toBe(0);
+  });
+
+  it("gives the 7-day trial only to plan trial, and carries the website in both sets of metadata", async () => {
+    await embed({ plan: "trial", site: " https://WWW.Acme.sg/about?utm=1#x " });
+    expect(w.checkouts).toEqual([{ ...EMBEDDED, metadata: { app: "postmosis", plan: "trial", site: "www.acme.sg/about" }, subscription_data: { metadata: { app: "postmosis", site: "www.acme.sg/about" }, trial_period_days: 7 } }]);
+  });
+
+  it("takes nothing from the caller but plan and site", async () => {
+    await embed(
+      { plan: "pay", customer: "cus_victim", customer_email: "mei@example.test", email: "mei@example.test", price: "price_free", line_items: [], metadata: { app: "hub", user: "x" }, subscription_data: { trial_period_days: 365 }, return_url: "https://evil.test", success_url: "https://evil.test", ui_mode: "hosted", mode: "payment", discounts: [{ coupon: "FREE" }], client_reference_id: "x" },
+      { query: "?plan=trial&customer=cus_victim&site=evil.test&email=mei%40example.test" },
+    );
+    expect(w.checkouts).toEqual([EMBEDDED]);
+  });
+
+  it("drops a site that is not a web address, without an error and without touching the metadata keys", async () => {
+    const bad = [{ a: 1 }, ["acme.sg"], 7, true, null, "", "abc", "javascript:alert(1)", "http://localhost:3000", "10.0.0.1", "acme.sg\nmetadata[app]=hub", "acme.sg&metadata[app]=hub", `acme.sg/${"a".repeat(250)}`, "user:pw@acme.sg"];
+    for (const site of bad) {
+      const r = await embed({ plan: "pay", site });
+      expect(r.status, JSON.stringify(site)).toBe(200);
+    }
+    expect(w.checkouts).toHaveLength(bad.length);
+    for (const c of w.checkouts) expect(c).toEqual(EMBEDDED);
+  });
+
+  it("answers off, calling nothing, unless the flag and all four keys are set", async () => {
+    const offs: [string, Record<string, string>][] = [
+      ["nothing", {}],
+      ["no flag", { ...w.env, POSTMOSIS_CHECKOUT_ON: "0" }],
+      ["no secret key", { ...w.env, POSTMOSIS_STRIPE_SECRET_KEY: "" }],
+      ["no webhook secret", { ...w.env, POSTMOSIS_STRIPE_WEBHOOK_SECRET: "" }],
+      ["no price", { ...w.env, POSTMOSIS_PRICE_ID: "" }],
+      ["no publishable key", { ...ON }],
+      ["a blank publishable key", { ...ON, POSTMOSIS_STRIPE_PUBLISHABLE_KEY: "  " }],
+      // the secret key pasted into the publishable slot must never reach a browser
+      ["a secret key as the publishable key", { ...ON, POSTMOSIS_STRIPE_PUBLISHABLE_KEY: "sk_live_a1B2c3D4e5F6" }],
+      ["a restricted key as the publishable key", { ...ON, POSTMOSIS_STRIPE_PUBLISHABLE_KEY: "rk_live_a1B2c3D4e5F6" }],
+    ];
+    for (const [name, env] of offs) {
+      w.env = env;
+      const r = await embed({ plan: "pay" });
+      expect([name, r.status, await r.text()]).toEqual([name, 200, '{"off":true}']);
+      // the checkout page reads this answer, so it carries the page's origin
+      expect(r.headers.get("Access-Control-Allow-Origin"), name).toBe(SITE_ORIGIN);
+    }
+    expect(w.stripeCalls).toEqual([]);
+    expect(w.dbCalls).toBe(0);
+    expect(publishableKeyOf(() => ` ${PK} `)).toBe(PK);
+  });
+
+  it("leaves GET /start working without the publishable key", async () => {
+    w.env = { ...ON };
+    expect((await start("?plan=pay")).status).toBe(303);
+  });
+
+  it("answers 400 plan for anything but pay or trial, before Stripe is called", async () => {
+    for (const body of [{}, { plan: "free" }, { plan: "TRIAL" }, { plan: ["pay"] }, { plan: { toString: "pay" } }, { site: "acme.sg" }, "not json", "", "null", "[]", '"pay"', JSON.stringify({ plan: "pay", pad: "x".repeat(3000) })]) {
+      const r = await embed(body);
+      expect([JSON.stringify(body).slice(0, 40), r.status, await r.text()]).toEqual([JSON.stringify(body).slice(0, 40), 400, '{"error":"plan"}']);
+    }
+    expect(w.stripeCalls).toEqual([]);
+  });
+
+  it("answers 502 stripe and nothing of Stripe's own when the session fails or has no client secret", async () => {
+    w.stripeFails = Object.assign(new Error("Invalid API Key provided: sk_live_****abcd; request req_123"), { code: "api_key_invalid", raw: { message: "sk_live_xyz" } });
+    const r = await embed({ plan: "pay" });
+    expect([r.status, await r.text()]).toEqual([502, '{"error":"stripe"}']);
+    w.stripeFails = null;
+    w.noSecret = true;
+    const r2 = await embed({ plan: "pay" });
+    expect([r2.status, await r2.text()]).toEqual([502, '{"error":"stripe"}']);
+  });
+
+  it("names only postmosis.com or a local dev server in its CORS answer, never a wildcard and never credentials", async () => {
+    for (const origin of [SITE_ORIGIN, "http://localhost:4321", "http://localhost", "http://127.0.0.1:5173"]) {
+      const r = await embed({ plan: "pay" }, { origin });
+      expect([origin, r.status]).toEqual([origin, 200]);
+      expect(r.headers.get("Access-Control-Allow-Origin")).toBe(origin);
+      expect(r.headers.get("Access-Control-Allow-Credentials")).toBeNull();
+      expect(r.headers.get("Vary")).toBe("Origin");
+    }
+    const made = w.checkouts.length;
+    for (const origin of ["https://evil.test", "https://postmosis.com.evil.test", "https://evil-postmosis.com", "https://app.postmosis.com", "https://www.postmosis.com", "http://postmosis.com", "https://postmosis.com:8443", "https://postmosis.com/", "null", "http://localhost.evil.test", "https://localhost", "http://127.0.0.1.evil.test:80", "http://localhost:80@evil.test", "xhttps://postmosis.com", "https://evil.test#https://postmosis.com", "https://evil.test/http://localhost", "*"]) {
+      const r = await embed({ plan: "pay" }, { origin });
+      expect([origin, r.status, await r.text()]).toEqual([origin, 403, '{"error":"origin"}']);
+      expect(r.headers.get("Access-Control-Allow-Origin"), origin).toBeNull();
+      const pre = await embed(null, { origin, method: "OPTIONS" });
+      expect(pre.headers.get("Access-Control-Allow-Origin"), origin).toBeNull();
+    }
+    expect(w.checkouts).toHaveLength(made);
+  });
+
+  it("answers the preflight for POST with a JSON body, and nothing else", async () => {
+    const r = await embed(null, { method: "OPTIONS" });
+    expect(r.status).toBe(204);
+    expect(await r.text()).toBe("");
+    expect(r.headers.get("Access-Control-Allow-Origin")).toBe(SITE_ORIGIN);
+    expect(r.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
+    expect(r.headers.get("Access-Control-Allow-Headers")).toBe("content-type");
+    expect(r.headers.get("Access-Control-Allow-Credentials")).toBeNull();
+    for (const method of ["GET", "PUT", "DELETE"]) expect((await embed(null, { method })).status, method).toBe(405);
+    expect(w.stripeCalls).toEqual([]);
+  });
+
+  it("serves a caller that sends no Origin, with no CORS header", async () => {
+    const r = await embed({ plan: "pay" }, { origin: null });
+    expect(r.status).toBe(200);
+    expect(r.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
+  it("returns through /start/done like the hosted checkout, and saves the website on the account it creates", async () => {
+    await embed({ plan: "trial", site: "acme.sg/about" });
+    const meta = (w.checkouts[0].subscription_data as { metadata: Record<string, string> }).metadata;
+    w.subs.sub_1 = sub({ metadata: meta });
+    w.sessions[SESSION] = session({ metadata: w.checkouts[0].metadata as Record<string, string> });
+    expect(to(await done())).toBe(INBOX);
+    expect(w.accounts).toEqual([{ id: "user-1", email: "mei@example.test", madeBy: "sub_1" }]);
+    expect(w.madeWith).toEqual([["mei@example.test", "acme.sg/about"]]);
+    expect(w.rows).toMatchObject([{ user_id: "user-1", status: "trialing", stripe_subscription_id: "sub_1" }]);
+  });
+
+  it("checks the website again on the way back from Stripe, and never puts one on an existing account", async () => {
+    w.subs.sub_1 = sub({ metadata: { app: "postmosis", site: "javascript:alert(1)" } });
+    await done();
+    expect(w.madeWith).toEqual([["mei@example.test", null]]);
+
+    Object.assign(w, { accounts: [], rows: [], holds: [], madeWith: [] });
+    mei();
+    w.subs.sub_1 = sub({ metadata: { app: "postmosis", site: "acme.sg" } });
+    await done();
+    event("c1", "checkout.session.completed", { id: SESSION, metadata: { app: "postmosis" }, subscription: "sub_1" });
+    await hook("c1");
+    expect(w.madeWith).toEqual([]);
+    expect(w.accounts).toEqual([{ id: "old-user", email: "mei@example.test", madeBy: null }]);
+  });
+});
+
+describe("GET /start with a website", () => {
+  it("carries a valid site into the hosted session and drops anything else", async () => {
+    await start("?plan=trial&site=https%3A%2F%2FAcme.sg%2Fabout%3Fx%3D1");
+    await start("?plan=pay&site=localhost%3A3000");
+    await start("?plan=pay&site=");
+    const hosted = { success_url: "https://app.postmosis.com/start/done?session_id={CHECKOUT_SESSION_ID}", cancel_url: "https://postmosis.com/pricing" };
+    expect(w.checkouts[0]).toMatchObject({ ...hosted, metadata: { app: "postmosis", plan: "trial", site: "acme.sg/about" }, subscription_data: { metadata: { app: "postmosis", site: "acme.sg/about" }, trial_period_days: 7 } });
+    expect(w.checkouts[0]).not.toHaveProperty("ui_mode");
+    expect(w.checkouts[1]).toEqual(checkoutParams("pay", PRICE));
+    expect(w.checkouts[2]).toEqual(checkoutParams("pay", PRICE));
   });
 });
 

@@ -4,13 +4,23 @@
 // row came from before billing and is never gated; a lookup that fails counts as no row (fail open).
 import { callFn } from "@/lib/edgeFn";
 import { supabase } from "@/lib/supabase";
-import { daysLeft, gateOf, graceEnds, type SubRow } from "../../supabase/functions/_shared/subscription.ts";
+import { daysLeft, gateOf, graceEnds, siteOf, type SubRow } from "../../supabase/functions/_shared/subscription.ts";
 
 export { gateOf, type SubRow };
 
 // shortcut: the list price, not what Stripe will charge after a promo code; the portal beside it shows the exact
 // amount. Read the amount from Stripe into the row if codes come into regular use.
 export const PRICE = "US$29";
+
+/**
+ * The website this account's owner typed on postmosis.com before paying, as "host/path" (say "acme.sg/about"), or
+ * null: typed nothing, or the account was not made by a checkout. For /welcome to prefill its website box. The
+ * value lives in user_metadata.postmosis_site, which the owner can edit, so it is checked again here.
+ */
+export async function checkoutSite(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return siteOf(data.session?.user?.user_metadata?.postmosis_site);
+}
 
 let known: SubRow | null = null;
 
