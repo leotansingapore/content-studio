@@ -1,7 +1,9 @@
 // Competitors (/competitors, Leo's sign-ins only; docs/north-star/items/find-competitors.md): the businesses this
-// brand watches. The shell holds the add bar, "n of 12" and the view tabs: Their ads (the default once a competitor
-// exists), Their posts and Who you watch. Every view, filter and open item is in the URL (docs/deep-links.md).
+// brand watches. The shell holds the add bar, "n of 12" and the view tabs: Who you watch (the default: Fastlane's
+// Brand > Competitors is the list, and their ads are on Radar too), Their ads and Their posts. Every view, filter and
+// open item is in the URL (docs/deep-links.md).
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import WhoYouWatch from "@/components/competitors/WhoYouWatch";
 import AddBar from "@/components/competitors/AddBar";
 import TheirAds from "@/components/competitors/TheirAds";
@@ -14,8 +16,11 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import NotFoundPage from "@/pages/NotFoundPage";
 
-const VIEWS = ["ads", "posts", "list"] as const;
+const VIEWS = ["list", "ads", "posts"] as const;
 type View = (typeof VIEWS)[number];
+
+/** The view an address with no ?view= opens: Their ads when it names an ad, a competitor's pill or Running now, else the list. */
+export const viewFor = (p: URLSearchParams): View => (p.get("ad") || p.get("running") || p.get("c") ? "ads" : "list");
 
 export default function CompetitorsPage() {
   const leo = useLeoUser();
@@ -30,14 +35,16 @@ function Competitors({ userId }: { userId: string }) {
   const [ads, setAds] = useState(() => loadCompetitorAds(userId));
   const [posts, setPosts] = useState(() => loadCompetitorPosts(userId));
   const [, tick] = useState(0);
-  // ads once a competitor exists, else the list; read once, so adding the first one doesn't swap the view under you
-  const [fallback] = useState<View>(() => (state.list.length ? "ads" : "list"));
+  // the list, as Fastlane's Brand > Competitors opens. links.competitors leaves view=ads out of its links (ads was the
+  // default), so an ad's own params still open Their ads: ?ad= (Home's remix row), ?running= and ?c=
+  const [params] = useSearchParams();
+  const fallback: View = viewFor(params);
   const [view] = useUrlState<View>("view", fallback, { allowed: VIEWS });
   const [edit, , closeEdit] = useUrlItem("edit");
   const update = useUrlUpdate();
   const openEdit = (id: string) => update({ view: "list", edit: id }, { push: true });
   // each view's own params go with it; the competitor pill (c) stays
-  const setView = (v: View) => update({ view: v === fallback ? null : v, edit: null, running: null, platform: null, sort: null, post: null, ad: null });
+  const setView = (v: View) => update({ view: v === "list" ? null : v, edit: null, running: null, platform: null, sort: null, post: null, ad: null });
 
   useEffect(() => onCompetitorsChanged(() => setState(loadCompetitors(userId))), [userId]);
   useEffect(() => onCompetitorAdsChanged(() => setAds(loadCompetitorAds(userId))), [userId]);
@@ -59,9 +66,9 @@ function Competitors({ userId }: { userId: string }) {
   const adCount = adsTally(state.list, ads).reduce((n, t) => n + t.n, 0);
   const postCount = feedPosts(state.list, posts).length;
   const tabs: { id: View; label: string; n: number }[] = [
+    { id: "list", label: "Who you watch", n: state.list.length },
     { id: "ads", label: "Their ads", n: adCount },
     { id: "posts", label: "Their posts", n: postCount },
-    { id: "list", label: "Who you watch", n: state.list.length },
   ];
 
   return (
@@ -69,11 +76,12 @@ function Competitors({ userId }: { userId: string }) {
       <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Competitors</h1>
       <AddBar userId={userId} count={state.list.length} busy={reading} onAdded={(id, needsName) => needsName && openEdit(id)} />
 
-      <div role="tablist" aria-label="Competitors" className="flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto">
+      {/* underline tabs: the Brand tabs above are the page's one row of pills (law 16) */}
+      <div role="tablist" aria-label="Competitors" className="scrollbar-none flex w-full overflow-x-auto border-b border-border/60">
         {tabs.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={view === t.id} onClick={() => setView(t.id)}
-            className={`flex-1 rounded-md px-2 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 [@media(pointer:coarse)]:min-h-11 ${
-              view === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            className={`-mb-px min-h-10 flex-1 shrink-0 whitespace-nowrap border-b-2 px-2 text-sm font-medium transition-colors sm:flex-none sm:px-3 [@media(pointer:coarse)]:min-h-11 ${
+              view === t.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}>
             {t.label} <span className="text-xs tabular-nums text-muted-foreground">{t.n}</span>
           </button>

@@ -437,7 +437,7 @@ find-ad-detail.md, find-save-anywhere.md, find-ai-tagging.md). Both pages are Le
 
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|
-| /competitors | view | Leo only. ads (Their ads), posts (Their posts), list (Who you watch) | ads once a competitor exists, else list | replace | /competitors?view=posts |
+| /competitors | view | Leo only. list (Who you watch), ads (Their ads), posts (Their posts) | list; Their ads when the address names an ad, a pill (c) or running, since links.competitors leaves view=ads out | replace | /competitors?view=posts |
 | /competitors | edit | Leo only. with view=list: a competitor id, its editor open, with Copy link | none | push | /competitors?view=list&edit=c-lq3k9z |
 | /competitors | c | Leo only. ads and posts views: a competitor id, its pill | all | replace | /competitors?c=c-lq3k9z |
 | /competitors | running | Leo only. ads view: only (running now) | off | replace | /competitors?running=only |

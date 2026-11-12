@@ -7,7 +7,6 @@ import { CaretDownIcon, CircleNotchIcon, ArrowsClockwiseIcon, SparkleIcon } from
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
-import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ToastAction } from "@/components/ui/toast";
@@ -69,10 +68,8 @@ export default function WhoYouWatch({ userId, state, edit, openEdit, closeEdit }
   return (
     <section className="space-y-6" aria-labelledby="who-you-watch">
       <div className="space-y-3">
-        <div className="flex items-center gap-1.5">
-          <h2 id="who-you-watch" className="font-serif text-lg font-semibold tracking-tight">Who you watch</h2>
-          <InfoTip label="About Who you watch">Up to 12 per brand. Each brand keeps its own list.</InfoTip>
-        </div>
+        {/* the open tab already says Who you watch, and the add bar shows "n of 12" */}
+        <h2 id="who-you-watch" className="sr-only">Who you watch</h2>
         {list.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nobody yet.</p>
         ) : (
