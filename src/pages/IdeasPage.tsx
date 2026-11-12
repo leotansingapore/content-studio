@@ -40,6 +40,14 @@ const TAB_NAME: Record<IdeasTab, string> = { inbox: "Inbox", shortlist: "Shortli
 const IDEAS_PRICE = priceText(priceOf("ideas-daily") as Price);
 const refineKey = (userId: string) => `cs-ideas-refine-${scoped(userId)}`;
 
+/**
+ * The From chips worth showing: All, the one picked, and the sources with an idea in this tab (a source still being
+ * read shows while it loads); nine chips with six at 0 was a row of noise above the list.
+ */
+export function shownSources<S extends string>(sources: readonly S[], picked: S | "all", count: (s: S) => number, loading: (s: S) => boolean): (S | "all")[] {
+  return ["all" as const, ...sources.filter((s) => s === picked || loading(s) || count(s) > 0)];
+}
+
 export default function IdeasPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
@@ -251,7 +259,7 @@ function Ideas({ userId }: { userId: string }) {
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           <span className="shrink-0 text-xs font-medium text-muted-foreground">From:</span>
-          {(["all", ...SOURCES] as const).map((s) => (
+          {shownSources(SOURCES, source, sourceCount, (s) => s === "posts" && audits === null).map((s) => (
             <FilterChip key={s} active={source === s} onClick={() => setSource(s)} count={s === "posts" && audits === null ? undefined : sourceCount(s)}>
               {s === "all" ? "All" : SOURCE_NAME[s]}
               {s === "posts" && audits === null && <CircleNotchIcon className="h-3 w-3 animate-spin" aria-label="Loading" />}
