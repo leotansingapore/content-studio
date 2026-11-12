@@ -414,7 +414,7 @@ export default function StudioLayout() {
   // Moves and cancels of auto-posts, sent to Zernio for every sign-in that can auto-post (publish-calendar)
   useZernioOutbox(uid);
 
-  // Dark unless this device chose light or System, which follows the device's setting as it changes; public pages
+  // Light unless this device chose dark or System, which follows the device's setting as it changes; public pages
   // outside this shell go back to light (src/lib/theme.ts).
   const [theme, setTheme] = useState<ThemePick>(readTheme);
   useLayoutEffect(() => {

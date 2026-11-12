@@ -111,9 +111,9 @@
   on the account's row; anything else is held in `cs_held_checkouts`. An account with no `cs_subscriptions` row is
   never gated. The access rule is one file, `supabase/functions/_shared/subscription.ts`, imported by the app too;
   the server refuses a lapsed customer in `social` and in `consumeUsage` (`_shared/usageCaps.ts`).
-- Theme: the studio is dark by default (Fastlane's look; Leo's default), Light, Dark or System (follows the device,
+- Theme: the studio is light by default (Leo, 13 Nov: "let it be light by default"), Light, Dark or System (follows the device,
   live) per device from the account menu or the phone More sheet (`src/lib/theme.ts`, `cs-theme`). `index.html`
-  darkens before first paint; public pages (/roadmap, /auth, /review, /l, /join, /t, /phone) stay light, and `theme.test.ts` keeps index.html's list equal to
+  darkens before first paint only for a device that chose dark (or System on a dark device); public pages (/roadmap, /auth, /review, /l, /join, /t, /phone) stay light, and `theme.test.ts` keeps index.html's list equal to
   `PUBLIC_PATH`. Colour with tokens; a palette colour (`text-amber-800`, `bg-sky-50`) needs its `dark:` pair.
 - Heavy pages are route-level `lazy()` in `src/App.tsx`; the `<Suspense>`
   lives around `<Outlet/>` in StudioLayout. Do NOT add a vite `manualChunks`

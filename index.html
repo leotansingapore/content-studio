@@ -46,12 +46,12 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#ffffff" />
     <script>
-      // The studio opens dark unless this device chose light, or System on a light device (src/lib/theme.ts); public
+      // The studio opens light unless this device chose dark, or System on a dark device (src/lib/theme.ts); public
       // pages stay light. Before paint, so no flash.
       try {
         var pick = localStorage.getItem("cs-theme");
-        var light = pick === "light" || (pick === "system" && !matchMedia("(prefers-color-scheme: dark)").matches);
-        if (!/^\/(roadmap|auth|review|l|join|t|phone)(\/|$)/.test(location.pathname) && !light) {
+        var dark = pick === "dark" || (pick === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        if (!/^\/(roadmap|auth|review|l|join|t|phone)(\/|$)/.test(location.pathname) && dark) {
           document.documentElement.classList.add("dark");
           document.querySelector('meta[name="theme-color"]').setAttribute("content", "#111214");
         }

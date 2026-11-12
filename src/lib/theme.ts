@@ -1,4 +1,4 @@
-// The studio's theme, after Fastlane (docs/fastlane-nav-gap.md): dark unless this device chose light or System
+// The studio's theme: light unless this device chose dark or System (Leo, 13 Nov: "let it be light by default")
 // (which follows the device's own setting, live). Public pages (link in bio, review links, reports, sign-in, Send to
 // phone) stay light: index.html's first-paint script and StudioLayout only darken the studio. Per device, outside the
 // sync prefix, like the open profile.
@@ -10,13 +10,13 @@ export type ThemeOutlet = { theme: ThemePick; onTheme: (t: ThemePick) => void };
 /** Paths drawn outside the studio shell (App.tsx); index.html keeps the same list for the first paint. */
 export const PUBLIC_PATH = /^\/(roadmap|auth|review|l|join|t|phone)(\/|$)/;
 
-/** This device's pick: dark when it never chose (or storage is blocked). */
+/** This device's pick: light when it never chose (or storage is blocked). */
 export function readTheme(): ThemePick {
   try {
     const v = localStorage.getItem(KEY);
-    return v === "light" || v === "system" ? v : "dark";
+    return v === "dark" || v === "system" ? v : "light";
   } catch {
-    return "dark";
+    return "light";
   }
 }
 
