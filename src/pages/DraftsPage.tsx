@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import LibraryViews from "@/components/library/LibraryViews";
+import CampaignPostLink from "@/components/campaign/CampaignPostLink";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { links } from "@/lib/links";
@@ -1026,6 +1027,7 @@ export default function DraftsPage() {
                     {draftLine(d.source)}
                   </Link>
                 )}
+                {d.campaign && userId && <CampaignPostLink userId={userId} link={d.campaign} className="mb-2 w-fit max-w-full text-[11px]" />}
                 {d.media && /^https?:\/\//i.test(d.media) && (
                   <a
                     href={d.media}

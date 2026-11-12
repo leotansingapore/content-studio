@@ -237,6 +237,14 @@ describe("buildLibrary", () => {
   });
 });
 
+describe("a campaign post's card", () => {
+  it("carries the draft's campaign link, and a draft from before it carries none", () => {
+    const items = build({ drafts: [draft("cmp_c1_3", { campaign: { id: "c1", post: 3, day: 5 } }), draft("old")] });
+    expect(byKey(items, "d:cmp_c1_3").campaign).toEqual({ id: "c1", post: 3, day: 5 });
+    expect("campaign" in byKey(items, "d:old")).toBe(false);
+  });
+});
+
 describe("filterLibrary, countBy and madeCount", () => {
   const items = build({
     drafts: [draft("t1"), draft("t2", { status: "scheduled", scheduledFor: "2026-10-23" }), draft("v", { format: "short-video", status: "scheduled", scheduledFor: "2026-10-24" })],
