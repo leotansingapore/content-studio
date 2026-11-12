@@ -14,7 +14,7 @@ vi.mock("@/lib/supabase", () => ({
   SUPABASE_ANON_KEY: "",
   supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: null } })), getUser: vi.fn(async () => ({ data: { user: null } })), onAuthStateChange: () => ({}) }, functions: { invoke: vi.fn() }, from: vi.fn() },
 }));
-vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => false }));
+vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => null, useLeoOnly: () => false, useSignedInUser: () => null }));
 // the shared tab row over the start screen reads the rails store, which has no server snapshot; not this page's to pin
 vi.mock("@/components/SectionTabs", () => ({ default: () => createElement("nav", { "data-pin": "section-tabs" }), WRITE_TABS: [] }));
 
@@ -54,6 +54,24 @@ describe("the editor for a project the AI didn't make", () => {
   it("draws an AI video as before for everyone else, Script card params and all", () => {
     expect(html(marked, false)).toBe(html(plain, false));
     expect(html(marked, false, "/edit?p=v1&script=1&lang=zh")).toBe(html(plain, false));
+  });
+});
+
+describe("Make a video without filming, opened from a format card", () => {
+  const start = (at: string) =>
+    renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(Start, { userId: "u1", leo: false, busy: "", projects: [], onUpload: () => {}, onOpen: () => {}, onRemove: () => {} })));
+
+  it("leads the start screen, above the upload, with the list of what the editor does left out", () => {
+    const page = start("/edit?panel=ai&kind=explainer");
+    expect(page.indexOf("Make a video without filming")).toBeGreaterThan(-1);
+    expect(page.indexOf("Make a video without filming")).toBeLessThan(page.indexOf("Upload a video of you talking"));
+    expect(page).not.toContain('aria-label="What it does"');
+  });
+
+  it("leaves the start screen as it was when no panel is open", () => {
+    const page = start("/edit");
+    expect(page).toContain('aria-label="What it does"');
+    expect(page.indexOf("Upload a video of you talking")).toBeLessThan(page.indexOf("Make a video without filming"));
   });
 });
 

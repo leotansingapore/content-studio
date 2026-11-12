@@ -510,11 +510,12 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
     <>
       <header className="space-y-1">
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Edit a video</h1>
-        <ul className="flex flex-wrap gap-1.5 pt-1" aria-label="What it does">
+        {/* a format card that opened Make a video without filming came for that panel: it leads, as a format page would */}
+        {!aiOpen && <ul className="flex flex-wrap gap-1.5 pt-1" aria-label="What it does">
           {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe that follows your face", "Blur or swap your background", "Skin and eye touch-up", "Find clips in a long video", "Podcast audio to video", "Vibe edit by chat", "MP4 export"].map((t) => (
             <li key={t} className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{t}</li>
           ))}
-        </ul>
+        </ul>}
       </header>
       {takeAt && (
         <section className="space-y-2 rounded-xl border border-primary/25 bg-primary/5 p-3" aria-label="Your take">
@@ -522,6 +523,7 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
           {take && <ol className="list-decimal space-y-1 pl-5 text-sm">{take.lines.map((l, i) => <li key={i}>{l}</li>)}</ol>}
         </section>
       )}
+      {aiOpen && <AiVideo onClose={() => closePanel("ai")} />}
       {/* the own and clips panels have their own drop zone and show the busy line themselves */}
       {!ownOpen && !clipsOpen && <label
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
@@ -553,7 +555,6 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
       {clipsOpen && <ClipsPanel userId={userId} busy={busy} onStart={(f, ask) => onUpload(f, undefined, ask)} onClose={() => closePanel("clips")} />}
       {wallOpen && <WallStart busy={busy} onMake={(f, text) => onUpload(f, { settings: wallSettings(text, readSeconds(text)) })} onClose={() => closePanel("wall")} />}
       {joinOpen && <JoinTakes onClose={() => closePanel("join")} />}
-      {aiOpen && <AiVideo onClose={() => closePanel("ai")} />}
       {!busy && (!joinOpen || !aiOpen || (leo && (!wallOpen || !ownOpen || !clipsOpen))) && (
         <div className="flex flex-col flex-wrap gap-2 sm:flex-row">
           {leo && !wallOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("wall")}>Words over a video</Button>}
