@@ -5,7 +5,7 @@
 // Leo's sets (brand-media-sets): a Library and Sets switch (?view=sets, SetsView.tsx); an open set is ?folder=<name>.
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { ImagePlus, Loader2, Search, Trash2 } from "lucide-react";
+import { ImageSquareIcon, CircleNotchIcon, MagnifyingGlassIcon, TrashIcon } from "@phosphor-icons/react";
 import StockSearch from "@/components/StockSearch";
 import MediaDropzone from "@/components/media/MediaDropzone";
 import SetsView, { SetBar } from "@/components/media/SetsView";
@@ -188,13 +188,13 @@ export default function MediaPage() {
         <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Media</h1>
         {!leo && (
           <label className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 [@media(pointer:coarse)]:h-11 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-95 ${adding ? "pointer-events-none opacity-70" : ""}`}>
-            <ImagePlus className="h-4 w-4" /> {adding ? `Adding ${adding}...` : "Add photos"}
+            <ImageSquareIcon className="h-4 w-4" /> {adding ? `Adding ${adding}...` : "Add photos"}
             <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
           </label>
         )}
         {!stock && view === "" && (
           <Button variant="outline" className="h-10 gap-2" onClick={() => setStock(true)}>
-            <Search className="h-4 w-4" /> Search free photos
+            <MagnifyingGlassIcon className="h-4 w-4" /> Search free photos
           </Button>
         )}
       </header>
@@ -223,7 +223,7 @@ export default function MediaPage() {
       {items.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <label className="relative min-w-[200px] flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search names, folders and alt text" aria-label="Search media"
               className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-2 text-sm" />
           </label>
@@ -288,7 +288,7 @@ export default function MediaPage() {
               {leo &&
                 (sort.sorting.has(m.key) ? (
                   <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 px-2.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">
-                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> Sorting
+                    <CircleNotchIcon className="h-3 w-3 animate-spin" aria-hidden /> Sorting
                   </span>
                 ) : (
                   <Select value={m.type ?? "other"} onValueChange={(v) => edit(m.key, { type: v as MediaType, typeBy: "you" })}>
@@ -318,7 +318,7 @@ export default function MediaPage() {
                 className="w-full resize-none rounded-md border border-input bg-background px-2 py-1 text-xs" />
               <div className="flex items-center gap-1">
                 <Button size="sm" variant="ghost" className="h-8 flex-1 gap-1.5 text-xs text-muted-foreground hover:text-destructive" onClick={() => remove(m)}>
-                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                  <TrashIcon className="h-3.5 w-3.5" /> Remove
                 </Button>
                 <CopyLinkButton path={links.media({ item: m.key })} label={`Copy link to ${m.name || "this picture"}`} className="h-8 w-8" />
               </div>

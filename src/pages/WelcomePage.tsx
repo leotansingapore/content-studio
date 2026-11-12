@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { markOnboarded } from "@/lib/onboarding";
 import { useTourUser } from "@/lib/useTourUser";
 import { startTour } from "@/lib/tour";
-import { Pencil, Sparkles } from "lucide-react";
+import { PencilSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
 
 // The other ways in, as quiet links under the one button (UX law 1: one way forward).
 const OTHER = [
@@ -68,7 +68,7 @@ export default function WelcomePage() {
     <div className="max-w-2xl space-y-6 py-4">
       <header className="space-y-3 text-center">
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-elegant">
-          <Sparkles className="h-7 w-7" />
+          <SparkleIcon className="h-7 w-7" />
         </span>
         <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground">
           Welcome{name ? <span className="capitalize">, {name}</span> : ""}
@@ -83,7 +83,7 @@ export default function WelcomePage() {
 
       <div className="flex flex-col items-center gap-2">
         <Button size="lg" onClick={() => go(NEW_POST)} className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 sm:w-auto">
-          <Pencil className="h-4 w-4" /> Write my first post
+          <PencilSimpleIcon className="h-4 w-4" /> Write my first post
         </Button>
         <nav aria-label="Other ways to start" className="flex flex-wrap justify-center gap-x-5">
           {OTHER.map((o) => (

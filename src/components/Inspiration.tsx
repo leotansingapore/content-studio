@@ -19,19 +19,19 @@ import { toggled, useShownCount, useUrlLabels, useUrlFlag, useUrlSearch, useUrlU
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Sparkles,
-  Search,
-  Linkedin,
-  Instagram,
-  Facebook,
-  Filter,
-  X,
-  ArrowRight,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  Bookmark,
-} from "lucide-react";
+  SparkleIcon,
+  MagnifyingGlassIcon,
+  LinkedinLogoIcon,
+  InstagramLogoIcon,
+  FacebookLogoIcon,
+  FunnelIcon,
+  XIcon,
+  ArrowRightIcon,
+  CaretDownIcon,
+  CaretUpIcon,
+  ArrowSquareOutIcon,
+  BookmarkSimpleIcon,
+} from "@phosphor-icons/react";
 import inspirationData from "@/data/inspiration.json";
 import { supabase } from "@/lib/supabase";
 import {
@@ -60,11 +60,11 @@ const ENTRIES = inspirationData as InspirationEntry[];
 
 const PLATFORM_META: Record<
   InspirationEntry["platform"],
-  { label: string; Icon: typeof Linkedin }
+  { label: string; Icon: typeof LinkedinLogoIcon }
 > = {
-  linkedin: { label: "LinkedIn", Icon: Linkedin },
-  instagram: { label: "Instagram", Icon: Instagram },
-  facebook: { label: "Facebook", Icon: Facebook },
+  linkedin: { label: "LinkedIn", Icon: LinkedinLogoIcon },
+  instagram: { label: "Instagram", Icon: InstagramLogoIcon },
+  facebook: { label: "Facebook", Icon: FacebookLogoIcon },
 };
 
 const PILLAR_OPTIONS: InspirationEntry["pillar"][] = [
@@ -164,9 +164,9 @@ function InspirationCard({
       onClick={handleUseAsVibe}
       className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
     >
-      <Sparkles className="h-3.5 w-3.5" />
+      <SparkleIcon className="h-3.5 w-3.5" />
       Use as vibe
-      <ArrowRight className="h-3.5 w-3.5" />
+      <ArrowRightIcon className="h-3.5 w-3.5" />
     </Button>
   );
 
@@ -191,9 +191,7 @@ function InspirationCard({
                   : "text-muted-foreground hover:text-primary"
               }`}
             >
-              <Bookmark
-                className={`h-4 w-4 ${saved ? "fill-primary/20" : ""}`}
-              />
+              <BookmarkSimpleIcon className="h-4 w-4" weight={saved ? "duotone" : "regular"} />
             </button>
           )}
         </div>
@@ -217,11 +215,11 @@ function InspirationCard({
             >
               {expanded ? (
                 <>
-                  Show less <ChevronUp className="h-3 w-3" />
+                  Show less <CaretUpIcon className="h-3 w-3" />
                 </>
               ) : (
                 <>
-                  Read more <ChevronDown className="h-3 w-3" />
+                  Read more <CaretDownIcon className="h-3 w-3" />
                 </>
               )}
             </button>
@@ -238,7 +236,7 @@ function InspirationCard({
             className="w-full gap-1.5 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
           >
             <Link to={links.inspirationPost(entry.id)} state={{ back: `/inspiration${search}` }}>
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ArrowSquareOutIcon className="h-3.5 w-3.5" />
               View
             </Link>
           </Button>
@@ -359,7 +357,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
         <CardContent className="space-y-3 pt-5">
           <div className="flex gap-2">
             <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="inspiration-search"
                 aria-label="Search examples"
@@ -375,7 +373,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
               aria-expanded={showFilters}
               className="shrink-0 gap-1.5 [@media(pointer:coarse)]:h-11"
             >
-              <Filter className="h-3.5 w-3.5" />
+              <FunnelIcon className="h-3.5 w-3.5" />
               Filters
               {activeFilterCount > 0 && (
                 <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
@@ -394,7 +392,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
             ))}
             <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
             <Chip active={savedOnly} onClick={() => setSavedOnly(!savedOnly)} count={saved.inspiration.length > 0 ? saved.inspiration.length : undefined}>
-              <Bookmark className="h-3 w-3" /> Saved
+              <BookmarkSimpleIcon className="h-3 w-3" /> Saved
             </Chip>
           </div>
 
@@ -463,7 +461,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
                 onClick={clearFilters}
                 className="h-8 gap-1 text-xs text-muted-foreground"
               >
-                <X className="h-3 w-3" /> Clear
+                <XIcon className="h-3 w-3" /> Clear
               </Button>
             )}
           </div>
@@ -519,7 +517,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
                 onClick={() => showMore()}
                 className="gap-1.5 [@media(pointer:coarse)]:h-11"
               >
-                <ChevronDown className="h-4 w-4" />
+                <CaretDownIcon className="h-4 w-4" />
                 Show {Math.min(PAGE_SIZE, remaining)} more
                 <span className="text-muted-foreground">
                   ({remaining} left)

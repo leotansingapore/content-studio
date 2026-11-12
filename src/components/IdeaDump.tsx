@@ -49,19 +49,19 @@ import {
   type SkippedNote,
 } from "@/lib/ideaDump";
 import {
-  AlertTriangle,
-  Check,
-  Clock,
-  Columns3,
-  Lightbulb,
-  Mic,
-  PenLine,
-  RotateCcw,
-  Sparkles,
-  Square,
-  Wrench,
-  X,
-} from "lucide-react";
+  WarningIcon,
+  CheckIcon,
+  ClockIcon,
+  ColumnsIcon,
+  LightbulbIcon,
+  MicrophoneIcon,
+  PencilLineIcon,
+  ArrowCounterClockwiseIcon,
+  SparkleIcon,
+  SquareIcon,
+  WrenchIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import { adviserBrand } from "@/lib/profession";
 
 // ---- Display helpers ----------------------------------------------------------
@@ -126,7 +126,7 @@ function StatusChip({ ok, warn, children }: { ok: boolean; warn?: boolean; child
       : "border-destructive/30 bg-destructive/5 text-destructive";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${tone}`}>
-      {ok && !warn ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+      {ok && !warn ? <CheckIcon className="h-3 w-3" /> : <WarningIcon className="h-3 w-3" />}
       {children}
     </span>
   );
@@ -294,7 +294,7 @@ function BriefCard({
           )}
           {s.issue && (
             <p className="flex items-start gap-1.5 text-xs font-medium text-primary">
-              <Wrench className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {s.issue}
+              <WrenchIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {s.issue}
             </p>
           )}
         </div>
@@ -302,16 +302,16 @@ function BriefCard({
         <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
           {onBoard ? (
             <span className="inline-flex h-9 items-center gap-1.5 rounded-md border border-success/30 bg-success/5 px-3 text-sm font-medium text-success">
-              <Check className="h-4 w-4" /> Added
+              <CheckIcon className="h-4 w-4" /> Added
             </span>
           ) : (
             <Button size="sm" variant="outline" onClick={onAdd} className="gap-1.5">
-              <Columns3 className="h-4 w-4" /> Add to board
+              <ColumnsIcon className="h-4 w-4" /> Add to board
             </Button>
           )}
           <Button asChild size="sm" className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95">
             <Link to={writeUrl}>
-              <PenLine className="h-4 w-4" /> Write this post
+              <PencilLineIcon className="h-4 w-4" /> Write this post
             </Link>
           </Button>
           {onBoard && (
@@ -326,7 +326,7 @@ function BriefCard({
             aria-label={`Remove brief: ${brief.idea}`}
             className="ml-auto gap-1.5 text-muted-foreground"
           >
-            <X className="h-4 w-4" /> Remove
+            <XIcon className="h-4 w-4" /> Remove
           </Button>
         </div>
       </CardContent>
@@ -473,7 +473,7 @@ export default function IdeaDump() {
     <section id="idea-dump" ref={sectionRef} className="scroll-mt-20 space-y-4" aria-labelledby="idea-dump-title">
       <div className="flex items-center gap-1">
         <h2 id="idea-dump-title" className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-          <Lightbulb className="h-4 w-4 text-primary" /> Idea Dump
+          <LightbulbIcon className="h-4 w-4 text-primary" /> Idea Dump
         </h2>
         <InfoTip label="About Idea Dump">
           Each idea comes back as a brief: angle, hooks, talking points, CTA.
@@ -533,7 +533,7 @@ export default function IdeaDump() {
               disabled={loading || !text.trim() || !userId || left === 0}
               className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"
             >
-              <Sparkles className="h-4 w-4" /> Develop my ideas
+              <SparkleIcon className="h-4 w-4" /> Develop my ideas
             </Button>
             {!loading && <PriceChip feature="idea-dump" left={left} />}
             {speechSupported && (
@@ -547,11 +547,11 @@ export default function IdeaDump() {
               >
                 {listening ? (
                   <>
-                    <Square className="h-4 w-4" /> Stop
+                    <SquareIcon className="h-4 w-4" /> Stop
                   </>
                 ) : (
                   <>
-                    <Mic className="h-4 w-4" /> Dictate
+                    <MicrophoneIcon className="h-4 w-4" /> Dictate
                   </>
                 )}
               </Button>
@@ -587,17 +587,17 @@ export default function IdeaDump() {
         {!loading && notice?.kind === "error" && (
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4" role="alert">
             <p className="flex min-w-0 flex-1 items-start gap-2 text-sm text-destructive">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {notice.message}
+              <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" /> {notice.message}
             </p>
             <Button size="sm" variant="outline" onClick={() => void handleDevelop()} disabled={left === 0} className="gap-1.5">
-              <RotateCcw className="h-4 w-4" /> Try again
+              <ArrowCounterClockwiseIcon className="h-4 w-4" /> Try again
             </Button>
           </div>
         )}
 
         {!loading && notice?.kind === "limit" && (
           <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-foreground" role="status">
-            <Clock className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+            <ClockIcon className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
             <div className="space-y-0.5">
               <p className="font-medium">Daily limit reached</p>
               <p className="text-muted-foreground">{notice.message} Your notes stay in the box.</p>
@@ -608,7 +608,7 @@ export default function IdeaDump() {
         {!loading && notice?.kind === "no-ideas" && (
           <div className="space-y-2 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-foreground" role="status">
             <p className="flex items-start gap-2 font-medium">
-              <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> {notice.message}
+              <LightbulbIcon className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> {notice.message}
             </p>
             <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
               {adviserBrand()
@@ -627,7 +627,7 @@ export default function IdeaDump() {
         {!loading && notice?.kind === "done" && (
           <div className="space-y-1.5 rounded-xl border border-success/30 bg-success/5 p-4 text-sm" role="status">
             <p className="flex items-center gap-2 font-medium text-success">
-              <Check className="h-4 w-4" /> Developed {plural(notice.developed, "brief", "briefs")}.
+              <CheckIcon className="h-4 w-4" /> Developed {plural(notice.developed, "brief", "briefs")}.
             </p>
             {notice.heldBack > 0 && (
               <p className="text-xs text-muted-foreground">

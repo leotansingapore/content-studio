@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { WarningIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import FormatShell from "@/components/make/FormatShell";
 import PickList, { metaOf } from "@/components/make/PickList";
 import { Button } from "@/components/ui/button";
@@ -407,7 +407,7 @@ export default function WallOfText({ userId, source, scene = false }: { userId: 
         </div>
       ) : busy && job ? (
         <Placeholder>
-          <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+          <CircleNotchIcon className="h-5 w-5 animate-spin text-primary" aria-hidden />
           <span role="status">{stepText(job)}</span>
           {/* an Also make press that arrived while another wall was still being made starts nothing: say so */}
           {(job.ask.source?.key ?? null) !== (source?.key ?? null) && <span>{scene ? "Still making your last video." : "Still making your last wall of text."}</span>}
@@ -420,7 +420,7 @@ export default function WallOfText({ userId, source, scene = false }: { userId: 
       ) : job?.state === "failed" ? (
         <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
           <p className="flex items-start gap-2 text-destructive">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
+            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
           </p>
           <div className="flex flex-wrap gap-2">
             {/* the ways forward that write nothing new lead; a refusal or the cap gets no Try again, which would spend or fail again */}

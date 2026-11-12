@@ -3,7 +3,7 @@
 // (cs_library_images, cs-slide-campaigns) so the schedule can draw from them.
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2, Search, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { CheckIcon, CircleNotchIcon, MagnifyingGlassIcon, SparkleIcon, TrashIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { Segmented } from "@/components/design/fields";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -228,7 +228,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <input value={name} onChange={(e) => setName(e.target.value)} onBlur={rename} maxLength={80} placeholder="Name this library" aria-label="Library name" className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm" />
         <button type="button" aria-label="Close" onClick={() => ref.current?.close()} className="rounded p-2 text-muted-foreground hover:text-foreground">
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
       </div>
       <div className="grid max-h-[70vh] gap-4 overflow-y-auto p-4 md:grid-cols-[1fr_16rem]">
@@ -248,7 +248,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
               <div className="flex flex-wrap items-center gap-2">
                 <Segmented<"1" | "3"> value={count} options={[{ value: "1", label: "1 picture" }, { value: "3", label: "Make 3" }] as const} onChange={(v) => !making && setCount(v)} />
                 <Button size="sm" onClick={() => void generate()} disabled={!!making || !prompt.trim() || left === 0 || !canPost} className="gap-1.5">
-                  {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}{" "}
+                  {making ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}{" "}
                   {making ? (making.of > 1 ? `Making ${making.n} of ${making.of}` : "Making the picture") : count === "3" ? "Generate 3 into the library" : "Generate into the library"}
                 </Button>
               </div>
@@ -266,7 +266,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
                 <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setScene(e.target.files?.[0] ?? null)} className="block w-full text-xs" />
               </label>
               <Button size="sm" onClick={() => void buildShot()} disabled={!screen || !!busy || !canPost} className="gap-1.5">
-                {(busy === "app" || busy === "upload") && <Loader2 className="h-4 w-4 animate-spin" />} Build the image
+                {(busy === "app" || busy === "upload") && <CircleNotchIcon className="h-4 w-4 animate-spin" />} Build the image
               </Button>
             </div>
           )}
@@ -281,7 +281,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
           >
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search free photos, like golf course" aria-label="Search photos" className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" />
             <Button type="submit" variant="outline" size="sm" disabled={!query.trim() || !!busy} className="h-9 gap-1">
-              {busy === "search" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Search
+              {busy === "search" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <MagnifyingGlassIcon className="h-4 w-4" />} Search
             </Button>
           </form>
           {found.length > 0 && (
@@ -299,14 +299,14 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
                       className={`relative aspect-[3/4] overflow-hidden rounded-md border-2 ${on ? "border-primary" : "border-transparent"}`}
                     >
                       <img src={f.thumb} alt="" loading="lazy" className="h-full w-full object-cover" />
-                      {on && <Check className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary p-0.5 text-primary-foreground" />}
+                      {on && <CheckIcon className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary p-0.5 text-primary-foreground" />}
                     </button>
                   );
                 })}
               </div>
               <div className="flex items-center gap-2">
                 <Button size="sm" onClick={() => void addPicked()} disabled={!picked.size || !!busy || !canPost} className="gap-1.5">
-                  {busy === "add" && <Loader2 className="h-4 w-4 animate-spin" />} Add {picked.size || ""} to the library
+                  {busy === "add" && <CircleNotchIcon className="h-4 w-4 animate-spin" />} Add {picked.size || ""} to the library
                 </Button>
                 <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => setPicked(new Set(found.map((f) => f.id)))}>
                   Select all ({found.length})
@@ -319,7 +319,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
           )}
           <input ref={file} type="file" multiple accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => void upload(e.target.files)} />
           <Button type="button" variant="outline" size="sm" onClick={() => file.current?.click()} disabled={!!busy || !canPost} className="gap-1.5">
-            {busy === "upload" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload your own
+            {busy === "upload" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <UploadSimpleIcon className="h-4 w-4" />} Upload your own
           </Button>
           {note && (
             <p role="status" className="text-xs text-destructive">
@@ -340,7 +340,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
                   onClick={() => void run("remove", async () => (await callFn("slide-campaigns", { action: "library-remove", id: i.id }), await refresh(lib!.id)))}
                   className="absolute right-1 top-1 rounded bg-black/60 p-1 text-white opacity-0 focus:opacity-100 group-hover:opacity-100"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <TrashIcon className="h-3.5 w-3.5" />
                 </button>
               </li>
             ))}

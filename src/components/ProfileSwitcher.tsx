@@ -2,7 +2,7 @@ import { deleteBioPage } from "@/lib/bioPage";
 import { pauseBrandCampaigns, stopBrandTelegram } from "@/lib/brandRemoval";
 import { deleteBrandLinks } from "@/lib/trackedLinks";
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
+import { CheckIcon, CaretUpDownIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { socialConnectShown } from "@/lib/socialConnect";
@@ -119,7 +119,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
         ) : (
           <span className="line-clamp-2 min-w-0 flex-1 break-words text-sm font-semibold leading-tight text-foreground">{active?.name}</span>
         )}
-        <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <CaretUpDownIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       </button>
 
       {open && (
@@ -164,7 +164,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                       <span className="min-w-0 flex-1 truncate">
                         {switching === p.id ? `Opening ${p.name}...` : removing === p.id ? `Removing ${p.name}...` : p.name}
                       </span>
-                      {p.id === activeId && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                      {p.id === activeId && <CheckIcon className="h-4 w-4 shrink-0 text-primary" />}
                     </button>
                     <button
                       type="button"
@@ -176,7 +176,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                       title={`Rename ${p.name}`}
                       className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:p-[15px]"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <PencilSimpleIcon className="h-3.5 w-3.5" />
                     </button>
                     {p.id !== DEFAULT_PROFILE_ID && (
                       <button
@@ -187,7 +187,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                         title={`Remove ${p.name}`}
                         className="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive [@media(pointer:coarse)]:p-[15px]"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <TrashIcon className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </>
@@ -200,7 +200,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
             href="/brands/new"
             className="mt-1 flex h-9 items-center gap-1.5 border-t border-border/70 px-2.5 pt-1 text-sm font-semibold text-primary [@media(pointer:coarse)]:h-11"
           >
-            <Plus className="h-4 w-4" /> Add a brand
+            <PlusIcon className="h-4 w-4" /> Add a brand
           </a>
         </div>
       )}

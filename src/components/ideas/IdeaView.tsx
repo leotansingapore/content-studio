@@ -4,7 +4,7 @@
 
 import type { FormEvent, ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,7 @@ export default function IdeaView(p: {
     <article className="space-y-5 rounded-xl border border-border/60 p-4 shadow-card sm:p-6" aria-label="Open idea">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" className={`-ml-2 lg:hidden ${TOUCH}`} onClick={p.onBack}>
-          <ArrowLeft className="mr-1 h-4 w-4" /> All ideas
+          <ArrowLeftIcon className="mr-1 h-4 w-4" /> All ideas
         </Button>
         <span className="text-[11px] font-semibold tracking-wide text-muted-foreground">{chipOf(idea)}</span>
         {fitText(idea.fit) && <span className="text-[11px] tabular-nums text-muted-foreground">{fitText(idea.fit)}</span>}

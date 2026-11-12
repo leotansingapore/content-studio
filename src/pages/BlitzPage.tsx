@@ -6,7 +6,7 @@
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Layers, Loader2, Pencil, RotateCcw, Settings2, Swords, X } from "lucide-react";
+import { CheckIcon, StackIcon, CircleNotchIcon, PencilSimpleIcon, ArrowCounterClockwiseIcon, SlidersHorizontalIcon, SwordIcon, XIcon } from "@phosphor-icons/react";
 import BlitzConfigure from "@/components/blitz/BlitzConfigure";
 import BlitzPreview from "@/components/blitz/BlitzPreview";
 import { Button } from "@/components/ui/button";
@@ -60,7 +60,7 @@ function NothingToDeal({ userId, onConfigure }: { userId: string; onConfigure: (
   const { line, action } = whyEmpty(userId);
   return (
     <EmptyState
-      icon={Swords}
+      icon={SwordIcon}
       title={line}
       actions={
         action === "configure" ? <Button onClick={onConfigure}>Open Configure</Button>
@@ -151,11 +151,11 @@ function Blitz({ userId }: { userId: string }) {
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Blitz</h1>
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-live="polite">
-          {running && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+          {running && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" aria-hidden />}
           {status}
         </span>
         <Button variant="outline" className="ml-auto" aria-expanded={configure === "1"} aria-controls="configure" onClick={() => (configure === "1" ? closeConfigure() : openConfigure("1"))}>
-          <Settings2 /> Configure
+          <SlidersHorizontalIcon /> Configure
         </Button>
       </header>
 
@@ -188,7 +188,7 @@ function Blitz({ userId }: { userId: string }) {
                 <div className="flex aspect-[4/5] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border p-6 text-center">
                   <p className="text-sm font-medium">{card.error || "Couldn't make this one."}</p>
                   <Button variant="outline" onClick={() => retryCard(userId, card.id)}>
-                    <RotateCcw /> Try again
+                    <ArrowCounterClockwiseIcon /> Try again
                   </Button>
                 </div>
               ) : (
@@ -198,19 +198,19 @@ function Blitz({ userId }: { userId: string }) {
             <div className="flex items-start justify-center gap-6">
               <div className="flex flex-col items-center gap-1">
                 <button type="button" className={cn(ROUND, "border-border bg-background hover:bg-muted")} onClick={() => skip(card)} aria-label="Skip" aria-keyshortcuts="S">
-                  <X className="h-6 w-6" />
+                  <XIcon className="h-6 w-6" />
                 </button>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">Skip <Key k="S" /></span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <button type="button" className={cn(ROUND, "border-border bg-background hover:bg-muted")} onClick={() => edit(card)} disabled={card.state !== "new"} aria-label="Edit" aria-keyshortcuts="E">
-                  <Pencil className="h-5 w-5" />
+                  <PencilSimpleIcon className="h-5 w-5" />
                 </button>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">Edit <Key k="E" /></span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <button type="button" className={cn(ROUND, "border-primary bg-primary text-primary-foreground hover:bg-primary/90")} onClick={() => keep(card)} disabled={card.state !== "new"} aria-label="Keep" aria-keyshortcuts="K">
-                  <Check className="h-6 w-6" />
+                  <CheckIcon className="h-6 w-6" />
                 </button>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">Keep <Key k="K" /></span>
               </div>
@@ -233,7 +233,7 @@ function Blitz({ userId }: { userId: string }) {
         </div>
       ) : made > 0 ? (
         <EmptyState
-          icon={Layers}
+          icon={StackIcon}
           title={`That's today's ${made}. You kept ${kept}.`}
           actions={
             <>

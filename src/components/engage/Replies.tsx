@@ -3,7 +3,7 @@
 // handle yourself come first with the reason and no draft; ones where a like
 // is enough and ones worth hiding are marked (the app never likes or hides).
 import { useMemo } from "react";
-import { MessageSquareReply } from "lucide-react";
+import { ArrowBendUpLeftIcon } from "@phosphor-icons/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -41,7 +41,7 @@ export default function Replies({ userId }: { userId: string }) {
       <Card className="border-border/60 shadow-card">
         <CardContent className="space-y-3 p-4 sm:p-5">
           <h2 id="replies-title" className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-            <MessageSquareReply className="h-4 w-4 text-primary" /> Reply to comments on your post
+            <ArrowBendUpLeftIcon className="h-4 w-4 text-primary" /> Reply to comments on your post
           </h2>
           <div className="space-y-1.5">
             <Label htmlFor="replies-post">Your post (optional)</Label>

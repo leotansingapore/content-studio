@@ -4,7 +4,7 @@
 
 import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Loader2, Plus } from "lucide-react";
+import { CircleNotchIcon, PlusIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -82,10 +82,10 @@ export default function SetsView(p: { userId: string; sets: SetWith[]; urls: Rec
           Sets <InfoTip label="About sets">Bundles of your photos or clips that slideshows and videos draw from.</InfoTip>
         </h2>
         <Button size="sm" variant="outline" className="gap-1.5" aria-expanded={naming === "photos"} onClick={() => startNaming("photos")}>
-          <Plus className="h-4 w-4" /> New photo set
+          <PlusIcon className="h-4 w-4" /> New photo set
         </Button>
         <Button size="sm" variant="outline" className="gap-1.5" aria-expanded={naming === "clips"} onClick={() => startNaming("clips")}>
-          <Plus className="h-4 w-4" /> New clip set
+          <PlusIcon className="h-4 w-4" /> New clip set
         </Button>
         <Button size="sm" variant={p.sets.length ? "outline" : "default"} aria-expanded={starters} onClick={() => setStarters(!starters)}>
           Add starter sets
@@ -106,7 +106,7 @@ export default function SetsView(p: { userId: string; sets: SetWith[]; urls: Rec
         <ul className="space-y-1">
           {status.map(({ s, job }) => (
             <li key={s.id} role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-              {job.done ? job.line : <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Adding {s.name}: {job.n} of {job.of}</>}
+              {job.done ? job.line : <><CircleNotchIcon className="h-3.5 w-3.5 animate-spin" aria-hidden /> Adding {s.name}: {job.n} of {job.of}</>}
             </li>
           ))}
         </ul>
@@ -197,7 +197,7 @@ function StarterSheet({ userId, sets, onClose }: { userId: string; sets: MediaSe
                 <span className="block text-xs text-muted-foreground">{noun(s.kind, s.count)}</span>
               </span>
               <Button size="sm" variant={added ? "ghost" : "outline"} disabled={added || running} onClick={() => add(s)} aria-label={added ? `${s.name} added` : `Add ${s.name}`}>
-                {added ? "Added" : running ? <Loader2 className="h-4 w-4 animate-spin" aria-label="Adding" /> : "Add"}
+                {added ? "Added" : running ? <CircleNotchIcon className="h-4 w-4 animate-spin" aria-label="Adding" /> : "Add"}
               </Button>
             </li>
           );

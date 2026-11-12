@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Ban, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, X } from "lucide-react";
+import { ProhibitIcon, CheckIcon, CaretLeftIcon, CaretRightIcon, CopyIcon, ArrowSquareOutIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Textarea } from "@/components/ui/textarea";
@@ -197,7 +197,7 @@ export function TeamPostPanel({
             aria-label="Close"
             className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
 
@@ -220,7 +220,7 @@ export function TeamPostPanel({
                   Posted {whenLabel(post.postedAt)} to {groupOf(post)}
                   {link && (
                     <a href={link} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
-                      Open in Telegram <ExternalLink className="h-3.5 w-3.5" />
+                      Open in Telegram <ArrowSquareOutIcon className="h-3.5 w-3.5" />
                     </a>
                   )}
                 </>
@@ -236,7 +236,7 @@ export function TeamPostPanel({
                 {post.message}
               </p>
               <Button variant="outline" size="sm" onClick={() => copy()} className="gap-1.5">
-                <Copy className="h-3.5 w-3.5" /> Copy
+                <CopyIcon className="h-3.5 w-3.5" /> Copy
               </Button>
             </div>
 
@@ -252,7 +252,7 @@ export function TeamPostPanel({
                   {post.client.message}
                 </p>
                 <Button variant="outline" size="sm" onClick={() => copy(post.client?.message)} className="gap-1.5">
-                  <Copy className="h-3.5 w-3.5" /> Copy
+                  <CopyIcon className="h-3.5 w-3.5" /> Copy
                 </Button>
               </section>
             )}
@@ -309,14 +309,14 @@ export function TeamPostPanel({
         <div className="flex items-center gap-2 border-t border-border/60 p-3">
           {(onPrev || onNext) && (
             <Button variant="ghost" onClick={onPrev} disabled={!onPrev} aria-label="Previous team post" title="Previous (left arrow)" className={step}>
-              <ChevronLeft className="h-5 w-5" />
+              <CaretLeftIcon className="h-5 w-5" />
             </Button>
           )}
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2">
             {status === "skipped" ? (
               <>
                 <span className="inline-flex h-11 items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-                  <Ban className="h-4 w-4" /> {skippedBy(post, review) === "telegram" ? "Skipped on Telegram" : "Skipped"}
+                  <ProhibitIcon className="h-4 w-4" /> {skippedBy(post, review) === "telegram" ? "Skipped on Telegram" : "Skipped"}
                 </span>
                 <Button variant="ghost" size="sm" onClick={() => onReviews(unskip(uid, post))} className="text-muted-foreground">
                   Undo
@@ -327,7 +327,7 @@ export function TeamPostPanel({
                 {approvedHere ? (
                   <>
                     <span className="inline-flex h-11 items-center gap-1.5 text-sm font-semibold text-success">
-                      <Check className="h-4 w-4" /> Approved
+                      <CheckIcon className="h-4 w-4" /> Approved
                     </span>
                     {!done && (
                       <Button variant="ghost" size="sm" onClick={() => onReviews(unapprove(uid, post))} className="text-muted-foreground">
@@ -337,7 +337,7 @@ export function TeamPostPanel({
                   </>
                 ) : status === "approved" ? (
                   <span className="inline-flex h-11 items-center gap-1.5 text-sm font-semibold text-success">
-                    <Check className="h-4 w-4" /> {post.auto ? "Goes out on its own" : "Approved on Telegram"}
+                    <CheckIcon className="h-4 w-4" /> {post.auto ? "Goes out on its own" : "Approved on Telegram"}
                   </span>
                 ) : (
                   <Button
@@ -345,7 +345,7 @@ export function TeamPostPanel({
                     disabled={done}
                     className="h-11 flex-1 sm:max-w-[200px]"
                   >
-                    <Check className="h-4 w-4" /> Approve
+                    <CheckIcon className="h-4 w-4" /> Approve
                   </Button>
                 )}
                 {!post.postedAt && (
@@ -358,7 +358,7 @@ export function TeamPostPanel({
           </div>
           {(onPrev || onNext) && (
             <Button variant="ghost" onClick={onNext} disabled={!onNext} aria-label="Next team post" title="Next (right arrow)" className={step}>
-              <ChevronRight className="h-5 w-5" />
+              <CaretRightIcon className="h-5 w-5" />
             </Button>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { Link2 } from "lucide-react";
+import { LinkIcon } from "@phosphor-icons/react";
 import { useToast } from "@/hooks/use-toast";
 import { absolute } from "@/lib/links";
 import { withBrand } from "@/lib/profiles";
@@ -44,7 +44,7 @@ export default function CopyLinkButton({ path, label = "Copy link", className }:
         className,
       )}
     >
-      <Link2 className="h-4 w-4" />
+      <LinkIcon className="h-4 w-4" />
     </button>
   );
 }

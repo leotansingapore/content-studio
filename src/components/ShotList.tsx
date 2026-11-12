@@ -3,7 +3,7 @@
 // for a cloned reel and Write for any short-video draft's storyboard.
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Camera, Check, Copy, Eye, Mic } from "lucide-react";
+import { WarningIcon, CameraIcon, CheckIcon, CopyIcon, EyeIcon, MicrophoneIcon } from "@phosphor-icons/react";
 
 import { useToast } from "@/hooks/use-toast";
 import { countWords, reelTooLong } from "@/lib/platformCounters";
@@ -34,7 +34,7 @@ export function CopyButton({ text, label, display = "Copy" }: { text: string; la
       aria-label={`Copy ${label.toLowerCase()}`}
       className="-my-3.5 inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-4 text-[11px] font-medium sm:my-0 sm:py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
     >
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      {copied ? <CheckIcon className="h-3 w-3" /> : <CopyIcon className="h-3 w-3" />}
       {copied ? "Copied" : display}
     </button>
   );
@@ -71,12 +71,12 @@ export default function ShotList({
       </div>
       {tooLong && (
         <p role="alert" className="flex items-center gap-1 text-[11px] font-medium text-amber-800 dark:text-amber-300">
-          <AlertTriangle className="h-3 w-3 shrink-0" /> {tooLong}
+          <WarningIcon className="h-3 w-3 shrink-0" /> {tooLong}
         </p>
       )}
       {matched && (
         <p className="flex items-center gap-1 text-[11px] font-medium text-primary">
-          <Eye className="h-3 w-3 shrink-0" /> Shots match the original's look
+          <EyeIcon className="h-3 w-3 shrink-0" /> Shots match the original's look
         </p>
       )}
       <ol className="space-y-2">
@@ -94,7 +94,7 @@ export default function ShotList({
                 <p className="text-sm font-medium leading-relaxed text-foreground [overflow-wrap:anywhere]">{b.say}</p>
                 {b.delivery && (
                   <p className="flex gap-1.5 text-xs italic leading-relaxed text-foreground/70">
-                    <Mic className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+                    <MicrophoneIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
                     <span className="min-w-0 [overflow-wrap:anywhere]">
                       <span className="sr-only">Delivery: </span>
                       {b.delivery}
@@ -109,7 +109,7 @@ export default function ShotList({
                 )}
                 {shot && (
                   <p className="flex gap-1.5 text-xs leading-relaxed text-muted-foreground">
-                    <Camera className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+                    <CameraIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
                     <span className="min-w-0 [overflow-wrap:anywhere]">
                       <span className="sr-only">Show: </span>
                       {shot}

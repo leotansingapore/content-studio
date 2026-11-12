@@ -5,7 +5,7 @@
 import { refreshCloudKeys } from "@/lib/cloudSync";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Search } from "lucide-react";
+import { CircleNotchIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { PostCard, SkeletonCard } from "@/components/competitors/TheirPosts";
 import { OutlierScoreTip } from "@/components/OutlierBadge";
 import PriceChip from "@/components/PriceChip";
@@ -96,14 +96,14 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button className={`h-10 gap-2 ${TOUCH}`} onClick={() => void runFind(userId)} disabled={finding || Boolean(why)}>
-          {finding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Find apps like yours
+          {finding ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <MagnifyingGlassIcon className="h-4 w-4" />} Find apps like yours
         </Button>
         {!finding && <PriceChip feature="similar-find" price={price} left={left} />}
       </div>
       {why && !finding && <p className="text-xs text-muted-foreground">{why}</p>}
       {finding && (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Looking on Instagram and TikTok, about two minutes...
+          <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Looking on Instagram and TikTok, about two minutes...
         </p>
       )}
       {note && !finding && <p role={note.error ? "alert" : undefined} className={`text-xs ${note.error ? "text-destructive" : "text-muted-foreground"}`}>{note.text}</p>}
@@ -176,7 +176,7 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
         <div className="space-y-1 border-t border-border/60 pt-4 text-xs text-muted-foreground">
           {now && (
             <p className="flex items-center gap-1.5" aria-live="polite">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading @{now.handle}, about a minute{waiting > 1 ? `, ${waiting - 1} more after it` : ""}...
+              <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Reading @{now.handle}, about a minute{waiting > 1 ? `, ${waiting - 1} more after it` : ""}...
             </p>
           )}
           {stopped && !reading && <p role="alert" className="text-destructive">{stopped.message}</p>}
@@ -195,7 +195,7 @@ function AccountCard({ userId, a }: { userId: string; a: SimilarEntry }) {
     <li className="flex w-48 shrink-0 flex-col gap-1 rounded-xl border border-border/60 bg-card p-2.5">
       <p className="flex items-center gap-1.5 text-xs font-medium">
         <span className="truncate">{a.name}</span>
-        {isReading(key) && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" aria-label={`Reading @${a.handle}`} />}
+        {isReading(key) && <CircleNotchIcon className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" aria-label={`Reading @${a.handle}`} />}
       </p>
       <p className="truncate text-[11px] text-muted-foreground">@{a.handle} <span title={NAME[a.platform]}>{SHORT[a.platform]}</span></p>
       <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

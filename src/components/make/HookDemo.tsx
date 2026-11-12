@@ -15,7 +15,7 @@
 
 import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { WarningIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { DemoThumb, SavedDemos } from "@/components/brand/DemoVideosSection";
 import FormatShell from "@/components/make/FormatShell";
 import { metaOf } from "@/components/make/PickList";
@@ -267,7 +267,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
             </div>
           ) : (
             <Button size="sm" variant="outline" onClick={() => demoInput.current?.click()} disabled={readingDemo || (isSaved && busy)} className={cn("gap-1.5", TOUCH)}>
-              {readingDemo && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {readingDemo && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />}
               {saved.length ? "Use another video" : "Pick a video"}
             </Button>
           )}
@@ -332,7 +332,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
             )}
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" variant="outline" onClick={write} disabled={writing || busy || (!source && topic.trim().length < 3)} className={cn("gap-1.5", TOUCH)}>
-                {writing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {writing && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />}
                 {writing ? "Writing the hooks..." : set ? "Write 3 more" : "Write 3 hooks"}
               </Button>
               <PriceChip feature="remix-make" left={leftOf("remix-make")} />
@@ -406,7 +406,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
     <div ref={resultRef} className="scroll-mt-16 space-y-3 lg:scroll-mt-0">
       {busy && job ? (
         <Placeholder>
-          <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+          <CircleNotchIcon className="h-5 w-5 animate-spin text-primary" aria-hidden />
           <span role="status">{stepText(job)}</span>
           {job.state === "joining" && (
             <Button variant="link" onClick={() => navigate(links.edit())} className={TOUCH}>
@@ -417,7 +417,7 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
       ) : job?.state === "failed" ? (
         <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
           <p className="flex items-start gap-2 text-destructive">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
+            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
           </p>
           <div className="flex flex-wrap gap-2">
             {/* the ways forward that spend nothing lead; a refusal or the cap gets no Try again */}

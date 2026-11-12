@@ -7,7 +7,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { RotateCw, Unplug } from "lucide-react";
+import { ArrowClockwiseIcon, PlugsIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import TelegramCard from "@/components/TelegramCard";
@@ -87,7 +87,7 @@ function AccountRow({ a, busy, grouped, extra, connect, disconnect }: {
         disabled={!!busy}
         onClick={() => disconnect(a)}
       >
-        <Unplug className="h-3.5 w-3.5" /> {busy === `x${a.id}` ? "Disconnecting..." : "Disconnect"}
+        <PlugsIcon className="h-3.5 w-3.5" /> {busy === `x${a.id}` ? "Disconnecting..." : "Disconnect"}
       </Button>
     </li>
   );
@@ -227,7 +227,7 @@ export default function AccountsPage() {
               setState("loading");
               void load(userId);
             }}>
-            <RotateCw className="h-4 w-4" /> Try again
+            <ArrowClockwiseIcon className="h-4 w-4" /> Try again
           </Button>
         </div>
       )}

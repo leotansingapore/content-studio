@@ -2,7 +2,7 @@
 // slide. The cutting is cutout.ts, on this device; the page adds the box through `onAdd`, so Undo sees it.
 
 import { useEffect, useState, type MouseEvent } from "react";
-import { Loader2, Plus, Scissors } from "lucide-react";
+import { CircleNotchIcon, PlusIcon, ScissorsIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { cutOut } from "@/lib/cutout";
 import { cn } from "@/lib/utils";
@@ -65,7 +65,7 @@ export default function CutoutPicker({ full, onAdd }: { full: boolean; onAdd: (b
     return (
       <div className="space-y-1">
         <label className={cn("inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 text-xs font-semibold hover:border-primary/40", TOUCH, full && "pointer-events-none opacity-40")}>
-          <Scissors className="h-3.5 w-3.5" /> Cut out a photo
+          <ScissorsIcon className="h-3.5 w-3.5" /> Cut out a photo
           <input
             type="file"
             accept="image/*"
@@ -91,7 +91,7 @@ export default function CutoutPicker({ full, onAdd }: { full: boolean; onAdd: (b
       </button>
       {busy && !cut && (
         <p role="status" className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Cutting it out...
+          <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Cutting it out...
         </p>
       )}
       {cut && (
@@ -102,7 +102,7 @@ export default function CutoutPicker({ full, onAdd }: { full: boolean; onAdd: (b
       {note && <p role="status" className="text-xs text-muted-foreground">{note}</p>}
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={() => void add()} disabled={!cut || busy || full} className={cn("h-9 flex-1 gap-1.5 text-xs", TOUCH)}>
-          <Plus className="h-3.5 w-3.5" /> Add to slide
+          <PlusIcon className="h-3.5 w-3.5" /> Add to slide
         </Button>
         <Button type="button" variant="outline" size="sm" onClick={reset} disabled={busy} className={cn("h-9 text-xs", TOUCH)}>
           Cancel

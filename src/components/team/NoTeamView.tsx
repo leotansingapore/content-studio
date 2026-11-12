@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { KeyRound, Loader2, ShieldCheck, Users } from "lucide-react";
+import { KeyIcon, CircleNotchIcon, ShieldCheckIcon, UsersIcon } from "@phosphor-icons/react";
 
 import {
   Card,
@@ -94,7 +94,7 @@ export default function NoTeamView({
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-serif text-xl">
-          <KeyRound className="h-5 w-5 shrink-0 text-primary" /> Join with a code
+          <KeyIcon className="h-5 w-5 shrink-0 text-primary" /> Join with a code
         </CardTitle>
         <CardDescription>
           {invited
@@ -135,7 +135,7 @@ export default function NoTeamView({
             </p>
           )}
           <Button type="submit" disabled={joining} className="w-full gap-1.5 sm:w-auto">
-            {joining && <Loader2 className="h-4 w-4 animate-spin" />} Join team
+            {joining && <CircleNotchIcon className="h-4 w-4 animate-spin" />} Join team
           </Button>
         </form>
       </CardContent>
@@ -146,7 +146,7 @@ export default function NoTeamView({
     <Card className="border-border/60 shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-serif text-xl">
-          <Users className="h-5 w-5 shrink-0 text-primary" /> Create a team
+          <UsersIcon className="h-5 w-5 shrink-0 text-primary" /> Create a team
         </CardTitle>
         <CardDescription>
           For agency leaders. You get an invite code for your consultants and a queue of
@@ -182,7 +182,7 @@ export default function NoTeamView({
             </p>
           )}
           <Button type="submit" disabled={creating} className="w-full gap-1.5 sm:w-auto">
-            {creating && <Loader2 className="h-4 w-4 animate-spin" />} Create team
+            {creating && <CircleNotchIcon className="h-4 w-4 animate-spin" />} Create team
           </Button>
         </form>
       </CardContent>
@@ -206,7 +206,7 @@ export default function NoTeamView({
       </div>
       <Card className="border-border/60 bg-muted/20">
         <CardContent className="flex gap-3 p-4 text-sm text-muted-foreground">
-          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <ol className="list-decimal space-y-1 pl-4">
             <li>A consultant submits a draft from All posts. The text and its compliance flags are saved as they were.</li>
             <li>The leader approves it or asks for changes, with a comment.</li>

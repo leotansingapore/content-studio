@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import LibraryViews from "@/components/library/LibraryViews";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link } from "react-router-dom";
-import { Grid3x3 } from "lucide-react";
+import { GridNineIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { supabase } from "@/lib/supabase";
@@ -73,7 +73,7 @@ export default function GridPage() {
 
       {userId && tiles.length === 0 ? (
         <EmptyState
-          icon={Grid3x3}
+          icon={GridNineIcon}
           title="No Instagram posts yet"
           actions={
             <Button asChild>

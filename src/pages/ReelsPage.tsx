@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Clapperboard, Images, RefreshCw } from "lucide-react";
+import { FilmSlateIcon, ImagesIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import ReelDrawer from "@/components/reels/ReelDrawer";
 import ReelFeed from "@/components/reels/ReelFeed";
 import { Button } from "@/components/ui/button";
@@ -296,7 +296,7 @@ export default function ReelsPage() {
               </select>
             </label>
             <Button variant="ghost" size="icon" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={reload} disabled={loading} aria-label="Refresh the board" title="Refresh (also happens when you come back to this tab)">
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <ArrowsClockwiseIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </>
         )}
@@ -477,7 +477,7 @@ export default function ReelsPage() {
                           <span className="relative block bg-muted" style={{ aspectRatio: aspectOf(c) }}>
                             {v.thumbUrl && <img src={v.thumbUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-opacity group-hover:opacity-90" />}
                             <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
-                              {isCarousel(c) ? <Images className="h-3 w-3" /> : <Clapperboard className="h-3 w-3" />}
+                              {isCarousel(c) ? <ImagesIcon className="h-3 w-3" /> : <FilmSlateIcon className="h-3 w-3" />}
                               {board.brands.find((b) => b.id === brandOf(c))?.name}
                             </span>
                             {notes > 0 && (

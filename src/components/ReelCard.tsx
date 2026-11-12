@@ -1,14 +1,14 @@
 import { Link } from "react-router-dom";
-import { FileText, Film, Flame, Heart, Images, Instagram, Play, Wand2 } from "lucide-react";
+import { FileTextIcon, FilmStripIcon, FireIcon, HeartIcon, ImagesIcon, InstagramLogoIcon, PlayIcon, MagicWandIcon } from "@phosphor-icons/react";
 import { buildRemixUrl, compactNum, generatorFormat, postAge } from "@/lib/topPosts";
 import type { ScoredPost } from "@/lib/postInsights";
 import RemixButton from "@/components/remix/RemixButton";
 import { fromTopPost } from "@/lib/remixSource";
 
-const FORMAT_ICON: Record<string, typeof Film> = {
-  "short-video": Film,
-  carousel: Images,
-  "text-post": FileText,
+const FORMAT_ICON: Record<string, typeof FilmStripIcon> = {
+  "short-video": FilmStripIcon,
+  carousel: ImagesIcon,
+  "text-post": FileTextIcon,
 };
 
 // A tall swipe-file card: the cover first, numbers on the cover, then two lines
@@ -18,7 +18,7 @@ const FORMAT_ICON: Record<string, typeof Film> = {
 export default function ReelCard({ item, href }: { item: ScoredPost; href: string }) {
   const { post, insight } = item;
   const fmt = generatorFormat(post);
-  const Icon = FORMAT_ICON[fmt] ?? FileText;
+  const Icon = FORMAT_ICON[fmt] ?? FileTextIcon;
   const age = postAge(post.timestamp);
   const caption = post.caption || post.idea?.hook || "";
 
@@ -44,20 +44,20 @@ export default function ReelCard({ item, href }: { item: ScoredPost; href: strin
           <span className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/45 to-transparent" />
           <span className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
           <span className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur" title="Instagram">
-            <Instagram className="h-3.5 w-3.5" />
+            <InstagramLogoIcon className="h-3.5 w-3.5" />
           </span>
           <span className="absolute bottom-2 left-2 right-2 flex items-center gap-2.5 text-[11px] font-semibold text-white drop-shadow">
             {post.views > 0 && (
               <span className="inline-flex items-center gap-1">
-                <Play className="h-3 w-3 fill-current" /> {compactNum(post.views)}
+                <PlayIcon weight="fill" className="h-3 w-3" /> {compactNum(post.views)}
               </span>
             )}
             <span className="inline-flex items-center gap-1">
-              <Heart className="h-3 w-3 fill-current" /> {compactNum(post.likes)}
+              <HeartIcon weight="fill" className="h-3 w-3" /> {compactNum(post.likes)}
             </span>
             {insight.breakout && (
               <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-warning/90 px-1.5 py-0.5 text-[10px] dark:text-black" title="Engagement vs this creator's average">
-                <Flame className="h-3 w-3" /> {insight.ratio.toFixed(1)}x
+                <FireIcon className="h-3 w-3" /> {insight.ratio.toFixed(1)}x
               </span>
             )}
           </span>
@@ -82,7 +82,7 @@ export default function ReelCard({ item, href }: { item: ScoredPost; href: strin
           title="Rewrite this post for your business"
           className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1.5 text-[11px] font-semibold text-primary shadow-sm backdrop-blur [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-2 [@media(pointer:coarse)]:after:content-[''] transition-colors hover:bg-background"
         >
-          <Wand2 className="h-3 w-3" /> Remix this
+          <MagicWandIcon className="h-3 w-3" /> Remix this
         </Link>
       </RemixButton>
     </div>

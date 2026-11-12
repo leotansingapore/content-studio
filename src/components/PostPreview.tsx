@@ -1,15 +1,15 @@
 import {
-  ThumbsUp,
-  MessageCircle,
-  Repeat2,
-  Send,
-  Heart,
-  Bookmark,
-  MoreHorizontal,
-  Globe,
-  Play,
-  Clapperboard,
-} from "lucide-react";
+  ThumbsUpIcon,
+  ChatCircleIcon,
+  RepeatIcon,
+  PaperPlaneTiltIcon,
+  HeartIcon,
+  BookmarkSimpleIcon,
+  DotsThreeIcon,
+  GlobeIcon,
+  PlayIcon,
+  FilmSlateIcon,
+} from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import { supabase } from "@/lib/supabase";
@@ -58,7 +58,7 @@ function ScriptBlock({ script }: { script: string }) {
   return (
     <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
       <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        <Clapperboard className="h-3.5 w-3.5" /> Video script, spoken on
+        <FilmSlateIcon className="h-3.5 w-3.5" /> Video script, spoken on
         camera, not posted as text
       </p>
       <p className="whitespace-pre-line font-sans text-xs leading-relaxed text-muted-foreground">
@@ -203,22 +203,22 @@ export default function PostPreview({
             <span className="text-sm font-semibold text-foreground">
               {handle}
             </span>
-            <MoreHorizontal className="ml-auto h-4 w-4 text-muted-foreground" />
+            <DotsThreeIcon className="ml-auto h-4 w-4 text-muted-foreground" />
           </div>
           {media.length ? (
             <FeedMedia key={media[0]!.url} media={media} />
           ) : (
             <div className="flex aspect-square flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/10 via-muted to-brand/10 text-xs text-muted-foreground">
-              {isShortVideo && <Play className="h-8 w-8" />}
+              {isShortVideo && <PlayIcon className="h-8 w-8" />}
               {mediaLabel}
             </div>
           )}
           <div className="space-y-2 px-3 py-2.5">
             <div className="flex items-center gap-4 text-foreground">
-              <Heart className="h-5 w-5" />
-              <MessageCircle className="h-5 w-5" />
-              <Send className="h-5 w-5" />
-              <Bookmark className="ml-auto h-5 w-5" />
+              <HeartIcon className="h-5 w-5" />
+              <ChatCircleIcon className="h-5 w-5" />
+              <PaperPlaneTiltIcon className="h-5 w-5" />
+              <BookmarkSimpleIcon className="ml-auto h-5 w-5" />
             </div>
             <Folded text={caption} platform="instagram" more="... more" lead={<><span className="font-semibold">{handle}</span>{" "}</>} />
           </div>
@@ -245,10 +245,10 @@ export default function PostPreview({
               </p>
             )}
             <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              Now · <Globe className="h-3 w-3" />
+              Now · <GlobeIcon className="h-3 w-3" />
             </p>
           </div>
-          <MoreHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <DotsThreeIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
         </div>
         <div className="px-4 py-3">
           <Folded text={caption} platform={isFacebook ? "facebook" : "linkedin"} more={isFacebook ? "... See more" : "...see more"} />
@@ -257,24 +257,24 @@ export default function PostPreview({
           <FeedMedia key={media[0]!.url} media={media} />
         ) : isShortVideo ? (
           <div className="mx-4 mb-3 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-primary/10 via-muted to-brand/10 py-8 text-xs text-muted-foreground">
-            <Play className="h-6 w-6" /> Your video
+            <PlayIcon className="h-6 w-6" /> Your video
           </div>
         ) : null}
         <div className="mx-4 border-t border-border/60" />
         <div className="flex items-center justify-around px-2 py-1.5 text-xs font-medium text-muted-foreground">
           <span className="flex items-center gap-1.5 rounded-md px-2 py-1.5">
-            <ThumbsUp className="h-4 w-4" /> Like
+            <ThumbsUpIcon className="h-4 w-4" /> Like
           </span>
           <span className="flex items-center gap-1.5 rounded-md px-2 py-1.5">
-            <MessageCircle className="h-4 w-4" /> Comment
+            <ChatCircleIcon className="h-4 w-4" /> Comment
           </span>
           {!isFacebook && (
             <span className="flex items-center gap-1.5 rounded-md px-2 py-1.5">
-              <Repeat2 className="h-4 w-4" /> Repost
+              <RepeatIcon className="h-4 w-4" /> Repost
             </span>
           )}
           <span className="flex items-center gap-1.5 rounded-md px-2 py-1.5">
-            <Send className="h-4 w-4" /> Send
+            <PaperPlaneTiltIcon className="h-4 w-4" /> Send
           </span>
         </div>
       </div>

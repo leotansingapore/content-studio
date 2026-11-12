@@ -3,7 +3,7 @@
 // A draft already checked on this device shows its result at once; it never checks on load.
 
 import { useEffect, useMemo, useState } from "react";
-import { ListChecks } from "lucide-react";
+import { ListChecksIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -46,7 +46,7 @@ export default function LinkedInCheck({ userId, draft }: { userId: string | null
       {result ? (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <ListChecks className="h-4 w-4 text-primary" />
+            <ListChecksIcon className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">LinkedIn check</span>
             <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${result.verdict === "ship" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
               {result.verdict === "ship" ? "Ready to post" : "Revise first"}
@@ -78,7 +78,7 @@ export default function LinkedInCheck({ userId, draft }: { userId: string | null
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" className={`h-9 gap-1.5 ${busy === key ? "disabled:opacity-100" : ""}`} onClick={() => void run()} disabled={!!busy || !userId || short}>
-            {busy === key ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <ListChecks className="h-3.5 w-3.5" />}
+            {busy === key ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <ListChecksIcon className="h-3.5 w-3.5" />}
             {busy === key ? "Checking..." : "Check it for LinkedIn"}
           </Button>
           {short && <p className="basis-full text-xs text-muted-foreground">Write a bit more before checking it.</p>}

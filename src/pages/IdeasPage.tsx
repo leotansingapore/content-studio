@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, X } from "lucide-react";
+import { CircleNotchIcon, XIcon } from "@phosphor-icons/react";
 import IdeaList from "@/components/ideas/IdeaList";
 import IdeaView from "@/components/ideas/IdeaView";
 import PriceChip from "@/components/PriceChip";
@@ -215,7 +215,7 @@ function Ideas({ userId }: { userId: string }) {
 
       {running && !running.like && (
         <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-sm text-primary" aria-live="polite">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <CircleNotchIcon className="h-4 w-4 animate-spin" />
           Writing today's ideas for {brand}...{running.auto ? ` ${IDEAS_PRICE}` : ""}
         </p>
       )}
@@ -229,7 +229,7 @@ function Ideas({ userId }: { userId: string }) {
         <div className="flex flex-wrap items-center gap-2 text-sm" role="alert">
           <span className={setFailed.retry ? "text-destructive" : "text-muted-foreground"}>{setFailed.line}</span>
           {setFailed.retry && <Button size="sm" variant="outline" className={TOUCH} onClick={() => void getIdeas(userId, { steer: setFailed.steer })} disabled={capped}>Try again</Button>}
-          <button type="button" onClick={clearFail} aria-label="Dismiss" className={`text-muted-foreground ${TOUCH}`}><X className="h-4 w-4" /></button>
+          <button type="button" onClick={clearFail} aria-label="Dismiss" className={`text-muted-foreground ${TOUCH}`}><XIcon className="h-4 w-4" /></button>
         </div>
       )}
       {unscored && <p className="text-sm text-muted-foreground">{UNSCORED_LINE}</p>}
@@ -254,12 +254,12 @@ function Ideas({ userId }: { userId: string }) {
           {(["all", ...SOURCES] as const).map((s) => (
             <FilterChip key={s} active={source === s} onClick={() => setSource(s)} count={s === "posts" && audits === null ? undefined : sourceCount(s)}>
               {s === "all" ? "All" : SOURCE_NAME[s]}
-              {s === "posts" && audits === null && <Loader2 className="h-3 w-3 animate-spin" aria-label="Loading" />}
+              {s === "posts" && audits === null && <CircleNotchIcon className="h-3 w-3 animate-spin" aria-label="Loading" />}
             </FilterChip>
           ))}
           {label && (
             <FilterChip active onClick={() => setLabel("")}>
-              {activeLabel?.name ?? "Label"} <X className="h-3 w-3" aria-label="Clear the label" />
+              {activeLabel?.name ?? "Label"} <XIcon className="h-3 w-3" aria-label="Clear the label" />
             </FilterChip>
           )}
         </div>

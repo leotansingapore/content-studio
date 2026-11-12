@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeftIcon, CircleNotchIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import Markdown from "@/components/hub/Markdown";
@@ -28,7 +28,7 @@ export default function HubGuideDetailPage() {
   if (loading) {
     return (
       <div className="flex h-32 items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <CircleNotchIcon className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -41,7 +41,7 @@ export default function HubGuideDetailPage() {
         </p>
         <Button asChild variant="outline" size="sm">
           <Link to="/hub/guides">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to guides
+            <ArrowLeftIcon className="mr-2 h-4 w-4" /> Back to guides
           </Link>
         </Button>
       </div>
@@ -52,7 +52,7 @@ export default function HubGuideDetailPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to="/hub/guides">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Guides
+          <ArrowLeftIcon className="mr-2 h-4 w-4" /> Guides
         </Link>
       </Button>
       <div>

@@ -2,7 +2,7 @@
 // each, how many pictures and from where, which campaigns draw from it, edit and delete.
 
 import { useCallback, useEffect, useState } from "react";
-import { Images, Loader2, Plus } from "lucide-react";
+import { ImagesIcon, CircleNotchIcon, PlusIcon } from "@phosphor-icons/react";
 import LibraryDialog, { type Library } from "@/components/design/LibraryDialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -58,14 +58,14 @@ export default function SlideLibrariesPage() {
           {rows && <p className="text-sm text-muted-foreground">{`${rows.length} librar${rows.length === 1 ? "y" : "ies"}`}</p>}
         </div>
         <Button onClick={() => setOpen("new")} disabled={!canPost} className="gap-1.5">
-          <Plus className="h-4 w-4" /> New library
+          <PlusIcon className="h-4 w-4" /> New library
         </Button>
       </header>
       {!canPost && <p className="text-sm text-muted-foreground">Posting isn't switched on for your account yet.</p>}
       {!rows && <p className="text-sm text-muted-foreground">Loading your libraries</p>}
       {rows?.length === 0 && (
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
-          <Images className="mx-auto h-8 w-8 text-muted-foreground" />
+          <ImagesIcon className="mx-auto h-8 w-8 text-muted-foreground" />
           <p className="mt-2 font-medium">No libraries yet</p>
           <p className="mt-1 text-sm text-muted-foreground">A campaign draws each slide's picture from one.</p>
         </div>
@@ -95,7 +95,7 @@ export default function SlideLibrariesPage() {
                   <>
                     <span>{l.used_by.length ? "Its campaigns lose these pictures. Delete?" : "Delete it and its pictures?"}</span>
                     <button type="button" disabled={busy === l.id} className="font-medium text-destructive hover:underline" onClick={() => void remove(l.id)}>
-                      {busy === l.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Delete"}
+                      {busy === l.id ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : "Delete"}
                     </button>
                     <button type="button" className="text-muted-foreground hover:underline" onClick={() => setConfirm(null)}>
                       Keep

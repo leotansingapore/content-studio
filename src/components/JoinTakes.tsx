@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { CaretDownIcon, CaretUpIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { MAX_TAKES, fmtTime, joinIssue, joinedLength, moveTake, trimTake, type Take } from "@/lib/videoEdit";
@@ -70,11 +70,11 @@ export default function JoinTakes({ onClose }: { onClose: () => void }) {
                   <Button size="sm" variant="outline" className="h-11 text-xs sm:h-8" onClick={() => edit(i, "start")}>Start here</Button>
                   <Button size="sm" variant="outline" className="h-11 text-xs sm:h-8" onClick={() => edit(i, "end")}>End here</Button>
                   <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-8 sm:w-8" aria-label={`Move take ${i + 1} up`} disabled={i === 0}
-                    onClick={() => setItems((list) => moveTake(list, i, -1))}><ChevronUp className="h-4 w-4" /></Button>
+                    onClick={() => setItems((list) => moveTake(list, i, -1))}><CaretUpIcon className="h-4 w-4" /></Button>
                   <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-8 sm:w-8" aria-label={`Move take ${i + 1} down`} disabled={i === items.length - 1}
-                    onClick={() => setItems((list) => moveTake(list, i, 1))}><ChevronDown className="h-4 w-4" /></Button>
+                    onClick={() => setItems((list) => moveTake(list, i, 1))}><CaretDownIcon className="h-4 w-4" /></Button>
                   <Button size="sm" variant="ghost" className="h-11 w-11 p-0 text-muted-foreground hover:text-destructive sm:h-8 sm:w-8" aria-label={`Remove take ${i + 1}`}
-                    onClick={() => setItems((list) => list.filter((x) => x.id !== t.id))}><Trash2 className="h-4 w-4" /></Button>
+                    onClick={() => setItems((list) => list.filter((x) => x.id !== t.id))}><TrashIcon className="h-4 w-4" /></Button>
                 </div>
               </div>
             </li>
@@ -84,7 +84,7 @@ export default function JoinTakes({ onClose }: { onClose: () => void }) {
       <div className="flex flex-wrap items-center gap-2">
         {items.length < MAX_TAKES && (
           <label className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
-            <Plus className="h-4 w-4" /> {items.length ? "Add more takes" : "Pick your takes"}
+            <PlusIcon className="h-4 w-4" /> {items.length ? "Add more takes" : "Pick your takes"}
             <input type="file" accept="video/*" multiple className="sr-only"
               onChange={(e) => { const fs = [...(e.target.files ?? [])]; e.target.value = ""; if (fs.length) void add(fs); }} />
           </label>

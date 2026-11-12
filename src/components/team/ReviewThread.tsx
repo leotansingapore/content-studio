@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { AtSign, Loader2, MessageSquare, Send } from "lucide-react";
+import { AtIcon, CircleNotchIcon, ChatIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -125,7 +125,7 @@ export default function ReviewThread({
         aria-expanded={open}
         className="inline-flex h-9 items-center gap-1.5 rounded-md px-1 text-xs font-medium text-muted-foreground hover:text-foreground"
       >
-        <MessageSquare className="h-3.5 w-3.5" />
+        <ChatIcon className="h-3.5 w-3.5" />
         {shown ? `Comments (${shown})` : canComment ? "Comment" : "Comments"}
       </button>
 
@@ -133,7 +133,7 @@ export default function ReviewThread({
         <div className="mt-2 space-y-2">
           {status === "loading" && (
             <p role="status" className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading comments…
+              <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Loading comments…
             </p>
           )}
           {comments.length > 0 && (
@@ -177,7 +177,7 @@ export default function ReviewThread({
                       onClick={() => setDraft((d) => insertMention(d, m.display_name))}
                       className="inline-flex h-9 items-center gap-1 rounded-full border border-border/70 bg-background px-2.5 text-[11px] font-medium text-foreground hover:border-primary/50 sm:h-7"
                     >
-                      <AtSign className="h-3 w-3 text-muted-foreground" />
+                      <AtIcon className="h-3 w-3 text-muted-foreground" />
                       {m.display_name}
                     </button>
                   ))}
@@ -190,7 +190,7 @@ export default function ReviewThread({
                 disabled={sending || !draft.trim()}
                 className="h-10 gap-1.5 sm:h-9"
               >
-                {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                {sending ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <PaperPlaneTiltIcon className="h-3.5 w-3.5" />}
                 Send comment
               </Button>
             </div>

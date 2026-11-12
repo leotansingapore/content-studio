@@ -4,7 +4,7 @@
 // React, so leaving the page mid-check loses nothing. The recording never leaves the device.
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2 } from "lucide-react";
+import { CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -161,7 +161,7 @@ export default function FaceTab({ userId }: { userId: string }) {
       <section className={CARD} aria-live="polite">
         <h2 className="font-serif text-lg font-semibold">Your face</h2>
         {check.state === "checking" ? (
-          <p className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Hearing your code</p>
+          <p className="flex items-center gap-2 text-sm"><CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden /> Hearing your code</p>
         ) : (
           <>
             <p className="text-sm text-destructive" role="alert">{check.error}</p>
@@ -200,7 +200,7 @@ export default function FaceTab({ userId }: { userId: string }) {
             </div>
           )}
           <div className={`min-w-0 space-y-4 ${live ? "" : "sm:col-span-2"}`} aria-live="polite">
-            {step.s === "starting" && <p className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Getting the camera ready</p>}
+            {step.s === "starting" && <p className="flex items-center gap-2 text-sm"><CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden /> Getting the camera ready</p>}
             {live && (
               <>
                 <p className="text-sm text-muted-foreground">Look at the camera and read the line.</p>
@@ -221,7 +221,7 @@ export default function FaceTab({ userId }: { userId: string }) {
                 )}
               </>
             )}
-            {step.s === "finding" && <p className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Finding your face</p>}
+            {step.s === "finding" && <p className="flex items-center gap-2 text-sm"><CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden /> Finding your face</p>}
             {(step.s === "camera" || step.s === "error" || step.s === "noface") && (
               <>
                 <p className="text-sm text-destructive" role="alert">
@@ -243,7 +243,7 @@ export default function FaceTab({ userId }: { userId: string }) {
                       onClick={() => setStep({ ...step, picked: i })}
                       className={`relative overflow-hidden rounded-lg border-2 transition-colors ${step.picked === i ? "border-primary" : "border-transparent hover:border-border"}`}>
                       <img src={p} alt="" className="aspect-[9/16] w-full object-cover" />
-                      {step.picked === i && <Check className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary p-0.5 text-primary-foreground" aria-hidden />}
+                      {step.picked === i && <CheckIcon className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary p-0.5 text-primary-foreground" aria-hidden />}
                     </button>
                   ))}
                 </div>
@@ -269,7 +269,7 @@ export default function FaceTab({ userId }: { userId: string }) {
           <img src={face.photo} alt="Your saved face" className="aspect-[9/16] w-32 rounded-lg object-cover sm:w-36" />
           <div className="min-w-0 space-y-3">
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-              <Check className="h-3.5 w-3.5" aria-hidden /> Verified {verifiedDate(face.consent.at)}
+              <CheckIcon className="h-3.5 w-3.5" aria-hidden /> Verified {verifiedDate(face.consent.at)}
             </span>
             <p className="text-sm text-muted-foreground">Used in: You speaking, template clips with a person.</p>
             {askOff ? (

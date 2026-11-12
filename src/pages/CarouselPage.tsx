@@ -9,28 +9,28 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ThinkingOrb } from "thinking-orbs";
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardPaste,
-  Copy,
-  Download,
-  FileText,
-  GalleryHorizontalEnd,
-  Gauge,
-  Pencil,
-  Plus,
-  Redo2,
-  RotateCcw,
-  Sparkles,
-  Trash2,
-  TriangleAlert,
-  Undo2,
-} from "lucide-react";
+  ArrowDownIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ArrowUpIcon,
+  CheckCircleIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  ClipboardIcon,
+  CopyIcon,
+  DownloadSimpleIcon,
+  FileTextIcon,
+  CardsIcon,
+  GaugeIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  ArrowUUpRightIcon,
+  ArrowCounterClockwiseIcon,
+  SparkleIcon,
+  TrashIcon,
+  WarningIcon,
+  ArrowUUpLeftIcon,
+} from "@phosphor-icons/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -312,7 +312,7 @@ function AskBox(p: { text: string; left: number | null; busy: boolean; target: (
         <Input value={p.text} maxLength={ASK_MAX_CHARS} aria-label="What to change on every slide" disabled={working} onChange={(e) => p.onText(e.target.value)}
           className="h-9 min-w-0 flex-1 basis-48 text-sm [@media(pointer:coarse)]:h-11" />
         <Button type="submit" size="sm" disabled={!p.text.trim() || working || p.busy || p.left === 0} className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11">
-          <Sparkles className="h-3.5 w-3.5" /> Rewrite
+          <SparkleIcon className="h-3.5 w-3.5" /> Rewrite
         </Button>
       </form>
       {!working && (
@@ -434,7 +434,7 @@ export function CarouselScore(p: {
       ) : score ? (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <Gauge className="h-4 w-4 text-primary" aria-hidden />
+            <GaugeIcon className="h-4 w-4 text-primary" aria-hidden />
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Predicted engagement</span>
             <span aria-label={`Predicted engagement ${score.v.toFixed(1)} out of 10`} className={`rounded-full px-2 py-0.5 text-xs font-bold ${BAND_TONE[bandOf(score.v)]}`}>
               {score.v.toFixed(1)}/10
@@ -457,7 +457,7 @@ export function CarouselScore(p: {
                   {id === "readable" && (
                     <span className="flex items-center gap-2">
                       <Button type="button" size="sm" variant="outline" onClick={() => void fixIt(score)} disabled={p.busy || scoring || fixLeft === 0} className="h-8 gap-1.5 [@media(pointer:coarse)]:h-11">
-                        <Sparkles className="h-3.5 w-3.5" /> Fix this
+                        <SparkleIcon className="h-3.5 w-3.5" /> Fix this
                       </Button>
                       <PriceChip feature="carousel" left={fixLeft} />
                     </span>
@@ -475,7 +475,7 @@ export function CarouselScore(p: {
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" size="sm" variant="outline" onClick={() => void run(text)} disabled={scoring || short || left === 0}
               className={`h-9 gap-1.5 [@media(pointer:coarse)]:h-11 ${scoring ? "disabled:opacity-100" : ""}`}>
-              {scoring ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Gauge className="h-3.5 w-3.5" />}
+              {scoring ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <GaugeIcon className="h-3.5 w-3.5" />}
               {scoring ? "Scoring..." : "Predict engagement"}
             </Button>
             {!scoring && <PriceChip feature="post-score" left={left} />}
@@ -1365,7 +1365,7 @@ export default function CarouselPage() {
         disabled={exportBusy || busy}
         className="gap-1.5 [@media(pointer:coarse)]:h-11"
       >
-        <Download className="h-3.5 w-3.5" />
+        <DownloadSimpleIcon className="h-3.5 w-3.5" />
         {exporting && !exporting.pdf && exporting.total > 1
           ? `Exporting ${Math.min(exporting.done + 1, exporting.total)} of ${exporting.total}…`
           : platform === "linkedin" && frame.pdf ? "PNGs" : "Download all"}
@@ -1378,7 +1378,7 @@ export default function CarouselPage() {
           disabled={exportBusy || busy}
           className="gap-1.5 [@media(pointer:coarse)]:h-11"
         >
-          <FileText className="h-3.5 w-3.5" /> {exporting?.pdf ? "Making the PDF..." : platform === "linkedin" ? "Download PDF" : "PDF"}
+          <FileTextIcon className="h-3.5 w-3.5" /> {exporting?.pdf ? "Making the PDF..." : platform === "linkedin" ? "Download PDF" : "PDF"}
         </Button>
       )}
     </div>
@@ -1388,7 +1388,7 @@ export default function CarouselPage() {
     <div className="space-y-6">
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <GalleryHorizontalEnd className="h-6 w-6 shrink-0 text-primary" /> Carousel maker
+          <CardsIcon className="h-6 w-6 shrink-0 text-primary" /> Carousel maker
         </h1>
       </header>
 
@@ -1456,7 +1456,7 @@ export default function CarouselPage() {
                   </button>
                 ))}
                 <Button onClick={() => void writeFromTopic()} disabled={!topic.trim() || !!writing || checkingTopic} className={`ml-auto gap-1.5 ${writing || checkingTopic ? "disabled:opacity-100" : ""}`}>
-                  {writing || checkingTopic ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <Sparkles className="h-4 w-4" />}
+                  {writing || checkingTopic ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <SparkleIcon className="h-4 w-4" />}
                   {checkingTopic ? "Reading your idea..." : writing ? "Writing the slides..." : "Write slides with AI"}
                 </Button>
                 {writing && <Button variant="outline" onClick={() => writing.abort()}>Stop</Button>}
@@ -1472,12 +1472,12 @@ export default function CarouselPage() {
               {onePoint !== null && onePoint === topic.trim() && !writing && (
                 <div role="status" className="space-y-2 rounded-lg border border-warning/50 bg-warning/5 p-3">
                   <p className="flex items-start gap-1.5 text-sm font-medium">
-                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> This is one point, not steps. It would read better as a text post.
+                    <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> This is one point, not steps. It would read better as a text post.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Button asChild size="sm" className="h-11 gap-1.5 sm:h-9">
                       <Link to={`/generate?pillar=topic&detail=${encodeURIComponent(onePoint.slice(0, 200))}&format=text-post&platform=${topicPlatform}`}>
-                        <FileText className="h-3.5 w-3.5" /> Write it as a text post
+                        <FileTextIcon className="h-3.5 w-3.5" /> Write it as a text post
                       </Link>
                     </Button>
                     <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={() => void writeFromTopic(true)}>
@@ -1500,7 +1500,7 @@ export default function CarouselPage() {
                   </button>
                   <Button size="sm" variant="outline" className="h-8" onClick={() => openSaved(c)}>Open</Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label={`Delete ${c.title}`} onClick={() => deleteSaved(c)}>
-                    <Trash2 className="h-4 w-4" />
+                    <TrashIcon className="h-4 w-4" />
                   </Button>
                 </li>
               ))}
@@ -1522,11 +1522,11 @@ export default function CarouselPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm" className="gap-1.5">
                     <Link to="/generate">
-                      <Pencil className="h-3.5 w-3.5" /> Write a post
+                      <PencilSimpleIcon className="h-3.5 w-3.5" /> Write a post
                     </Link>
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setMode("paste")} className="gap-1.5">
-                    <ClipboardPaste className="h-3.5 w-3.5" /> Paste text
+                    <ClipboardIcon className="h-3.5 w-3.5" /> Paste text
                   </Button>
                 </div>
               </div>
@@ -1553,7 +1553,7 @@ export default function CarouselPage() {
                       onClick={() => requestSource({ kind: "draft", id: draftId })}
                       className="gap-1.5"
                     >
-                      <RotateCcw className="h-3.5 w-3.5" /> Start over
+                      <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Start over
                     </Button>
                   )}
                 </div>
@@ -1576,7 +1576,7 @@ export default function CarouselPage() {
                 disabled={!pasteText.trim()}
                 className="gap-1.5"
               >
-                <GalleryHorizontalEnd className="h-4 w-4" /> Make slides
+                <CardsIcon className="h-4 w-4" /> Make slides
               </Button>
             </div>
           )}
@@ -1603,7 +1603,7 @@ export default function CarouselPage() {
       {tooShort && split && (
         <Card className="border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/10 shadow-card">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-5">
-            <TriangleAlert className="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />
+            <WarningIcon className="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />
             <div className="flex-1 space-y-1" role="status">
               <p className="text-sm font-semibold text-foreground">This post is too short for a carousel</p>
               <p className="text-sm text-muted-foreground">
@@ -1613,7 +1613,7 @@ export default function CarouselPage() {
               </p>
             </div>
             <Button size="sm" variant="outline" onClick={startByHand} className="shrink-0 gap-1.5 bg-background">
-              <Pencil className="h-3.5 w-3.5" /> Build it by hand
+              <PencilSimpleIcon className="h-3.5 w-3.5" /> Build it by hand
             </Button>
           </CardContent>
         </Card>
@@ -1734,7 +1734,7 @@ export default function CarouselPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   {beforeAi && !busy && (
                     <Button size="sm" variant="ghost" onClick={undoAi} className="gap-1.5 text-muted-foreground">
-                      <Undo2 className="h-3.5 w-3.5" /> Undo AI changes
+                      <ArrowUUpLeftIcon className="h-3.5 w-3.5" /> Undo AI changes
                     </Button>
                   )}
                   <Button
@@ -1749,7 +1749,7 @@ export default function CarouselPage() {
                       </>
                     ) : (
                       <>
-                        <Sparkles className="h-3.5 w-3.5" /> Tighten with AI
+                        <SparkleIcon className="h-3.5 w-3.5" /> Tighten with AI
                       </>
                     )}
                   </Button>
@@ -1793,9 +1793,9 @@ export default function CarouselPage() {
                   }`}
                 >
                   {flagTotal ? (
-                    <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                   ) : (
-                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
+                    <CheckCircleIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
                   )}
                   <span>
                     {flagTotal
@@ -1906,10 +1906,10 @@ export default function CarouselPage() {
                     </div>
                     <div className="ml-auto flex items-center gap-1">
                       <Button type="button" size="sm" variant="ghost" onClick={() => step("undo")} disabled={!hist.current.past.length || busy} className={SMALL}>
-                        <Undo2 className="h-3.5 w-3.5" /> Undo
+                        <ArrowUUpLeftIcon className="h-3.5 w-3.5" /> Undo
                       </Button>
                       <Button type="button" size="sm" variant="ghost" onClick={() => step("redo")} disabled={!hist.current.future.length || busy} className={SMALL}>
-                        <Redo2 className="h-3.5 w-3.5" /> Redo
+                        <ArrowUUpRightIcon className="h-3.5 w-3.5" /> Redo
                       </Button>
                     </div>
                   </div>
@@ -1924,7 +1924,7 @@ export default function CarouselPage() {
                       className={`mx-auto block h-auto w-full max-w-sm rounded-md border border-border/70 shadow-sm ${thumbAspect}`} />
                     <div className="flex items-center justify-center gap-1">
                       <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={() => go(at - 1)} disabled={at === 0} aria-label="Previous slide">
-                        <ChevronLeft className="h-4 w-4" />
+                        <CaretLeftIcon className="h-4 w-4" />
                       </Button>
                       <div role="group" aria-label="Slides" className="flex flex-wrap justify-center">
                         {slides.map((x, i) => (
@@ -1935,7 +1935,7 @@ export default function CarouselPage() {
                         ))}
                       </div>
                       <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={() => go(at + 1)} disabled={at === slides.length - 1} aria-label="Next slide">
-                        <ChevronRight className="h-4 w-4" />
+                        <CaretRightIcon className="h-4 w-4" />
                       </Button>
                     </div>
                     {/* keyed, so an open menu or picker stays with its slide */}
@@ -1943,16 +1943,16 @@ export default function CarouselPage() {
                       <SlideFields label={`Slide ${at + 1} of ${slides.length}`} {...fieldsFor(one, at)} />
                       <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
                         <Button type="button" size="sm" variant="outline" className={SMALL} onClick={() => duplicate(at)} disabled={slides.length >= MAX_SLIDES || busy}>
-                          <Copy className="h-3.5 w-3.5" /> Duplicate
+                          <CopyIcon className="h-3.5 w-3.5" /> Duplicate
                         </Button>
                         <Button type="button" size="sm" variant="outline" className={SMALL} onClick={() => moveTo(at, -1)} disabled={at === 0 || busy}>
-                          <ArrowLeft className="h-3.5 w-3.5" /> Move left
+                          <ArrowLeftIcon className="h-3.5 w-3.5" /> Move left
                         </Button>
                         <Button type="button" size="sm" variant="outline" className={SMALL} onClick={() => moveTo(at, 1)} disabled={at === slides.length - 1 || busy}>
-                          <ArrowRight className="h-3.5 w-3.5" /> Move right
+                          <ArrowRightIcon className="h-3.5 w-3.5" /> Move right
                         </Button>
                         <Button type="button" size="sm" variant="outline" className={`${SMALL} text-muted-foreground hover:text-destructive`} onClick={() => deleteSlide(at)} disabled={slides.length <= MIN_SLIDES || busy}>
-                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                          <TrashIcon className="h-3.5 w-3.5" /> Delete
                         </Button>
                       </div>
                     </div>
@@ -1979,7 +1979,7 @@ export default function CarouselPage() {
                                 disabled={i === 0 || busy}
                                 aria-label={`Move slide ${i + 1} up`}
                               >
-                                <ArrowUp className="h-4 w-4" />
+                                <ArrowUpIcon className="h-4 w-4" />
                               </Button>
                               <Button
                                 type="button"
@@ -1990,12 +1990,12 @@ export default function CarouselPage() {
                                 disabled={i === slides.length - 1 || busy}
                                 aria-label={`Move slide ${i + 1} down`}
                               >
-                                <ArrowDown className="h-4 w-4" />
+                                <ArrowDownIcon className="h-4 w-4" />
                               </Button>
                               {leo && (
                                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicate(i)}
                                   disabled={slides.length >= MAX_SLIDES || busy} aria-label={`Duplicate slide ${i + 1}`}>
-                                  <Copy className="h-4 w-4" />
+                                  <CopyIcon className="h-4 w-4" />
                                 </Button>
                               )}
                               <Button
@@ -2007,7 +2007,7 @@ export default function CarouselPage() {
                                 disabled={slides.length <= MIN_SLIDES || busy}
                                 aria-label={`Delete slide ${i + 1}`}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <TrashIcon className="h-4 w-4" />
                               </Button>
                             </div>
                           }
@@ -2024,7 +2024,7 @@ export default function CarouselPage() {
                     disabled={slides.length >= MAX_SLIDES || busy}
                     className="gap-1.5"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Add a slide
+                    <PlusIcon className="h-3.5 w-3.5" /> Add a slide
                   </Button>
                   <span className="text-xs text-muted-foreground">
                     {slides.length >= MAX_SLIDES
@@ -2096,7 +2096,7 @@ export default function CarouselPage() {
                           aria-label={`Download slide ${i + 1}`}
                           className="h-7 gap-1 px-2 text-[11px]"
                         >
-                          <Download className="h-3 w-3" /> PNG
+                          <DownloadSimpleIcon className="h-3 w-3" /> PNG
                         </Button>
                       </div>
                     </li>

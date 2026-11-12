@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ImagePlus, Sparkles } from "lucide-react";
+import { CaretLeftIcon, ImageSquareIcon, SparkleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -109,7 +109,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
       <header className="space-y-1">
         <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1 text-muted-foreground">
           <Link to="/make?tab=static">
-            <ChevronLeft className="h-4 w-4" /> Static ads
+            <CaretLeftIcon className="h-4 w-4" /> Static ads
           </Link>
         </Button>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">{def.name}</h1>
@@ -151,7 +151,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
               {adding && <p className="text-sm text-muted-foreground">This one shows what you sell, so it needs a photo of it first.</p>}
               <div className="flex flex-wrap items-center gap-3">
                 <Button onClick={() => navigate(action.to, { state: action.state })} disabled={!adding && left === 0} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
-                  {adding ? <ImagePlus className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />} {action.label}
+                  {adding ? <ImageSquareIcon className="h-4 w-4" /> : <SparkleIcon className="h-4 w-4" />} {action.label}
                 </Button>
                 {!adding && <PriceChip feature="remix-make" left={left} />}
               </div>

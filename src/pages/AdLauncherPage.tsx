@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { CheckCircle2, ExternalLink, Loader2, RotateCw, Unplug } from "lucide-react";
+import { CheckCircleIcon, ArrowSquareOutIcon, CircleNotchIcon, ArrowClockwiseIcon, PlugsIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { adlDisconnect, adlFinish, adlStart, adlStatus, clearReturn, readReturn, type AdlStatus } from "@/lib/adlauncher";
@@ -108,7 +108,7 @@ function Connection() {
   const back = status?.connected ? readReturn() : null;
   const connectButton = (label: string) => (
     <Button className="h-11 gap-2 sm:h-10" disabled={!!busy} onClick={() => void connect()}>
-      {busy === "connect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+      {busy === "connect" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <ArrowSquareOutIcon className="h-4 w-4" />}
       {busy === "connect" ? "Opening AdLauncher..." : label}
     </Button>
   );
@@ -125,7 +125,7 @@ function Connection() {
 
       {(state === "loading" || state === "finishing") && (
         <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {state === "finishing" ? "Finishing the connection..." : "Loading..."}
+          <CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden /> {state === "finishing" ? "Finishing the connection..." : "Loading..."}
         </p>
       )}
 
@@ -133,7 +133,7 @@ function Connection() {
         <div className="space-y-3" role="alert">
           <p className="text-sm text-destructive">{error}</p>
           <Button variant="outline" className="h-11 gap-2 sm:h-10" onClick={() => void load()}>
-            <RotateCw className="h-4 w-4" /> Try again
+            <ArrowClockwiseIcon className="h-4 w-4" /> Try again
           </Button>
         </div>
       )}
@@ -154,7 +154,7 @@ function Connection() {
       {state === "ready" && status?.connected && (
         <section className="space-y-4 rounded-xl border border-border/60 p-4 shadow-card" aria-label="Connected account">
           <p className="flex items-center gap-2 text-sm font-semibold text-success">
-            <CheckCircle2 className="h-4 w-4" aria-hidden /> Connected
+            <CheckCircleIcon className="h-4 w-4" aria-hidden /> Connected
           </p>
           <dl className="grid gap-3 text-sm sm:grid-cols-3">
             <div className="min-w-0">
@@ -184,7 +184,7 @@ function Connection() {
               )}
             </Button>
             <Button variant="ghost" className="h-11 gap-1.5 text-muted-foreground hover:text-destructive sm:h-10" disabled={!!busy} onClick={() => void disconnect()}>
-              {busy === "disconnect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unplug className="h-4 w-4" />}
+              {busy === "disconnect" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <PlugsIcon className="h-4 w-4" />}
               {busy === "disconnect" ? "Disconnecting..." : "Disconnect"}
             </Button>
           </div>

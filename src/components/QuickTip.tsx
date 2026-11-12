@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Lightbulb, RefreshCw } from "lucide-react";
+import { LightbulbIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { tipsFor, type QuickTip as QuickTipType } from "@/data/quickTips";
 
 interface QuickTipProps {
@@ -25,7 +25,7 @@ export default function QuickTip({ context = "any", className = "" }: QuickTipPr
     <div
       className={`flex items-start gap-2.5 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2.5 text-xs ${className}`}
     >
-      <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-foreground" />
+      <LightbulbIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-foreground" />
       <p className="flex-1 leading-relaxed text-foreground/90">
         <span className="font-semibold uppercase tracking-[0.14em] text-[10px] text-accent-foreground/80">
           Quick tip
@@ -40,7 +40,7 @@ export default function QuickTip({ context = "any", className = "" }: QuickTipPr
         aria-label="Show another tip"
         title="Another tip"
       >
-        <RefreshCw className="h-3.5 w-3.5" />
+        <ArrowsClockwiseIcon className="h-3.5 w-3.5" />
       </button>
     </div>
   );

@@ -14,24 +14,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Mic,
-  Pencil,
-  Lightbulb,
-  Users as UsersIcon,
-  History,
-  Sparkles,
-  Keyboard,
-  AlertTriangle,
-  ArrowRight,
-  CalendarRange,
-  Home,
-  CalendarClock,
-  Gauge,
-  BarChart3,
-  BookMarked,
-  GraduationCap,
-  Compass,
-} from "lucide-react";
+  MicrophoneIcon,
+  PencilSimpleIcon,
+  LightbulbIcon,
+  UsersIcon,
+  ClockCounterClockwiseIcon,
+  SparkleIcon,
+  KeyboardIcon,
+  WarningIcon,
+  ArrowRightIcon,
+  CalendarBlankIcon,
+  HouseIcon,
+  CalendarDotsIcon,
+  GaugeIcon,
+  ChartBarIcon,
+  BookBookmarkIcon,
+  GraduationCapIcon,
+  CompassIcon,
+} from "@phosphor-icons/react";
 import { adviserBrand } from "@/lib/profession";
 
 /** The help guides for Design, slideshow campaigns and Claude in Design (Volume's features, folded in 1 Nov). */
@@ -59,7 +59,7 @@ export default function TutorialPage() {
           }}
           className="h-11 gap-2"
         >
-          <Compass className="h-4 w-4" /> Replay the tour
+          <CompassIcon className="h-4 w-4" /> Replay the tour
         </Button>
       )}
       {/* Why */}
@@ -97,7 +97,7 @@ export default function TutorialPage() {
       <Card id="voice" className="scroll-mt-20 border-accent/40 bg-accent/5 shadow-card">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Mic className="h-5 w-5 text-accent-foreground" />
+            <MicrophoneIcon className="h-5 w-5 text-accent-foreground" />
             <CardTitle className="font-serif text-xl">
               Setup once: lock in your voice
             </CardTitle>
@@ -126,7 +126,7 @@ export default function TutorialPage() {
             to="/voice"
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 [@media(pointer:coarse)]:min-h-11"
           >
-            Set your voice <ArrowRight className="h-3.5 w-3.5" />
+            Set your voice <ArrowRightIcon className="h-3.5 w-3.5" />
           </Link>
         </CardContent>
       </Card>
@@ -135,7 +135,7 @@ export default function TutorialPage() {
       <Card id="guided-flow" className="scroll-mt-20 border-border/60 shadow-card">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Pencil className="h-5 w-5 text-primary" />
+            <PencilSimpleIcon className="h-5 w-5 text-primary" />
             <CardTitle className="font-serif text-xl">
               The guided flow on /generate
             </CardTitle>
@@ -223,21 +223,21 @@ export default function TutorialPage() {
         <CardContent>
           <ul className="space-y-2 text-sm">
             <li className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <SparkleIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <span>
                 <strong>Hashtags</strong> appear automatically (5-8 SG-relevant
                 tags). One-click &quot;Copy all&quot;.
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <SparkleIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <span>
                 <strong>Image prompt</strong> appears - paste into Canva /
                 kie.ai / Midjourney for the visual.
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <SparkleIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <span>
                 <strong>Word + character counters</strong> show whether
                 you&apos;re inside each platform&apos;s sweet spot (LinkedIn
@@ -245,7 +245,7 @@ export default function TutorialPage() {
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
               <span>
                 <strong>Compliance flags</strong> auto-scan for risky phrases
                 (&quot;guaranteed&quot;, &quot;risk-free&quot;, &quot;100%
@@ -253,7 +253,7 @@ export default function TutorialPage() {
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <History className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <ClockCounterClockwiseIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <span>
                 <strong>
                   Auto-saved to <Link to="/drafts" className="underline">/drafts</Link>
@@ -284,7 +284,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <Home className="h-3.5 w-3.5" /> Home
+                      <HouseIcon className="h-3.5 w-3.5" /> Home
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -298,7 +298,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <Pencil className="h-3.5 w-3.5" /> Write
+                      <PencilSimpleIcon className="h-3.5 w-3.5" /> Write
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -311,7 +311,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <CalendarRange className="h-3.5 w-3.5" /> Plan
+                      <CalendarBlankIcon className="h-3.5 w-3.5" /> Plan
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -325,7 +325,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <CalendarClock className="h-3.5 w-3.5" /> Calendar
+                      <CalendarDotsIcon className="h-3.5 w-3.5" /> Calendar
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -339,7 +339,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <Lightbulb className="h-3.5 w-3.5" /> Inspiration
+                      <LightbulbIcon className="h-3.5 w-3.5" /> Inspiration
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -366,7 +366,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <Mic className="h-3.5 w-3.5" /> Voice
+                      <MicrophoneIcon className="h-3.5 w-3.5" /> Voice
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -379,7 +379,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <History className="h-3.5 w-3.5" /> All posts
+                      <ClockCounterClockwiseIcon className="h-3.5 w-3.5" /> All posts
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -393,7 +393,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <Gauge className="h-3.5 w-3.5" /> Coach
+                      <GaugeIcon className="h-3.5 w-3.5" /> Coach
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -407,7 +407,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <BarChart3 className="h-3.5 w-3.5" /> Analytics
+                      <ChartBarIcon className="h-3.5 w-3.5" /> Analytics
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -421,7 +421,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <BookMarked className="h-3.5 w-3.5" /> Profile
+                      <BookBookmarkIcon className="h-3.5 w-3.5" /> Profile
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -434,7 +434,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <GraduationCap className="h-3.5 w-3.5" /> Academy
+                      <GraduationCapIcon className="h-3.5 w-3.5" /> Academy
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -453,7 +453,7 @@ export default function TutorialPage() {
             WhatsApp.
           </p>
           <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Keyboard className="h-3.5 w-3.5" /> Shortcuts:{" "}
+            <KeyboardIcon className="h-3.5 w-3.5" /> Shortcuts:{" "}
             <kbd className="rounded border border-border/60 bg-muted px-1 py-0.5 font-mono text-[10px]">
               Cmd+Enter
             </kbd>{" "}
@@ -595,19 +595,19 @@ export default function TutorialPage() {
               to="/voice"
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 [@media(pointer:coarse)]:min-h-11"
             >
-              <Mic className="h-3.5 w-3.5" /> Set your voice
+              <MicrophoneIcon className="h-3.5 w-3.5" /> Set your voice
             </Link>
             {adviserBrand() && <Link
               to="/inspiration"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-muted/50 [@media(pointer:coarse)]:min-h-11"
             >
-              <Lightbulb className="h-3.5 w-3.5" /> Browse inspiration
+              <LightbulbIcon className="h-3.5 w-3.5" /> Browse inspiration
             </Link>}
             <Link
               to="/generate"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-muted/50 [@media(pointer:coarse)]:min-h-11"
             >
-              <Pencil className="h-3.5 w-3.5" /> Start generating
+              <PencilSimpleIcon className="h-3.5 w-3.5" /> Start generating
             </Link>
           </div>
         </CardContent>

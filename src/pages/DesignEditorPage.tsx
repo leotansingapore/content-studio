@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { CalendarClock, ChevronLeft, Compass, Copy, Download, Image as ImageIcon, Loader2, Palette, Plus, Redo2, Save, Smartphone, Square, SunDim, Trash2, Type, Undo2, X } from "lucide-react";
+import { CalendarDotsIcon, CaretLeftIcon, CompassIcon, CopyIcon, DownloadSimpleIcon, ImageIcon, CircleNotchIcon, PaletteIcon, PlusIcon, ArrowUUpRightIcon, FloppyDiskIcon, DeviceMobileIcon, SquareIcon, SunDimIcon, TrashIcon, TextTIcon, ArrowUUpLeftIcon, XIcon } from "@phosphor-icons/react";
 import Inspector from "@/components/design/Inspector";
 import PageTour from "@/components/PageTour";
 import SlideView, { setBrandPictures } from "@/components/design/SlideView";
@@ -421,7 +421,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
   const busy = prep !== null && typeof prep !== "string";
   const brandColors = [...new Set([...(brand?.color ? [brand.color.toLowerCase()] : []), ...palette.colors])];
 
-  const tool = (label: string, Icon: typeof Type, onClick: () => void, pressed?: boolean) => (
+  const tool = (label: string, Icon: typeof TextTIcon, onClick: () => void, pressed?: boolean) => (
     <button type="button" onClick={onClick} aria-pressed={pressed} className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm hover:bg-muted ${pressed ? "bg-muted" : ""} ${TOUCH}`}>
       <Icon className="h-4 w-4" /> {label}
     </button>
@@ -433,7 +433,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
       <header className="flex flex-wrap items-center gap-2">
         <Button variant="ghost" size="sm" asChild className={`-ml-2 gap-1 text-muted-foreground ${TOUCH}`}>
           <Link to="/design">
-            <ChevronLeft className="h-4 w-4" /> Design
+            <CaretLeftIcon className="h-4 w-4" /> Design
           </Link>
         </Button>
         <input
@@ -449,7 +449,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           Saved {ago(savedAt)}
         </span>
         <Button variant="ghost" size="sm" onClick={() => setTour(true)} className={`gap-1 text-muted-foreground ${TOUCH}`}>
-          <Compass className="h-4 w-4" /> Tour
+          <CompassIcon className="h-4 w-4" /> Tour
         </Button>
         {follow && (offer || claudeAt > 0) && (
           <span role="status" className="flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs">
@@ -466,7 +466,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
         )}
         <div className="relative" data-tour="design-export">
           <Button variant="outline" size="sm" onClick={() => setMenu(menu === "download" ? null : "download")} disabled={busy} aria-expanded={menu === "download"} className={`gap-1.5 ${TOUCH}`}>
-            <Download className="h-4 w-4" /> Download
+            <DownloadSimpleIcon className="h-4 w-4" /> Download
           </Button>
           {menu === "download" && (
             <div role="menu" className="absolute right-0 z-30 mt-1 w-56 rounded-md border border-border bg-popover p-1 shadow-lg">
@@ -480,7 +480,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
                 Choose slides
               </button>
               <button role="menuitem" type="button" className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm hover:bg-muted" onClick={() => void toPhone()}>
-                <Smartphone className="h-4 w-4" /> Send to phone
+                <DeviceMobileIcon className="h-4 w-4" /> Send to phone
               </button>
               <button
                 role="menuitem"
@@ -518,18 +518,18 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           )}
         </div>
         <Button variant={socialConnectShown() ? "outline" : "default"} size="sm" onClick={() => void saveToPosts()} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
-          <Save className="h-4 w-4" /> Save to All posts
+          <FloppyDiskIcon className="h-4 w-4" /> Save to All posts
         </Button>
         {socialConnectShown() && (
           <Button size="sm" onClick={() => void schedule()} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
-            <CalendarClock className="h-4 w-4" /> Schedule
+            <CalendarDotsIcon className="h-4 w-4" /> Schedule
           </Button>
         )}
       </header>
       {phone && (
         <div role="status" className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
           {phone.qr ? <img src={phone.qr} alt="QR code: scan it with your phone's camera" className="hidden h-40 w-40 rounded bg-white p-1 sm:block" /> : null}
-          <Smartphone className="h-4 w-4 shrink-0" />
+          <DeviceMobileIcon className="h-4 w-4 shrink-0" />
           <span>Open this on your phone until {new Date(phone.expiresAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}:</span>
           <a href={phone.url} target="_blank" rel="noreferrer" className="min-w-0 truncate text-primary hover:underline">
             {phone.url}
@@ -538,7 +538,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
             Copy link
           </Button>
           <button type="button" aria-label="Close" onClick={() => setPhone(null)} className="ml-auto rounded p-1 text-muted-foreground hover:text-foreground">
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
       )}
@@ -548,7 +548,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
             prep
           ) : (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Making slide {Math.min(prep.total, prep.done + 1)} of {prep.total}
+              <CircleNotchIcon className="h-4 w-4 animate-spin" /> Making slide {Math.min(prep.total, prep.done + 1)} of {prep.total}
               <button type="button" className="underline" onClick={() => (abort.current?.abort(), setPrep(null))}>
                 Cancel
               </button>
@@ -558,12 +558,12 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
       )}
 
       <nav aria-label="Add to the slide" data-tour="design-tools" className="flex flex-wrap items-center gap-0.5 border-y border-border py-1">
-        {tool("Text", Type, () => addLayer("text", palette.body ? { font: palette.body } : {}))}
+        {tool("Text", TextTIcon, () => addLayer("text", palette.body ? { font: palette.body } : {}))}
         {tool("Image", ImageIcon, () => addLayer("image"))}
-        {tool("Shape", Square, () => addLayer("shape"))}
-        {tool("Fade", SunDim, () => addLayer("gradient"))}
+        {tool("Shape", SquareIcon, () => addLayer("shape"))}
+        {tool("Fade", SunDimIcon, () => addLayer("gradient"))}
         <div className="relative" data-tour="design-brand">
-          {tool("Brand", Palette, () => setMenu(menu === "brand" ? null : "brand"), menu === "brand")}
+          {tool("Brand", PaletteIcon, () => setMenu(menu === "brand" ? null : "brand"), menu === "brand")}
           {menu === "brand" && (
             <div role="menu" className="absolute left-0 z-30 mt-1 w-72 rounded-md border border-border bg-popover p-1 shadow-lg">
               <div className="space-y-2 border-b border-border p-2">
@@ -571,7 +571,7 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
                 <div className="flex flex-wrap gap-1">
                   {palette.colors.map((c) => (
                     <button key={c} type="button" aria-label={`Remove ${c}`} title={`${c}, click to remove`} onClick={() => editPalette({ colors: palette.colors.filter((x) => x !== c) })} className="group relative h-7 w-7 rounded-full border border-border" style={{ background: c }}>
-                      <X className="absolute inset-1.5 hidden h-4 w-4 text-white mix-blend-difference group-hover:block" />
+                      <XIcon className="absolute inset-1.5 hidden h-4 w-4 text-white mix-blend-difference group-hover:block" />
                     </button>
                   ))}
                 </div>
@@ -642,10 +642,10 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
         </div>
         <span className="mx-1 h-5 w-px bg-border" aria-hidden />
         <Button size="icon" variant="ghost" onClick={() => step("undo")} disabled={!hist.past.length} aria-label="Undo" title="Undo" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-          <Undo2 className="h-4 w-4" />
+          <ArrowUUpLeftIcon className="h-4 w-4" />
         </Button>
         <Button size="icon" variant="ghost" onClick={() => step("redo")} disabled={!hist.future.length} aria-label="Redo" title="Redo" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-          <Redo2 className="h-4 w-4" />
+          <ArrowUUpRightIcon className="h-4 w-4" />
         </Button>
       </nav>
 
@@ -671,13 +671,13 @@ function Editor({ userId, initial }: { userId: string; initial: Design }) {
           </ol>
           <div className="flex gap-1">
             <Button size="icon" variant="ghost" aria-label="Add a slide" title="Add a slide" onClick={() => addSlide(false)} className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              <Plus className="h-4 w-4" />
+              <PlusIcon className="h-4 w-4" />
             </Button>
             <Button size="icon" variant="ghost" aria-label="Duplicate this slide" title="Duplicate this slide" onClick={() => addSlide(true)} className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              <Copy className="h-4 w-4" />
+              <CopyIcon className="h-4 w-4" />
             </Button>
             <Button size="icon" variant="ghost" aria-label="Delete this slide" title="Delete this slide" onClick={deleteSlide} disabled={work.slides.length < 2} className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              <Trash2 className="h-4 w-4" />
+              <TrashIcon className="h-4 w-4" />
             </Button>
           </div>
         </aside>

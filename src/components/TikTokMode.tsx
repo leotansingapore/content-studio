@@ -3,7 +3,7 @@
 // nobody said is warmed up. The mode and warmedAt live in tiktokCare.ts; this only draws them.
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import type { TikTokMode as Mode } from "@/lib/tiktokCare";
 
@@ -67,7 +67,7 @@ export function TikTokMode({
           <div className="flex items-start justify-between gap-2">
             <p id="tiktok-guard-title" className="font-semibold text-foreground">Warm up this account first</p>
             <button type="button" onClick={keep} aria-label="Keep send to inbox" className="-m-2 grid h-11 w-11 place-items-center text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              <X className="h-3.5 w-3.5" />
+              <XIcon className="h-3.5 w-3.5" />
             </button>
           </div>
           <p className="text-muted-foreground">Posting straight to a new account can leave its first videos with almost no views.</p>

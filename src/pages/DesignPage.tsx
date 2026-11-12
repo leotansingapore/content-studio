@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Copy, Images, Plug, Plus, Trash2 } from "lucide-react";
+import { CopyIcon, ImagesIcon, PlugIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import SlideView, { setBrandPictures } from "@/components/design/SlideView";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -115,10 +115,10 @@ export default function DesignPage() {
         <h1 className="text-2xl font-semibold">Design</h1>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => open(newDesign("tiktok"))} className="gap-1.5">
-            <Plus className="h-4 w-4" /> New TikTok slideshow
+            <PlusIcon className="h-4 w-4" /> New TikTok slideshow
           </Button>
           <Button variant="outline" onClick={() => open(newDesign("instagram", "Untitled carousel"))} className="gap-1.5">
-            <Plus className="h-4 w-4" /> Instagram carousel
+            <PlusIcon className="h-4 w-4" /> Instagram carousel
           </Button>
         </div>
       </header>
@@ -150,10 +150,10 @@ export default function DesignPage() {
                 ) : (
                   <span className="flex gap-3 text-xs text-muted-foreground">
                     <button type="button" className="flex items-center gap-1 hover:text-foreground [@media(pointer:coarse)]:min-h-11" onClick={() => open(newDesign(d.format, `${d.title} copy`, d.slides))}>
-                      <Copy className="h-3 w-3" /> Duplicate
+                      <CopyIcon className="h-3 w-3" /> Duplicate
                     </button>
                     <button type="button" className="flex items-center gap-1 hover:text-destructive [@media(pointer:coarse)]:min-h-11" onClick={() => setConfirm(d.id)}>
-                      <Trash2 className="h-3 w-3" /> Delete
+                      <TrashIcon className="h-3 w-3" /> Delete
                     </button>
                   </span>
                 )}
@@ -192,10 +192,10 @@ export default function DesignPage() {
         </ul>
         <div className="flex flex-wrap gap-x-5 gap-y-2">
           <Link to="/working" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
-            <Images className="h-4 w-4" /> Find a format that's working in your niche
+            <ImagesIcon className="h-4 w-4" /> Find a format that's working in your niche
           </Link>
           <Link to="/connect" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
-            <Plug className="h-4 w-4" /> Have Claude build one with you
+            <PlugIcon className="h-4 w-4" /> Have Claude build one with you
           </Link>
         </div>
       </section>
@@ -223,7 +223,7 @@ export default function DesignPage() {
                   <span className="flex items-center justify-between text-xs text-muted-foreground">
                     {FORMAT_LABEL[t.format]}, {t.slides.length} slides
                     <button type="button" aria-label={`Remove the template ${t.title}`} className="hover:text-destructive [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-end" onClick={() => setConfirm(t.id)}>
-                      <Trash2 className="h-3 w-3" />
+                      <TrashIcon className="h-3 w-3" />
                     </button>
                   </span>
                 )}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { History, Pencil, Send } from "lucide-react";
+import { ClockCounterClockwiseIcon, PencilSimpleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
 
 import {
   Card,
@@ -134,7 +134,7 @@ export default function MemberView({
             </p>
           )}
           <Button size="sm" onClick={() => navigate("/drafts")} className="gap-1.5">
-            <Send className="h-3.5 w-3.5" /> Submit a draft from All posts
+            <PaperPlaneTiltIcon className="h-3.5 w-3.5" /> Submit a draft from All posts
           </Button>
           <LeaveTeam
             teamName={team.name}
@@ -158,7 +158,7 @@ export default function MemberView({
           ) : status === "error" ? (
             <ErrorBlock message={error} onRetry={() => void load()} />
           ) : subs.length === 0 ? (
-            <EmptyBlock icon={<History className="h-6 w-6" />}>
+            <EmptyBlock icon={<ClockCounterClockwiseIcon className="h-6 w-6" />}>
               <p>Nothing submitted yet. In All posts, choose Submit for review on a draft.</p>
               <Button size="sm" variant="outline" onClick={() => navigate("/drafts")}>
                 Open All posts
@@ -219,7 +219,7 @@ export default function MemberView({
                         onClick={() => navigate(`/generate?draft=${encodeURIComponent(s.draft_id)}`)}
                         className="mt-1 gap-1.5 px-2 text-xs"
                       >
-                        <Pencil className="h-3.5 w-3.5" /> Edit draft
+                        <PencilSimpleIcon className="h-3.5 w-3.5" /> Edit draft
                       </Button>
                     )}
                   </li>

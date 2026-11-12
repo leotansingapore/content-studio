@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ChevronLeft, Compass, Loader2, Mic, Pause, Play, Plus, Send, Sparkles, Square, Trash2, Wand2, X } from "lucide-react";
+import { CaretLeftIcon, CompassIcon, CircleNotchIcon, MicrophoneIcon, PauseIcon, PlayIcon, PlusIcon, PaperPlaneTiltIcon, SparkleIcon, SquareIcon, TrashIcon, MagicWandIcon, XIcon } from "@phosphor-icons/react";
 import LibraryDialog, { type Library } from "@/components/design/LibraryDialog";
 import PageTour from "@/components/PageTour";
 import { ColorField, Segmented, field } from "@/components/design/fields";
@@ -251,7 +251,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
       <header className="flex flex-wrap items-center gap-2">
         <Button variant="ghost" size="sm" asChild className="-ml-2 gap-1 text-muted-foreground">
           <Link to="/design/campaigns">
-            <ChevronLeft className="h-4 w-4" /> Campaigns
+            <CaretLeftIcon className="h-4 w-4" /> Campaigns
           </Link>
         </Button>
         <input value={name} maxLength={120} aria-label="Campaign name" readOnly={!canPost} onChange={(e) => setName(e.target.value)} className="min-w-0 flex-1 basis-40 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-lg font-semibold hover:border-border focus:border-input focus:outline-none" />
@@ -260,19 +260,19 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
           {saved ? "Saved" : "Saving"}
         </span>
         <Button variant="ghost" size="sm" onClick={() => setTour(true)} className="gap-1 text-muted-foreground">
-          <Compass className="h-4 w-4" /> Tour
+          <CompassIcon className="h-4 w-4" /> Tour
         </Button>
         <Button variant="outline" size="sm" disabled={!!busy || !spec.hooks.length || !canPost} onClick={() => void act("generate", { action: "preview", id: row.id })} className="gap-1.5" title={!canPost ? "Posting isn't switched on for your account yet." : spec.hooks.length ? undefined : "Add a hook first."}>
-          {busy === "generate" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} {shown ? "Regenerate" : "Generate"}
+          {busy === "generate" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />} {shown ? "Regenerate" : "Generate"}
         </Button>
         <span data-tour="campaign-start" className="inline-flex rounded-md">
         {row.status === "live" ? (
           <Button size="sm" variant="outline" disabled={!!busy} onClick={() => void act("pause", { action: "pause", id: row.id })} className="gap-1.5">
-            {busy === "pause" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pause className="h-4 w-4" />} Pause
+            {busy === "pause" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <PauseIcon className="h-4 w-4" />} Pause
           </Button>
         ) : (
           <Button size="sm" disabled={!!busy || !!startWhy} title={startWhy ?? undefined} onClick={() => void act("start", { action: "start", id: row.id })} className="gap-1.5">
-            {busy === "start" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Start
+            {busy === "start" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <PlayIcon className="h-4 w-4" />} Start
           </Button>
         )}
         </span>
@@ -283,7 +283,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
 
       {/* the example post */}
       <section aria-label="Example post" data-tour="campaign-generate" className="space-y-2">
-        {busy === "generate" && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Writing and drawing the slides</p>}
+        {busy === "generate" && <p className="flex items-center gap-2 text-sm text-muted-foreground"><CircleNotchIcon className="h-4 w-4 animate-spin" /> Writing and drawing the slides</p>}
         {shown ? (
           <>
             <ol className="flex gap-2 overflow-x-auto pb-1">
@@ -311,7 +311,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
             <Textarea value={caption ?? shown.caption} maxLength={2200} rows={3} aria-label="Caption" onChange={(e) => setCaption(e.target.value)} className="max-w-3xl text-sm" readOnly={shown.status !== undefined && shown.status !== "made"} />
             {(shown.status === undefined || shown.status === "made") && shown.kind !== "post" && (
               <Button size="sm" variant="outline" disabled={!!busy || !canPost || !row.account_id} title={!row.account_id ? "Pick the TikTok account it posts to." : undefined} onClick={() => void act("send", { action: "send", id: row.id, run_id: shown.id, caption: caption ?? shown.caption })} className="gap-1.5">
-                {busy === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {publishMode(row.publish) === "direct" ? "Post this to TikTok now" : "Send this to TikTok drafts now"}
+                {busy === "send" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <PaperPlaneTiltIcon className="h-4 w-4" />} {publishMode(row.publish) === "direct" ? "Post this to TikTok now" : "Send this to TikTok drafts now"}
               </Button>
             )}
           </>
@@ -344,7 +344,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                     if (t.includes("\n")) (e.preventDefault(), addHooks(t));
                   }} maxLength={200} placeholder="Type a hook, press Enter. Paste a list to add many." aria-label="Add a hook" className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm" />
                   <Button type="submit" size="icon" variant="outline" aria-label="Add the hook" disabled={!hookDraft.trim()} className="h-9 w-9">
-                    <Plus className="h-4 w-4" />
+                    <PlusIcon className="h-4 w-4" />
                   </Button>
                 </form>
                 {(() => {
@@ -361,7 +361,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                     <li key={h} className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs">
                       {h}
                       <button type="button" aria-label={`Remove ${h}`} onClick={() => setSpec((s) => ({ ...s, hooks: s.hooks.filter((x) => x !== h) }))} className="text-muted-foreground hover:text-foreground">
-                        <X className="h-3 w-3" />
+                        <XIcon className="h-3 w-3" />
                       </button>
                     </li>
                   ))}
@@ -377,11 +377,11 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                 <div className="flex flex-wrap items-center gap-2">
                   {dictation.supported && (
                     <Button type="button" size="sm" variant="outline" onClick={dictation.toggle} aria-pressed={dictation.listening} className="gap-1.5">
-                      {dictation.listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />} {dictation.listening ? "Stop" : "Say it"}
+                      {dictation.listening ? <SquareIcon className="h-4 w-4" /> : <MicrophoneIcon className="h-4 w-4" />} {dictation.listening ? "Stop" : "Say it"}
                     </Button>
                   )}
                   <Button type="button" size="sm" variant="outline" onClick={() => void optimize()} disabled={optimizing || !spec.topic.trim() || !canPost} className="gap-1.5">
-                    {optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />} Optimize
+                    {optimizing ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <MagicWandIcon className="h-4 w-4" />} Optimize
                   </Button>
                   <label className="flex items-center gap-1.5 text-xs">
                     <input type="checkbox" className="accent-primary" checked={spec.research} onChange={(e) => setSpec((s) => ({ ...s, research: e.target.checked }))} /> Search the web first
@@ -541,7 +541,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
                   <span className="flex items-center gap-2">
                     <input type="time" aria-label="Posting time" value={t.at} onChange={(e) => e.target.value && setSchedule((s) => ({ ...s, times: s.times.map((x, j) => (j === i ? { ...x, at: e.target.value } : x)) }))} className={`${field} w-32`} />
                     <button type="button" aria-label="Remove this time" onClick={() => setSchedule((s) => ({ ...s, times: s.times.filter((_, j) => j !== i) }))} className="ml-auto text-muted-foreground hover:text-destructive">
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <TrashIcon className="h-3.5 w-3.5" />
                     </button>
                   </span>
                   <span className="flex gap-1">
@@ -562,7 +562,7 @@ function Studio({ initial, userId }: { initial: CampaignRowView; userId: string 
               ))}
               {schedule.times.length < MAX_TIMES && (
                 <button type="button" className="flex items-center gap-1 text-xs text-primary hover:underline" onClick={() => setSchedule((s) => ({ ...s, times: [...s.times, { at: "18:00", days: [0, 1, 2, 3, 4, 5, 6] }] }))}>
-                  <Plus className="h-3.5 w-3.5" /> Add a posting time
+                  <PlusIcon className="h-3.5 w-3.5" /> Add a posting time
                 </button>
               )}
             </section>

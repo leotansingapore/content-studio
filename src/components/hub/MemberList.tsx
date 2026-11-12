@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon } from "@phosphor-icons/react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import type { HubMembership } from "@/lib/hub";
@@ -30,7 +30,7 @@ export default function MemberList() {
   if (loading) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <CircleNotchIcon className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }

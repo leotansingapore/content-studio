@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Clapperboard, ExternalLink, Loader2, RefreshCw, Shuffle, Trash2 } from "lucide-react";
+import { FilmSlateIcon, ArrowSquareOutIcon, CircleNotchIcon, ArrowsClockwiseIcon, ShuffleIcon, TrashIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import CopyLinkButton from "@/components/CopyLinkButton";
@@ -119,7 +119,7 @@ export default function FollowingPage() {
           // the chip sits under Check all on phones, beside it from sm
           <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
             <Button variant="outline" className="h-10 gap-2" onClick={checkAll} disabled={anyChecking || Boolean(allWhy)}>
-              {anyChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Check all
+              {anyChecking ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <ArrowsClockwiseIcon className="h-4 w-4" />} Check all
             </Button>
             {!anyChecking && <PriceChip price={sumPrices(...list.map(() => priceOf("track-accounts")))} uses={list.length} left={left} />}
           </div>
@@ -209,10 +209,10 @@ function AccountCard({ a, leo, linked, left, onCheck, onRemove, patterns: w }: {
           </span>
         </div>
         <Button size="icon" variant="ghost" className="h-10 w-10" aria-label={`Check @${a.handle} now`} title={price || undefined} onClick={onCheck} disabled={checking || (leo && left === 0)}>
-          {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {checking ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <ArrowsClockwiseIcon className="h-4 w-4" />}
         </Button>
         <Button size="icon" variant="ghost" className="h-10 w-10 text-muted-foreground hover:text-destructive" aria-label={`Stop following @${a.handle}`} onClick={onRemove}>
-          <Trash2 className="h-4 w-4" />
+          <TrashIcon className="h-4 w-4" />
         </Button>
       </div>
 
@@ -281,17 +281,17 @@ function PostRow({ a, p, best, leo, linked }: { a: FollowedAccount; p: TrackedPo
       <div className="flex flex-wrap gap-2">
         <RemixButton source={fromFollowPost(a, p)}>
           <Button asChild size="sm" variant="outline" className="h-9">
-            <Link to={remixUrl(a, p)}><Shuffle className="h-3.5 w-3.5" /> Remix</Link>
+            <Link to={remixUrl(a, p)}><ShuffleIcon className="h-3.5 w-3.5" /> Remix</Link>
           </Button>
         </RemixButton>
         {/* a video's link above is Clone a reel; Leo's Remix button replaced it, so it stays as its own link */}
         {leo && p.format === "video" && (
           <Button asChild size="sm" variant="ghost" className="h-9 [@media(pointer:coarse)]:h-11">
-            <Link to={remixUrl(a, p)}><Clapperboard className="h-3.5 w-3.5" /> Clone</Link>
+            <Link to={remixUrl(a, p)}><FilmSlateIcon className="h-3.5 w-3.5" /> Clone</Link>
           </Button>
         )}
         <Button asChild size="sm" variant="ghost" className="h-9">
-          <a href={p.url} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Open</a>
+          <a href={p.url} target="_blank" rel="noreferrer"><ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open</a>
         </Button>
         <SaveButton source={fromFollowPost(a, p)} />
       </div>

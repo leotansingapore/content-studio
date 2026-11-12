@@ -31,35 +31,35 @@ import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlSta
 import { trendView, type TrendView } from "@/lib/searchTopics";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import {
-  Flame,
-  Wand2,
-  ExternalLink,
-  Lightbulb,
-  Clapperboard,
-  Megaphone,
-  Copy,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  Globe,
-  Heart,
-  MessageCircle,
-  Share2,
-  Play,
-  Linkedin,
-  Instagram,
-  Facebook,
-  Video,
-} from "lucide-react";
+  FireIcon,
+  MagicWandIcon,
+  ArrowSquareOutIcon,
+  LightbulbIcon,
+  FilmSlateIcon,
+  MegaphoneIcon,
+  CopyIcon,
+  CaretDownIcon,
+  CaretUpIcon,
+  ClockIcon,
+  GlobeIcon,
+  HeartIcon,
+  ChatCircleIcon,
+  ShareNetworkIcon,
+  PlayIcon,
+  LinkedinLogoIcon,
+  InstagramLogoIcon,
+  FacebookLogoIcon,
+  VideoCameraIcon,
+} from "@phosphor-icons/react";
 
 const PLATFORM_META: Record<
   TrendPlatform,
-  { label: string; icon: typeof Linkedin }
+  { label: string; icon: typeof LinkedinLogoIcon }
 > = {
-  linkedin: { label: "LinkedIn", icon: Linkedin },
-  instagram: { label: "Instagram", icon: Instagram },
-  facebook: { label: "Facebook", icon: Facebook },
-  tiktok: { label: "TikTok", icon: Video },
+  linkedin: { label: "LinkedIn", icon: LinkedinLogoIcon },
+  instagram: { label: "Instagram", icon: InstagramLogoIcon },
+  facebook: { label: "Facebook", icon: FacebookLogoIcon },
+  tiktok: { label: "TikTok", icon: VideoCameraIcon },
 };
 
 const FORMAT_LABEL: Record<string, string> = {
@@ -88,7 +88,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
     if (open) cardRef.current?.scrollIntoView({ block: "nearest" });
   }, [open]);
   const platformMeta = PLATFORM_META[trend.platform];
-  const PlatformIcon = platformMeta?.icon ?? Globe;
+  const PlatformIcon = platformMeta?.icon ?? GlobeIcon;
   const hooks = trendHooks(trend);
   const points = trendTalkingPoints(trend);
   const hasKit = hooks.length > 0 || points.length > 0 || Boolean(trend.cta);
@@ -135,7 +135,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
                 freshness.stale ? "text-warning" : "text-success"
               }`}
             >
-              <Clock className="h-3 w-3" />
+              <ClockIcon className="h-3 w-3" />
               {freshness.label}
             </span>
           )}
@@ -151,19 +151,19 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
               <span className="font-semibold text-foreground/70">{trend.author}</span>
             )}
             <span className="inline-flex items-center gap-1" title="Likes">
-              <Heart className="h-3 w-3" /> {fmtEngagement(engagement.likes)}
+              <HeartIcon className="h-3 w-3" /> {fmtEngagement(engagement.likes)}
             </span>
             <span className="inline-flex items-center gap-1" title="Comments">
-              <MessageCircle className="h-3 w-3" /> {fmtEngagement(engagement.comments)}
+              <ChatCircleIcon className="h-3 w-3" /> {fmtEngagement(engagement.comments)}
             </span>
             {engagement.shares > 0 && (
               <span className="inline-flex items-center gap-1" title="Shares">
-                <Share2 className="h-3 w-3" /> {fmtEngagement(engagement.shares)}
+                <ShareNetworkIcon className="h-3 w-3" /> {fmtEngagement(engagement.shares)}
               </span>
             )}
             {engagement.views > 0 && (
               <span className="inline-flex items-center gap-1" title="Views">
-                <Play className="h-3 w-3" /> {fmtEngagement(engagement.views)}
+                <PlayIcon className="h-3 w-3" /> {fmtEngagement(engagement.views)}
               </span>
             )}
           </div>
@@ -174,7 +174,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
         {trend.trend_source && (
           <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
             <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              <Globe className="h-3 w-3" /> What&apos;s trending
+              <GlobeIcon className="h-3 w-3" /> What&apos;s trending
             </p>
             <p className="mt-1 text-[12px] leading-relaxed text-foreground/80">
               {trend.trend_source}
@@ -187,7 +187,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
           <div className="space-y-1.5 rounded-lg border border-primary/20 bg-primary/5 p-2.5">
             <div className="flex items-center justify-between gap-2">
               <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
-                <Lightbulb className="h-3 w-3" /> Hook
+                <LightbulbIcon className="h-3 w-3" /> Hook
               </p>
               <button
                 type="button"
@@ -195,7 +195,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
                 aria-label="Copy hook"
                 className="-m-1.5 rounded p-1.5 text-muted-foreground transition-colors hover:text-primary [@media(pointer:coarse)]:-mx-2.5 [@media(pointer:coarse)]:-mb-1.5 [@media(pointer:coarse)]:-mt-2.5 [@media(pointer:coarse)]:p-4"
               >
-                <Copy className="h-3 w-3" />
+                <CopyIcon className="h-3 w-3" />
               </button>
             </div>
             <p className="text-[12px] font-medium leading-relaxed text-foreground">
@@ -213,11 +213,11 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
           >
             {open ? (
               <>
-                Hide the kit <ChevronUp className="h-3 w-3" />
+                Hide the kit <CaretUpIcon className="h-3 w-3" />
               </>
             ) : (
               <>
-                Show the full kit <ChevronDown className="h-3 w-3" />
+                Show the full kit <CaretDownIcon className="h-3 w-3" />
               </>
             )}
           </button>
@@ -243,7 +243,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
                         aria-label="Copy hook"
                         className="mt-0.5 shrink-0 text-muted-foreground transition-colors hover:text-primary"
                       >
-                        <Copy className="h-3 w-3" />
+                        <CopyIcon className="h-3 w-3" />
                       </button>
                     </li>
                   ))}
@@ -274,7 +274,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
               <div className="space-y-1 rounded-lg border border-success/25 bg-success/[0.06] p-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-success">
-                    <Megaphone className="h-3 w-3" /> Call to action
+                    <MegaphoneIcon className="h-3 w-3" /> Call to action
                   </p>
                   <button
                     type="button"
@@ -282,7 +282,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
                     aria-label="Copy call to action"
                     className="text-muted-foreground transition-colors hover:text-success"
                   >
-                    <Copy className="h-3 w-3" />
+                    <CopyIcon className="h-3 w-3" />
                   </button>
                 </div>
                 <p className="text-[12px] leading-relaxed text-foreground/85">
@@ -293,7 +293,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
 
             <div className="space-y-1">
               <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                <Clapperboard className="h-3 w-3" /> How to make it
+                <FilmSlateIcon className="h-3 w-3" /> How to make it
               </p>
               <p className="text-[12px] leading-relaxed text-foreground/80">
                 {trend.how_to_film}
@@ -320,20 +320,20 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
               className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:h-11"
             >
               <Link to={buildTrendRemixUrl(trend)}>
-                <Wand2 className="h-3.5 w-3.5" /> Write this
+                <MagicWandIcon className="h-3.5 w-3.5" /> Write this
               </Link>
             </Button>
           </RemixButton>
           {cloneLinkFor(trend.source_url) && (
             <Button asChild variant="outline" size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11" title="Clone this video">
               <Link to={cloneLinkFor(trend.source_url)!}>
-                <Clapperboard className="h-3.5 w-3.5" /> Clone
+                <FilmSlateIcon className="h-3.5 w-3.5" /> Clone
               </Link>
             </Button>
           )}
           <Button asChild variant="outline" size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11">
             <a href={safeExternalUrl(trend.source_url) ?? undefined} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5" /> Source
+              <ArrowSquareOutIcon className="h-3.5 w-3.5" /> Source
             </a>
           </Button>
           <SaveButton source={fromTrend(trend)} />
@@ -414,7 +414,7 @@ export default function TrendsPage() {
     <div className="space-y-5">
       <header className="space-y-1.5">
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Flame className="h-6 w-6 text-primary" /> Trends
+          <FireIcon className="h-6 w-6 text-primary" /> Trends
         </h1>
         {view === "kits" && (
           <p className="max-w-2xl text-sm text-muted-foreground">

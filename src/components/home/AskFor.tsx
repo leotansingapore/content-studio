@@ -2,14 +2,14 @@
 // composer without sending, or, folded, one line of words that do the same. The fold is remembered on this device.
 
 import { useState } from "react";
-import { CalendarRange, Layers, PenLine, Repeat2, Video } from "lucide-react";
+import { CalendarBlankIcon, StackIcon, PencilLineIcon, RepeatIcon, VideoCameraIcon } from "@phosphor-icons/react";
 import { askForExamples } from "@/lib/askFor";
 import { loadPositioning } from "@/lib/positioning";
 import { scoped } from "@/lib/profiles";
 import { speakerFor } from "@/lib/remixBrand";
 import { cn } from "@/lib/utils";
 
-const ICONS = [Repeat2, Layers, Video, CalendarRange, PenLine];
+const ICONS = [RepeatIcon, StackIcon, VideoCameraIcon, CalendarBlankIcon, PencilLineIcon];
 const LINK = "inline-flex min-h-9 items-center rounded-md px-2 text-sm font-medium text-primary hover:bg-accent [@media(pointer:coarse)]:min-h-11";
 
 export default function AskFor({ userId, onPick, className }: { userId: string; onPick: (text: string) => void; className?: string }) {

@@ -11,18 +11,18 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  TrendingUp,
-  Wand2,
-  LayoutGrid,
-  Video,
-  FileText,
-  ShieldCheck,
-  CalendarClock,
-  ExternalLink,
-  PlayCircle,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
+  TrendUpIcon,
+  MagicWandIcon,
+  SquaresFourIcon,
+  VideoCameraIcon,
+  FileTextIcon,
+  ShieldCheckIcon,
+  CalendarDotsIcon,
+  ArrowSquareOutIcon,
+  PlayCircleIcon,
+  SparkleIcon,
+  ArrowRightIcon,
+} from "@phosphor-icons/react";
 import { adviserBrand } from "@/lib/profession";
 import { socialConnectShown } from "@/lib/socialConnect";
 
@@ -54,7 +54,7 @@ function ToolRow({ tool }: { tool: Tool }) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 rounded-lg border border-border/60 px-2 py-1 text-[11px] [@media(pointer:coarse)]:min-h-11 font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground"
           >
-            <PlayCircle className="h-3 w-3" /> Tutorial
+            <PlayCircleIcon className="h-3 w-3" /> Tutorial
           </a>
         )}
         <a
@@ -63,7 +63,7 @@ function ToolRow({ tool }: { tool: Tool }) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-primary/5 px-2 py-1 text-[11px] [@media(pointer:coarse)]:min-h-11 font-semibold text-primary hover:bg-primary/10"
         >
-          <ExternalLink className="h-3 w-3" /> Open
+          <ArrowSquareOutIcon className="h-3 w-3" /> Open
         </a>
       </div>
     </div>
@@ -80,7 +80,7 @@ function Step({
   n: number;
   /** The step's #anchor (docs/deep-links.md). */
   id: GuideStep;
-  icon: typeof Wand2;
+  icon: typeof MagicWandIcon;
   title: string;
   children: React.ReactNode;
 }) {
@@ -122,12 +122,12 @@ export default function CreateGuidePage() {
     <div className="space-y-5">
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Sparkles className="h-6 w-6 text-primary" />
+          <SparkleIcon className="h-6 w-6 text-primary" />
           Create the post, end to end
         </h1>
       </header>
 
-      {top && <Step n={1} id="idea" icon={TrendingUp} title="Find an idea that already works">
+      {top && <Step n={1} id="idea" icon={TrendUpIcon} title="Find an idea that already works">
         <p>
           Open <Link to="/swipe" className="font-semibold text-primary hover:underline">Top posts</Link>{" "}
           and browse the best-performing posts from advisors like you. Each card
@@ -136,7 +136,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>}
 
-      <Step n={n(2)} id="draft" icon={Wand2} title="Turn it into your draft">
+      <Step n={n(2)} id="draft" icon={MagicWandIcon} title="Turn it into your draft">
         {top ? (
           <p>
             Hit <span className="font-semibold">Remix in Write</span> on any post.
@@ -160,7 +160,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={n(3)} id="carousel" icon={LayoutGrid} title="Build a carousel">
+      <Step n={n(3)} id="carousel" icon={SquaresFourIcon} title="Build a carousel">
         <p>
           {top ? "Carousels are the workhorse for advisors: one idea" : "One idea"}, one slide at a
           time, ending on a clear takeaway. Open{" "}
@@ -180,7 +180,7 @@ export default function CreateGuidePage() {
         )}
       </Step>
 
-      <Step n={n(4)} id="reel" icon={Video} title="Film a reel">
+      <Step n={n(4)} id="reel" icon={VideoCameraIcon} title="Film a reel">
         <p>
           For talking-head reels, use the script from Write as your teleprompter.
           Hook in the first 2 seconds, keep it under 45 seconds, add captions.
@@ -197,7 +197,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={n(5)} id="reverse-engineer" icon={FileText} title="Reverse-engineer a video you love">
+      <Step n={n(5)} id="reverse-engineer" icon={FileTextIcon} title="Reverse-engineer a video you love">
         <p>
           {top ? "If a top post is a reel" : "Seen a reel that works"}, paste its Instagram or TikTok
           link into <Link to={links.clone()} className="font-semibold text-primary hover:underline">Clone a reel</Link>. You get a
@@ -206,7 +206,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={n(6)} id="compliance" icon={ShieldCheck} title={top ? "Compliance check before you post" : "Check it before you post"}>
+      <Step n={n(6)} id="compliance" icon={ShieldCheckIcon} title={top ? "Compliance check before you post" : "Check it before you post"}>
         {top ? (
           <p>
             Write flags risky claims automatically. As a licensed advisor, avoid
@@ -224,7 +224,7 @@ export default function CreateGuidePage() {
         )}
       </Step>
 
-      <Step n={n(7)} id="schedule" icon={CalendarClock} title="Schedule and track">
+      <Step n={n(7)} id="schedule" icon={CalendarDotsIcon} title="Schedule and track">
         <p>
           Batch a week of posts in{" "}
           <Link to="/plan" className="font-semibold text-primary hover:underline">Plan a week</Link>,
@@ -254,12 +254,12 @@ export default function CreateGuidePage() {
       <div className="flex flex-wrap gap-2 pt-1">
         {top && <Button asChild size="lg" className="gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
           <Link to="/swipe">
-            <TrendingUp className="h-4 w-4" /> Browse top posts
+            <TrendUpIcon className="h-4 w-4" /> Browse top posts
           </Link>
         </Button>}
         <Button asChild size="lg" variant="outline" className="gap-2">
           <Link to="/generate">
-            Start writing <ArrowRight className="h-4 w-4" />
+            Start writing <ArrowRightIcon className="h-4 w-4" />
           </Link>
         </Button>
       </div>

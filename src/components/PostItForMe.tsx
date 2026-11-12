@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, RotateCw, Send, X } from "lucide-react";
+import { ArrowSquareOutIcon, CircleNotchIcon, ArrowClockwiseIcon, PaperPlaneTiltIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -193,7 +193,7 @@ export function ZernioStatus({ userId, draft, onDrafts, edits }: { userId: strin
   return (
     <div className="w-full">
       <button type="button" onClick={toggle} aria-expanded={open} className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2.5 text-[10px] font-semibold ${TOUCH} ${TONE[chip.tone]}`}>
-        {busy === "read" && <Loader2 className="h-3 w-3 animate-spin" />}
+        {busy === "read" && <CircleNotchIcon className="h-3 w-3 animate-spin" />}
         {chipText(chip.label, posted && leo ? link.numbers : undefined)}
       </button>
       {edits && canCancel(link) && link.status !== "publishing" && (
@@ -224,7 +224,7 @@ export function ZernioStatus({ userId, draft, onDrafts, edits }: { userId: strin
                   )}
                   {p.url && (
                     <a href={p.url} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 font-semibold text-primary hover:underline ${TOUCH}`}>
-                      View post <ExternalLink className="h-3 w-3" />
+                      View post <ArrowSquareOutIcon className="h-3 w-3" />
                     </a>
                   )}
                   {p.error && <span className="w-full text-destructive">{leo && p.platform === "tiktok" ? tiktokReason(p.error) : p.error}</span>}
@@ -234,7 +234,7 @@ export function ZernioStatus({ userId, draft, onDrafts, edits }: { userId: strin
           ) : (
             link.links?.map((l) => (
               <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className={`mr-3 inline-flex items-center gap-1 font-semibold text-primary hover:underline ${TOUCH}`}>
-                {platformName(l.platform)} <ExternalLink className="h-3 w-3" />
+                {platformName(l.platform)} <ArrowSquareOutIcon className="h-3 w-3" />
               </a>
             ))
           )}
@@ -244,7 +244,7 @@ export function ZernioStatus({ userId, draft, onDrafts, edits }: { userId: strin
             <div className="flex flex-wrap gap-2">
               {canRetry(link) && (
                 <Button size="sm" variant="outline" disabled={!!busy} onClick={() => void run("retry")} className={`h-9 gap-1.5 ${TOUCH}`}>
-                  {busy === "retry" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />} Retry
+                  {busy === "retry" ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <ArrowClockwiseIcon className="h-3.5 w-3.5" />} Retry
                 </Button>
               )}
               {canCancel(link) && (
@@ -255,7 +255,7 @@ export function ZernioStatus({ userId, draft, onDrafts, edits }: { userId: strin
                   onClick={() => (confirm ? void run("cancel") : setConfirm(true))}
                   className={`h-9 gap-1.5 ${confirm ? "text-destructive" : "text-muted-foreground"} ${TOUCH}`}
                 >
-                  {busy === "cancel" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {busy === "cancel" && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />}
                   {confirm ? "Confirm cancel" : "Cancel post"}
                 </Button>
               )}
@@ -512,11 +512,11 @@ export function PostItForMePanel({
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">Post it for me</p>
         <button type="button" onClick={onClose} aria-label="Close" className="-m-2 grid h-11 w-11 place-items-center text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-          <X className="h-3.5 w-3.5" />
+          <XIcon className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      {state === "loading" && <p className="flex items-center gap-1.5 text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading your accounts...</p>}
+      {state === "loading" && <p className="flex items-center gap-1.5 text-muted-foreground"><CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Loading your accounts...</p>}
       {state === "off" && <p className="text-muted-foreground">Social accounts aren't switched on for you yet.</p>}
       {state === "error" && <p className="text-destructive">Couldn't load your accounts. Close this and try again in a minute.</p>}
       {state === "ready" && !accounts.length && (
@@ -616,7 +616,7 @@ export function PostItForMePanel({
           {platform === "tiktok" && (
             <fieldset className="space-y-1.5">
               <legend className="mb-1 font-semibold text-foreground">On TikTok</legend>
-              {!info && tiktokId && <p className="flex items-center gap-1.5 text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading your TikTok settings...</p>}
+              {!info && tiktokId && <p className="flex items-center gap-1.5 text-muted-foreground"><CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Reading your TikTok settings...</p>}
               {info && (
                 <>
                   <label className="flex flex-wrap items-center gap-2">
@@ -654,7 +654,7 @@ export function PostItForMePanel({
       {error && <p role="alert" className="text-destructive">{error}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={() => void send()} disabled={!!reason || !!busy} className={`h-auto min-h-9 gap-1.5 whitespace-normal py-1.5 text-left ${TOUCH}`}>
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+          {busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <PaperPlaneTiltIcon className="h-3.5 w-3.5" />}
           {busyLabel ?? (goesNow ? "Post now" : at ? `Schedule for ${whenLabel(day, time, tz)}` : "Schedule")}
         </Button>
         {reason && !busy && state === "ready" && accounts.length > 0 && <span className="text-muted-foreground">{reason}</span>}

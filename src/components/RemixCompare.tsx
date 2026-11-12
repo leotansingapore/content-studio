@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
+import { WarningIcon } from "@phosphor-icons/react";
 import RemixButton from "@/components/remix/RemixButton";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { COMPARE_TABS, links } from "@/lib/links";
@@ -124,7 +124,7 @@ export default function RemixCompare({
               <p className="text-sm text-muted-foreground">No lines match the original.</p>
             ) : (
               <div className={CHIP}>
-                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" aria-hidden />
+                <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" aria-hidden />
                 <div className="min-w-0 space-y-1">
                   <p className="font-semibold">Shares words with the original</p>
                   <ul className="space-y-0.5">
@@ -139,7 +139,7 @@ export default function RemixCompare({
             )}
             {changed.claim && (
               <div className={CHIP}>
-                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" aria-hidden />
+                <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" aria-hidden />
                 <p className="font-semibold">Uses a figure or claim from the original. Check it or take it out.</p>
               </div>
             )}

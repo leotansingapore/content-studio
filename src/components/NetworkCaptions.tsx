@@ -3,7 +3,7 @@
 // that. Under each: its counter, hashtags, limit warnings, compliance flags and the network's own options. The
 // versions ride on the draft (DraftEntry.versions); the server reads them for listed uids only (social/posts.ts).
 
-import { Loader2, Sparkles } from "lucide-react";
+import { CircleNotchIcon, SparkleIcon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -205,7 +205,7 @@ export function NetworkCaptions({
         {tabs.length > 1 && (
           <span className="flex flex-wrap items-center gap-1.5">
             <Button size="sm" variant="outline" disabled={write.busy || write.disabled} onClick={write.run} className={`h-9 gap-1.5 ${TOUCH}`}>
-              {write.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              {write.busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <SparkleIcon className="h-3.5 w-3.5" />}
               {write.busy ? "Writing..." : "Write a version for each network"}
             </Button>
             {!write.busy && write.chip}

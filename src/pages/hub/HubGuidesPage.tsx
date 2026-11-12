@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Loader2 } from "lucide-react";
+import { BookOpenIcon, CircleNotchIcon } from "@phosphor-icons/react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HUB_CATEGORIES, type HubPost } from "@/lib/hub";
@@ -31,7 +31,7 @@ export default function HubGuidesPage() {
   return (
     <div className="space-y-4">
       <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-        <BookOpen className="h-5 w-5" /> Guides
+        <BookOpenIcon className="h-5 w-5" /> Guides
       </h1>
 
       <div className="flex flex-wrap gap-2">
@@ -56,7 +56,7 @@ export default function HubGuidesPage() {
 
       {loading ? (
         <div className="flex h-32 items-center justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <CircleNotchIcon className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : shown.length === 0 ? (
         <Card>

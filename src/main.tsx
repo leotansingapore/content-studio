@@ -4,6 +4,7 @@ import "./lib/supabase-fetch-watch";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { IconContext } from "@phosphor-icons/react";
 import App from "./App";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { installGlobalErrorHandlers } from "@/lib/clientErrors";
@@ -15,13 +16,17 @@ installGlobalErrorHandlers();
 // arrives after load.
 bootErrorReporting();
 
+const iconDefaults = { size: 24, weight: "regular", color: "currentColor", mirrored: false } as const;
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ErrorBoundary fullPage>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </ErrorBoundary>
+    <IconContext.Provider value={iconDefaults}>
+      <ErrorBoundary fullPage>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ErrorBoundary>
+    </IconContext.Provider>
   </React.StrictMode>,
 );
 

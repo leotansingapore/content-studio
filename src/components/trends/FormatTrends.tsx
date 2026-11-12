@@ -4,7 +4,7 @@
 // place (push), so a link or a reload lands on it and Back closes it. An unknown template id is dropped quietly.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlignLeft, ExternalLink, GalleryHorizontal, Wand2, X } from "lucide-react";
+import { TextAlignLeftIcon, ArrowSquareOutIcon, SlideshowIcon, MagicWandIcon, XIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +23,7 @@ const KIND_LABELS: Record<FormatTrendKind, string> = { slideshow: "Slideshows", 
 
 function Cover({ t, className }: { t: FormatTrend; className?: string }) {
   const [broken, setBroken] = useState(false);
-  const Icon = t.kind === "slideshow" ? GalleryHorizontal : AlignLeft;
+  const Icon = t.kind === "slideshow" ? SlideshowIcon : TextAlignLeftIcon;
   return broken ? (
     <span className={cn("flex flex-col items-center justify-center gap-1 bg-muted text-xs text-muted-foreground", className)}>
       <Icon className="h-6 w-6" aria-hidden />
@@ -38,7 +38,7 @@ function RemixThis({ t, userId, className }: { t: FormatTrend; userId: string; c
   return (
     <Button asChild size="sm" className={cn("gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:h-11", className)}>
       <Link to={formatRemixUrl(t)} onClick={() => rememberSource(fromFormatTrend(t), userId)}>
-        <Wand2 className="h-3.5 w-3.5" /> Remix this
+        <MagicWandIcon className="h-3.5 w-3.5" /> Remix this
       </Link>
     </Button>
   );
@@ -87,7 +87,7 @@ function OpenCard({ t, userId, onClose }: { t: FormatTrend; userId: string; onCl
           <div className="flex items-start justify-between gap-2">
             <Tag t={t} />
             <Button variant="ghost" size="sm" onClick={onClose} className="-mr-1 -mt-1 gap-1 [@media(pointer:coarse)]:h-11">
-              <X className="h-3.5 w-3.5" /> Close
+              <XIcon className="h-3.5 w-3.5" /> Close
             </Button>
           </div>
           <p className="break-words text-sm text-foreground">{t.caption || t.hook}</p>
@@ -111,7 +111,7 @@ function OpenCard({ t, userId, onClose }: { t: FormatTrend; userId: string; onCl
             {tiktok && (
               <Button asChild variant="outline" size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11">
                 <a href={tiktok} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" /> Open on TikTok
+                  <ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open on TikTok
                 </a>
               </Button>
             )}

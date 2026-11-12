@@ -6,7 +6,7 @@ import {
   nextAction,
   type DiagnosisResult,
 } from "@/lib/diagnosis";
-import { Target, ArrowRight, RefreshCw, Clock, Sparkles } from "lucide-react";
+import { TargetIcon, ArrowRightIcon, ArrowsClockwiseIcon, ClockIcon, SparkleIcon } from "@phosphor-icons/react";
 
 /** Score → semantic colour, shared by the ring and the bars. */
 export function scoreTint(score: number): { text: string; bar: string; ring: string } {
@@ -95,7 +95,7 @@ export default function DiagnosisSummary({
           <CardContent className="space-y-3 py-5">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Target className="h-4 w-4" />
+                <TargetIcon className="h-4 w-4" />
               </span>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
@@ -114,11 +114,11 @@ export default function DiagnosisSummary({
                 className="gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
               >
                 <Link to={action.mission.to}>
-                  {action.mission.cta} <ArrowRight className="h-4 w-4" />
+                  {action.mission.cta} <ArrowRightIcon className="h-4 w-4" />
                 </Link>
               </Button>
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" /> ~{action.mission.effortMins} min
+                <ClockIcon className="h-3.5 w-3.5" /> ~{action.mission.effortMins} min
               </span>
             </div>
           </CardContent>
@@ -128,7 +128,7 @@ export default function DiagnosisSummary({
         <Card className="border-success/30 bg-success/[0.05] shadow-card">
           <CardContent className="flex items-start gap-3 py-5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
-              <Sparkles className="h-4 w-4" />
+              <SparkleIcon className="h-4 w-4" />
             </span>
             <div>
               <p className="text-sm font-semibold text-foreground">{action.headline}</p>
@@ -165,7 +165,7 @@ export default function DiagnosisSummary({
 
       {onRetake && (
         <Button variant="outline" size="sm" className="gap-1.5" onClick={onRetake}>
-          <RefreshCw className="h-3.5 w-3.5" /> Retake the diagnosis
+          <ArrowsClockwiseIcon className="h-3.5 w-3.5" /> Retake the diagnosis
         </Button>
       )}
     </div>

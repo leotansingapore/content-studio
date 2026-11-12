@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ThinkingOrb } from "thinking-orbs";
-import { AlertTriangle, Mic, RotateCcw, Square, Upload } from "lucide-react";
+import { WarningIcon, MicrophoneIcon, ArrowCounterClockwiseIcon, SquareIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
@@ -34,7 +34,7 @@ export default function VoiceNote({ userId }: { userId: string }) {
     return (
       <div className="flex flex-wrap items-center gap-3" data-testid="voice-note-recording">
         <Button onClick={() => void stopNote()} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
-          <Square className="h-4 w-4" /> Stop
+          <SquareIcon className="h-4 w-4" /> Stop
         </Button>
         <p className="flex items-center gap-2 text-sm font-medium text-foreground" aria-live="polite">
           <span className="h-2.5 w-2.5 rounded-full bg-destructive motion-safe:animate-pulse" aria-hidden />
@@ -59,11 +59,11 @@ export default function VoiceNote({ userId }: { userId: string }) {
       <div className="flex flex-wrap items-center gap-2">
         {canRecord && (
           <Button onClick={() => void recordNote(userId)} disabled={off} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
-            <Mic className="h-4 w-4" /> Record a voice note
+            <MicrophoneIcon className="h-4 w-4" /> Record a voice note
           </Button>
         )}
         <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={off} className="h-11 gap-1.5 sm:h-10">
-          <Upload className="h-4 w-4" /> Upload a voice note
+          <UploadSimpleIcon className="h-4 w-4" /> Upload a voice note
         </Button>
         <input
           ref={fileRef}
@@ -85,11 +85,11 @@ export default function VoiceNote({ userId }: { userId: string }) {
       {job?.state === "failed" && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4" role="alert">
           <p className="flex min-w-0 flex-1 items-start gap-2 text-sm text-destructive">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {job.error}
+            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" /> {job.error}
           </p>
           {job.retry && (
             <Button size="sm" variant="outline" onClick={retryNote} disabled={left === 0} className="h-11 gap-1.5 sm:h-9">
-              <RotateCcw className="h-4 w-4" /> Try again
+              <ArrowCounterClockwiseIcon className="h-4 w-4" /> Try again
             </Button>
           )}
         </div>

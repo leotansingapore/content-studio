@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Loader2, Radar, TrendingUp } from "lucide-react";
+import { CaretDownIcon, CircleNotchIcon, BinocularsIcon, TrendUpIcon } from "@phosphor-icons/react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import TrendCard from "@/components/hub/TrendCard";
@@ -17,9 +17,9 @@ function HowItWorks() {
         onClick={() => setOpen((v) => !v)}
       >
         <span className="flex items-center gap-2">
-          <Radar className="h-4 w-4 text-primary" /> How trend drops work
+          <BinocularsIcon className="h-4 w-4 text-primary" /> How trend drops work
         </span>
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        <CaretDownIcon className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <CardContent className="space-y-2 pt-0 text-sm text-muted-foreground">
@@ -82,7 +82,7 @@ export default function HubTrendsPage() {
   return (
     <div className="space-y-4">
       <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-        <TrendingUp className="h-5 w-5" /> Trend drops
+        <TrendUpIcon className="h-5 w-5" /> Trend drops
       </h1>
 
       <HowItWorks />
@@ -111,7 +111,7 @@ export default function HubTrendsPage() {
 
       {loading ? (
         <div className="flex h-32 items-center justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <CircleNotchIcon className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : shown.length === 0 ? (
         <Card>

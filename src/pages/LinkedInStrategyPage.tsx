@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Linkedin, Loader2, PenLine, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, LinkedinLogoIcon, CircleNotchIcon, PencilLineIcon, ArrowCounterClockwiseIcon, SparkleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,7 +79,7 @@ function StrategyPlanner({ userId }: { userId: string }) {
     <div className="space-y-6">
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Linkedin className="h-6 w-6 shrink-0 text-primary" aria-hidden /> LinkedIn strategy
+          <LinkedinLogoIcon className="h-6 w-6 shrink-0 text-primary" aria-hidden /> LinkedIn strategy
         </h1>
       </header>
       {view === "strategy" && saved.strategy ? (
@@ -156,20 +156,20 @@ function Interview(p: {
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {p.step > 0 && (
             <Button variant="ghost" onClick={() => p.onStep(p.step - 1)} disabled={p.working} className={`gap-1.5 ${TOUCH}`}>
-              <ArrowLeft className="h-4 w-4" /> Back
+              <ArrowLeftIcon className="h-4 w-4" /> Back
             </Button>
           )}
           {last ? (
             <>
               <Button onClick={p.onWrite} disabled={!ready || p.working || p.left === 0} className={`gap-1.5 ${TOUCH}`}>
-                {p.working ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {p.working ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}
                 {p.working ? "Writing your strategy..." : "Write my strategy"}
               </Button>
               <PriceChip feature="linkedin-strategy" left={p.left} />
             </>
           ) : (
             <Button onClick={() => p.onStep(p.step + 1)} className={`gap-1.5 ${TOUCH}`}>
-              Next <ArrowRight className="h-4 w-4" />
+              Next <ArrowRightIcon className="h-4 w-4" />
             </Button>
           )}
           {p.hasStrategy && !p.working && (
@@ -230,7 +230,7 @@ function StrategyView({ strategy: s, onEdit }: { strategy: Strategy; onEdit: () 
           {first && (
             <Button asChild className={`gap-1.5 ${TOUCH}`}>
               <Link to={writeLink("top", first)}>
-                <PenLine className="h-4 w-4" /> Write your first post
+                <PencilLineIcon className="h-4 w-4" /> Write your first post
               </Link>
             </Button>
           )}
@@ -275,7 +275,7 @@ function StrategyView({ strategy: s, onEdit }: { strategy: Strategy; onEdit: () 
         </CardContent>
       </Card>
       <Button variant="outline" onClick={onEdit} className={`gap-1.5 ${TOUCH}`}>
-        <RotateCcw className="h-4 w-4" /> Change your answers
+        <ArrowCounterClockwiseIcon className="h-4 w-4" /> Change your answers
       </Button>
     </div>
   );

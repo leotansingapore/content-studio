@@ -3,7 +3,7 @@
 // to use it; "Write 3 more" takes the next three formulas.
 
 import { useState } from "react";
-import { Check, Sparkles } from "lucide-react";
+import { CheckIcon, SparkleIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -58,7 +58,7 @@ export default function HookOptions({ userId, projectId, words, segs, total, spe
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="outline" onClick={() => void write()} disabled={busy || !words.length || left === 0}
           className={`h-11 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
-          {busy ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
+          {busy ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <SparkleIcon className="h-3.5 w-3.5" />}
           {busy ? "Writing..." : state ? "Write 3 more" : "Write 3 hooks from what I say"}
         </Button>
         {!(leo && busy) && <PriceChip feature="vibe-edit" left={left} fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />}
@@ -77,7 +77,7 @@ export default function HookOptions({ userId, projectId, words, segs, total, spe
                     <span className="block text-[11px] text-muted-foreground">{hookFormula(h.formula)?.name ?? ""}</span>
                   </span>
                   {i === state.ideas.pick && <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">Recommended</span>}
-                  {on && <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />}
+                  {on && <CheckIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />}
                 </button>
               </li>
             );

@@ -4,7 +4,7 @@
 // Given another `kind` (Leo's Write Insert panel, Manage), the same list of
 // lines, hashtag sets, endings, hooks or post templates. Logic: src/lib/replySnippets.ts.
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Copy, Pencil, Trash2, Zap } from "lucide-react";
+import { CopyIcon, PencilSimpleIcon, TrashIcon, LightningIcon } from "@phosphor-icons/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -86,7 +86,7 @@ export default function Snippets({ userId, kind = "reply", focusName = false }: 
         <CardContent className="space-y-3 p-4 sm:p-5">
           <div className="flex items-center gap-2">
             <h2 id="snippets-title" className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-              <Zap className="h-4 w-4 text-primary" /> Saved {KIND_NAME[kind].many}
+              <LightningIcon className="h-4 w-4 text-primary" /> Saved {KIND_NAME[kind].many}
             </h2>
             {reply && <InfoTip label="About saved replies">Tap Insert on any draft to put one in.</InfoTip>}
             <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
@@ -155,7 +155,7 @@ export default function Snippets({ userId, kind = "reply", focusName = false }: 
               ))}
               <div className="flex items-center gap-1">
                 <button type="button" onClick={() => startEdit(s.id)} aria-label={`Edit ${s.name}`} className={`${small} text-muted-foreground hover:bg-primary/10 hover:text-primary`}>
-                  <Pencil className="h-3.5 w-3.5" /> Edit
+                  <PencilSimpleIcon className="h-3.5 w-3.5" /> Edit
                 </button>
                 <button
                   type="button"
@@ -164,10 +164,10 @@ export default function Snippets({ userId, kind = "reply", focusName = false }: 
                   aria-label={confirm === s.id ? `Confirm delete ${s.name}` : `Delete ${s.name}`}
                   className={`${small} ${confirm === s.id ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground hover:bg-primary/10 hover:text-primary"}`}
                 >
-                  <Trash2 className="h-3.5 w-3.5" /> {confirm === s.id ? "Confirm delete" : "Delete"}
+                  <TrashIcon className="h-3.5 w-3.5" /> {confirm === s.id ? "Confirm delete" : "Delete"}
                 </button>
                 <button type="button" onClick={() => void copy(s.text, `${s.name} copied`)} aria-label={`Copy ${s.name}`} className={`${small} ml-auto text-primary hover:bg-primary/10`}>
-                  <Copy className="h-3.5 w-3.5" /> Copy
+                  <CopyIcon className="h-3.5 w-3.5" /> Copy
                 </button>
               </div>
             </li>

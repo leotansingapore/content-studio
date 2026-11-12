@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { WarningIcon } from "@phosphor-icons/react";
 import type { Flags } from "@/lib/remix";
 
 /** Warnings on a finished remix; the draft is saved either way. */
@@ -11,7 +11,7 @@ export default function FlagChips({ flags }: { flags: Flags }) {
     <div className="space-y-1.5">
       {flags.copied.length > 0 && (
         <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className={`${chip} w-full [@media(pointer:coarse)]:min-h-11`}>
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
+          <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
           <span className="space-y-1">
             <span className="block font-semibold">Shares words with the original</span>
             {open && flags.copied.map((l) => <span key={l} className="block font-mono text-[10px]">{l}</span>)}
@@ -20,12 +20,12 @@ export default function FlagChips({ flags }: { flags: Flags }) {
       )}
       {flags.claim && (
         <p className={chip}>
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> Uses a figure or claim from the original. Check it or take it out.
+          <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> Uses a figure or claim from the original. Check it or take it out.
         </p>
       )}
       {flags.invented && (
         <p className={chip}>
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> Says something about you that isn't in your profile. Check it.
+          <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> Says something about you that isn't in your profile. Check it.
         </p>
       )}
     </div>

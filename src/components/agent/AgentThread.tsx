@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowDown, ArrowUp, Loader2, Sparkles } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, CircleNotchIcon, SparkleIcon } from "@phosphor-icons/react";
 import ActionCard, { hhmm } from "@/components/agent/ActionCard";
 import Composer, { useAgentUsage, type ComposerHandle } from "@/components/agent/Composer";
 import { chipAction, DONE, isAppPath, type DockIdentity } from "@/components/agent/dockActions";
@@ -218,7 +218,7 @@ export default function AgentThread({
           <div className={cn("flex flex-col items-center gap-3 text-center", compact && "items-start text-left")}>
             {!compact && (
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary" aria-hidden>
-                <Sparkles className="h-5 w-5" />
+                <SparkleIcon className="h-5 w-5" />
               </span>
             )}
             <h2 className={cn("font-serif font-semibold tracking-tight", compact ? "text-lg" : "text-2xl sm:text-3xl")}>What are we making?</h2>
@@ -274,7 +274,7 @@ export default function AgentThread({
                 <span className="font-semibold">Agent</span>
                 {state ? (
                   <span className="inline-flex items-center gap-1.5 tabular-nums text-primary">
-                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                    <CircleNotchIcon className="h-3 w-3 animate-spin" aria-hidden />
                     {/* the ticking seconds stay out of the live region; a screen reader hears the state once */}
                     <span aria-hidden>{state}</span>
                     <span className="sr-only">{runLabel((mine?.state ?? stored)!, null, mine?.line)}</span>
@@ -351,7 +351,7 @@ export default function AgentThread({
                 }}
                 className="pointer-events-auto inline-flex min-h-11 items-center gap-1.5 rounded-full border border-primary/40 bg-background px-4 text-sm font-medium shadow-lg"
               >
-                <ArrowUp className="h-4 w-4" /> Your {ready.noun} is ready
+                <ArrowUpIcon className="h-4 w-4" /> Your {ready.noun} is ready
               </button>
             ) : (
               <button
@@ -362,7 +362,7 @@ export default function AgentThread({
                 }}
                 className="pointer-events-auto inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-background px-4 text-sm font-medium shadow-lg"
               >
-                <ArrowDown className="h-4 w-4" /> Jump to latest
+                <ArrowDownIcon className="h-4 w-4" /> Jump to latest
               </button>
             )}
           </div>

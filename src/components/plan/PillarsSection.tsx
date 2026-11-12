@@ -3,7 +3,7 @@
 // and their targets are the ones My posts and Analytics' Mix card use, so an aim set here moves the Mix card too.
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Trash2 } from "lucide-react";
+import { PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -175,7 +175,7 @@ export default function PillarsSection({
               onBlur={() => setConfirmId((cur) => (cur === l.id ? null : cur))}
               className={`ml-auto gap-1.5 text-xs ${confirmId === l.id ? "text-destructive hover:text-destructive" : "text-muted-foreground"}`}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <TrashIcon className="h-3.5 w-3.5" />
               {confirmId === l.id ? (uses ? `Remove from ${uses} post${uses === 1 ? "" : "s"}` : "Confirm") : "Delete"}
             </Button>
           </div>
@@ -197,7 +197,7 @@ export default function PillarsSection({
               className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:h-11"
             />
             <Button type="submit" size="sm" variant="outline" disabled={!newName.trim()} className="gap-1">
-              <Plus className="h-3.5 w-3.5" /> Add a pillar
+              <PlusIcon className="h-3.5 w-3.5" /> Add a pillar
             </Button>
           </div>
           {addError && <p className="text-xs text-destructive">{addError}</p>}

@@ -2,7 +2,7 @@
 // brand kit), publish it at /l/<slug>, and see clicks per link.
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUp, Check, Copy, ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, CheckIcon, CopyIcon, ArrowSquareOutIcon, CircleNotchIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 
 import BioView from "@/components/bio/BioView";
 import TrackClicks from "@/components/TrackClicks";
@@ -235,7 +235,7 @@ export default function LinkInBioPage() {
 
       {state === "loading" ? (
         <div role="status" className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading your page…
+          <CircleNotchIcon className="h-4 w-4 animate-spin" /> Loading your page…
         </div>
       ) : state === "error" || !form ? (
         <div role="alert" className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
@@ -252,11 +252,11 @@ export default function LinkInBioPage() {
                 {liveUrl}
               </a>
               <Button size="sm" onClick={() => void copy(liveUrl)} className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
-                <Copy className="h-3.5 w-3.5" /> Copy
+                <CopyIcon className="h-3.5 w-3.5" /> Copy
               </Button>
               <Button size="sm" variant="outline" asChild className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
                 <a href={liveUrl} target="_blank" rel="noopener">
-                  <ExternalLink className="h-3.5 w-3.5" /> Open
+                  <ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open
                 </a>
               </Button>
             </section>
@@ -343,7 +343,7 @@ export default function LinkInBioPage() {
                         </span>
                         <TrackClicks url={l.url} label={l.label} onUse={(t) => editLink(i, { url: t })} />
                         <Button size="icon" variant="ghost" aria-label="Move up" disabled={i === 0} onClick={() => moveLink(i, -1)} className="h-10 w-10 sm:h-9 sm:w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-                          <ArrowUp className="h-4 w-4" />
+                          <ArrowUpIcon className="h-4 w-4" />
                         </Button>
                         <Button
                           size="icon"
@@ -353,7 +353,7 @@ export default function LinkInBioPage() {
                           onClick={() => moveLink(i, 1)}
                           className="h-10 w-10 sm:h-9 sm:w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                         >
-                          <ArrowDown className="h-4 w-4" />
+                          <ArrowDownIcon className="h-4 w-4" />
                         </Button>
                         <Button
                           size="icon"
@@ -362,7 +362,7 @@ export default function LinkInBioPage() {
                           onClick={() => edit({ links: form.links.filter((_, j) => j !== i) })}
                           className="h-10 w-10 text-muted-foreground sm:h-9 sm:w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <TrashIcon className="h-4 w-4" />
                         </Button>
                       </div>
                     </li>
@@ -376,7 +376,7 @@ export default function LinkInBioPage() {
                     onClick={() => edit({ links: [...form.links, { label: "", url: "" }] })}
                     className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11"
                   >
-                    <Plus className="h-3.5 w-3.5" /> {form.links.length >= MAX_LINKS ? `${MAX_LINKS} links at most` : "Add link"}
+                    <PlusIcon className="h-3.5 w-3.5" /> {form.links.length >= MAX_LINKS ? `${MAX_LINKS} links at most` : "Add link"}
                   </Button>
                   {dm.map((l) => {
                     const added = form.links.some((x) => withScheme(x.url.trim()) === l.url);
@@ -391,7 +391,7 @@ export default function LinkInBioPage() {
                         aria-label={added ? `${DM_NAMES[l.id]} link added` : `Add your ${DM_NAMES[l.id]} link`}
                         className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11"
                       >
-                        {added ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />} {DM_NAMES[l.id]}
+                        {added ? <CheckIcon className="h-3.5 w-3.5" /> : <PlusIcon className="h-3.5 w-3.5" />} {DM_NAMES[l.id]}
                       </Button>
                     );
                   })}
@@ -410,7 +410,7 @@ export default function LinkInBioPage() {
                 </label>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <Button onClick={() => void save()} disabled={saving} className="h-11 w-full gap-1.5 sm:h-10 sm:w-auto [@media(pointer:coarse)]:h-11">
-                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {saving && <CircleNotchIcon className="h-4 w-4 animate-spin" />}
                     Save page
                   </Button>
                   {unsaved && !saving && <span className="text-xs text-muted-foreground">Not saved yet</span>}
@@ -477,7 +477,7 @@ export default function LinkInBioPage() {
                     onClick={() => void remove(p)}
                     className={`h-10 gap-1.5 text-xs sm:h-9 ${confirmDelete === p.id ? "text-destructive" : "text-muted-foreground"}`}
                   >
-                    <Trash2 className="h-3.5 w-3.5" /> {confirmDelete === p.id ? "Confirm delete" : "Delete page"}
+                    <TrashIcon className="h-3.5 w-3.5" /> {confirmDelete === p.id ? "Confirm delete" : "Delete page"}
                   </Button>
                 </div>
               ))}

@@ -23,7 +23,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Check, Download, ImagePlus, Loader2, Megaphone, Plus, Send, Sparkles, UserRound, X as XIcon } from "lucide-react";
+import { WarningIcon, CheckIcon, DownloadSimpleIcon, ImageSquareIcon, CircleNotchIcon, MegaphoneIcon, PlusIcon, PaperPlaneTiltIcon, SparkleIcon, UserCircleIcon, XIcon } from "@phosphor-icons/react";
 import ComplianceChips from "@/components/ComplianceChips";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import FormatShell from "@/components/make/FormatShell";
@@ -598,7 +598,7 @@ function ImageEditor({ userId }: { userId: string }) {
               </div>
               {mineDone?.layoutBy === "jev" && mineDone.layout === layout && (
                 <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                  <Check className="h-3.5 w-3.5" aria-hidden /> Matches the original
+                  <CheckIcon className="h-3.5 w-3.5" aria-hidden /> Matches the original
                 </p>
               )}
             </div>
@@ -774,7 +774,7 @@ function ImageEditor({ userId }: { userId: string }) {
         <div className="flex items-center gap-1">
           {imageId === img.id && <CopyLinkButton path={links.image({ layout, size, image: img.id })} />}
           <Button size="sm" variant="ghost" onClick={newImage} disabled={writing} className={cn("gap-1.5", TOUCH)}>
-            <Plus className="h-4 w-4" /> New image
+            <PlusIcon className="h-4 w-4" /> New image
           </Button>
         </div>
       </div>
@@ -782,7 +782,7 @@ function ImageEditor({ userId }: { userId: string }) {
         <img src={preview} alt={mainWords(layout, img.words) || "Your image"} width={W} height={H} className="block h-auto w-full rounded-lg border border-border/60 shadow-card" />
         {writing && (meme ? mw : adVersionsBusy() ? av : write) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 text-sm text-muted-foreground backdrop-blur-sm">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+            <CircleNotchIcon className="h-5 w-5 animate-spin text-primary" aria-hidden />
             <span role="status">{meme ? MEME_STEP : adVersionsBusy() ? VERSIONS_STEP : writeStep(write!)}</span>
           </div>
         )}
@@ -793,7 +793,7 @@ function ImageEditor({ userId }: { userId: string }) {
       {failed && (
         <div role="alert" className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
           <p className="flex items-start gap-2 text-destructive">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {failed.error}
+            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {failed.error}
           </p>
           <p className="text-xs text-muted-foreground">What you typed is still here.</p>
         </div>
@@ -820,20 +820,20 @@ function ImageEditor({ userId }: { userId: string }) {
       {(mineDone ?? memeDone ?? versionsDone)?.flags && <FlagChips flags={(mineDone ?? memeDone ?? versionsDone)!.flags!} />}
       {masWarn && (
         <p className="flex items-start gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> These words may promise a result or point to a product. Check them before you post.
+          <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> These words may promise a result or point to a product. Check them before you post.
         </p>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => void download(false)} disabled={!!block || !!busyFile} className={cn("gap-1.5", TOUCH)}>
-          {busyFile === "one" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
+          {busyFile === "one" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <DownloadSimpleIcon className="h-4 w-4" />} Download
         </Button>
         <Button variant="outline" onClick={() => void download(true)} disabled={!!block || !!busyFile} className={cn("gap-1.5", TOUCH)}>
-          {busyFile === "all" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download all sizes
+          {busyFile === "all" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <DownloadSimpleIcon className="h-4 w-4" />} Download all sizes
         </Button>
         {canPost && (
           <Button variant="outline" onClick={() => (posting ? setPosting(null) : void post())} disabled={!!block || !!busyFile} aria-expanded={!!posting} className={cn("gap-1.5", TOUCH)}>
-            {busyFile === "post" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Post it for me
+            {busyFile === "post" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <PaperPlaneTiltIcon className="h-4 w-4" />} Post it for me
           </Button>
         )}
         <Button
@@ -845,7 +845,7 @@ function ImageEditor({ userId }: { userId: string }) {
           disabled={!!block || !!busyFile || writing}
           className={cn("gap-1.5", TOUCH)}
         >
-          <Megaphone className="h-4 w-4" /> Run as an ad
+          <MegaphoneIcon className="h-4 w-4" /> Run as an ad
         </Button>
       </div>
       {block && <p className="text-xs text-muted-foreground">{block}</p>}
@@ -944,14 +944,14 @@ function PicturePicker(p: {
       <div className="flex flex-wrap gap-1.5">
         {p.hasHeadshot && (
           <FilterChip active={p.img.pictureKey === HEADSHOT} disabled={p.disabled} onClick={() => p.onPick(HEADSHOT)}>
-            <UserRound className="h-3.5 w-3.5" aria-hidden /> Use my headshot
+            <UserCircleIcon className="h-3.5 w-3.5" aria-hidden /> Use my headshot
           </FilterChip>
         )}
         <FilterChip active={p.pick === "media"} disabled={p.disabled} onClick={() => p.onOpen("media")}>
-          <ImagePlus className="h-3.5 w-3.5" aria-hidden /> From Media
+          <ImageSquareIcon className="h-3.5 w-3.5" aria-hidden /> From Media
         </FilterChip>
         <FilterChip active={p.pick === "make"} disabled={p.disabled} onClick={() => p.onOpen("make")}>
-          <Sparkles className="h-3.5 w-3.5" aria-hidden /> Make one
+          <SparkleIcon className="h-3.5 w-3.5" aria-hidden /> Make one
         </FilterChip>
       </div>
       {p.pick === "media" &&
@@ -972,7 +972,7 @@ function PicturePicker(p: {
           <Textarea id="image-prompt" rows={2} value={prompt} maxLength={1200} disabled={making} placeholder="One person reading a hospital bill at the kitchen table" onChange={(e) => setPrompt(e.target.value)} />
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" onClick={() => p.onMake(prompt.trim())} disabled={making || imageBusy() || prompt.trim().length < 10 || p.left === 0} className={cn("gap-1.5", TOUCH)}>
-              {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} {making ? "Making your picture..." : "Make it"}
+              {making ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />} {making ? "Making your picture..." : "Make it"}
             </Button>
             <PriceChip feature="ai-image" left={p.left} />
           </div>

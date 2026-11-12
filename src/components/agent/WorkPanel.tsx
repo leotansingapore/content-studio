@@ -4,7 +4,7 @@
 // on this device; below that the page opens it as a sheet (?panel=work, `sheet`).
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, ChevronRight, Hand, Loader2, X, type LucideIcon } from "lucide-react";
+import { CheckIcon, CaretRightIcon, HandIcon, CircleNotchIcon, XIcon, type Icon as IconType } from "@phosphor-icons/react";
 import { turnOf } from "@/lib/agentRun";
 import { workCounters, workOf, type WorkItem } from "@/lib/agentWork";
 import type { AgentThread } from "@/lib/agentThreads";
@@ -24,7 +24,7 @@ const readHidden = () => {
   }
 };
 
-function Rows({ items, icon: Icon, spin, sub }: { items: WorkItem[]; icon: LucideIcon; spin?: boolean; sub: (i: WorkItem) => string }) {
+function Rows({ items, icon: Icon, spin, sub }: { items: WorkItem[]; icon: IconType; spin?: boolean; sub: (i: WorkItem) => string }) {
   return (
     <ul className="mt-1 space-y-0.5">
       {items.map((i) => (
@@ -73,12 +73,12 @@ export default function WorkPanel({ threads, sheet, onClose }: { threads: AgentT
         <h2 className="text-base font-semibold text-foreground">Your work</h2>
         {sheet && onClose && (
           <button type="button" onClick={onClose} aria-label="Close Your work" className="-mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-muted-foreground hover:text-foreground">
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         )}
         {!sheet && (
           <button type="button" onClick={() => toggle(true)} className="inline-flex h-8 items-center gap-1 rounded-lg border border-border/70 px-2.5 text-xs text-muted-foreground hover:text-foreground">
-            Hide <ChevronRight className="h-3.5 w-3.5" />
+            Hide <CaretRightIcon className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
@@ -91,24 +91,24 @@ export default function WorkPanel({ threads, sheet, onClose }: { threads: AgentT
         {work.waiting.length > 0 && (
           <section aria-label="Waiting on your yes">
             <p className={HEAD}>Waiting on your yes</p>
-            <Rows items={work.waiting} icon={Hand} sub={(i) => `${i.type} | ${ago(i.at)}`} />
+            <Rows items={work.waiting} icon={HandIcon} sub={(i) => `${i.type} | ${ago(i.at)}`} />
           </section>
         )}
         {work.making.length > 0 && (
           <section aria-label="Making" aria-live="polite">
             <p className={HEAD}>Making</p>
-            <Rows items={work.making} icon={Loader2} spin sub={step} />
+            <Rows items={work.making} icon={CircleNotchIcon} spin sub={step} />
           </section>
         )}
         <section aria-label="Made">
           <div className="flex items-center justify-between">
             <p className={HEAD}>Made</p>
             <Link to={links.activity()} className="inline-flex min-h-9 items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground">
-              All activity <ChevronRight className="h-3.5 w-3.5" />
+              All activity <CaretRightIcon className="h-3.5 w-3.5" />
             </Link>
           </div>
           {work.made.length ? (
-            <Rows items={work.made.slice(0, MADE_SHOWN)} icon={Check} sub={(i) => `${i.type} | ${ago(i.at)}`} />
+            <Rows items={work.made.slice(0, MADE_SHOWN)} icon={CheckIcon} sub={(i) => `${i.type} | ${ago(i.at)}`} />
           ) : (
             <p className="mt-1 text-xs text-muted-foreground">What the agent makes for you lands here.</p>
           )}

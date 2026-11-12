@@ -4,7 +4,7 @@
 // CarouselPage reads ?carousel= only on load, so every link here is a full page load.
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Languages } from "lucide-react";
+import { WarningIcon, TranslateIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
@@ -88,12 +88,12 @@ export default function CarouselVersions({ userId, carousel }: { userId: string;
         )}
         {m && sameWarns(m.same) && (
           <p role="status" className="flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300">
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Check this version: it may say something the English doesn't.
+            <WarningIcon className="h-3.5 w-3.5 shrink-0" /> Check this version: it may say something the English doesn't.
           </p>
         )}
         {flags.map((f) => (
           <p key={f.id} role="status" className="flex items-start gap-1.5 font-medium text-amber-800 dark:text-amber-300">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
               In English this says "{f.match}". {f.message}
             </span>
@@ -135,7 +135,7 @@ export default function CarouselVersions({ userId, carousel }: { userId: string;
       {missing.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-            <Languages className="h-3.5 w-3.5" /> Make it in
+            <TranslateIcon className="h-3.5 w-3.5" /> Make it in
           </span>
           {missing.map((l) => (
             <Button

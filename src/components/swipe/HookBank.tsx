@@ -3,7 +3,7 @@
 // "Use this hook" opens Write on the formula.
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, PenLine, Search } from "lucide-react";
+import { ArrowSquareOutIcon, PencilLineIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { safeExternalUrl } from "@/lib/embed";
@@ -52,7 +52,7 @@ export default function HookBank({ userId }: { userId: string }) {
     <section className="space-y-4" aria-label="Hooks">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-0 flex-1 basis-full sm:basis-auto sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search hooks" aria-label="Search hooks" className="pl-9 [@media(pointer:coarse)]:h-11" />
         </div>
         <Pick label="Formula" value={formula} onChange={setFormula} options={[["all", "All"], ...HOOK_FORMULAS.map((f): [string, string] => [f.id, f.name])]} />
@@ -89,7 +89,7 @@ export default function HookBank({ userId }: { userId: string }) {
                 )}
                 <p className="text-xs text-muted-foreground">Trap: {c.formula.trap}</p>
                 <Button asChild size="sm" variant="outline" className={`mt-1 h-9 gap-1.5 self-start ${TOUCH}`}>
-                  <Link to={links.generate({ formula: c.formula.id })}><PenLine className="h-3.5 w-3.5" aria-hidden /> Use this hook</Link>
+                  <Link to={links.generate({ formula: c.formula.id })}><PencilLineIcon className="h-3.5 w-3.5" aria-hidden /> Use this hook</Link>
                 </Button>
               </article>
             );
@@ -111,7 +111,7 @@ function Line({ line: l }: { line: HookLine }) {
       <p>"{l.text}"</p>
       {open && (
         <a href={open} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 font-medium text-primary hover:underline ${TOUCH}`}>
-          <ExternalLink className="h-3 w-3" aria-hidden /> Open post
+          <ArrowSquareOutIcon className="h-3 w-3" aria-hidden /> Open post
         </a>
       )}
     </li>

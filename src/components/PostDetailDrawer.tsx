@@ -5,21 +5,20 @@ import VideoEmbed from "@/components/VideoEmbed";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  X,
-  Heart,
-  MessageCircle,
-  Play,
-  ExternalLink,
-  Wand2,
-  Bookmark,
-  BookmarkCheck,
-  Flame,
-  Film,
-  Images,
-  FileText,
-  Instagram,
-  Clapperboard,
-} from "lucide-react";
+  XIcon,
+  HeartIcon,
+  ChatCircleIcon,
+  PlayIcon,
+  ArrowSquareOutIcon,
+  MagicWandIcon,
+  BookmarkSimpleIcon,
+  FireIcon,
+  FilmStripIcon,
+  ImagesIcon,
+  FileTextIcon,
+  InstagramLogoIcon,
+  FilmSlateIcon,
+} from "@phosphor-icons/react";
 import { buildRemixUrl, compactNum, generatorFormat } from "@/lib/topPosts";
 import { embedUrlFor, safeExternalUrl } from "@/lib/embed";
 import { cloneLinkFor } from "@/lib/reelClone";
@@ -34,10 +33,10 @@ const FORMAT_LABEL: Record<string, string> = {
   carousel: "Carousel",
   "text-post": "Single post",
 };
-const FORMAT_ICON: Record<string, typeof Film> = {
-  "short-video": Film,
-  carousel: Images,
-  "text-post": FileText,
+const FORMAT_ICON: Record<string, typeof FilmStripIcon> = {
+  "short-video": FilmStripIcon,
+  carousel: ImagesIcon,
+  "text-post": FileTextIcon,
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -97,7 +96,7 @@ export default function PostDetailDrawer({
 
   const { post, insight } = item;
   const fmt = generatorFormat(post);
-  const Icon = FORMAT_ICON[fmt] ?? FileText;
+  const Icon = FORMAT_ICON[fmt] ?? FileTextIcon;
   const advisor = { name: post.advisorName, handle: post.handle };
   const similar = similarPosts(item, all, 5);
   const remixUrl = buildRemixUrl(post, advisor, { angle: insight.angle, structure: insight.structure });
@@ -143,7 +142,7 @@ export default function PostDetailDrawer({
           aria-label="Close"
           className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition-colors hover:bg-black/75 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
 
         <div key={post.shortCode} className="flex-1 overflow-y-auto">
@@ -168,7 +167,7 @@ export default function PostDetailDrawer({
             {/* Over a cover only: on the live embed they hid the creator's name. */}
             {!canEmbed && <div className="pointer-events-none absolute left-3 top-3 z-10 flex gap-1.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur">
-                <Instagram className="h-3 w-3" /> Instagram
+                <InstagramLogoIcon className="h-3 w-3" /> Instagram
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur">
                 <Icon className="h-3 w-3" /> {fmt === "short-video" ? "Video" : FORMAT_LABEL[fmt] ?? "Post"}
@@ -185,13 +184,13 @@ export default function PostDetailDrawer({
               </div>
               <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
                 {post.views > 0 && (
-                  <span className="inline-flex items-center gap-1"><Play className="h-3.5 w-3.5" /> {compactNum(post.views)}</span>
+                  <span className="inline-flex items-center gap-1"><PlayIcon className="h-3.5 w-3.5" /> {compactNum(post.views)}</span>
                 )}
-                <span className="inline-flex items-center gap-1"><Heart className="h-3.5 w-3.5" /> {compactNum(post.likes)}</span>
-                <span className="inline-flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" /> {compactNum(post.comments)}</span>
+                <span className="inline-flex items-center gap-1"><HeartIcon className="h-3.5 w-3.5" /> {compactNum(post.likes)}</span>
+                <span className="inline-flex items-center gap-1"><ChatCircleIcon className="h-3.5 w-3.5" /> {compactNum(post.comments)}</span>
                 {insight.breakout && (
                   <span className="inline-flex items-center gap-0.5 font-semibold text-warning" title="Engagement vs this creator's average">
-                    <Flame className="h-3.5 w-3.5" /> {insight.ratio.toFixed(1)}x
+                    <FireIcon className="h-3.5 w-3.5" /> {insight.ratio.toFixed(1)}x
                   </span>
                 )}
               </div>
@@ -201,20 +200,20 @@ export default function PostDetailDrawer({
               <RemixButton size="default" className="w-full" source={source}>
                 <Button asChild className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
                   <Link to={remixUrl}>
-                    <Wand2 className="h-4 w-4" /> Remix this for my business
+                    <MagicWandIcon className="h-4 w-4" /> Remix this for my business
                   </Link>
                 </Button>
               </RemixButton>
               <div className="flex gap-2">
                 <Button asChild variant="outline" className="flex-1 gap-2">
                   <a href={safeExternalUrl(post.url) ?? undefined} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4" /> Open original
+                    <ArrowSquareOutIcon className="h-4 w-4" /> Open original
                   </a>
                 </Button>
                 {cloneUrl && (
                   <Button asChild variant="outline" className="gap-1.5" title="Clone this reel">
                     <Link to={cloneUrl}>
-                      <Clapperboard className="h-4 w-4" /> Clone
+                      <FilmSlateIcon className="h-4 w-4" /> Clone
                     </Link>
                   </Button>
                 )}
@@ -227,7 +226,7 @@ export default function PostDetailDrawer({
                     aria-pressed={saved}
                     className={`gap-1.5 ${saved ? "border-primary/50 text-primary" : ""}`}
                   >
-                    {saved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                    <BookmarkSimpleIcon className="h-4 w-4" weight={saved ? "fill" : "regular"} />
                     {saved ? "Saved" : "Save"}
                   </Button>
                 )}
@@ -286,7 +285,7 @@ export default function PostDetailDrawer({
                 </p>
                 <div className="space-y-1.5">
                   {similar.map((s) => {
-                    const SIcon = FORMAT_ICON[generatorFormat(s.post)] ?? FileText;
+                    const SIcon = FORMAT_ICON[generatorFormat(s.post)] ?? FileTextIcon;
                     return (
                       <button
                         key={s.post.advisorId + "-" + s.post.shortCode}

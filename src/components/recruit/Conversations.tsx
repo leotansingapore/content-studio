@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { MessageCircle } from "lucide-react";
+import { ChatCircleIcon } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -102,7 +102,7 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
                     className="inline-flex h-9 [@media(pointer:coarse)]:h-11 items-center gap-1 rounded-lg border border-success/40 px-2.5 text-[11px] font-semibold text-success hover:bg-success/10"
                     aria-label={`Send the script to ${r.name} on WhatsApp`}
                   >
-                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                    <ChatCircleIcon className="h-3.5 w-3.5" /> WhatsApp
                   </a>
                 )}
                 <div className="flex gap-1">

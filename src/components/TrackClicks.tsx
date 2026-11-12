@@ -3,7 +3,7 @@
 // Members only (019); shows nothing for anyone else, or for an address that
 // is not a web link or is already one of ours.
 import { useEffect, useState } from "react";
-import { BarChart3, Loader2, Repeat } from "lucide-react";
+import { ChartBarIcon, CircleNotchIcon, RepeatIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +33,7 @@ export default function TrackClicks({ url, label, onUse }: { url: string; label:
   if (made?.from === target) {
     return (
       <Button size="sm" variant="ghost" onClick={() => onUse(trackedUrl(window.location.origin, made.slug))} className={`${SIZE} text-primary`}>
-        <Repeat className="h-3.5 w-3.5" /> Swap in /t/{made.slug}
+        <RepeatIcon className="h-3.5 w-3.5" /> Swap in /t/{made.slug}
       </Button>
     );
   }
@@ -53,7 +53,7 @@ export default function TrackClicks({ url, label, onUse }: { url: string; label:
 
   return (
     <Button size="sm" variant="ghost" disabled={busy} onClick={() => void make()} className={`${SIZE} text-muted-foreground`}>
-      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BarChart3 className="h-3.5 w-3.5" />} Track clicks
+      {busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <ChartBarIcon className="h-3.5 w-3.5" />} Track clicks
     </Button>
   );
 }

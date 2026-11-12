@@ -6,7 +6,7 @@
 import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
-import { AtSign, Bookmark, ExternalLink, Facebook, Globe, Instagram, Linkedin, Megaphone, MoreHorizontal, Music, Shuffle, Trash2, X, Youtube } from "lucide-react";
+import { AtIcon, BookmarkSimpleIcon, ArrowSquareOutIcon, FacebookLogoIcon, GlobeIcon, InstagramLogoIcon, LinkedinLogoIcon, MegaphoneIcon, DotsThreeIcon, MusicNotesIcon, ShuffleIcon, TrashIcon, XIcon, YoutubeLogoIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import RemixButton from "@/components/remix/RemixButton";
@@ -60,7 +60,7 @@ import { cn } from "@/lib/utils";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const CHIPS: [PlatformChip | "all", string][] = [["all", "All"], ["instagram", "Instagram"], ["tiktok", "TikTok"], ["youtube", "YouTube"], ["ad", "Ads"], ["link", "Links"]];
-const ICON: Record<SavePlatform, typeof Globe> = { instagram: Instagram, tiktok: Music, youtube: Youtube, "meta-ad": Megaphone, linkedin: Linkedin, x: AtSign, facebook: Facebook, web: Globe };
+const ICON: Record<SavePlatform, typeof GlobeIcon> = { instagram: InstagramLogoIcon, tiktok: MusicNotesIcon, youtube: YoutubeLogoIcon, "meta-ad": MegaphoneIcon, linkedin: LinkedinLogoIcon, x: AtIcon, facebook: FacebookLogoIcon, web: GlobeIcon };
 const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 type Part = "note" | "boards";
 // the share params of the landing being saved now: React's dev double effect must not save it twice
@@ -262,7 +262,7 @@ function Saved({ userId }: { userId: string }) {
                 </div>
               ) : (
                 <Button type="button" size="sm" variant="ghost" onClick={() => setConfirming(true)} className="gap-1.5 text-muted-foreground">
-                  <Trash2 className="h-3.5 w-3.5" /> Delete board
+                  <TrashIcon className="h-3.5 w-3.5" /> Delete board
                 </Button>
               )}
             </div>
@@ -294,7 +294,7 @@ function Saved({ userId }: { userId: string }) {
 
           {store.items.length === 0 ? (
             <EmptyState
-              icon={Bookmark}
+              icon={BookmarkSimpleIcon}
               title="Nothing saved yet"
               actions={
                 <Button asChild variant="outline">
@@ -586,7 +586,7 @@ function Breakdown({ userId, item, note }: { userId: string; item: BoardItem; no
           {formula && (
             <Button asChild variant="outline" size="sm" className="w-full gap-1.5">
               <Link to={writeUrlFor(item, { formula, ...(item.caption && !item.title ? { detail: item.caption.split("\n")[0].slice(0, 80) } : {}) })}>
-                <Shuffle className="h-3.5 w-3.5" /> Remix with this hook
+                <ShuffleIcon className="h-3.5 w-3.5" /> Remix with this hook
               </Link>
             </Button>
           )}
@@ -628,7 +628,7 @@ function RemixFor({ item, className }: { item: BoardItem; className?: string }) 
     <RemixButton source={fromSavedItem(item)} note={item.note || undefined} label={titleOf(item)} className={className}>
       <Button asChild size="sm" variant="outline" className={cn("gap-1.5", className)}>
         <Link to={remixUrlFor(item)}>
-          <Shuffle className="h-3.5 w-3.5" /> Remix
+          <ShuffleIcon className="h-3.5 w-3.5" /> Remix
         </Link>
       </Button>
     </RemixButton>
@@ -681,7 +681,7 @@ function ItemCard({ item, userId, onOpen, onRemove }: { item: BoardItem; userId:
             onKeyDown={(e) => e.key === "Escape" && setMenu(false)}
             className="ml-auto h-9 w-9 px-0"
           >
-            <MoreHorizontal className="h-4 w-4" />
+            <DotsThreeIcon className="h-4 w-4" />
           </Button>
           {menu && (
             <div role="menu" aria-label="More" onKeyDown={(e) => e.key === "Escape" && setMenu(false)} className="absolute bottom-full right-0 z-30 mb-1 w-48 rounded-xl border border-border/70 bg-popover p-1 shadow-elegant">
@@ -783,7 +783,7 @@ function ItemDrawer({
           aria-label="Close"
           className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition-colors hover:bg-black/75 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
 
         <div className="flex-1 overflow-y-auto">
@@ -814,12 +814,12 @@ function ItemDrawer({
                 {original && (
                   <Button asChild variant="outline" size="sm" className="flex-1 gap-1.5">
                     <a href={original} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3.5 w-3.5" /> Open original
+                      <ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open original
                     </a>
                   </Button>
                 )}
                 <Button type="button" variant="outline" size="sm" onClick={onRemove} className="flex-1 gap-1.5">
-                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                  <TrashIcon className="h-3.5 w-3.5" /> Remove
                 </Button>
               </div>
             </div>

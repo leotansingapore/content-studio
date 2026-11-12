@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, TrendingUp, ChevronDown, Bookmark, Filter } from "lucide-react";
+import { MagnifyingGlassIcon, TrendUpIcon, CaretDownIcon, BookmarkSimpleIcon, FunnelIcon } from "@phosphor-icons/react";
 import ReelCard from "@/components/ReelCard";
 import IndustryNews from "@/components/IndustryNews";
 import AdsSwipe from "@/components/AdsSwipe";
@@ -285,7 +285,7 @@ export default function SwipeFilePage() {
     <div className="space-y-5">
       <header className="space-y-1.5">
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <TrendingUp className="h-6 w-6 text-primary" />
+          <TrendUpIcon className="h-6 w-6 text-primary" />
           {heading}
         </h1>
         {adviser && !adsHead && <p className="max-w-2xl text-sm text-muted-foreground">
@@ -420,7 +420,7 @@ export default function SwipeFilePage() {
             <CardContent className="space-y-3 pt-5">
               <div className="flex gap-2">
                 <div className="relative min-w-0 flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -435,7 +435,7 @@ export default function SwipeFilePage() {
                   aria-expanded={showFilters}
                   className="shrink-0 gap-1.5 [@media(pointer:coarse)]:h-11"
                 >
-                  <Filter className="h-3.5 w-3.5" />
+                  <FunnelIcon className="h-3.5 w-3.5" />
                   Filters
                   {activeFilters > 0 && (
                     <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">{activeFilters}</span>
@@ -451,7 +451,7 @@ export default function SwipeFilePage() {
                 ))}
                 <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
                 <Chip active={savedOnly} onClick={() => setSavedOnly(!savedOnly)} count={savedSet.size > 0 ? savedSet.size : undefined}>
-                  <Bookmark className="h-3 w-3" /> Saved
+                  <BookmarkSimpleIcon className="h-3 w-3" /> Saved
                 </Chip>
               </div>
 
@@ -528,7 +528,7 @@ export default function SwipeFilePage() {
                     onClick={() => showMore()}
                     className="gap-1.5 [@media(pointer:coarse)]:h-11"
                   >
-                    <ChevronDown className="h-4 w-4" />
+                    <CaretDownIcon className="h-4 w-4" />
                     Show {Math.min(PAGE_SIZE, remaining)} more
                     <span className="text-muted-foreground">({remaining} left)</span>
                   </Button>

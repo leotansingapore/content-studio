@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, PenLine, Plus, Search, X } from "lucide-react";
+import { ArrowSquareOutIcon, CircleNotchIcon, PencilLineIcon, PlusIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import { TrendChart } from "@/components/charts/TrendChart";
@@ -68,7 +68,7 @@ export function TrendsDrawer({ title, onClose, children, actions }: { title: str
         <div className="flex items-start gap-3 border-b border-border/60 p-4">
           <h2 className="min-w-0 flex-1 break-words font-serif text-lg font-semibold leading-snug text-foreground">{title}</h2>
           <Button ref={closeRef} type="button" variant="ghost" size="icon" className="-mr-1 -mt-1 h-11 w-11 shrink-0" aria-label="Close" onClick={onClose}>
-            <X className="h-5 w-5" />
+            <XIcon className="h-5 w-5" />
           </Button>
         </div>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{children}</div>
@@ -111,7 +111,7 @@ function TopicDrawer({ check, t, onOpen, onClose }: { check: SearchCheck; t: Sea
         <>
           <Button asChild className="flex-1 gap-1.5 [@media(pointer:coarse)]:h-11">
             <Link to={searchWriteUrl(t)}>
-              <PenLine className="h-4 w-4" /> Make a post
+              <PencilLineIcon className="h-4 w-4" /> Make a post
             </Link>
           </Button>
           <CopyLinkButton path={links.trends({ view: "search", topic: t.slug })} label="Copy link to this topic" />
@@ -143,7 +143,7 @@ function TopicDrawer({ check, t, onOpen, onClose }: { check: SearchCheck; t: Sea
                 {t.videos.map((v) => (
                   <li key={v.url}>
                     <a href={v.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-start gap-1.5 py-1 text-sm text-primary hover:underline sm:min-h-0">
-                      <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <ArrowSquareOutIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                       <span className="break-words">{v.title}</span>
                     </a>
                   </li>
@@ -184,7 +184,7 @@ function TopicRow({ t, onOpen }: { t: SearchTopic; onOpen: () => void }) {
         <Sparkline values={t.series} label={`Searches over 12 months for ${t.keyword}`} />
         <Button asChild variant="outline" size="sm" className="ml-auto gap-1.5 [@media(pointer:coarse)]:h-11">
           <Link to={searchWriteUrl(t)}>
-            <PenLine className="h-3.5 w-3.5" /> Make a post
+            <PencilLineIcon className="h-3.5 w-3.5" /> Make a post
           </Link>
         </Button>
       </div>
@@ -213,7 +213,7 @@ function TopicsField({ seeds, onChange, disabled }: { seeds: string[]; onChange:
             aria-label={`Remove ${s}`}
             className="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:text-foreground disabled:opacity-50 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
-            <X className="h-3.5 w-3.5" />
+            <XIcon className="h-3.5 w-3.5" />
           </button>
         </span>
       ))}
@@ -227,7 +227,7 @@ function TopicsField({ seeds, onChange, disabled }: { seeds: string[]; onChange:
         >
           <Input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={60} placeholder="Add a topic" aria-label="Add a topic" disabled={disabled} className="h-8 w-36 text-xs [@media(pointer:coarse)]:h-11" />
           <Button type="submit" variant="ghost" size="icon" aria-label="Add topic" disabled={disabled || words.length < 2} className="h-8 w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-            <Plus className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4" />
           </Button>
         </form>
       )}
@@ -287,7 +287,7 @@ export default function SearchTopics({ userId }: { userId: string }) {
           <TopicsField seeds={seeds} onChange={editSeeds} disabled={running} />
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <Button type="button" onClick={run} disabled={running || !seeds.length || left === 0 || Boolean(next)} className="gap-1.5 [@media(pointer:coarse)]:h-11">
-              {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {running ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <MagnifyingGlassIcon className="h-4 w-4" />}
               {running ? "Checking..." : "Check searches"}
             </Button>
             {!running && !next && <PriceChip feature="search-topics" left={left} />}

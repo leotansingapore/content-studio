@@ -5,7 +5,7 @@
 // the consultant to check the spelling and add it, or skip it.
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Wand2 } from "lucide-react";
+import { CopyIcon, MagicWandIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,7 +133,7 @@ export default function PlatformCaptions({
         <span className={leo ? "flex flex-wrap items-center justify-end gap-2" : "flex items-center gap-2"}>
           {!(leo && busy) && <PriceChip feature="video-captions" left={left} fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />}
           <Button size="sm" variant="outline" onClick={() => void write()} disabled={busy || !transcript.trim() || left === 0} className={`h-11 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
-            {busy ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
+            {busy ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <MagicWandIcon className="h-3.5 w-3.5" />}
             {busy ? "Writing..." : has ? "Write them again" : "Write for each platform"}
           </Button>
         </span>
@@ -179,18 +179,18 @@ export default function PlatformCaptions({
           <div className="flex flex-wrap gap-1">
             {tab === "youtube" && (
               <Button size="sm" variant="ghost" className="h-11 sm:h-8" disabled={!set.youtubeTitle?.trim()} onClick={() => void copy(set.youtubeTitle!, "YouTube title")}>
-                <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy title
+                <CopyIcon className="mr-1.5 h-3.5 w-3.5" /> Copy title
               </Button>
             )}
             {parts.length > 1 ? (
               parts.map((p, i) => (
                 <Button key={i} size="sm" variant="ghost" className="h-11 sm:h-8" onClick={() => void copy(p, `Post ${i + 1}`)}>
-                  <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy {i + 1}/{parts.length}
+                  <CopyIcon className="mr-1.5 h-3.5 w-3.5" /> Copy {i + 1}/{parts.length}
                 </Button>
               ))
             ) : (
               <Button size="sm" variant="ghost" className="h-11 sm:h-8" disabled={!text.trim()} onClick={() => void copy(text, `${NAME[tab]} ${tab === "youtube" ? "description" : "caption"}`)}>
-                <Copy className="mr-1.5 h-3.5 w-3.5" /> {tab === "youtube" ? "Copy description" : "Copy"}
+                <CopyIcon className="mr-1.5 h-3.5 w-3.5" /> {tab === "youtube" ? "Copy description" : "Copy"}
               </Button>
             )}
           </div>

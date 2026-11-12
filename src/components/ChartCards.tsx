@@ -3,7 +3,7 @@
 // Each shows for 4 s as its line is said and is burned into every export size.
 
 import { useState } from "react";
-import { Check, Plus, Trash2, X } from "lucide-react";
+import { CheckIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
@@ -69,7 +69,7 @@ export default function ChartCards({ settings, caps, segs, speed, total, outT, f
       <div className="flex flex-wrap items-center gap-2">
         <span className="mr-auto text-sm font-medium">Charts
           <InfoTip label="About charts">Shows for 4 seconds as you say the line.</InfoTip></span>
-        <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={atPlayhead}><Plus className="h-3.5 w-3.5" /> Add a chart</Button>
+        <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={atPlayhead}><PlusIcon className="h-3.5 w-3.5" /> Add a chart</Button>
       </div>
       {figures.length > 0 && (
         <ul className="divide-y divide-border/60" aria-label="Numbers you say">
@@ -81,7 +81,7 @@ export default function ChartCards({ settings, caps, segs, speed, total, outT, f
                   className="min-h-11 w-12 shrink-0 text-left font-mono text-[11px] text-muted-foreground hover:text-foreground sm:min-h-0 [@media(pointer:coarse)]:min-h-11">{fmtTime(f.at)}</button>
                 <span className="min-w-0 flex-1 truncate font-semibold">{f.text}</span>
                 <Button size="sm" variant={added ? "ghost" : "outline"} className="h-11 shrink-0 gap-1 text-xs sm:h-8" disabled={added} onClick={() => fromFigure(f)}>
-                  {added ? <><Check className="h-3.5 w-3.5" /> Added</> : "Make a chart"}
+                  {added ? <><CheckIcon className="h-3.5 w-3.5" /> Added</> : "Make a chart"}
                 </Button>
               </li>
             );
@@ -128,7 +128,7 @@ export default function ChartCards({ settings, caps, segs, speed, total, outT, f
                   className="h-11 w-0 min-w-0 flex-[2] rounded-md border border-input bg-background px-2 text-sm sm:h-9 [@media(pointer:coarse)]:h-11" />
                 {sel.rows.length > 2 && (
                   <Button size="icon" variant="ghost" className="h-11 w-11 shrink-0 text-muted-foreground sm:h-9 sm:w-9" aria-label={`Remove row ${i + 1}`}
-                    onClick={() => edit(sel.id, { rows: sel.rows.filter((_, j) => j !== i) })}><X className="h-4 w-4" /></Button>
+                    onClick={() => edit(sel.id, { rows: sel.rows.filter((_, j) => j !== i) })}><XIcon className="h-4 w-4" /></Button>
                 )}
               </div>
             ))}
@@ -137,13 +137,13 @@ export default function ChartCards({ settings, caps, segs, speed, total, outT, f
           <div className="flex flex-wrap gap-2">
             {sel.kind === "bars" && sel.rows.length < MAX_ROWS && (
               <Button size="sm" variant="outline" className="h-11 gap-1.5 text-xs sm:h-8" onClick={() => edit(sel.id, { rows: [...sel.rows, { label: "", value: "" }] })}>
-                <Plus className="h-3.5 w-3.5" /> Add a row
+                <PlusIcon className="h-3.5 w-3.5" /> Add a row
               </Button>
             )}
             <Button size="sm" variant="outline" className="h-11 text-xs sm:h-8" onClick={() => { const s = srcAt(segs, outT, speed); edit(sel.id, { s, e: s + 0.5 }); }}>Start at {fmtTime(outT)}</Button>
             <Button size="sm" variant="ghost" className="h-11 gap-1.5 text-xs text-muted-foreground hover:text-destructive sm:h-8"
               onClick={() => { set(charts.filter((c) => c.id !== sel.id)); setSelected(null); }}>
-              <Trash2 className="h-3.5 w-3.5" /> Delete
+              <TrashIcon className="h-3.5 w-3.5" /> Delete
             </Button>
           </div>
         </div>

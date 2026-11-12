@@ -3,7 +3,7 @@
 // each file by its shape and reads each file back with the export check.
 
 import { useEffect, useState } from "react";
-import { Check, Download } from "lucide-react";
+import { CheckIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { fmtBytes, type EditSettings } from "@/lib/videoEdit";
 import { currentVersion, versionPlan, type VersionPlan } from "@/lib/exportVersions";
@@ -58,7 +58,7 @@ export default function ExportSizes({ projectId, name, settings, seconds, srcW, 
                 <span className="flex basis-full items-center gap-3 pl-6 text-xs empty:hidden sm:basis-auto sm:pl-0">
                   {now && <span className="text-muted-foreground">Exporting{pct !== null ? ` ${pct}%` : "..."}</span>}
                   {failed && <span className="text-destructive">Couldn't export: {failed}</span>}
-                  {file && (!check ? <span className="text-muted-foreground">Checking...</span> : check.issues.length ? null : check.read ? <span className="flex items-center gap-1"><Check className="h-3.5 w-3.5 text-success" /> Checked</span> : <span className="text-muted-foreground">Couldn't check</span>)}
+                  {file && (!check ? <span className="text-muted-foreground">Checking...</span> : check.issues.length ? null : check.read ? <span className="flex items-center gap-1"><CheckIcon className="h-3.5 w-3.5 text-success" /> Checked</span> : <span className="text-muted-foreground">Couldn't check</span>)}
                   {file && <a href={file.url} download={`${p.name}-edited.${file.ext}`} className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-2 hover:underline sm:min-h-0 [@media(pointer:coarse)]:min-h-11">Download</a>}
                 </span>
               </div>
@@ -82,7 +82,7 @@ export default function ExportSizes({ projectId, name, settings, seconds, srcW, 
           <>
             {ours && <p className="mr-auto text-sm font-medium">{Object.keys(queue.files).length} of {queue.of} exported{queue.stopping ? ", stopped" : ""}</p>}
             <Button size="sm" variant="outline" className="ml-auto h-11 gap-1.5 sm:h-9" onClick={() => onExport(list)} disabled={!list.length || job?.state === "running" || !!queue?.running}>
-              <Download className="h-3.5 w-3.5" /> Export {list.length} {list.length === 1 ? "size" : "sizes"}
+              <DownloadSimpleIcon className="h-3.5 w-3.5" /> Export {list.length} {list.length === 1 ? "size" : "sizes"}
             </Button>
           </>
         )}

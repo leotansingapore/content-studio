@@ -5,7 +5,7 @@
 // ad's drawer (find-ad-detail) and marks its card.
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, ExternalLink, ImageOff, Loader2, PenLine, Play, RefreshCw } from "lucide-react";
+import { CaretRightIcon, ArrowSquareOutIcon, ImageBrokenIcon, CircleNotchIcon, PencilLineIcon, PlayIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import AdDetailDrawer, { LoadingAdDrawer, useLinkedAd } from "@/components/AdDetailDrawer";
 import PriceChip from "@/components/PriceChip";
 import SaveButton from "@/components/SaveButton";
@@ -128,7 +128,7 @@ export default function TheirAds({ userId, list, store, openEdit }: {
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">{total}</span>
           {n > 0 && (
             <Link to={links.swipe({ tab: "ads", scope: selected?.id })} className={`ml-auto inline-flex items-center text-xs font-semibold text-primary hover:underline ${TOUCH}`}>
-              {n} ads | {running} running <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+              {n} ads | {running} running <CaretRightIcon className="h-3.5 w-3.5" aria-hidden />
             </Link>
           )}
         </div>
@@ -176,7 +176,7 @@ export default function TheirAds({ userId, list, store, openEdit }: {
       <div className="space-y-2 border-t border-border/60 pt-4">
         {reading && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading {reading.name}'s ads, about a minute...
+            <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Reading {reading.name}'s ads, about a minute...
           </p>
         )}
         {stopped && !busy && <p role="alert" className="text-xs text-destructive">{stopped.message}</p>}
@@ -184,7 +184,7 @@ export default function TheirAds({ userId, list, store, openEdit }: {
           <p className="mr-auto text-xs text-muted-foreground">We check for new Meta ads once a week, when you open Competitors.</p>
           <div className="flex items-center gap-3">
             <Button variant="outline" className={`h-10 gap-2 ${TOUCH}`} onClick={checkNow} disabled={busy || Boolean(why) || !due.length}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Check now
+              {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <ArrowsClockwiseIcon className="h-4 w-4" />} Check now
             </Button>
             {!busy && due.length > 0 && (
               <PriceChip feature="competitor-ads" price={due.length > 1 ? sumPrices(...due.map(() => priceOf("competitor-ads"))) : undefined} uses={due.length} left={left} />
@@ -241,12 +241,12 @@ function AdCard({ ad, c, fresh, linked, onOpen }: { ad: CompetitorAd; c: Competi
             <img src={ad.image!} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
           ) : (
             <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground">
-              <ImageOff className="h-5 w-5" aria-hidden /> No preview
+              <ImageBrokenIcon className="h-5 w-5" aria-hidden /> No preview
             </span>
           )}
           {pic && ad.format === "video" && (
             <span aria-hidden className="absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-background/80 text-foreground">
-              <Play className="h-4 w-4" />
+              <PlayIcon className="h-4 w-4" />
             </span>
           )}
           <span className="absolute left-2 top-2 flex gap-1 text-[10px] font-semibold">
@@ -267,12 +267,12 @@ function AdCard({ ad, c, fresh, linked, onOpen }: { ad: CompetitorAd; c: Competi
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1.5">
           <RemixButton source={source} label={`${c.name}'s ad`}>
             <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
-              <Link to={buildAdWriteUrl(like)}><PenLine className="h-3.5 w-3.5" /> Write a post like this</Link>
+              <Link to={buildAdWriteUrl(like)}><PencilLineIcon className="h-3.5 w-3.5" /> Write a post like this</Link>
             </Button>
           </RemixButton>
           <SaveButton source={source} />
           <Button asChild size="sm" variant="ghost" className={`h-9 gap-1.5 px-2 ${TOUCH}`}>
-            <a href={libraryUrl(ad.id)} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Open on Meta</a>
+            <a href={libraryUrl(ad.id)} target="_blank" rel="noopener noreferrer"><ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open on Meta</a>
           </Button>
         </div>
       </div>

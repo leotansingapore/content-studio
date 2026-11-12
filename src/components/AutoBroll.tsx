@@ -3,7 +3,7 @@
 // keeps going on other pages; this shows its progress and what it placed.
 
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { SparkleIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -65,7 +65,7 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" className={`h-11 gap-1.5 sm:h-9 ${running ? "disabled:opacity-100" : ""}`} onClick={start}
           disabled={running || !words.length || existing.length >= MAX_BROLL || left === 0}>
-          {running && mine ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
+          {running && mine ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <SparkleIcon className="h-3.5 w-3.5" />}
           {running && mine ? "Finding B-roll..." : "Add B-roll for me"}
         </Button>
         <InfoTip label="About B-roll for me">Puts a clip or a text card over each line a visual helps.</InfoTip>

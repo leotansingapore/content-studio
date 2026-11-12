@@ -5,7 +5,7 @@
 // before it returns, so the thread shows the message at once.
 
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useReducer, useRef, useState } from "react";
-import { ArrowUp, Square, X } from "lucide-react";
+import { ArrowUpIcon, SquareIcon, XIcon } from "@phosphor-icons/react";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Button } from "@/components/ui/button";
 import SlashMenu, { slashItems, type SlashItem } from "@/components/agent/SlashMenu";
@@ -249,11 +249,11 @@ const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
             />
             {running ? (
               <Button type="button" size="icon" variant="outline" onClick={() => threadId && stop(threadId)} aria-label="Stop" title="Stop" className="h-11 w-11 shrink-0 rounded-lg">
-                <Square className="fill-current" />
+                <SquareIcon weight="fill" />
               </Button>
             ) : (
               <Button type="button" onClick={submit} disabled={!text.trim() && !source} className="h-11 shrink-0 gap-1.5 rounded-lg px-4">
-                <ArrowUp /> {source ? "Remix" : "Send"}
+                <ArrowUpIcon /> {source ? "Remix" : "Send"}
               </Button>
             )}
           </div>
@@ -314,7 +314,7 @@ function SourceCard({ userId, sourceKey, noun, video, onDetach }: { userId: stri
           )}
         </div>
         <Button type="button" variant="ghost" size="icon" onClick={onDetach} aria-label="Remove the post" className="h-9 w-9 shrink-0">
-          <X />
+          <XIcon />
         </Button>
       </div>
       {open && src?.caption && <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">{src.caption}</p>}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play } from "lucide-react";
+import { PlayIcon } from "@phosphor-icons/react";
 import { embedUrlFor, originalUrlFor } from "@/lib/embed";
 import { cn } from "@/lib/utils";
 
@@ -86,7 +86,7 @@ export default function VideoEmbed({
             </>
           )}
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-elegant">
-            <Play className="h-6 w-6 translate-x-0.5" />
+            <PlayIcon className="h-6 w-6 translate-x-0.5" />
           </span>
           {text}
         </button>

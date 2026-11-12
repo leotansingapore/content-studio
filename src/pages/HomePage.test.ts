@@ -102,7 +102,7 @@ describe("Home for Leo", () => {
     expect(out).toContain("1 of 3 this week");
     expect(out).toContain('aria-label="Edit weekly goal"');
     expect(out).not.toContain(">This week<");
-    expect(out).toContain("lucide-flame");
+    expect(out).toMatch(/Posting streak|start a streak/);
   });
 
   it("shows the open brand's own goal, worded for a business when it speaks as one", () => {

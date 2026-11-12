@@ -2,7 +2,7 @@
 // the account menu. Each page it lists leads back here instead of showing tabs. Tiles and hints come from nav.ts.
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Compass } from "lucide-react";
+import { CompassIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { groupedPages, section, settingsTiles, visiblePages } from "@/lib/nav";
 import { supabase } from "@/lib/supabase";
@@ -63,7 +63,7 @@ export default function SettingsPage() {
             }}
             className="h-11 gap-2 sm:h-9"
           >
-            <Compass className="h-4 w-4" /> Replay the tour
+            <CompassIcon className="h-4 w-4" /> Replay the tour
           </Button>
         </div>
       )}

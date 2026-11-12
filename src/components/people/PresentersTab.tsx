@@ -4,7 +4,7 @@
 // sheet can close and the page can be left while it goes on. Every presenter is labelled AI wherever it shows.
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2, MoreHorizontal, X } from "lucide-react";
+import { CheckIcon, CircleNotchIcon, DotsThreeIcon, XIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,7 +100,7 @@ export default function PresentersTab({ userId }: { userId: string }) {
         ) : job ? (
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3" aria-live="polite">
             {make.state === "making" ? (
-              <p className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Making 3 presenters, about 20 seconds</p>
+              <p className="flex items-center gap-2 text-sm"><CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden /> Making 3 presenters, about 20 seconds</p>
             ) : (
               <p className="text-sm">Your new presenters are ready.</p>
             )}
@@ -133,7 +133,7 @@ function Choice({ checked, disabled, onClick, children }: { checked: boolean; di
   return (
     <button type="button" role="radio" aria-checked={checked} disabled={disabled} onClick={onClick}
       className={`${PILL} ${checked ? "border-primary bg-primary/10 font-medium text-primary" : "border-border/60 text-foreground hover:border-primary/40"} disabled:cursor-not-allowed disabled:opacity-50`}>
-      {checked && <Check className="h-4 w-4" aria-hidden />}
+      {checked && <CheckIcon className="h-4 w-4" aria-hidden />}
       {children}
     </button>
   );
@@ -188,7 +188,7 @@ function MakeSheet(props: { userId: string; prefs: Prefs; full: boolean; taken: 
           <h3 id="make-presenter" className="font-serif text-lg font-semibold">Make a presenter</h3>
           <p className="text-xs tabular-nums text-muted-foreground">Step {make.state === "pick" ? 3 : make.state === "making" ? 2 : 1} of 3: {make.state === "pick" ? "pick and name" : make.state === "making" ? "making" : "describe"}</p>
         </div>
-        <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-9 sm:w-9" aria-label="Close" onClick={onClose}><X className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-9 sm:w-9" aria-label="Close" onClick={onClose}><XIcon className="h-4 w-4" /></Button>
       </div>
 
       {make.state === "making" ? (
@@ -196,7 +196,7 @@ function MakeSheet(props: { userId: string; prefs: Prefs; full: boolean; taken: 
           <div className="grid max-w-md grid-cols-3 gap-2" aria-hidden>
             {[0, 1, 2].map((i) => <div key={i} className="aspect-[9/16] animate-pulse rounded-lg bg-muted" />)}
           </div>
-          <p className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Making 3 presenters, about 20 seconds</p>
+          <p className="flex items-center gap-2 text-sm"><CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden /> Making 3 presenters, about 20 seconds</p>
         </div>
       ) : make.state === "pick" ? (
         <div className="space-y-4">
@@ -210,7 +210,7 @@ function MakeSheet(props: { userId: string; prefs: Prefs; full: boolean; taken: 
                 }}
                 className={`relative overflow-hidden rounded-lg border-2 transition-colors ${picked === i ? "border-primary" : "border-transparent hover:border-border"}`}>
                 <img src={u} alt="" className="aspect-[9/16] w-full object-cover" />
-                {picked === i && <Check className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary p-0.5 text-primary-foreground" aria-hidden />}
+                {picked === i && <CheckIcon className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary p-0.5 text-primary-foreground" aria-hidden />}
               </button>
             ))}
           </div>
@@ -221,7 +221,7 @@ function MakeSheet(props: { userId: string; prefs: Prefs; full: boolean; taken: 
           </label>
           <div className="flex flex-wrap items-center gap-2">
             <Button className={BIG} disabled={saving || full} onClick={() => void keep()}>
-              {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden />}Keep {kept}
+              {saving && <CircleNotchIcon className="mr-1.5 h-4 w-4 animate-spin" aria-hidden />}Keep {kept}
             </Button>
             <Button variant="ghost" className={`${BIG} text-muted-foreground`} disabled={saving} onClick={clearMake}>Start over</Button>
           </div>
@@ -297,7 +297,7 @@ function VoicePick({ userId, p }: { userId: string; p: Presenter }) {
         </select>
       </label>
       <Button variant="ghost" className={BIG} disabled={playing} onClick={() => void hear()} aria-label={`Hear ${p.name}'s voice`}>
-        {playing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Hear it"}
+        {playing ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : "Hear it"}
       </Button>
     </div>
   );
@@ -361,7 +361,7 @@ function PresenterCard({ userId, p, isDefault, open, cardRef }: { userId: string
             <div ref={menu} className="relative">
               <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-10 sm:w-10" aria-label={`More for ${p.name}`} aria-haspopup="menu" aria-expanded={mode === "menu"}
                 onClick={() => setMode(mode === "menu" ? "view" : "menu")}>
-                <MoreHorizontal className="h-4 w-4" />
+                <DotsThreeIcon className="h-4 w-4" />
               </Button>
               {mode === "menu" && (
                 <div role="menu" aria-label={`More for ${p.name}`} onKeyDown={(e) => e.key === "Escape" && setMode("view")}

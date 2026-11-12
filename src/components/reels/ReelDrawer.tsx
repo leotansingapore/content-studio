@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { CaretLeftIcon, CaretRightIcon, XIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { links } from "@/lib/links";
 import { Button } from "@/components/ui/button";
@@ -148,7 +148,7 @@ export default function ReelDrawer({
           </div>
           <CopyLinkButton path={links.reels({ card: card.id })} label="Copy link to this reel" />
           <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={onClose} aria-label="Close">
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </Button>
         </div>
 
@@ -164,11 +164,11 @@ export default function ReelDrawer({
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <Button variant="outline" size="sm" className="h-8" disabled={slide <= 1} onClick={() => goSlide(slide - 1)} aria-label="Previous slide">
-                    <ChevronLeft className="h-4 w-4" />
+                    <CaretLeftIcon className="h-4 w-4" />
                   </Button>
                   <span>{slide} / {v.slideUrls?.length ?? 0}</span>
                   <Button variant="outline" size="sm" className="h-8" disabled={slide >= (v.slideUrls?.length ?? 0)} onClick={() => goSlide(slide + 1)} aria-label="Next slide">
-                    <ChevronRight className="h-4 w-4" />
+                    <CaretRightIcon className="h-4 w-4" />
                   </Button>
                 </div>
               </div>

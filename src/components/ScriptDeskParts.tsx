@@ -3,7 +3,7 @@
 // notes).
 
 import { useEffect, useId, useRef, useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { WarningIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import type { DeskPhase, Script } from "@/lib/scriptDesk";
 
@@ -62,7 +62,7 @@ export function DeskWait({ busy, onStop }: { busy: DeskBusy; onStop: () => void 
   const s = Math.max(0, Math.round((Date.now() - busy.since) / 1000));
   return (
     <div role="status" className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-sm">
-      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+      <CircleNotchIcon className="h-4 w-4 shrink-0 animate-spin text-primary" />
       <span className="min-w-0 flex-1">
         {busy.what}: {PHASE[busy.phase]} <span aria-hidden="true" className="tabular-nums text-muted-foreground">{s}s</span>
       </span>
@@ -101,7 +101,7 @@ export function ScriptExtras({ s, onUseHook }: { s: Pick<Script, "hooks" | "flag
           <h3 id={`${id}-flags`} className="text-sm font-semibold">Check before you film</h3>
           <ul className="space-y-1 text-sm">
             {s.flags.map((f) => (
-              <li key={f} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" /><span>{f}</span></li>
+              <li key={f} className="flex gap-2"><WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" /><span>{f}</span></li>
             ))}
           </ul>
         </section>

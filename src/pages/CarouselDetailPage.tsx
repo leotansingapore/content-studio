@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, ExternalLink, Heart, Layers, MessageCircle, Sparkles, UserCheck, UserPlus } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, BookmarkSimpleIcon, CaretLeftIcon, CaretRightIcon, ArrowSquareOutIcon, HeartIcon, StackIcon, ChatCircleIcon, SparkleIcon, UserCheckIcon, UserPlusIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
@@ -130,13 +130,13 @@ export default function CarouselDetailPage() {
   if (row === undefined) return <div className="h-[60vh] animate-pulse rounded-xl bg-muted" aria-label="Loading the carousel" />;
   if (row === null && failed)
     return (
-      <EmptyState icon={Layers} title="The carousel didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
+      <EmptyState icon={StackIcon} title="The carousel didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
         Check your connection and try again.
       </EmptyState>
     );
   if (row === null)
     return (
-      <EmptyState icon={Layers} title="Carousel not found" actions={<Button asChild variant="outline" size="sm"><Link to="/carousels">Back to the library</Link></Button>}>
+      <EmptyState icon={StackIcon} title="Carousel not found" actions={<Button asChild variant="outline" size="sm"><Link to="/carousels">Back to the library</Link></Button>}>
         It may have been taken out of the library.
       </EmptyState>
     );
@@ -151,7 +151,7 @@ export default function CarouselDetailPage() {
       <div className="flex items-center justify-between gap-2">
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
           <Link to={back} onClick={goBack}>
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to carousels
+            <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to carousels
           </Link>
         </Button>
         <CopyLinkButton label="Copy link to this carousel" />
@@ -165,11 +165,11 @@ export default function CarouselDetailPage() {
           </div>
           <div className="mx-auto flex max-w-[520px] items-center justify-between">
             <Button variant="outline" size="icon" onClick={() => go(n - 1)} aria-label="Previous slide" disabled={row.slides < 2}>
-              <ChevronLeft className="h-4 w-4" />
+              <CaretLeftIcon className="h-4 w-4" />
             </Button>
             <span className="text-sm tabular-nums text-muted-foreground" aria-live="polite">{n + 1} / {row.slides}</span>
             <Button variant="outline" size="icon" onClick={() => go(n + 1)} aria-label="Next slide" disabled={row.slides < 2}>
-              <ChevronRight className="h-4 w-4" />
+              <CaretRightIcon className="h-4 w-4" />
             </Button>
           </div>
         </section>
@@ -193,18 +193,18 @@ export default function CarouselDetailPage() {
 
           <dl className="grid grid-cols-2 gap-3 border-y border-border/60 py-3 text-sm">
             <div>
-              <dt className="flex items-center gap-1 text-xs text-muted-foreground"><Heart className="h-3 w-3" /> Likes</dt>
+              <dt className="flex items-center gap-1 text-xs text-muted-foreground"><HeartIcon className="h-3 w-3" /> Likes</dt>
               <dd className="text-lg font-semibold tabular-nums">{row.likes.toLocaleString()}</dd>
             </div>
             <div>
-              <dt className="flex items-center gap-1 text-xs text-muted-foreground"><MessageCircle className="h-3 w-3" /> Comments</dt>
+              <dt className="flex items-center gap-1 text-xs text-muted-foreground"><ChatCircleIcon className="h-3 w-3" /> Comments</dt>
               <dd className="text-lg font-semibold tabular-nums">{row.comments.toLocaleString()}</dd>
             </div>
           </dl>
 
           <RemixButton size="lg" className="w-full" source={source} label={`Remix: @${row.creator}'s carousel`}>
             <Button size="lg" className="w-full gap-2" onClick={() => navigate(`/generate?carousel=${encodeURIComponent(row.id)}`)}>
-              <Sparkles className="h-4 w-4" /> Make it your own <ArrowRight className="h-4 w-4" />
+              <SparkleIcon className="h-4 w-4" /> Make it your own <ArrowRightIcon className="h-4 w-4" />
             </Button>
           </RemixButton>
 
@@ -219,7 +219,7 @@ export default function CarouselDetailPage() {
                 toast({ title: savedTo ? "Removed from Saved" : "Saved" });
               }}
             >
-              {savedTo ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />} {savedTo ? "Saved" : "Save"}
+              <BookmarkSimpleIcon className="h-3.5 w-3.5" weight={savedTo ? "fill" : "regular"} /> {savedTo ? "Saved" : "Save"}
             </Button>
             {savedTo && shelf.folders.length > 0 && (
               <Select value={savedTo.folder ?? NO_FOLDER} onValueChange={(v) => setShelf(toggleSaved(shelf, row.id, v === NO_FOLDER ? null : v))}>
@@ -231,11 +231,11 @@ export default function CarouselDetailPage() {
               </Select>
             )}
             <Button variant="outline" size="sm" className="gap-1.5" aria-pressed={tracked} onClick={() => setShelf(toggleTracked(shelf, row.creator))}>
-              {tracked ? <UserCheck className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />} {tracked ? `Tracking @${row.creator}` : `Track @${row.creator}`}
+              {tracked ? <UserCheckIcon className="h-3.5 w-3.5" /> : <UserPlusIcon className="h-3.5 w-3.5" />} {tracked ? `Tracking @${row.creator}` : `Track @${row.creator}`}
             </Button>
             <Button asChild variant="outline" size="sm" className="gap-1.5">
               <a href={row.ig_url} target="_blank" rel="noopener noreferrer">
-                Original post <ExternalLink className="h-3.5 w-3.5" />
+                Original post <ArrowSquareOutIcon className="h-3.5 w-3.5" />
               </a>
             </Button>
           </div>

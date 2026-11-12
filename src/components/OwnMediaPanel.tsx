@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronUp, Film, Trash2, Upload } from "lucide-react";
+import { CaretDownIcon, CaretUpIcon, FilmStripIcon, TrashIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,13 +147,13 @@ export default function OwnMediaPanel({ userId, busy, onUpload, onJoin, onClose 
       >
         {video ? (
           <span className="flex min-w-0 max-w-full items-center gap-2 text-sm font-semibold">
-            {video.thumb ? <img src={video.thumb} alt="" className="h-12 w-auto shrink-0 rounded" /> : <Film className="h-4 w-4 shrink-0 text-primary" />}
+            {video.thumb ? <img src={video.thumb} alt="" className="h-12 w-auto shrink-0 rounded" /> : <FilmStripIcon className="h-4 w-4 shrink-0 text-primary" />}
             <span className="truncate">{video.file.name}</span>
             {Number.isFinite(video.seconds) && <span className="shrink-0 font-normal text-muted-foreground">{fmtTime(video.seconds)}</span>}
           </span>
         ) : (
           <>
-            <Upload className="h-5 w-5 text-primary" />
+            <UploadSimpleIcon className="h-5 w-5 text-primary" />
             <span className="text-sm font-semibold">{pictures ? `Add more pictures (${s.pictures.length} of ${MAX_PICTURES})` : "Drop a video, or up to 10 pictures"}</span>
             <span className="text-xs text-muted-foreground">A video up to 4 GB, or JPG, PNG or WEBP pictures</span>
           </>
@@ -180,9 +180,9 @@ export default function OwnMediaPanel({ userId, busy, onUpload, onJoin, onClose 
                 )}
               </div>
               <div className="flex shrink-0 flex-col gap-1">
-                <button type="button" className={iconBtn} aria-label={`Move picture ${i + 1} up`} disabled={!i || working} onClick={() => movePicture(i, -1)}><ChevronUp className="h-4 w-4" /></button>
-                <button type="button" className={iconBtn} aria-label={`Move picture ${i + 1} down`} disabled={i === s.pictures.length - 1 || working} onClick={() => movePicture(i, 1)}><ChevronDown className="h-4 w-4" /></button>
-                <button type="button" className={`${iconBtn} hover:text-destructive`} aria-label={`Remove picture ${i + 1}`} disabled={working} onClick={() => movePicture(i, 0)}><Trash2 className="h-4 w-4" /></button>
+                <button type="button" className={iconBtn} aria-label={`Move picture ${i + 1} up`} disabled={!i || working} onClick={() => movePicture(i, -1)}><CaretUpIcon className="h-4 w-4" /></button>
+                <button type="button" className={iconBtn} aria-label={`Move picture ${i + 1} down`} disabled={i === s.pictures.length - 1 || working} onClick={() => movePicture(i, 1)}><CaretDownIcon className="h-4 w-4" /></button>
+                <button type="button" className={`${iconBtn} hover:text-destructive`} aria-label={`Remove picture ${i + 1}`} disabled={working} onClick={() => movePicture(i, 0)}><TrashIcon className="h-4 w-4" /></button>
               </div>
             </li>
           ))}

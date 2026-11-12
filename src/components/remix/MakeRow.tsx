@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FORMATS, alsoMakeList, formatHref } from "@/data/formats";
 import { aiBusy as aiWorking, onAiJob, pendingAvatar } from "@/lib/aiVideo";
@@ -87,7 +87,7 @@ export default function MakeRow(p: {
             >
               {f.name}
               {chip.text && <span className="font-normal tabular-nums text-muted-foreground">{chip.text}</span>}
-              <ArrowRight className="h-3 w-3" aria-hidden />
+              <ArrowRightIcon className="h-3 w-3" aria-hidden />
             </Link>
           );
         })}

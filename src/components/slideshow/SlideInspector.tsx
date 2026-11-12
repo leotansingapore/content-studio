@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Copy, ImagePlus, Images, LayoutGrid, Loader2, PaintBucket, Plus, Rows3, Shuffle, Trash2, Type } from "lucide-react";
+import { CopyIcon, ImageSquareIcon, ImagesIcon, SquaresFourIcon, CircleNotchIcon, PaintBucketIcon, PlusIcon, RowsIcon, ShuffleIcon, TrashIcon, TextTIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import CutoutPicker from "@/components/slideshow/CutoutPicker";
 import { Textarea } from "@/components/ui/textarea";
@@ -212,7 +212,7 @@ export default function SlideInspector({
   const addText = (
     <div className="space-y-1">
       <Button type="button" variant="outline" size="sm" onClick={act.addText} disabled={slide.boxes.length >= MAX_BOXES} className={outline("w-full")}>
-        <Type className="h-3.5 w-3.5" /> Add text
+        <TextTIcon className="h-3.5 w-3.5" /> Add text
       </Button>
       {slide.boxes.length >= MAX_BOXES && <p className="text-[11px] text-muted-foreground">6 text boxes, stickers and cut-outs is the most a slide holds.</p>}
     </div>
@@ -294,14 +294,14 @@ export default function SlideInspector({
             )}
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 lg:grid-cols-1">
               <Button type="button" variant="outline" size="sm" onClick={act.swap} disabled={swap.busy} className={outline()}>
-                {swap.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shuffle className="h-3.5 w-3.5" />}
+                {swap.busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <ShuffleIcon className="h-3.5 w-3.5" />}
                 {swap.busy ? "Finding a picture..." : "Swap picture"}
               </Button>
               <Button type="button" variant="outline" size="sm" onClick={toggleMedia} aria-expanded={mediaOpen} className={outline()}>
-                <Images className="h-3.5 w-3.5" /> My pictures
+                <ImagesIcon className="h-3.5 w-3.5" /> My pictures
               </Button>
               <label className={cn("inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 text-xs font-semibold hover:border-primary/40", TOUCH)}>
-                <ImagePlus className="h-3.5 w-3.5" /> Upload a picture
+                <ImageSquareIcon className="h-3.5 w-3.5" /> Upload a picture
                 <input
                   type="file"
                   accept="image/*"
@@ -316,10 +316,10 @@ export default function SlideInspector({
             </div>
             <div className="flex items-center gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => act.collage(!slide.cells)} aria-pressed={!!slide.cells} className={outline("flex-1")}>
-                <LayoutGrid className="h-3.5 w-3.5" /> {slide.cells ? "One picture" : "2x2 collage"}
+                <SquaresFourIcon className="h-3.5 w-3.5" /> {slide.cells ? "One picture" : "2x2 collage"}
               </Button>
               <Button type="button" variant="outline" size="sm" onClick={() => act.plain(plainFillFor(slide))} disabled={!slide.image && !slide.photo} className={outline("flex-1")}>
-                <PaintBucket className="h-3.5 w-3.5" /> Plain colour
+                <PaintBucketIcon className="h-3.5 w-3.5" /> Plain colour
               </Button>
               {!slide.image && !slide.photo && (
                 <input
@@ -370,17 +370,17 @@ export default function SlideInspector({
           <Group label="Slides">
             <div className="grid grid-cols-3 gap-1.5 lg:grid-cols-1">
               <Button type="button" variant="outline" size="sm" onClick={act.addSlide} disabled={full} className={outline()}>
-                <Plus className="h-3.5 w-3.5" /> Add slide
+                <PlusIcon className="h-3.5 w-3.5" /> Add slide
               </Button>
               <Button type="button" variant="outline" size="sm" onClick={act.duplicate} disabled={full} className={outline()}>
-                <Copy className="h-3.5 w-3.5" /> Duplicate
+                <CopyIcon className="h-3.5 w-3.5" /> Duplicate
               </Button>
               <Button type="button" variant="outline" size="sm" onClick={act.deleteSlide} disabled={least} className={outline("text-destructive hover:text-destructive")}>
-                <Trash2 className="h-3.5 w-3.5" /> Delete slide
+                <TrashIcon className="h-3.5 w-3.5" /> Delete slide
               </Button>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={act.threeRows} disabled={full} className={outline("w-full")}>
-              <Rows3 className="h-3.5 w-3.5" /> Three-row slide
+              <RowsIcon className="h-3.5 w-3.5" /> Three-row slide
             </Button>
             <label className={cn("flex min-h-9 items-center gap-2 text-xs font-medium", TOUCH)}>
               <input type="checkbox" checked={!!slide.rows} onChange={(e) => act.rows(e.target.checked)} className="h-4 w-4 accent-primary" />

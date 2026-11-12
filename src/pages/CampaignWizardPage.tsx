@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { CaretRightIcon } from "@phosphor-icons/react";
 import AnglesStep from "@/components/campaign/AnglesStep";
 import BudgetStep, { RunsStep } from "@/components/campaign/BudgetStep";
 import PaceStep from "@/components/campaign/PaceStep";
@@ -337,7 +337,7 @@ function Wizard({ userId }: { userId: string }) {
         <Link to={links.campaigns()} className="inline-flex min-h-11 items-center hover:text-foreground">Campaigns</Link>
         {audience && (
           <>
-            <ChevronRight aria-hidden className="h-4 w-4 shrink-0" />
+            <CaretRightIcon aria-hidden className="h-4 w-4 shrink-0" />
             <span className="truncate">{audience.name}</span>
           </>
         )}

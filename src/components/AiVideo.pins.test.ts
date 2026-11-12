@@ -23,11 +23,11 @@ const LEO_PARAMS = "&face=mine&voice=mine";
 
 const AVATAR = "56f249425e25a4dd4807d4bc15b22f44c685d6aa5e2f2a9e1f6e1d3395ed1697";
 const PERSON: Record<string, string> = {
-  "ugc-creator-review": "393ebbab882d2f7b6635dac454bfa289635e3dcfc905944bf2f691d09089d94c",
-  "handheld-ugc-vlog": "d960c4ee634e68d40a69299c260e11db0ce0c7009d9c3d6e99b5c984ff99debb",
-  "timeline-shot-script": "cd7c803573178e3976064f9abce93a8a2e1abefc9093e3d8177cfd75281ec37c",
-  "character-reference-lock": "9755ff8fe2dc1c231429a3b7733b9fac5ebb459910417b4ac1d9c4e1e59da0f0",
-  "travel-city-walk": "72724979da3e166ddf341403bfa4dbc43e726bcb575e13cb7a3a64167391e8df",
+  "ugc-creator-review": "2066e13268699140747137a139de40b0641b87ad17c5f4fff79e445c36f02a59",
+  "handheld-ugc-vlog": "bc6405390adda4b2f2d0442079378ccc241d56fbc38327a0c1baf88415379019",
+  "timeline-shot-script": "fe93f385290c1974787199114203c98383bcf03933e4090b56ab2217282249c4",
+  "character-reference-lock": "a84e39c6abab190a0b1d5c854a1b16224dfbf5c76907961e1df41ccc586aac57",
+  "travel-city-walk": "c36a21b7bf2f4fae796706ba21f580989deceb74fd6ed6e137436406f692feda",
 };
 
 describe("everyone else's You speaking", () => {

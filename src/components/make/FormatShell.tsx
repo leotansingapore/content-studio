@@ -4,7 +4,7 @@
 
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { CaretLeftIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { usedUpLine } from "@/data/formats";
@@ -44,7 +44,7 @@ export default function FormatShell(p: { title: string; blurb: string; options: 
     <div className="space-y-6">
       <header className="space-y-1">
         <Button variant="ghost" size="sm" onClick={back} className="-ml-2 gap-1 text-muted-foreground">
-          <ChevronLeft className="h-4 w-4" /> Back
+          <CaretLeftIcon className="h-4 w-4" /> Back
         </Button>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">{p.title}</h1>
         <p className="text-sm text-muted-foreground">{p.blurb}</p>
@@ -60,7 +60,7 @@ export default function FormatShell(p: { title: string; blurb: string; options: 
                 {f.cap ? <PriceChip feature={f.cap} opts={f.opts} price={f.price} left={left} /> : <span className="text-[11px] text-muted-foreground">No AI cost</span>}
               </span>
               <Button onClick={f.onMake} disabled={f.busy || f.disabled || left === 0 || !!usedUp} variant={f.secondary ? "outline" : "default"} className="shrink-0 gap-1.5">
-                {f.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {f.busy && <CircleNotchIcon className="h-4 w-4 animate-spin" />}
                 {f.busy ? f.busyLabel : f.label}
               </Button>
             </div>

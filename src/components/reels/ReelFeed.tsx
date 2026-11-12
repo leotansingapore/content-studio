@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
+import { CaretLeftIcon, CaretRightIcon, ChatIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -102,11 +102,11 @@ function Post({ card, board, me, onChange, onMove, onOpen, focused }: {
                 <>
                   <button type="button" onClick={() => go(slide - 1)} disabled={slide <= 1} aria-label="Previous slide"
                     className="absolute left-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-background/90 shadow disabled:opacity-0">
-                    <ChevronLeft className="h-5 w-5" />
+                    <CaretLeftIcon className="h-5 w-5" />
                   </button>
                   <button type="button" onClick={() => go(slide + 1)} disabled={slide >= slides.length} aria-label="Next slide"
                     className="absolute right-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-background/90 shadow disabled:opacity-0">
-                    <ChevronRight className="h-5 w-5" />
+                    <CaretRightIcon className="h-5 w-5" />
                   </button>
                 </>
               )}
@@ -160,7 +160,7 @@ function Post({ card, board, me, onChange, onMove, onOpen, focused }: {
               {next && <Button size="sm" className="min-w-28" onClick={() => onMove(card.id, next[0])}>{next[1]}</Button>}
               {p.note && card.stage !== "posted" && card.stage !== "archived" && (
                 <Button size="sm" variant="outline" onClick={() => setNoting(true)}>
-                  <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> {p.move("changes") ? "Needs changes" : "Leave a note"}
+                  <ChatIcon className="mr-1.5 h-3.5 w-3.5" /> {p.move("changes") ? "Needs changes" : "Leave a note"}
                 </Button>
               )}
               {card.stage !== "archived" && p.move("archived") && <Button size="sm" variant="ghost" onClick={() => onMove(card.id, "archived")}>Archive</Button>}

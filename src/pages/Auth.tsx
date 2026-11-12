@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Loader2, Mail, Sparkles } from "lucide-react";
+import { CircleNotchIcon, EnvelopeIcon, SparkleIcon } from "@phosphor-icons/react";
 
 import {
   Card,
@@ -111,7 +111,7 @@ export default function Auth() {
         <div className="flex flex-col items-center space-y-3 text-center">
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
-              <Sparkles className="h-5 w-5" />
+              <SparkleIcon className="h-5 w-5" />
             </span>
             <span className="flex flex-col items-start leading-none">
               <span className="text-base font-bold tracking-tight text-foreground">
@@ -177,9 +177,9 @@ export default function Auth() {
                   size="lg"
                 >
                   {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <CircleNotchIcon className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Sparkles className="h-4 w-4" />
+                    <SparkleIcon className="h-4 w-4" />
                   )}
                   {loading ? "Signing in..." : "Sign in"}
                 </Button>
@@ -201,7 +201,7 @@ export default function Auth() {
                 )}
                 <Button type="submit" disabled={loading} size="lg"
                   className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  {loading ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <EnvelopeIcon className="h-4 w-4" />}
                   {mode === "email" ? "Email me a sign-in link" : "Sign in"}
                 </Button>
               </form>

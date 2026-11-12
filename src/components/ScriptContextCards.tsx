@@ -3,7 +3,7 @@
 // creator's details for these, and a fact they don't give becomes a [placeholder], never an invented one.
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,7 +63,7 @@ function ContextCard<T extends MeFields | ProductFields>(p: {
           <InfoTip label={`About ${p.title}`}>{p.tip}</InfoTip>
         </div>
         <span aria-live="polite" className="flex items-center gap-1 text-xs font-medium text-success">
-          {state === "saved" && <><Check className="h-3.5 w-3.5" /> Saved</>}
+          {state === "saved" && <><CheckIcon className="h-3.5 w-3.5" /> Saved</>}
         </span>
         <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm [@media(pointer:coarse)]:min-h-11">
           <input type="checkbox" role="switch" checked={f.on} onChange={(e) => set({ on: e.target.checked } as Partial<T>)} className="h-4 w-4 accent-primary" />

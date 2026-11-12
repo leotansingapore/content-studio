@@ -1,6 +1,6 @@
 // Small building blocks shared by the team review screens.
 import type { ReactNode } from "react";
-import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
+import { WarningIcon, CircleNotchIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,7 +44,7 @@ export function LoadingBlock({ label = "Loading…" }: { label?: string }) {
       role="status"
       className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"
     >
-      <Loader2 className="h-4 w-4 animate-spin" />
+      <CircleNotchIcon className="h-4 w-4 animate-spin" />
       {label}
     </div>
   );
@@ -59,7 +59,7 @@ export function ErrorBlock({ message, onRetry }: { message: string; onRetry?: ()
       <p className="max-w-md break-words text-foreground">{message}</p>
       {onRetry && (
         <Button size="sm" variant="outline" onClick={onRetry} className="gap-1.5">
-          <RefreshCw className="h-3.5 w-3.5" /> Try again
+          <ArrowsClockwiseIcon className="h-3.5 w-3.5" /> Try again
         </Button>
       )}
     </div>
@@ -128,7 +128,7 @@ export function FlagList({ flags }: { flags: SubmittedFlag[] | null | undefined 
                 : "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200"
             }`}
           >
-            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+            <WarningIcon className="mt-0.5 h-3 w-3 shrink-0" />
             <span className="min-w-0 break-words">
               <span className="font-semibold">{isError ? "Compliance error" : "Compliance warning"}</span>
               {f.match ? <span className="font-mono"> “{f.match}”</span> : null}

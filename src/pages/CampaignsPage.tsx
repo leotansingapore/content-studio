@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useReducer } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, Plus } from "lucide-react";
+import { CaretRightIcon, PlusIcon } from "@phosphor-icons/react";
 import GoalLine from "@/components/GoalLine";
 import LibraryThumb, { readThumbSources, useFontsReady } from "@/components/library/LibraryThumb";
 import { NoAudience } from "@/components/campaign/WhoStep";
@@ -191,7 +191,7 @@ function Campaigns({ userId }: { userId: string }) {
                     <span className="block break-words font-medium">{a.name}</span>
                     <span className="block text-xs text-muted-foreground">Start here.</span>
                   </span>
-                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <CaretRightIcon aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </Link>
               </li>
             ))}
@@ -208,7 +208,7 @@ function Campaigns({ userId }: { userId: string }) {
                 {free.map((a) => (
                   <Button key={a.id} asChild variant="outline" size="sm">
                     <Link to={links.campaignNew({ audience: a.id })}>
-                      <Plus aria-hidden /> {a.name}
+                      <PlusIcon aria-hidden /> {a.name}
                     </Link>
                   </Button>
                 ))}

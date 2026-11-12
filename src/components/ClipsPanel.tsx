@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Film, Upload } from "lucide-react";
+import { FilmStripIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -96,13 +96,13 @@ export default function ClipsPanel({ userId, busy, onStart, onClose }: {
       >
         {rec ? (
           <span className="flex min-w-0 max-w-full items-center gap-2 text-sm font-semibold">
-            <Film className="h-4 w-4 shrink-0 text-primary" />
+            <FilmStripIcon className="h-4 w-4 shrink-0 text-primary" />
             <span className="truncate">{rec.file.name}</span>
             <span className="shrink-0 font-normal text-muted-foreground">{fmtTime(rec.seconds)}</span>
           </span>
         ) : (
           <>
-            <Upload className="h-5 w-5 text-primary" />
+            <UploadSimpleIcon className="h-5 w-5 text-primary" />
             <span className="text-sm font-semibold">Drop a webinar, seminar, podcast or Zoom recording</span>
             <span className="text-xs text-muted-foreground">Up to 4 GB and about 2 hours. It stays on this device.</span>
           </>

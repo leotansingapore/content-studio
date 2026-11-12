@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { Bookmark, Eye, Images, Layers, Loader2, Search } from "lucide-react";
+import { BookmarkSimpleIcon, EyeIcon, ImagesIcon, StackIcon, CircleNotchIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -83,7 +83,7 @@ export default function WorkingPage() {
         <h1 className="font-serif text-2xl font-semibold">What's working</h1>
         <label className="relative block">
           <span className="sr-only">Search slides, captions and creators</span>
-          <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <MagnifyingGlassIcon aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search slides, captions and @creators" className="h-11 pl-9 text-base" maxLength={100} />
         </label>
       </div>
@@ -117,16 +117,16 @@ export default function WorkingPage() {
       </div>
 
       {data.error ? (
-        <EmptyState icon={Images} title="The library didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
+        <EmptyState icon={ImagesIcon} title="The library didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
           {data.error}
         </EmptyState>
       ) : data.loading && data.rows.length === 0 ? (
         <Grid>{Array.from({ length: 10 }, (_, i) => <div key={i} className="aspect-[3/4] animate-pulse rounded-xl bg-muted" />)}</Grid>
       ) : data.rows.length === 0 ? (
         f.q || f.niche ? (
-          <EmptyState icon={Search} title="No slideshows match" actions={<Button size="sm" variant="outline" onClick={() => { setText(""); update({ q: null, niche: null }); }}>Show all</Button>} />
+          <EmptyState icon={MagnifyingGlassIcon} title="No slideshows match" actions={<Button size="sm" variant="outline" onClick={() => { setText(""); update({ q: null, niche: null }); }}>Show all</Button>} />
         ) : (
-          <EmptyState icon={Images} title="No slideshows yet" />
+          <EmptyState icon={ImagesIcon} title="No slideshows yet" />
         )
       ) : (
         <>
@@ -136,7 +136,7 @@ export default function WorkingPage() {
           {hasMore && (
             <div className="flex justify-center">
               <Button variant="outline" onClick={() => update({ pages: String(pages + 1) })} disabled={data.loading || pages >= MAX_PAGES} className="gap-1.5">
-                {data.loading && <Loader2 className="h-4 w-4 animate-spin" />} Show more
+                {data.loading && <CircleNotchIcon className="h-4 w-4 animate-spin" />} Show more
               </Button>
             </div>
           )}
@@ -160,7 +160,7 @@ export function WorkingCardView({ c, back }: { c: WorkingCard; back: string }) {
           <span className="absolute left-2 top-2 rounded-md bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground">{multipleLabel(c.ratio)} usual views</span>
         )}
         <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">
-          <Layers className="h-3 w-3" aria-hidden /> {c.slides}<span className="sr-only"> slides</span>
+          <StackIcon className="h-3 w-3" aria-hidden /> {c.slides}<span className="sr-only"> slides</span>
         </span>
       </div>
       <div className="space-y-1 pt-2">
@@ -169,8 +169,8 @@ export function WorkingCardView({ c, back }: { c: WorkingCard; back: string }) {
           {c.format && <span className="min-w-0 truncate rounded-full border border-border/60 px-2 py-px text-[10px] text-muted-foreground">{tagLabel(c.format)}</span>}
         </p>
         <p className="flex items-center gap-2.5 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" aria-hidden /> {compact(c.views)}<span className="sr-only"> views</span></span>
-          {rate && <span className="inline-flex items-center gap-1"><Bookmark className="h-3 w-3" aria-hidden /> {rate}<span className="sr-only"> saved</span></span>}
+          <span className="inline-flex items-center gap-1"><EyeIcon className="h-3 w-3" aria-hidden /> {compact(c.views)}<span className="sr-only"> views</span></span>
+          {rate && <span className="inline-flex items-center gap-1"><BookmarkSimpleIcon className="h-3 w-3" aria-hidden /> {rate}<span className="sr-only"> saved</span></span>}
         </p>
       </div>
     </Link>

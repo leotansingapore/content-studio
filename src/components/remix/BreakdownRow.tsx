@@ -3,7 +3,7 @@
 // state is the sheet's ?breakdown=open flag, passed in. Leo only, like the sheet that mounts it.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { CaretDownIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import PriceChip from "@/components/PriceChip";
@@ -89,7 +89,7 @@ export default function BreakdownRow(p: { userId: string; source: RemixSource; t
           )}
           <Button type="button" variant="ghost" size="sm" aria-expanded={open} aria-controls={bodyId} onClick={() => onOpen(!open)}>
             {open ? "Hide it" : "See it"}
-            <ChevronDown className={`transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+            <CaretDownIcon className={`transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
           </Button>
         </div>
       </div>

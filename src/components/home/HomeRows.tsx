@@ -4,7 +4,7 @@
 // and AdLauncher's connection row (our own function's status, which never calls AdLauncher). No AI call.
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CalendarDays, ChevronRight, Clapperboard, Image as ImageIcon, ImageOff, Layers, Megaphone, Type, type LucideIcon } from "lucide-react";
+import { CalendarDotsIcon, CaretRightIcon, FilmSlateIcon, ImageIcon, ImageBrokenIcon, StackIcon, MegaphoneIcon, TextTIcon, type Icon as IconType } from "@phosphor-icons/react";
 import LibraryThumb, { readThumbSources, useFontsReady, useOnScreen, type ThumbSources } from "@/components/library/LibraryThumb";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ import { loadProjects } from "@/lib/videoProjects";
 const ROW = 5;
 const FORMAT_TILES = 8;
 const IDS = ["recent", "formats", "remix-ads", "publish"];
-const KIND_ICONS: Record<FormatKind, LucideIcon> = { video: Clapperboard, slides: Layers, text: Type, image: ImageIcon };
+const KIND_ICONS: Record<FormatKind, IconType> = { video: FilmSlateIcon, slides: StackIcon, text: TextTIcon, image: ImageIcon };
 const MORE = "inline-flex min-h-9 items-center gap-0.5 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:min-h-11";
 // a swipeable strip on phones (the cards peek past the edge), a grid from sm up
 const STRIP = "-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0";
@@ -46,7 +46,7 @@ function Row({ id, title, more, children }: { id: string; title: string; more?: 
         </h2>
         {more && (
           <Link to={more.to} className={MORE}>
-            {more.label} <ChevronRight className="h-4 w-4" />
+            {more.label} <CaretRightIcon className="h-4 w-4" />
           </Link>
         )}
       </div>
@@ -125,7 +125,7 @@ export interface FormatTile {
   name: string;
   line: string;
   to: string;
-  icon: LucideIcon;
+  icon: IconType;
 }
 
 /** The ready video formats (gallery order) and ready static ads taken in turn, `n` at most. */
@@ -211,7 +211,7 @@ function AdCard({ ad, c, now }: RunningAd & { now: number }) {
             <img src={ad.image} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
           ) : (
             <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground">
-              <ImageOff className="h-5 w-5" aria-hidden /> No preview
+              <ImageBrokenIcon className="h-5 w-5" aria-hidden /> No preview
             </span>
           )}
         </span>
@@ -251,9 +251,9 @@ export function PublishPromote({ adl, sent, booked }: { adl: AdlRead; sent: numb
   return (
     <Row id="publish" title="Publish and promote">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Card icon={Megaphone} title="Ads" line={adsLine(adl, sent)} busy={adl === undefined} to={links.adlauncher()} action="Open ads" />
+        <Card icon={MegaphoneIcon} title="Ads" line={adsLine(adl, sent)} busy={adl === undefined} to={links.adlauncher()} action="Open ads" />
         <Card
-          icon={CalendarDays}
+          icon={CalendarDotsIcon}
           title="Posting"
           // which posts and when is Next up's and Coming up's to say, once each: this card only counts the queue
           line={booked ? `${booked} post${booked === 1 ? "" : "s"} booked` : "Nothing booked yet"}
@@ -265,7 +265,7 @@ export function PublishPromote({ adl, sent, booked }: { adl: AdlRead; sent: numb
   );
 }
 
-function Card({ icon: Icon, title, line, sub, busy, to, action }: { icon: LucideIcon; title: string; line: string; sub?: string; busy?: boolean; to: string; action: string }) {
+function Card({ icon: Icon, title, line, sub, busy, to, action }: { icon: IconType; title: string; line: string; sub?: string; busy?: boolean; to: string; action: string }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card p-4">
       <div className="flex min-w-0 flex-1 basis-48 items-start gap-3">
@@ -282,7 +282,7 @@ function Card({ icon: Icon, title, line, sub, busy, to, action }: { icon: Lucide
       </div>
       <Button asChild variant="outline" size="sm" className="gap-1 [@media(pointer:coarse)]:min-h-11">
         <Link to={to}>
-          {action} <ChevronRight className="h-4 w-4" />
+          {action} <CaretRightIcon className="h-4 w-4" />
         </Link>
       </Button>
     </div>

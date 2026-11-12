@@ -5,7 +5,7 @@
 // Remove takes one off; Remove all takes the lot off (one Undo brings them back).
 
 import { useRef, useState } from "react";
-import { Check, Loader2, RefreshCw, Trash2, Type } from "lucide-react";
+import { CheckIcon, CircleNotchIcon, ArrowsClockwiseIcon, TrashIcon, TextTIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { chooseClips, stockIdOf, type Orientation, type Placed } from "@/lib/autoBroll";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
@@ -80,9 +80,9 @@ export default function BrollSheet({ placed, brolls, overlays, orientation, appl
         <p className="mr-auto text-sm font-medium">Placed for you ({rows.length})</p>
         <Button size="sm" variant="ghost" className="h-11 gap-1.5 text-xs text-muted-foreground hover:text-destructive sm:h-8"
           onClick={() => apply({ broll: brolls.filter((b) => !rows.some((r) => r.p.id === b.id)), overlays: overlays.filter((o) => !rows.some((r) => r.p.id === o.id)) })}>
-          <Trash2 className="h-3.5 w-3.5" /> Remove all
+          <TrashIcon className="h-3.5 w-3.5" /> Remove all
         </Button>
-        <Button size="sm" variant="outline" className="h-11 gap-1.5 text-xs sm:h-8" onClick={onDone}><Check className="h-3.5 w-3.5" /> Done</Button>
+        <Button size="sm" variant="outline" className="h-11 gap-1.5 text-xs sm:h-8" onClick={onDone}><CheckIcon className="h-3.5 w-3.5" /> Done</Button>
       </div>
       <ul className="divide-y divide-border/60">
         {rows.map(({ p, b, o, from, to }) => {
@@ -94,7 +94,7 @@ export default function BrollSheet({ placed, brolls, overlays, orientation, appl
                   className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-muted" style={o ? { backgroundColor: o.color } : undefined}>
                   {b?.thumb && <img src={b.thumb} alt="" className="h-full w-full object-cover" />}
                   {p.ai && <span className="text-[11px] font-bold text-muted-foreground">AI</span>}
-                  {o && <Type className="h-4 w-4 mix-blend-difference text-white" aria-hidden />}
+                  {o && <TextTIcon className="h-4 w-4 mix-blend-difference text-white" aria-hidden />}
                 </button>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold">{o ? o.text : p.search}</span>
@@ -104,12 +104,12 @@ export default function BrollSheet({ placed, brolls, overlays, orientation, appl
                 {b && !p.ai && (
                   <Button size="sm" variant={open === b.id ? "secondary" : "outline"} className="h-11 shrink-0 gap-1 text-xs sm:h-8" aria-expanded={open === b.id}
                     onClick={() => toggle(b.id, p.search)}>
-                    <RefreshCw className="h-3.5 w-3.5" /> Swap
+                    <ArrowsClockwiseIcon className="h-3.5 w-3.5" /> Swap
                   </Button>
                 )}
                 <Button size="sm" variant="ghost" className="h-11 w-11 shrink-0 p-0 text-muted-foreground hover:text-destructive sm:h-8 sm:w-8" aria-label={`Remove the ${b ? "clip" : "card"} at ${fmtTime(from)}`}
                   onClick={() => apply(b ? { broll: brolls.filter((x) => x.id !== b.id) } : { overlays: overlays.filter((x) => x.id !== p.id) })}>
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <TrashIcon className="h-3.5 w-3.5" />
                 </Button>
               </div>
               {b && open === b.id && (
@@ -123,7 +123,7 @@ export default function BrollSheet({ placed, brolls, overlays, orientation, appl
                           <button type="button" onClick={() => void swap(b, it)} disabled={!!swapping} aria-label={`Use the clip by ${it.by}`}
                             className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-muted ring-primary focus-visible:ring-2">
                             <img src={it.thumb} alt="" loading="lazy" className="h-full w-full object-cover" />
-                            {swapping === it.id && <span className="absolute inset-0 flex items-center justify-center bg-black/45"><Loader2 className="h-4 w-4 animate-spin text-white" /></span>}
+                            {swapping === it.id && <span className="absolute inset-0 flex items-center justify-center bg-black/45"><CircleNotchIcon className="h-4 w-4 animate-spin text-white" /></span>}
                           </button>
                         </li>
                       ))}

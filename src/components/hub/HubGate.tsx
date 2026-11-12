@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { fetchMembership, hubAccess, type HubMembership } from "@/lib/hub";
@@ -46,7 +46,7 @@ export default function HubGate() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <CircleNotchIcon className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }

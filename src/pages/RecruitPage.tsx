@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Check } from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react";
 import BrandBrain from "@/components/recruit/BrandBrain";
 import Conversations from "@/components/recruit/Conversations";
 import Agent from "@/components/recruit/Agent";
@@ -58,7 +58,7 @@ export default function RecruitPage() {
                     : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
                 }`}
               >
-                {done[p.key] && <Check className="h-3 w-3" />}
+                {done[p.key] && <CheckIcon className="h-3 w-3" />}
                 {p.label}
               </Link>
             </li>

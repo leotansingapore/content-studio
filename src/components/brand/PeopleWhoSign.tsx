@@ -2,7 +2,7 @@
 // photo, name, role and handle, picked per carousel as "Signed by". Their photos are footer pictures only: never sent
 // to an AI model and never offered in "Who speaks" (phase4-build-brief.md, decision 7).
 
-import { Plus, X } from "lucide-react";
+import { PlusIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -62,7 +62,7 @@ export default function PeopleWhoSign({
                 />
               </div>
               <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label={`Remove ${p.name || `person ${i + 1}`}`} onClick={() => setBrand({ people: people.filter((x) => x.id !== p.id) })}>
-                <X className="h-4 w-4" />
+                <XIcon className="h-4 w-4" />
               </Button>
             </li>
           ))}
@@ -70,7 +70,7 @@ export default function PeopleWhoSign({
       )}
       {people.length < MAX_PEOPLE ? (
         <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-semibold hover:border-primary/40 [@media(pointer:coarse)]:h-11">
-          <Plus className="h-3.5 w-3.5" /> Add a person
+          <PlusIcon className="h-3.5 w-3.5" /> Add a person
           <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void add(f); }} />
         </label>
       ) : (

@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, PenLine, Plus, Search, X } from "lucide-react";
+import { ArrowSquareOutIcon, PencilLineIcon, PlusIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
@@ -99,7 +99,7 @@ export default function Mentions() {
           <>
             {!checking && <PriceChip feature="mentions" left={left} />}
             <Button size="sm" className="h-9 gap-1.5" onClick={check} disabled={checking || left === 0}>
-              <Search className="h-3.5 w-3.5" /> {checking ? "Checking..." : "Check now"}
+              <MagnifyingGlassIcon className="h-3.5 w-3.5" /> {checking ? "Checking..." : "Check now"}
             </Button>
           </>
         )}
@@ -113,7 +113,7 @@ export default function Mentions() {
               {k}
               <button type="button" aria-label={`Stop watching ${k}`} onClick={() => void remove(k)}
                 className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
+                <XIcon className="h-3.5 w-3.5" />
               </button>
             </li>
           ))}
@@ -124,7 +124,7 @@ export default function Mentions() {
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void add(); }}>
           <input value={draft} maxLength={60} onChange={(e) => setDraft(e.target.value)} placeholder="Your name, a product or a topic" aria-label="Keyword to watch"
             className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm" />
-          <Button type="submit" variant="outline" className="h-10 gap-1.5" disabled={draft.trim().length < 2}><Plus className="h-4 w-4" /> Watch</Button>
+          <Button type="submit" variant="outline" className="h-10 gap-1.5" disabled={draft.trim().length < 2}><PlusIcon className="h-4 w-4" /> Watch</Button>
         </form>
       )}
 
@@ -140,12 +140,12 @@ export default function Mentions() {
                     {m.source.replace(/^www\./, "")}{m.date ? `, ${new Date(m.date).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}` : ""}
                   </p>
                   <a href={safeExternalUrl(m.url) ?? undefined} target="_blank" rel="noopener noreferrer" className="block text-sm font-semibold leading-snug text-foreground hover:text-primary">
-                    {m.title} <ExternalLink className="ml-0.5 inline h-3 w-3 align-[-1px] text-muted-foreground" />
+                    {m.title} <ArrowSquareOutIcon className="ml-0.5 inline h-3 w-3 align-[-1px] text-muted-foreground" />
                   </a>
                   {m.snippet && <p className="line-clamp-2 text-xs text-muted-foreground">{m.snippet}</p>}
                   <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
                     <Link to={storyWriteUrl({ title: m.title, link: m.url, date: m.date, summary: m.snippet, source: m.source.replace(/^www\./, "") })}>
-                      <PenLine className="h-3.5 w-3.5" /> Write about this
+                      <PencilLineIcon className="h-3.5 w-3.5" /> Write about this
                     </Link>
                   </Button>
                 </li>

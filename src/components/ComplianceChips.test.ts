@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import ComplianceChips, { ComplianceBadge } from "./ComplianceChips";
 import { scanCompliance } from "@/lib/compliance";
 
-// an icon by its class only, so a lucide upgrade that redraws one doesn't fail this
+// an icon by its class only, so an icon library upgrade that redraws one doesn't fail this
 const html = (text: string) =>
   renderToStaticMarkup(createElement(ComplianceChips, { flags: scanCompliance(text), onDismiss: () => {} })).replace(/<svg[^>]*class="([^"]*)"[^>]*>[\s\S]*?<\/svg>/g, '<svg class="$1"/>');
 
@@ -20,10 +20,10 @@ describe("ComplianceChips", () => {
     const flag = scanCompliance("It is risk-free.")[0];
     expect(html("It is risk-free.")).toBe(
       '<div class="mb-3 flex flex-wrap gap-2"><div class="flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] border-destructive/50 bg-destructive/10 text-red-700 dark:text-red-300">' +
-        '<svg class="lucide lucide-triangle-alert mt-0.5 h-3 w-3 shrink-0 text-destructive"/>' +
+        '<svg class="mt-0.5 h-3 w-3 shrink-0 text-destructive"/>' +
         '<div class="space-y-0.5"><div class="font-semibold uppercase tracking-[0.14em]">Compliance error<span class="ml-1.5 rounded bg-background/60 px-1 py-0.5 font-mono text-[10px] normal-case tracking-normal">risk-free</span></div>' +
         `<div class="text-[11px] leading-snug">${flag.message.replace(/'/g, "&#x27;")}</div></div>` +
-        '<button type="button" class="-my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-background/40" aria-label="Dismiss flag"><svg class="lucide lucide-x h-3.5 w-3.5"/></button></div></div>',
+        '<button type="button" class="-my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-background/40" aria-label="Dismiss flag"><svg class="h-3.5 w-3.5"/></button></div></div>',
     );
   });
 

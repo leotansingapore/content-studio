@@ -6,7 +6,7 @@
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { CaretRightIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import {
@@ -242,7 +242,7 @@ function Row({ e, now, open, ringed, onToggle }: { e: ActivityEvent; now: Date; 
       {e.link && (
         <Link to={e.link} className={cn("inline-flex min-h-9 w-fit items-center gap-0.5 text-sm font-semibold text-primary hover:underline md:col-start-5 md:row-start-1 md:justify-self-end", TOUCH)}>
           Open<span className="sr-only">: {e.title}</span>
-          <ChevronRight aria-hidden className="h-4 w-4" />
+          <CaretRightIcon aria-hidden className="h-4 w-4" />
         </Link>
       )}
     </li>
@@ -295,7 +295,7 @@ function AiUse() {
       <div className="relative overflow-x-auto rounded-xl border border-border/60 bg-card shadow-card">
         {state === "loading" && (
           <span className="absolute left-1/2 top-1/2 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium shadow-sm" role="status">
-            <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" /> Loading your AI use
+            <CircleNotchIcon aria-hidden className="h-3.5 w-3.5 animate-spin" /> Loading your AI use
           </span>
         )}
         {state !== "loading" && !state.length ? (

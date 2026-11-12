@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clapperboard, ExternalLink, Loader2, Search, Sparkles, Trash2, UserPlus } from "lucide-react";
+import { FilmSlateIcon, ArrowSquareOutIcon, CircleNotchIcon, MagnifyingGlassIcon, SparkleIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
 import OutlierBadge, { OutlierScoreTip } from "@/components/OutlierBadge";
 import { DeskError, TOUCH } from "@/components/ScriptDeskParts";
 import { Button } from "@/components/ui/button";
@@ -153,12 +153,12 @@ function Research({ userId }: { userId: string }) {
     </div>
   ) : reading.length ? (
     <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden />
+      <CircleNotchIcon className="h-4 w-4 animate-spin text-primary" aria-hidden />
       Reading @{reading.join(" and @")} on your Mac.{due.length ? ` ${due.length} more due.` : ""}
     </p>
   ) : due.length ? (
     <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden />
+      <CircleNotchIcon className="h-4 w-4 animate-spin text-primary" aria-hidden />
       Sending {due.length === 1 ? `@${due[0]}` : `${due.length} creators`} to your Mac to read.
     </p>
   ) : list.creators.length ? (
@@ -219,7 +219,7 @@ function Feed({ list, reads, onAdd }: { list: ResearchList; reads: ReturnType<ty
             : read ? "None of their latest reels beat their creator's usual yet. Watch more creators to widen the feed."
             : "Your Mac is reading your creators. Their reels show here as they come in."}
         </p>
-        {!list.creators.length && <Button type="button" className={`gap-1.5 ${TOUCH}`} onClick={onAdd}><UserPlus className="h-4 w-4" /> Add creators</Button>}
+        {!list.creators.length && <Button type="button" className={`gap-1.5 ${TOUCH}`} onClick={onAdd}><UserPlusIcon className="h-4 w-4" /> Add creators</Button>}
       </div>
     );
   }
@@ -243,10 +243,10 @@ function Feed({ list, reads, onAdd }: { list: ResearchList; reads: ReturnType<ty
               {reel.caption && <p className="line-clamp-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">{reel.caption}</p>}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 <Button asChild size="sm" variant="outline" className={`gap-1.5 ${TOUCH}`}>
-                  <Link to={cloneUrl(reel.code)}><Clapperboard className="h-3.5 w-3.5" /> Clone a reel</Link>
+                  <Link to={cloneUrl(reel.code)}><FilmSlateIcon className="h-3.5 w-3.5" /> Clone a reel</Link>
                 </Button>
                 <Button asChild size="sm" variant="ghost" className={`${TOUCH} [@media(pointer:coarse)]:min-w-11`}>
-                  <a href={`https://www.instagram.com/reel/${reel.code}/`} target="_blank" rel="noreferrer" aria-label={`@${creator.handle}'s reel on Instagram`}><ExternalLink className="h-3.5 w-3.5" /></a>
+                  <a href={`https://www.instagram.com/reel/${reel.code}/`} target="_blank" rel="noreferrer" aria-label={`@${creator.handle}'s reel on Instagram`}><ArrowSquareOutIcon className="h-3.5 w-3.5" /></a>
                 </Button>
               </div>
             </div>
@@ -283,7 +283,7 @@ function Creators(p: { list: ResearchList; reads: ReturnType<typeof loadReads>; 
         <Label htmlFor="research-add">Watch creators</Label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input id="research-add" value={text} onChange={(e) => setText(e.target.value)} placeholder="@username or a profile link, several at once" disabled={full} />
-          <Button type="submit" className={`shrink-0 gap-1.5 ${TOUCH}`} disabled={full || !text.trim()}><UserPlus className="h-4 w-4" /> Watch</Button>
+          <Button type="submit" className={`shrink-0 gap-1.5 ${TOUCH}`} disabled={full || !text.trim()}><UserPlusIcon className="h-4 w-4" /> Watch</Button>
         </div>
         {note && <p role="status" className="text-xs text-muted-foreground">{note}</p>}
       </form>
@@ -303,7 +303,7 @@ function Creators(p: { list: ResearchList; reads: ReturnType<typeof loadReads>; 
                   <p className="truncate text-sm font-medium">{name || `@${c.handle}`}</p>
                   <p className="truncate text-xs text-muted-foreground">{[name ? `@${c.handle}` : "", followers != null ? `${fmt(followers)} followers` : "", state].filter(Boolean).join(" · ")}</p>
                 </div>
-                <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={`Stop watching @${c.handle}`} onClick={() => p.onRemove(c.handle)}><Trash2 className="h-4 w-4" /></Button>
+                <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={`Stop watching @${c.handle}`} onClick={() => p.onRemove(c.handle)}><TrashIcon className="h-4 w-4" /></Button>
               </li>
             );
           })}
@@ -363,7 +363,7 @@ function Find(p: { userId: string; list: ResearchList; onWatch: (h: string[]) =>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input id="research-topic" value={draft} maxLength={300} onChange={(e) => setDraft(e.target.value)} placeholder="Money habits for nurses" />
             <Button type="submit" className={`shrink-0 gap-1.5 ${TOUCH}`} disabled={Boolean(busy) || !draft.trim()}>
-              {busy === "search" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Find
+              {busy === "search" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <MagnifyingGlassIcon className="h-4 w-4" />} Find
             </Button>
           </div>
         </form>
@@ -376,7 +376,7 @@ function Find(p: { userId: string; list: ResearchList; onWatch: (h: string[]) =>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="suggested-title" className="text-sm font-semibold">Suggested creators</h2>
           <Button type="button" variant="outline" size="sm" className={`gap-1.5 ${TOUCH}`} disabled={Boolean(busy) || !canSuggest} onClick={() => void run({ suggest: true })}>
-            {busy === "suggest" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} {suggested ? "Find more" : "Suggest creators"}
+            {busy === "suggest" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />} {suggested ? "Find more" : "Suggest creators"}
           </Button>
         </div>
         {!canSuggest && (

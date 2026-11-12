@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
+import { WarningIcon, CircleNotchIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
 import FormatShell from "@/components/make/FormatShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -134,7 +134,7 @@ export default function NotificationStack({ userId }: { userId: string; source: 
                 {typed.lines.length > STACK_MIN && (
                   <Button size="icon" variant="ghost" aria-label={`Remove card ${i + 1}`} onClick={() => setTyped({ ...typed, lines: typed.lines.filter((_, j) => j !== i) })}
                     className={`shrink-0 text-muted-foreground ${TOUCH}`}>
-                    <X className="h-4 w-4" aria-hidden />
+                    <XIcon className="h-4 w-4" aria-hidden />
                   </Button>
                 )}
               </div>
@@ -142,7 +142,7 @@ export default function NotificationStack({ userId }: { userId: string; source: 
             <div className="flex flex-wrap items-center gap-2">
               {typed.lines.length < STACK_MAX && (
                 <Button size="sm" variant="outline" onClick={() => setTyped({ ...typed, lines: [...typed.lines, ""] })} className={`gap-1 ${TOUCH}`}>
-                  <Plus className="h-3.5 w-3.5" aria-hidden /> Add a card
+                  <PlusIcon className="h-3.5 w-3.5" aria-hidden /> Add a card
                 </Button>
               )}
               {lines.length >= STACK_MIN && <p className="text-xs text-muted-foreground" aria-live="polite">{lines.length} cards, a {seconds} s video</p>}
@@ -198,7 +198,7 @@ export default function NotificationStack({ userId }: { userId: string; source: 
     <div ref={resultRef} className="scroll-mt-16 space-y-3 lg:scroll-mt-0">
       {busy && job ? (
         <Placeholder>
-          <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+          <CircleNotchIcon className="h-5 w-5 animate-spin text-primary" aria-hidden />
           <span role="status">{job.state === "joining" ? "Putting it together..." : job.ask.file ? "Reading your video..." : "Finding a clip..."}</span>
           {job.state === "joining" && (
             <Button variant="link" onClick={() => navigate(links.edit())} className={TOUCH}>Open the editor</Button>
@@ -207,7 +207,7 @@ export default function NotificationStack({ userId }: { userId: string; source: 
       ) : job?.state === "failed" ? (
         <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
           <p className="flex items-start gap-2 text-destructive">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
+            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
           </p>
           {/* Make it below tries again; with no stock clip, the adviser's own video leads */}
           {job.noClip && <Button size="sm" onClick={() => chooseFile(true)} className={TOUCH}>Pick my video</Button>}

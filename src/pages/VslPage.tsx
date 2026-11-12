@@ -3,7 +3,7 @@
 // [Need: ...] line instead of inventing proof. Copy out only: nothing is saved to My posts. Every answer lives in the URL.
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Check, Clapperboard, Copy } from "lucide-react";
+import { CheckIcon, FilmSlateIcon, CopyIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,7 +92,7 @@ export default function VslPage() {
     <div className="space-y-6">
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Clapperboard className="h-6 w-6 text-primary" /> Write a VSL
+          <FilmSlateIcon className="h-6 w-6 text-primary" /> Write a VSL
         </h1>
       </header>
 
@@ -115,7 +115,7 @@ export default function VslPage() {
           ))}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <Button onClick={() => void write()} disabled={!ready || writing} className="min-h-11 gap-1.5">
-              <Clapperboard className="h-4 w-4" /> {writing ? "Writing..." : `Write ${VSL_COUNT} versions`}
+              <FilmSlateIcon className="h-4 w-4" /> {writing ? "Writing..." : `Write ${VSL_COUNT} versions`}
             </Button>
             <span className="text-xs text-muted-foreground">Leave any blank and the script marks what it still needs.</span>
           </div>
@@ -156,7 +156,7 @@ export default function VslPage() {
                   {stats && (
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                       <Button size="sm" className="relative min-h-11 gap-1.5 sm:min-h-9" onClick={() => void copy(i, v.text)}>
-                        {copied === i ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} Copy script
+                        {copied === i ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />} Copy script
                         <ComplianceBadge flags={flags} />
                       </Button>
                       <span className="text-xs text-muted-foreground">

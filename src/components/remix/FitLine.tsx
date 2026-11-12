@@ -1,4 +1,4 @@
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { WarningIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { FIT_COPY, fitReasonLine, type FitResult } from "@/lib/remixFit";
 
 /**
@@ -10,7 +10,7 @@ export default function FitLine(p: { fit: FitResult | "checking"; brand: string;
   if (p.fit === "checking") {
     return (
       <p role="status" className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> {FIT_COPY.checking}
+        <CircleNotchIcon className="h-3 w-3 animate-spin" aria-hidden /> {FIT_COPY.checking}
       </p>
     );
   }
@@ -27,14 +27,14 @@ export default function FitLine(p: { fit: FitResult | "checking"; brand: string;
       ) : (
         warning && (
           <p className={amber}>
-            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> {warning}
+            <WarningIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> {warning}
           </p>
         )
       )}
       {textHeavy && (
         <div className="flex flex-wrap items-center gap-x-3">
           <p className={amber}>
-            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> {FIT_COPY.textHeavy}
+            <WarningIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> {FIT_COPY.textHeavy}
           </p>
           <button
             type="button"

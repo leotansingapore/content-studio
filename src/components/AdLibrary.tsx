@@ -4,7 +4,7 @@
 // labelling run outside React (src/lib/adLibrary.ts, src/lib/competitorAds.ts); this only draws their state.
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Filter, ImageOff, Loader2, PenLine, Play, RefreshCw, Search } from "lucide-react";
+import { ArrowSquareOutIcon, FunnelIcon, ImageBrokenIcon, CircleNotchIcon, PencilLineIcon, PlayIcon, ArrowsClockwiseIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import AdDetailDrawer, { LoadingAdDrawer, useLinkedAd } from "@/components/AdDetailDrawer";
 import PriceChip from "@/components/PriceChip";
 import SaveButton from "@/components/SaveButton";
@@ -146,13 +146,13 @@ export default function AdLibrary({ userId }: { userId: string }) {
       <div className="space-y-3">
         <div className="flex gap-2">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search anything: a word, a hook, a brand, a feeling" aria-label="Search ads"
               className="pl-9 [@media(pointer:coarse)]:h-11" />
           </div>
           <Button variant={showFilters || filtersOn ? "default" : "outline"} onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters}
             className={`shrink-0 gap-1.5 ${TOUCH}`}>
-            <Filter className="h-3.5 w-3.5" /> Filters
+            <FunnelIcon className="h-3.5 w-3.5" /> Filters
             {filtersOn > 0 && <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">{filtersOn}</span>}
           </Button>
         </div>
@@ -169,7 +169,7 @@ export default function AdLibrary({ userId }: { userId: string }) {
           {counts.competitors.map((c) => <FilterChip key={c.id} active={scope === c.id} onClick={() => pickScope(c.id)} count={c.n}>{c.name}</FilterChip>)}
           {hasSpace ? (
             <FilterChip active={scope === "space"} onClick={() => pickScope("space")} count={spaceBusy ? undefined : counts.space}>
-              {spaceBusy && <Loader2 className="h-3 w-3 animate-spin" aria-hidden />} In your space
+              {spaceBusy && <CircleNotchIcon className="h-3 w-3 animate-spin" aria-hidden />} In your space
             </FilterChip>
           ) : (
             <FilterChip active={false} onClick={openEditor}>Set your space</FilterChip>
@@ -208,7 +208,7 @@ export default function AdLibrary({ userId }: { userId: string }) {
         )}
         {sorting > 0 && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Sorting {sorting} ads by hook and feeling...
+            <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Sorting {sorting} ads by hook and feeling...
           </p>
         )}
       </div>
@@ -244,12 +244,12 @@ export default function AdLibrary({ userId }: { userId: string }) {
       <div className="space-y-2 border-t border-border/60 pt-4">
         {spaceBusy && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading ads for {quoted(spaceBusy)}, about a minute...
+            <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Reading ads for {quoted(spaceBusy)}, about a minute...
           </p>
         )}
         {reading && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading {reading.name}'s ads, about a minute...
+            <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Reading {reading.name}'s ads, about a minute...
           </p>
         )}
         {failure && !busy && <p role="alert" className="text-xs text-destructive">{failure.message}</p>}
@@ -264,7 +264,7 @@ export default function AdLibrary({ userId }: { userId: string }) {
             {space.keywords.length > 0 && (
               <>
                 <Button variant="outline" className={`h-10 gap-2 ${TOUCH}`} onClick={() => void runSpaceCheck(userId)} disabled={busy || Boolean(why)}>
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Check now
+                  {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <ArrowsClockwiseIcon className="h-4 w-4" />} Check now
                 </Button>
                 {!busy && <PriceChip feature="space-ads" left={left} />}
               </>
@@ -315,12 +315,12 @@ function Card({ ad, onOpen }: { ad: LibraryAd; onOpen(): void }) {
             <img src={ad.image!} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
           ) : (
             <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground">
-              <ImageOff className="h-5 w-5" aria-hidden /> No preview
+              <ImageBrokenIcon className="h-5 w-5" aria-hidden /> No preview
             </span>
           )}
           {pic && ad.format === "video" && (
             <span aria-hidden className="absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-background/80 text-foreground">
-              <Play className="h-4 w-4" />
+              <PlayIcon className="h-4 w-4" />
             </span>
           )}
           <span className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-1 text-[10px] font-semibold">
@@ -350,13 +350,13 @@ function Card({ ad, onOpen }: { ad: LibraryAd; onOpen(): void }) {
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
           <RemixButton source={source} label={`${ad.advertiser}'s ad`}>
             <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
-              <Link to={buildAdWriteUrl(like)}><PenLine className="h-3.5 w-3.5" /> Write a post like this</Link>
+              <Link to={buildAdWriteUrl(like)}><PencilLineIcon className="h-3.5 w-3.5" /> Write a post like this</Link>
             </Button>
           </RemixButton>
           <SaveButton source={source} />
           {/* with its words, each of the three actions took its own line in a 5-column card */}
           <Button asChild size="sm" variant="ghost" className="ml-auto h-9 w-9 px-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-            <a href={safeExternalUrl(ad.libraryUrl) ?? undefined} target="_blank" rel="noopener noreferrer" aria-label="Open on Meta" title="Open on Meta"><ExternalLink className="h-3.5 w-3.5" /></a>
+            <a href={safeExternalUrl(ad.libraryUrl) ?? undefined} target="_blank" rel="noopener noreferrer" aria-label="Open on Meta" title="Open on Meta"><ArrowSquareOutIcon className="h-3.5 w-3.5" /></a>
           </Button>
         </div>
       </div>

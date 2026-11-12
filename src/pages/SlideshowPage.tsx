@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, CopyPlus, Download, FilePlus2, Images, Loader2, Redo2, Save, Shuffle, Sparkles, Trash2, TriangleAlert, Undo2 } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, CalendarDotsIcon, CaretLeftIcon, CaretRightIcon, CopySimpleIcon, DownloadSimpleIcon, FilePlusIcon, ImagesIcon, CircleNotchIcon, ArrowUUpRightIcon, FloppyDiskIcon, ShuffleIcon, SparkleIcon, TrashIcon, WarningIcon, ArrowUUpLeftIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import { FlagList } from "@/components/carousel/SlideFields";
@@ -234,7 +234,7 @@ function AskBox(p: { text: string; left: number | null; target: () => EditTarget
         <Input value={p.text} maxLength={ASK_MAX_CHARS} aria-label="What to change on every slide" disabled={working} onChange={(e) => p.onText(e.target.value)}
           className="h-9 min-w-0 flex-1 basis-48 text-sm [@media(pointer:coarse)]:h-11" />
         <Button type="submit" size="sm" disabled={!p.text.trim() || working || p.left === 0} className={`h-9 gap-1.5 ${TOUCH}`}>
-          <Sparkles className="h-3.5 w-3.5" /> Rewrite
+          <SparkleIcon className="h-3.5 w-3.5" /> Rewrite
         </Button>
       </form>
       {!working && (
@@ -248,7 +248,7 @@ function AskBox(p: { text: string; left: number | null; target: () => EditTarget
       )}
       {working && (
         <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden /> Rewriting every slide...
+          <CircleNotchIcon className="h-4 w-4 animate-spin text-primary" aria-hidden /> Rewriting every slide...
         </p>
       )}
       {r?.state === "failed" && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">{r.error}</p>}
@@ -339,7 +339,7 @@ function Start({ userId, shows, ready, onShows, onOpen }: { userId: string; show
     <>
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Images className="h-6 w-6 shrink-0 text-primary" /> Slideshow
+          <ImagesIcon className="h-6 w-6 shrink-0 text-primary" /> Slideshow
         </h1>
       </header>
       <Card className="border-border/60 shadow-card">
@@ -349,11 +349,11 @@ function Start({ userId, shows, ready, onShows, onOpen }: { userId: string; show
         <CardContent className="space-y-5">
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => make(blankSlideshow(loadStyleHint()))} className={`gap-1.5 ${TOUCH}`}>
-              <FilePlus2 className="h-4 w-4" /> A blank slideshow
+              <FilePlusIcon className="h-4 w-4" /> A blank slideshow
             </Button>
             <Button variant="outline" asChild className={`gap-1.5 ${TOUCH}`}>
               <Link to={links.makeFormat("slideshow", { from: "remix" })}>
-                <Shuffle className="h-4 w-4" /> Remix a trending one
+                <ShuffleIcon className="h-4 w-4" /> Remix a trending one
               </Link>
             </Button>
           </div>
@@ -403,7 +403,7 @@ function Start({ userId, shows, ready, onShows, onOpen }: { userId: string; show
                   </span>
                 </button>
                 <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label={`Delete ${s.title}`} onClick={() => remove(s)}>
-                  <Trash2 className="h-4 w-4" />
+                  <TrashIcon className="h-4 w-4" />
                 </Button>
               </li>
             ))}
@@ -793,7 +793,7 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
       <h1 className="sr-only">Slideshow</h1>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button variant="ghost" size="sm" onClick={onBack} className={`-ml-2 gap-1 text-muted-foreground ${TOUCH}`}>
-          <ChevronLeft className="h-4 w-4" /> Slideshows
+          <CaretLeftIcon className="h-4 w-4" /> Slideshows
         </Button>
         <input
           value={work.title}
@@ -807,29 +807,29 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
         {/* its own row at every width: beside the name it squeezed a long one to a few letters (dogfood 30 Oct) */}
         <div className="flex w-full flex-wrap items-center gap-1.5">
           <Button size="icon" variant="ghost" onClick={() => step("undo")} disabled={!hist.past.length} aria-label="Undo" title="Undo" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-            <Undo2 className="h-4 w-4" />
+            <ArrowUUpLeftIcon className="h-4 w-4" />
           </Button>
           <Button size="icon" variant="ghost" onClick={() => step("redo")} disabled={!hist.future.length} aria-label="Redo" title="Redo" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-            <Redo2 className="h-4 w-4" />
+            <ArrowUUpRightIcon className="h-4 w-4" />
           </Button>
           <CopyLinkButton />
           <Button variant={canSchedule ? "outline" : "default"} size="sm" onClick={() => void download()} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
-            <Download className="h-4 w-4" /> Download
+            <DownloadSimpleIcon className="h-4 w-4" /> Download
           </Button>
           <Button variant="outline" size="sm" onClick={saveToPosts} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
-            <Save className="h-4 w-4" /> Save to All posts
+            <FloppyDiskIcon className="h-4 w-4" /> Save to All posts
           </Button>
           {/* the slideshow accounts' move: one cover that worked, new slides after it (the make's sizes only) */}
           {(work.size === "4x5" || work.size === "9x16") && (
             <Button variant="outline" size="sm" asChild className={`gap-1.5 ${TOUCH}`}>
               <Link to={links.makeFormat("slideshow", { from: "topic", keep: work.id, mention: "inside", size: work.size === "9x16" ? "9x16" : undefined })}>
-                <CopyPlus className="h-4 w-4" /> Same cover, new slides
+                <CopySimpleIcon className="h-4 w-4" /> Same cover, new slides
               </Link>
             </Button>
           )}
           {canSchedule && (
             <Button size="sm" onClick={schedule} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
-              <CalendarClock className="h-4 w-4" /> Schedule
+              <CalendarDotsIcon className="h-4 w-4" /> Schedule
             </Button>
           )}
         </div>
@@ -862,7 +862,7 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
                 </>
               ) : (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <CircleNotchIcon className="h-4 w-4 animate-spin text-primary" />
                   <span className="flex-1">Preparing slides {prep.done} of {prep.total}</span>
                   <Button size="sm" variant="ghost" onClick={cancel} className={TOUCH}>Cancel</Button>
                 </>
@@ -898,18 +898,18 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
           </div>
           {(layout.overflow || overOthers.length > 0) && (
             <p className="flex items-start justify-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
-              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+              <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               {layout.overflow ? "Too many words for this slide." : `Too many words on ${slidesText(overOthers)}.`} Cut some or make the text smaller.
             </p>
           )}
           {flagged.length > 0 && (
             <p className="flex items-start justify-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
-              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> Check the words on {slidesText(flagged)} in the Text tab.
+              <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> Check the words on {slidesText(flagged)} in the Text tab.
             </p>
           )}
           <div className="flex items-center justify-center gap-2">
             <Button size="icon" variant="outline" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Previous slide" className="h-10 w-10 rounded-full [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              <ChevronLeft className="h-4 w-4" />
+              <CaretLeftIcon className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-1.5" aria-label={`Slide ${index + 1} of ${n}`}>
               {work.slides.map((s, i) => (
@@ -917,7 +917,7 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
               ))}
             </div>
             <Button size="icon" variant="outline" onClick={() => go(index + 1)} disabled={index === n - 1} aria-label="Next slide" className="h-10 w-10 rounded-full [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              <ChevronRight className="h-4 w-4" />
+              <CaretRightIcon className="h-4 w-4" />
             </Button>
           </div>
           <div className="flex items-center gap-2">
@@ -938,10 +938,10 @@ function Editor({ userId, leo, show, ready, onSaved, onBack }: { userId: string;
               ))}
             </ol>
             <Button size="icon" variant="ghost" onClick={() => (commit(moveSlide(work, index, -1)), go(index - 1))} disabled={index === 0} aria-label="Move this slide left" title="Move left" className="h-9 w-9 shrink-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeftIcon className="h-4 w-4" />
             </Button>
             <Button size="icon" variant="ghost" onClick={() => (commit(moveSlide(work, index, 1)), go(index + 1))} disabled={index === n - 1} aria-label="Move this slide right" title="Move right" className="h-9 w-9 shrink-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRightIcon className="h-4 w-4" />
             </Button>
           </div>
           </>

@@ -5,7 +5,7 @@
 // nothing and make no call.
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon } from "@phosphor-icons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import PriceChip from "@/components/PriceChip";
@@ -149,7 +149,7 @@ export default function ScoreCheck({ userId, drafts }: { userId: string; drafts:
         {job.running ? (
           <div className="flex flex-wrap items-center gap-3">
             <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />
               Scoring {Math.min(job.done + 1, job.total)} of {job.total}
             </p>
             <Button size="sm" variant="ghost" className="h-9 [@media(pointer:coarse)]:min-h-11" disabled={job.stopping} onClick={() => cancelScoring(userId)}>

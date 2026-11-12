@@ -2,7 +2,7 @@
 // the row at once ("Finding them...") and reads it in a job outside React. Only a bare name pays a provider, so
 // only a name shows the price chip.
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { PlusIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,7 @@ export default function AddBar({ userId, count, busy, onAdded }: { userId: strin
     <form onSubmit={add} className="space-y-1.5">
       <div className="flex items-center gap-2">
         <div className="relative min-w-0 flex-1">
-          <Plus className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <PlusIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}

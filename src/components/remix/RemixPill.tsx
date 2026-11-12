@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Loader2, Shuffle, X } from "lucide-react";
+import { CircleNotchIcon, ShuffleIcon, XIcon } from "@phosphor-icons/react";
 import { clearRemixJob, onRemixJob, remixJob, runParams } from "@/lib/remixJob";
 
 // A remix keeps running while you use other pages; this says so, with the step it is on (a video format relays the
@@ -34,20 +34,20 @@ export default function RemixPill() {
     >
       {job.state === "working" && (
         <Link to={sheet} className="flex min-w-0 max-w-[calc(100vw-6rem)] items-center gap-2 sm:max-w-sm [@media(pointer:coarse)]:min-h-11">
-          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+          <CircleNotchIcon className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
           <span className="truncate">{job.step ? `Remixing: ${job.step}` : "Remixing..."}</span>
         </Link>
       )}
       {job.state === "done" && many && (
         <Link to={sheet} className="inline-flex items-center gap-2 [@media(pointer:coarse)]:min-h-11">
-          <Shuffle className="h-3.5 w-3.5 text-primary" />
+          <ShuffleIcon className="h-3.5 w-3.5 text-primary" />
           {made === job.rows.length ? `Your ${made} formats are ready` : `${made} of ${job.rows.length} formats ready`}
           <span className="text-primary">Open</span>
         </Link>
       )}
       {job.state === "done" && !many && ready?.href && (
         <>
-          <Shuffle className="h-3.5 w-3.5 text-primary" /> Your remix is ready
+          <ShuffleIcon className="h-3.5 w-3.5 text-primary" /> Your remix is ready
           <Link to={ready.href} onClick={clearRemixJob} className="inline-flex items-center justify-center text-primary hover:underline [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11">
             Open
           </Link>
@@ -60,7 +60,7 @@ export default function RemixPill() {
       )}
       {job.state !== "working" && (
         <button type="button" onClick={clearRemixJob} aria-label="Dismiss" className="flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11">
-          <X className="h-3.5 w-3.5" />
+          <XIcon className="h-3.5 w-3.5" />
         </button>
       )}
     </div>

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Download, User, Briefcase, Users, Target, MessageSquare, Lightbulb, BookOpen, Loader2, Sparkles, Copy, CheckCircle2, Trophy, Flame, Heart, Star, Shield, Zap, FileText, Mail, Layout, Mic, MessageCircle, Presentation, Quote, ListChecks, GraduationCap, Share2, AlertCircle, ChevronRight, Code2, Megaphone, CalendarRange } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, DownloadSimpleIcon, UserIcon, BriefcaseIcon, UsersIcon, TargetIcon, ChatIcon, LightbulbIcon, BookOpenIcon, CircleNotchIcon, SparkleIcon, CopyIcon, CheckCircleIcon, TrophyIcon, FireIcon, HeartIcon, StarIcon, ShieldIcon, LightningIcon, FileTextIcon, EnvelopeIcon, LayoutIcon, MicrophoneIcon, ChatCircleIcon, PresentationIcon, QuotesIcon, ListChecksIcon, GraduationCapIcon, ShareNetworkIcon, WarningCircleIcon, CaretRightIcon, CodeIcon, MegaphoneIcon, CalendarBlankIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { toast as baseToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -396,13 +396,13 @@ const TAB_FIELDS: Record<string, (keyof FormData)[]> = {
 };
 
 const TABS = [
-  { id: "personality", label: "Personality", icon: Heart },
-  { id: "purpose", label: "Purpose", icon: Flame },
-  { id: "experience", label: "Experience", icon: Briefcase },
-  { id: "audience", label: "Audience", icon: Users },
-  { id: "solutions", label: "Solutions", icon: Target },
-  { id: "messaging", label: "Delivery", icon: MessageSquare },
-  { id: "output", label: "Brand Output", icon: Sparkles },
+  { id: "personality", label: "Personality", icon: HeartIcon },
+  { id: "purpose", label: "Purpose", icon: FireIcon },
+  { id: "experience", label: "Experience", icon: BriefcaseIcon },
+  { id: "audience", label: "Audience", icon: UsersIcon },
+  { id: "solutions", label: "Solutions", icon: TargetIcon },
+  { id: "messaging", label: "Delivery", icon: ChatIcon },
+  { id: "output", label: "Brand Output", icon: SparkleIcon },
 ];
 
 // ============ SECTION PROGRESS BAR ============
@@ -415,7 +415,7 @@ function SectionProgress({ label, fields, formData }: { label: string; fields: (
       <span className="text-muted-foreground min-w-[80px]">{label}</span>
       <Progress value={pct} className="h-2 flex-1" />
       <span className={`font-medium min-w-[40px] text-right ${pct === 100 ? 'text-green-700 dark:text-green-300' : 'text-muted-foreground'}`}>
-        {pct === 100 ? <CheckCircle2 className="h-4 w-4 inline" /> : `${pct}%`}
+        {pct === 100 ? <CheckCircleIcon className="h-4 w-4 inline" /> : `${pct}%`}
       </span>
     </div>
   );
@@ -845,7 +845,7 @@ export default function FadsPage() {
       id: "social-bio",
       name: "Social Media Bios (3 lengths)",
       channel: "LinkedIn • Instagram • X",
-      icon: User,
+      icon: UserIcon,
       description: "Drop-in bios sized for each platform's character limit.",
       requiredFields: ["endResultStatement", "audience1Occupation", "personalityStyle"],
       missing: fieldsMissing(["endResultStatement", "audience1Occupation", "personalityStyle"]),
@@ -866,7 +866,7 @@ export default function FadsPage() {
       id: "wa-tagline",
       name: "WhatsApp Display Tagline",
       channel: "WhatsApp profile",
-      icon: MessageCircle,
+      icon: ChatCircleIcon,
       description: "One-line tag for your WhatsApp About / display name.",
       requiredFields: ["endResultStatement"],
       missing: fieldsMissing(["endResultStatement"]),
@@ -878,7 +878,7 @@ export default function FadsPage() {
       id: "origin-story-post",
       name: "Origin Story Post (long-form)",
       channel: "LinkedIn • Facebook",
-      icon: FileText,
+      icon: FileTextIcon,
       description: "Your 'why I'm in this industry' story, ready to post.",
       requiredFields: ["originStory", "momentsImpact", "purpose"],
       missing: fieldsMissing(["originStory", "momentsImpact", "purpose"]),
@@ -900,7 +900,7 @@ export default function FadsPage() {
       id: "who-i-help-carousel",
       name: "5-Slide 'Who I Help' Carousel",
       channel: "Instagram • LinkedIn",
-      icon: Layout,
+      icon: LayoutIcon,
       description: "Slide-by-slide script for an audience-recognition carousel.",
       requiredFields: ["audience1Occupation", "audience1Problems", "audience1TangibleSolutions"],
       missing: fieldsMissing(["audience1Occupation", "audience1Problems", "audience1TangibleSolutions"]),
@@ -930,7 +930,7 @@ export default function FadsPage() {
       id: "lead-magnet",
       name: "Lead Magnet Outline",
       channel: "PDF / email opt-in",
-      icon: GraduationCap,
+      icon: GraduationCapIcon,
       description: "A free download you can offer to attract your audience.",
       requiredFields: ["audience1Occupation", "audience1Problems"],
       missing: fieldsMissing(["audience1Occupation", "audience1Problems"]),
@@ -954,7 +954,7 @@ export default function FadsPage() {
       id: "intro-reel",
       name: "60-Second Intro Reel Script",
       channel: "TikTok • IG Reels • LinkedIn video",
-      icon: Mic,
+      icon: MicrophoneIcon,
       description: "Beat-by-beat script for a short intro video.",
       requiredFields: ["personalityStyle", "mission", "audience1Occupation"],
       missing: fieldsMissing(["personalityStyle", "mission", "audience1Occupation"]),
@@ -981,7 +981,7 @@ export default function FadsPage() {
       id: "story-bank",
       name: "Story Bank (3 retell-ready stories)",
       channel: "All channels • appointments",
-      icon: Quote,
+      icon: QuotesIcon,
       description: "Your most-tellable client / defining moment stories.",
       requiredFields: ["moment1", "moment2", "moment3"],
       missing: fieldsMissing(["moment1", "moment2", "moment3"]),
@@ -1001,7 +1001,7 @@ export default function FadsPage() {
       id: "objection-bank",
       name: "Top Objection Responses",
       channel: "Appointments • DMs",
-      icon: AlertCircle,
+      icon: WarningCircleIcon,
       description: "Pre-written responses to the objections your audience actually raises.",
       requiredFields: ["audience1Objections"],
       missing: fieldsMissing(["audience1Objections"]),
@@ -1019,7 +1019,7 @@ export default function FadsPage() {
       id: "referral-ask",
       name: "Referral Ask Script",
       channel: "WhatsApp + face-to-face",
-      icon: Share2,
+      icon: ShareNetworkIcon,
       description: "Two versions of the referral ask: text and spoken.",
       requiredFields: ["mission", "endResultStatement"],
       missing: fieldsMissing(["mission", "endResultStatement"]),
@@ -1037,7 +1037,7 @@ export default function FadsPage() {
       id: "email-signature",
       name: "Email Signature (HTML)",
       channel: "Email",
-      icon: Mail,
+      icon: EnvelopeIcon,
       description: "Drop-in HTML signature block with your tagline + cert.",
       requiredFields: ["endResultStatement", "certifications"],
       missing: fieldsMissing(["endResultStatement", "certifications"]),
@@ -1080,7 +1080,7 @@ export default function FadsPage() {
         id: "why-im-here",
         number: 1,
         title: "Why I'm here",
-        icon: Heart,
+        icon: HeartIcon,
         purpose: "Open with your origin. Shift the room from 'sales meeting' to 'real conversation'.",
         body: `${fb(formData.originStory, "[your origin in 2–3 lines]")}\n\nThat shaped me into someone who: ${fb(formData.momentsImpact, "[the way those moments changed your approach]")}`,
         speakerNote: "Tell, don't read. 60-90 seconds. Look up after.",
@@ -1089,7 +1089,7 @@ export default function FadsPage() {
         id: "who-i-serve",
         number: 2,
         title: "Who I serve",
-        icon: Users,
+        icon: UsersIcon,
         purpose: "Let the prospect self-identify. If they're not your audience, this surfaces it now.",
         body: `I work primarily with ${aud1.toLowerCase()}s.\n\nTypical profile: ${fb(formData.audience1Demographics, "[age, family stage, income range]")}.\n\nWhat they care about: ${aud1Want}.`,
         speakerNote: "Pause. Ask: 'Does any of that sound like where you're at?'",
@@ -1098,7 +1098,7 @@ export default function FadsPage() {
         id: "what-ive-seen",
         number: 3,
         title: "What I've seen people struggle with",
-        icon: AlertCircle,
+        icon: WarningCircleIcon,
         purpose: "Show you understand their world. Name the problem before they have to.",
         body: `On the surface: ${aud1Pain}.\n\nBut underneath, almost always: ${aud1IntPain}.\n\nMost ${aud1.toLowerCase()}s have been told to 'just save more' or 'invest in this product'. That doesn't address either layer.`,
         speakerNote: "Eye contact. Slow down. They should feel seen here.",
@@ -1107,7 +1107,7 @@ export default function FadsPage() {
         id: "how-we-work",
         number: 4,
         title: "How we'll work together",
-        icon: ListChecks,
+        icon: ListChecksIcon,
         purpose: "Show the framework: not as a sales pitch, as a how-this-will-go.",
         body: fw
           ? `My ${fw.name}: ${fw.description}\n\n${fw.steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
@@ -1118,7 +1118,7 @@ export default function FadsPage() {
         id: "what-done-looks-like",
         number: 5,
         title: "What 'done' looks like for you",
-        icon: Target,
+        icon: TargetIcon,
         purpose: "Paint the destination in their words. Future-pace.",
         body: `${aud1Want}.\n\nMore specifically: ${fb(formData.audience1SecretDesires, "[their secret wants, the unspoken version]")}.\n\nThat's what success looks like 12–24 months from now.`,
         speakerNote: "Ask: 'When you picture that, what's the first thing that changes day-to-day?'",
@@ -1127,7 +1127,7 @@ export default function FadsPage() {
         id: "how-i-work",
         number: 6,
         title: "How I work: cadence + expectations",
-        icon: Briefcase,
+        icon: BriefcaseIcon,
         purpose: "Pre-empt 'will this advisor disappear after the sale?' fears.",
         body: `${fb(formData.processStatement, "[your process statement, your service cadence, review frequency, what they can expect from you]")}\n\nMy differentiator: ${fb(formData.audience1Differentiators, "[what you uniquely do that other advisors don't]")}`,
         speakerNote: `Address the fear directly if relevant: "${fb(formData.audience1AdvisorFear1, "[their advisor fear]")}", name it, then explain how you handle it.`,
@@ -1136,7 +1136,7 @@ export default function FadsPage() {
         id: "next-step",
         number: 7,
         title: "Today's next step",
-        icon: ChevronRight,
+        icon: CaretRightIcon,
         purpose: "Soft close into the next action: no pressure, clear path.",
         body: `Two options from here:\n\n1. Full fact-find: we go deeper on your numbers, goals, and gaps. ~45 min. You walk away with a one-page summary either way.\n\n2. Take a week. Sit with what we covered. Message me with any questions, and we book the fact-find when you're ready.\n\nEither is fine with me, what feels right?`,
         speakerNote: "Genuinely give them the choice. Don't push option 1. Trust the framework.",
@@ -1403,7 +1403,7 @@ export default function FadsPage() {
                         : "border-border bg-muted/40 text-muted-foreground"
                     }`}
                   >
-                    {pct === 100 && <CheckCircle2 className="h-3 w-3" />}
+                    {pct === 100 && <CheckCircleIcon className="h-3 w-3" />}
                     {label} {pct < 100 && `${pct}%`}
                   </span>
                 );
@@ -1415,7 +1415,7 @@ export default function FadsPage() {
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
             <Button onClick={fillRandomAnswers} variant="outline" size="lg"
               className="bg-gradient-to-r from-accent/10 to-primary/10 hover:from-accent/20 hover:to-primary/20">
-              <Lightbulb className="h-4 w-4 mr-2" /> Fill with Sample Answers
+              <LightbulbIcon className="h-4 w-4 mr-2" /> Fill with Sample Answers
             </Button>
             {overallProgress > 0 && (
               <Button onClick={startOver} variant="ghost" size="lg" className="text-muted-foreground hover:text-destructive">
@@ -1446,7 +1446,7 @@ export default function FadsPage() {
                       </div>
                     )}
                     {pct === 100 && t.id !== "output" && (
-                      <CheckCircle2 className="absolute top-1 right-1 h-3 w-3 text-green-500" />
+                      <CheckCircleIcon className="absolute top-1 right-1 h-3 w-3 text-green-500" />
                     )}
                   </Link>
                 );
@@ -1462,7 +1462,7 @@ export default function FadsPage() {
           <TabsContent value="personality" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Heart className="h-5 w-5" /> Personality & Identity</CardTitle>
+                <CardTitle className="flex items-center gap-2"><HeartIcon className="h-5 w-5" /> Personality & Identity</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
@@ -1512,12 +1512,12 @@ export default function FadsPage() {
             {/* Conviction builder */}
             <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><Trophy className="h-5 w-5 text-primary" /> Why This Matters</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-lg"><TrophyIcon className="h-5 w-5 text-primary" /> Why This Matters</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <ConvictionCard icon={Star} title="Stand Out From 30,000+ Advisors in Singapore" text="Most advisors sell the same products. Your personality IS your differentiator. Clients buy from people they connect with." />
-                <ConvictionCard icon={Shield} title="Build Trust Before The First Meeting" text="When your values, beliefs, and style are clear, prospects self-qualify. The right clients come to you." />
-                <ConvictionCard icon={Zap} title="Fuel Your Content Strategy" text="Every answer here becomes content. Your beliefs become posts. Your values become brand pillars. Your story becomes your most powerful asset." />
+                <ConvictionCard icon={StarIcon} title="Stand Out From 30,000+ Advisors in Singapore" text="Most advisors sell the same products. Your personality IS your differentiator. Clients buy from people they connect with." />
+                <ConvictionCard icon={ShieldIcon} title="Build Trust Before The First Meeting" text="When your values, beliefs, and style are clear, prospects self-qualify. The right clients come to you." />
+                <ConvictionCard icon={LightningIcon} title="Fuel Your Content Strategy" text="Every answer here becomes content. Your beliefs become posts. Your values become brand pillars. Your story becomes your most powerful asset." />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1526,7 +1526,7 @@ export default function FadsPage() {
           <TabsContent value="purpose" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Flame className="h-5 w-5" /> Purpose & Mission</CardTitle>
+                <CardTitle className="flex items-center gap-2"><FireIcon className="h-5 w-5" /> Purpose & Mission</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {renderField("originStory", "Your Origin Story", "Why did you join this industry? What got you started? How did you feel? What was the turning point?\n\nExample: Used to be a F&B waiter, slogging 14 hours a day. Joined insurance for the money. Only earned $1k/month for first two years. Had to borrow from girlfriend for roadshows. One day received a gratitude text from a client and shifted focus to genuine impact.", 6)}
@@ -1619,7 +1619,7 @@ export default function FadsPage() {
             {/* Quick Start */}
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Lightbulb className="h-5 w-5" /> Quick Start Profiles</CardTitle>
+                <CardTitle className="flex items-center gap-2"><LightbulbIcon className="h-5 w-5" /> Quick Start Profiles</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1658,21 +1658,21 @@ export default function FadsPage() {
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div className="flex gap-2">
-                    <Target className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <TargetIcon className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold">Don't sell products</p>
                       <p className="text-muted-foreground text-xs">Sell the TRANSFORMATION. Show the before and after.</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Heart className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <HeartIcon className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold">Tangible + Intangible</p>
                       <p className="text-muted-foreground text-xs">Products solve tangible problems. YOU solve the intangible ones (fear, confusion, overwhelm).</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Star className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <StarIcon className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold">Your Differentiator</p>
                       <p className="text-muted-foreground text-xs">What makes YOUR approach unique? This is what clients remember and refer.</p>
@@ -1699,7 +1699,7 @@ export default function FadsPage() {
 
                   <div className="bg-gradient-to-r from-primary/5 to-transparent p-4 rounded-lg border border-primary/10">
                     <Label htmlFor="audience1Differentiators" className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-primary" /> Your Unique Differentiators
+                      <LightningIcon className="h-4 w-4 text-primary" /> Your Unique Differentiators
                     </Label>
                     <Textarea
                       id="audience1Differentiators"
@@ -1728,7 +1728,7 @@ export default function FadsPage() {
 
                   <div className="bg-gradient-to-r from-orange-500/5 to-transparent p-4 rounded-lg border border-orange-500/10">
                     <Label htmlFor="audience2Differentiators" className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-orange-500" /> Your Unique Differentiators
+                      <LightningIcon className="h-4 w-4 text-orange-500" /> Your Unique Differentiators
                     </Label>
                     <Textarea
                       id="audience2Differentiators"
@@ -1747,7 +1747,7 @@ export default function FadsPage() {
           <TabsContent value="messaging" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5" /> Choose Your Signature Framework</CardTitle>
+                <CardTitle className="flex items-center gap-2"><BookOpenIcon className="h-5 w-5" /> Choose Your Signature Framework</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -1771,7 +1771,7 @@ export default function FadsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5" /> Delivery & Messaging</CardTitle>
+                <CardTitle className="flex items-center gap-2"><ChatIcon className="h-5 w-5" /> Delivery & Messaging</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
@@ -1815,7 +1815,7 @@ export default function FadsPage() {
             {overallProgress < 20 ? (
               <Card className="border-amber-500/20">
                 <CardContent className="pt-6 text-center">
-                  <Trophy className="h-12 w-12 text-amber-500 mx-auto mb-3" />
+                  <TrophyIcon className="h-12 w-12 text-amber-500 mx-auto mb-3" />
                   <h4 className="font-semibold text-lg mb-2">Complete at least 20% to unlock your marketing kit</h4>
                   <p className="text-muted-foreground text-sm mb-4">Current progress: {overallProgress}%</p>
                   <Button onClick={() => { setActiveTab("personality"); navigate(`${BASE_PATH}/personality`); }}>
@@ -1829,7 +1829,7 @@ export default function FadsPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" /> Brand at a Glance
+                      <SparkleIcon className="h-5 w-5 text-primary" /> Brand at a Glance
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -1880,7 +1880,7 @@ export default function FadsPage() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm flex items-center gap-2">
-                          <CalendarRange className="h-4 w-4 text-primary" /> Use this in your content plan
+                          <CalendarBlankIcon className="h-4 w-4 text-primary" /> Use this in your content plan
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           Saves your audience, edge, and positioning line straight into
@@ -1888,7 +1888,7 @@ export default function FadsPage() {
                         </p>
                       </div>
                       <Button onClick={sendToPlan} className="shrink-0 gap-2">
-                        Send to Plan <ArrowRight className="h-4 w-4" />
+                        Send to Plan <ArrowRightIcon className="h-4 w-4" />
                       </Button>
                     </div>
                   </CardContent>
@@ -1898,7 +1898,7 @@ export default function FadsPage() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-xl font-semibold flex items-center gap-2">
-                      <Megaphone className="h-5 w-5 text-primary" /> Personal Branding Asset Kit
+                      <MegaphoneIcon className="h-5 w-5 text-primary" /> Personal Branding Asset Kit
                     </h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1943,7 +1943,7 @@ export default function FadsPage() {
                             )}
                             <details className="group">
                               <summary className="cursor-pointer text-xs font-medium text-primary hover:underline list-none flex items-center gap-1">
-                                <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+                                <CaretRightIcon className="h-3 w-3 transition-transform group-open:rotate-90" />
                                 {polished ? "Preview AI-polished draft" : "Preview draft"}
                               </summary>
                               <div className="mt-3 bg-muted/50 p-3 rounded text-xs whitespace-pre-wrap font-mono max-h-64 overflow-y-auto border">
@@ -1965,11 +1965,11 @@ export default function FadsPage() {
                                   className="gap-1 min-h-[36px] sm:h-7 sm:min-h-0 text-xs px-3"
                                 >
                                   {isThisPolishing ? (
-                                    <><Loader2 className="h-3 w-3 animate-spin" /> Polishing...</>
+                                    <><CircleNotchIcon className="h-3 w-3 animate-spin" /> Polishing...</>
                                   ) : polished ? (
-                                    <><Sparkles className="h-3 w-3" /> Re-polish</>
+                                    <><SparkleIcon className="h-3 w-3" /> Re-polish</>
                                   ) : (
-                                    <><Sparkles className="h-3 w-3" /> AI polish</>
+                                    <><SparkleIcon className="h-3 w-3" /> AI polish</>
                                   )}
                                 </Button>
                                 {polished && (
@@ -1983,7 +1983,7 @@ export default function FadsPage() {
                                   </Button>
                                 )}
                                 <Button size="sm" variant="outline" onClick={() => copyToClipboard(displayBody)} className="gap-1 min-h-[36px] sm:h-7 sm:min-h-0 text-xs px-3">
-                                  <Copy className="h-3 w-3" /> Copy
+                                  <CopyIcon className="h-3 w-3" /> Copy
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => {
                                   const blob = new Blob([displayBody], { type: "text/plain" });
@@ -1993,7 +1993,7 @@ export default function FadsPage() {
                                   URL.revokeObjectURL(url);
                                   toast.success(`Downloaded ${a.id}.txt`);
                                 }} className="gap-1 min-h-[36px] sm:h-7 sm:min-h-0 text-xs px-3">
-                                  <Download className="h-3 w-3" /> Download
+                                  <DownloadSimpleIcon className="h-3 w-3" /> Download
                                 </Button>
                               </div>
                             </details>
@@ -2009,7 +2009,7 @@ export default function FadsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                     <div className="flex items-center gap-1">
                       <h4 className="text-xl font-semibold flex items-center gap-2">
-                        <Presentation className="h-5 w-5 text-primary" /> First-Appointment Deck
+                        <PresentationIcon className="h-5 w-5 text-primary" /> First-Appointment Deck
                       </h4>
                       <InfoTip label="About the first-appointment deck">
                         Seven slides for your first sit-down, filled from your answers.
@@ -2034,7 +2034,7 @@ export default function FadsPage() {
                       URL.revokeObjectURL(url);
                       toast.success("Downloaded first-appointment-deck.md");
                     }} className="gap-2 shrink-0">
-                      <Download className="h-4 w-4" /> Download all slides (.md)
+                      <DownloadSimpleIcon className="h-4 w-4" /> Download all slides (.md)
                     </Button>
                   </div>
                   <div className="space-y-3">
@@ -2058,7 +2058,7 @@ export default function FadsPage() {
                                   <p className="text-xs text-muted-foreground truncate">{s.purpose}</p>
                                 </div>
                                 {polished && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium shrink-0">AI</span>}
-                                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90 shrink-0" />
+                                <CaretRightIcon className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90 shrink-0" />
                               </div>
                             </summary>
                             <div className="px-4 pb-4 border-t bg-muted/20">
@@ -2089,11 +2089,11 @@ export default function FadsPage() {
                                     className="gap-1 min-h-[36px] sm:h-8 sm:min-h-0 text-xs px-3"
                                   >
                                     {isThisPolishing ? (
-                                      <><Loader2 className="h-3 w-3 animate-spin" /> Polishing...</>
+                                      <><CircleNotchIcon className="h-3 w-3 animate-spin" /> Polishing...</>
                                     ) : polished ? (
-                                      <><Sparkles className="h-3 w-3" /> Re-polish</>
+                                      <><SparkleIcon className="h-3 w-3" /> Re-polish</>
                                     ) : (
-                                      <><Sparkles className="h-3 w-3" /> AI polish</>
+                                      <><SparkleIcon className="h-3 w-3" /> AI polish</>
                                     )}
                                   </Button>
                                   {polished && (
@@ -2107,7 +2107,7 @@ export default function FadsPage() {
                                     </Button>
                                   )}
                                   <Button size="sm" variant="outline" onClick={() => copyToClipboard(`${s.title}\n\n${displayBody}${s.speakerNote ? `\n\nSpeaker note: ${s.speakerNote}` : ""}`)} className="gap-2 h-8 text-xs">
-                                    <Copy className="h-3 w-3" /> Copy slide content
+                                    <CopyIcon className="h-3 w-3" /> Copy slide content
                                   </Button>
                                 </div>
                               </div>
@@ -2123,7 +2123,7 @@ export default function FadsPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" /> Polish Everything with AI
+                      <SparkleIcon className="h-5 w-5 text-primary" /> Polish Everything with AI
                     </CardTitle>
                     <CardDescription>Send your whole brand brief to an AI assistant for a polished narrative + content calendar.</CardDescription>
                   </CardHeader>
@@ -2132,7 +2132,7 @@ export default function FadsPage() {
                       {isGenerating ? (
                         <><ThinkingOrb state="working" size={20} theme="dark" aria-hidden className="mr-2" /> Generating...</>
                       ) : (
-                        <><Sparkles className="h-4 w-4 mr-2" /> Generate Full Brand Template</>
+                        <><SparkleIcon className="h-4 w-4 mr-2" /> Generate Full Brand Template</>
                       )}
                     </Button>
                   </CardContent>
@@ -2142,9 +2142,9 @@ export default function FadsPage() {
                 <details className="group">
                   <summary className="cursor-pointer list-none">
                     <div className="flex items-center gap-2 p-3 rounded border border-dashed text-sm text-muted-foreground hover:bg-muted/30 transition-colors">
-                      <Code2 className="h-4 w-4" />
+                      <CodeIcon className="h-4 w-4" />
                       <span className="font-medium">Advanced: raw brand brief JSON</span>
-                      <ChevronRight className="h-4 w-4 ml-auto transition-transform group-open:rotate-90" />
+                      <CaretRightIcon className="h-4 w-4 ml-auto transition-transform group-open:rotate-90" />
                     </div>
                   </summary>
                   <div className="mt-3">
@@ -2155,7 +2155,7 @@ export default function FadsPage() {
                     </div>
                     <div className="flex gap-2 mt-3">
                       <Button variant="outline" size="sm" onClick={() => copyToClipboard(JSON.stringify(buildBrandBrief(), null, 2))} className="gap-2">
-                        {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        {copied ? <CheckCircleIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
                         {copied ? "Copied" : "Copy JSON"}
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => {
@@ -2166,7 +2166,7 @@ export default function FadsPage() {
                         URL.revokeObjectURL(url);
                         toast.success("Downloaded brand-brief.json");
                       }} className="gap-2">
-                        <Download className="h-4 w-4" /> Download JSON
+                        <DownloadSimpleIcon className="h-4 w-4" /> Download JSON
                       </Button>
                     </div>
                   </div>
@@ -2179,13 +2179,13 @@ export default function FadsPage() {
         {/* Navigation */}
         <div className="flex justify-between items-center mt-8">
           <Button variant="outline" onClick={goToPrevTab} disabled={getTabIndex(activeTab) === 0}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Previous
+            <ArrowLeftIcon className="h-4 w-4 mr-2" /> Previous
           </Button>
           <span className="text-sm text-muted-foreground">
             {getTabIndex(activeTab) + 1} / {TABS.length}
           </span>
           <Button onClick={goToNextTab} disabled={getTabIndex(activeTab) === TABS.length - 1}>
-            Next <ArrowRight className="h-4 w-4 ml-2" />
+            Next <ArrowRightIcon className="h-4 w-4 ml-2" />
           </Button>
         </div>
       </div>

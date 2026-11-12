@@ -27,27 +27,27 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import {
-  Trash2,
-  Search,
-  Pencil,
-  Sparkles,
-  CheckCircle2,
-  Undo2,
-  CalendarClock,
-  Wand2,
-  X,
-  GalleryHorizontalEnd,
-  Tag,
-  CopyPlus,
-  Upload,
-  MoreHorizontal,
-  Link2,
-  MessageSquareText,
-  Paperclip,
-  Send,
-  ListOrdered,
-  Languages,
-} from "lucide-react";
+  TrashIcon,
+  MagnifyingGlassIcon,
+  PencilSimpleIcon,
+  SparkleIcon,
+  CheckCircleIcon,
+  ArrowUUpLeftIcon,
+  CalendarDotsIcon,
+  MagicWandIcon,
+  XIcon,
+  CardsIcon,
+  TagIcon,
+  CopySimpleIcon,
+  UploadSimpleIcon,
+  DotsThreeIcon,
+  LinkIcon,
+  ChatTextIcon,
+  PaperclipIcon,
+  PaperPlaneTiltIcon,
+  ListNumbersIcon,
+  TranslateIcon,
+} from "@phosphor-icons/react";
 import {
   deleteDraft,
   loadDrafts,
@@ -115,7 +115,7 @@ const STATUSES = ["all", "draft", "scheduled", "posted"] as const;
 // Filters, search and the open review panel live in the URL (docs/deep-links.md).
 const FILTER_PARAMS = ["status", "platform", "pillar", "label", "q"];
 
-type MenuItem = { label: string; icon: typeof Pencil; onSelect: () => void };
+type MenuItem = { label: string; icon: typeof PencilSimpleIcon; onSelect: () => void };
 
 // A card's less-used actions behind one "More" button (menu button pattern: Enter,
 // Space or the arrow keys open it, arrows move, Escape closes and returns focus).
@@ -162,7 +162,7 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
         }}
         className="h-11 gap-1.5 text-xs text-muted-foreground sm:h-9 [@media(pointer:coarse)]:h-11"
       >
-        <MoreHorizontal className="h-3.5 w-3.5" /> More
+        <DotsThreeIcon className="h-3.5 w-3.5" /> More
       </Button>
       {open && (
         <div
@@ -692,7 +692,7 @@ export default function DraftsPage() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <p className="text-xs text-muted-foreground">Posts each version 3 days apart in your open slots.</p>
             <Button size="sm" onClick={() => spreadNow(plan)} disabled={!plan.placed.length} className="h-11 gap-1.5 sm:h-9">
-              <CalendarClock className="h-3.5 w-3.5" /> Spread them out
+              <CalendarDotsIcon className="h-3.5 w-3.5" /> Spread them out
             </Button>
             {!plan.placed.length && (
               <p className="w-full text-xs text-muted-foreground">
@@ -714,7 +714,7 @@ export default function DraftsPage() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <p className="text-xs font-semibold text-success">Winner so far: {firstWords(winner.hook || winner.draft)}</p>
             <Button size="sm" variant="outline" onClick={() => navigate(moreLikeWinner(winner))} className="h-11 gap-1.5 sm:h-9">
-              <Sparkles className="h-3.5 w-3.5" /> Make 3 more like the winner
+              <SparkleIcon className="h-3.5 w-3.5" /> Make 3 more like the winner
             </Button>
           </div>
         ) : null}
@@ -732,7 +732,7 @@ export default function DraftsPage() {
     if (!fillOpen)
       return f.placed.length ? (
         <Button size="sm" variant="outline" onClick={() => setFillOpen(true)} className="h-11 gap-1.5 sm:h-9">
-          <CalendarClock className="h-3.5 w-3.5" /> Fill {plural(f.placed.length, "open slot")}
+          <CalendarDotsIcon className="h-3.5 w-3.5" /> Fill {plural(f.placed.length, "open slot")}
         </Button>
       ) : null;
     const leftBy = new Map<string, number>();
@@ -791,7 +791,7 @@ export default function DraftsPage() {
         {leo && <CopyLinkButton label="Copy link to this view" className="ml-auto" />}
         {!importOpen && userId && (
           <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5 [@media(pointer:coarse)]:h-11">
-            <Upload className="h-3.5 w-3.5" /> Import CSV
+            <UploadSimpleIcon className="h-3.5 w-3.5" /> Import CSV
           </Button>
         )}
       </header>
@@ -837,7 +837,7 @@ export default function DraftsPage() {
           </CardTitle>
           {!manageLabels && (
             <Button size="sm" variant="ghost" onClick={openManager} className="gap-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">
-              <Tag className="h-3.5 w-3.5" /> Labels
+              <TagIcon className="h-3.5 w-3.5" /> Labels
             </Button>
           )}
         </CardHeader>
@@ -894,7 +894,7 @@ export default function DraftsPage() {
           <div className="space-y-1.5">
             <Label>Search</Label>
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -929,11 +929,11 @@ export default function DraftsPage() {
       {visible.length === 0 ? (
         drafts.length === 0 ? (
           <EmptyState
-            icon={Sparkles}
+            icon={SparkleIcon}
             title="No posts yet"
             actions={
               <Button size="sm" onClick={() => navigate("/generate")} className="gap-1.5">
-                <Pencil className="h-3.5 w-3.5" /> Write a post
+                <PencilSimpleIcon className="h-3.5 w-3.5" /> Write a post
               </Button>
             }
           >
@@ -942,7 +942,7 @@ export default function DraftsPage() {
         ) : (
           // a filter that hides everything: the way out is clearing it, not writing another post
           <EmptyState
-            icon={Search}
+            icon={MagnifyingGlassIcon}
             title="No posts match these filters"
             actions={
               <Button
@@ -1035,12 +1035,12 @@ export default function DraftsPage() {
                     rel="noopener noreferrer"
                     className="mb-2 inline-flex h-9 w-fit items-center gap-1.5 text-[11px] font-medium text-primary hover:underline sm:h-7 [@media(pointer:coarse)]:h-11"
                   >
-                    <Paperclip className="h-3.5 w-3.5" /> Open media
+                    <PaperclipIcon className="h-3.5 w-3.5" /> Open media
                   </a>
                 )}
                 {s !== "posted" && (
                   <label className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <CalendarClock className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <CalendarDotsIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
                     {s === "scheduled" ? "Scheduled for" : "Schedule for"}
                     <DayInput
                       min={today}
@@ -1111,7 +1111,7 @@ export default function DraftsPage() {
                       onClick={() => openPreview(d.id)}
                       className="mb-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 text-[11px] font-semibold text-primary sm:h-7"
                     >
-                      <MessageSquareText className="h-3.5 w-3.5" /> {n} reviewer {n === 1 ? "comment" : "comments"}
+                      <ChatTextIcon className="h-3.5 w-3.5" /> {n} reviewer {n === 1 ? "comment" : "comments"}
                     </button>
                   ) : null;
                 })()}
@@ -1125,7 +1125,7 @@ export default function DraftsPage() {
                     aria-expanded={labelOpenId === d.id}
                     className="inline-flex h-9 items-center gap-1 rounded-full border border-dashed border-border px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground sm:h-7 [@media(pointer:coarse)]:h-11"
                   >
-                    <Tag className="h-3 w-3" /> {d.labels?.some((id) => labels.some((l) => l.id === id)) ? "Edit labels" : "Add label"}
+                    <TagIcon className="h-3 w-3" /> {d.labels?.some((id) => labels.some((l) => l.id === id)) ? "Edit labels" : "Add label"}
                   </button>
                 </div>
                 {labelOpenId === d.id && userId && (
@@ -1158,7 +1158,7 @@ export default function DraftsPage() {
                     onClick={() => handleRestore(d.id)}
                     className="h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11"
                   >
-                    <Pencil className="h-3.5 w-3.5" /> Edit
+                    <PencilSimpleIcon className="h-3.5 w-3.5" /> Edit
                   </Button>
                   {s === "posted" ? (
                     <Button
@@ -1167,7 +1167,7 @@ export default function DraftsPage() {
                       onClick={() => handleUnpost(d)}
                       className="h-11 gap-1.5 text-xs text-muted-foreground sm:h-9 [@media(pointer:coarse)]:h-11"
                     >
-                      <Undo2 className="h-3.5 w-3.5" /> Mark unposted
+                      <ArrowUUpLeftIcon className="h-3.5 w-3.5" /> Mark unposted
                     </Button>
                   ) : (
                     <Button
@@ -1178,7 +1178,7 @@ export default function DraftsPage() {
                       title={reviews.blockReason(d) ?? undefined}
                       className="h-11 gap-1.5 text-xs text-success hover:text-success sm:h-9 [@media(pointer:coarse)]:h-11"
                     >
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
+                      <CheckCircleIcon className="h-3.5 w-3.5" /> Mark posted
                     </Button>
                   )}
                   {/* Leo's steps open on any post not yet out, with or without a day (publish-schedule) */}
@@ -1190,30 +1190,30 @@ export default function DraftsPage() {
                       aria-expanded={panelId === d.id}
                       className="h-11 gap-1.5 text-xs text-primary hover:text-primary sm:h-9 [@media(pointer:coarse)]:h-11"
                     >
-                      <Send className="h-3.5 w-3.5" /> Post it for me
+                      <PaperPlaneTiltIcon className="h-3.5 w-3.5" /> Post it for me
                     </Button>
                   )}
                   <MoreMenu
                     items={[
-                      { label: "Repurpose", icon: Wand2, onSelect: () => setRepurposeOpenId(d.id) },
+                      { label: "Repurpose", icon: MagicWandIcon, onSelect: () => setRepurposeOpenId(d.id) },
                       ...(d.draft?.trim()
-                        ? [{ label: "Make a carousel", icon: GalleryHorizontalEnd, onSelect: () => navigate(`/carousel?draft=${encodeURIComponent(d.id)}`) }]
+                        ? [{ label: "Make a carousel", icon: CardsIcon, onSelect: () => navigate(`/carousel?draft=${encodeURIComponent(d.id)}`) }]
                         : []),
                       ...(leo && d.format === "text-post" && d.draft?.trim()
-                        ? [{ label: "Make it a thread", icon: ListOrdered, onSelect: () => navigate(links.generate({ draft: d.id, panel: "thread" })) }]
+                        ? [{ label: "Make it a thread", icon: ListNumbersIcon, onSelect: () => navigate(links.generate({ draft: d.id, panel: "thread" })) }]
                         : []),
                       // edit-translate (Leo only): Write opens the English and makes the version there, once (navigation state, so a reload never spends)
                       ...(leo && d.draft?.trim() && !langOf(d)
                         ? LANGS.filter((l) => !versionsOf(drafts, d.id).some((v) => langOf(v) === l)).map((l) => ({
                             label: `Make it in ${LANG_NAMES[l]}`,
-                            icon: Languages,
+                            icon: TranslateIcon,
                             onSelect: () => navigate(links.generate({ draft: d.id }), { state: { translate: { id: d.id, lang: l } } }),
                           }))
                         : []),
                       ...(d.draft?.trim()
-                        ? [{ label: "Share for review", icon: Link2, onSelect: () => openPreview(d.id) }]
+                        ? [{ label: "Share for review", icon: LinkIcon, onSelect: () => openPreview(d.id) }]
                         : []),
-                      { label: "Duplicate", icon: CopyPlus, onSelect: () => handleDuplicate(d.id) },
+                      { label: "Duplicate", icon: CopySimpleIcon, onSelect: () => handleDuplicate(d.id) },
                     ]}
                   />
                   <Button
@@ -1226,7 +1226,7 @@ export default function DraftsPage() {
                         : "text-muted-foreground"
                     }`}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <TrashIcon className="h-3.5 w-3.5" />
                     {confirmId === d.id ? "Confirm" : "Delete"}
                   </Button>
                 </div>
@@ -1258,7 +1258,7 @@ export default function DraftsPage() {
                         aria-label="Close"
                         className="text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:-m-3.5 [@media(pointer:coarse)]:grid [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:place-items-center"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <XIcon className="h-3.5 w-3.5" />
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">

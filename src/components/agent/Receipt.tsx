@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2 } from "lucide-react";
+import { CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { isAppPath } from "@/components/agent/dockActions";
 import { press, undoReceipt } from "@/lib/agentRun";
@@ -27,7 +27,7 @@ export default function Receipt({ userId, threadId, msgId, receipt, nudge }: { u
     <section aria-label={receipt.title} className="w-full max-w-xl space-y-2 rounded-xl border border-border/70 bg-muted/30 px-4 py-3">
       <div>
         <p className="flex items-center gap-1.5 text-sm font-medium">
-          <Check className="h-4 w-4 text-success" /> {receipt.title}
+          <CheckIcon className="h-4 w-4 text-success" /> {receipt.title}
         </p>
         <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-muted-foreground">{receipt.line}</p>
       </div>
@@ -42,7 +42,7 @@ export default function Receipt({ userId, threadId, msgId, receipt, nudge }: { u
             <span className="text-sm text-muted-foreground">Undone.</span>
           ) : (
             <Button type="button" variant="ghost" size="sm" onClick={undo} disabled={busy} className="h-11 sm:h-9">
-              {busy && <Loader2 className="animate-spin" />} Undo
+              {busy && <CircleNotchIcon className="animate-spin" />} Undo
             </Button>
           ))}
       </div>

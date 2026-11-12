@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, ExternalLink, Globe, Loader2, Pencil, Star } from "lucide-react";
+import { ArrowLeftIcon, CheckIcon, ArrowSquareOutIcon, GlobeIcon, CircleNotchIcon, PencilSimpleIcon, StarIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -208,10 +208,10 @@ export default function AddBrandPage() {
     <section key={c} className={`rounded-xl border p-3 ${done.has(c) ? "border-border/60 bg-muted/30" : "border-primary/40 bg-card shadow-card"}`}>
       {done.has(c) ? (
         <div className="flex items-center gap-2 text-sm">
-          <Check className="h-4 w-4 shrink-0 text-success" />
+          <CheckIcon className="h-4 w-4 shrink-0 text-success" />
           <span className="font-semibold">{title}</span>
           <span className="min-w-0 flex-1 truncate text-muted-foreground">{summary}</span>
-          <Button size="sm" variant="ghost" className="h-8" onClick={() => reopen(c)} aria-label={`Change ${title}`}><Pencil className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" variant="ghost" className="h-8" onClick={() => reopen(c)} aria-label={`Change ${title}`}><PencilSimpleIcon className="h-3.5 w-3.5" /></Button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -227,7 +227,7 @@ export default function AddBrandPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <header className="space-y-1">
         <Link to="/home" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
         </Link>
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Add a brand</h1>
       </header>
@@ -238,14 +238,14 @@ export default function AddBrandPage() {
             The brand's website or App Store link
             <div className="flex gap-2">
               <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="acme.sg or apps.apple.com/..." inputMode="url" autoFocus className="font-normal" />
-              <Button type="submit" disabled={!address.trim() || left === 0}><Globe className="mr-1.5 h-4 w-4" /> Read it</Button>
+              <Button type="submit" disabled={!address.trim() || left === 0}><GlobeIcon className="mr-1.5 h-4 w-4" /> Read it</Button>
             </div>
           </label>
           {leo && <p><PriceChip feature="brand-dna" left={left} /></p>}
           {why && <p className="text-xs text-destructive">{why}</p>}
           <p className="text-xs text-muted-foreground">{appLink ? "Takes under a minute. We read the listing, the app's website and reviews of apps like it, and nothing is posted." : leo ? "Takes under a minute. We read the home page and up to 4 more pages, and nothing is posted." : "Takes under a minute. We read the home page only, and nothing is posted."}</p>
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-          {error && <Button type="button" variant="outline" size="sm" className="[@media(pointer:coarse)]:h-11" onClick={byHand}><Pencil className="mr-1.5 h-3.5 w-3.5" /> Fill it in yourself</Button>}
+          {error && <Button type="button" variant="outline" size="sm" className="[@media(pointer:coarse)]:h-11" onClick={byHand}><PencilSimpleIcon className="mr-1.5 h-3.5 w-3.5" /> Fill it in yourself</Button>}
           <button type="button" className="block text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(true)}>No website? Start with just a name</button>
         </form>
       )}
@@ -269,7 +269,7 @@ export default function AddBrandPage() {
         <ol className="space-y-2 rounded-2xl border border-border/60 bg-card p-4 shadow-card" aria-live="polite">
           {steps.map((s, i) => (
             <li key={s} className={`flex items-center gap-2 text-sm ${i > step ? "text-muted-foreground" : ""}`}>
-              {i < step ? <Check className="h-4 w-4 text-success" /> : i === step ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="h-4 w-4" />}
+              {i < step ? <CheckIcon className="h-4 w-4 text-success" /> : i === step ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <span className="h-4 w-4" />}
               {s}
             </li>
           ))}
@@ -336,11 +336,11 @@ export default function AddBrandPage() {
                 <div className="min-w-0 flex-1 text-sm">
                   <p className="font-semibold">{app.listing.name}</p>
                   <p className="flex items-center gap-1 text-muted-foreground">
-                    {app.listing.rating !== null && <><Star className="h-3.5 w-3.5" /> {app.listing.rating.toFixed(1)} from {app.listing.ratings.toLocaleString("en-US")} ratings, </>}
+                    {app.listing.rating !== null && <><StarIcon className="h-3.5 w-3.5" /> {app.listing.rating.toFixed(1)} from {app.listing.ratings.toLocaleString("en-US")} ratings, </>}
                     {app.listing.price || "No price shown"}
                   </p>
                 </div>
-                <a href={app.listing.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary [@media(pointer:coarse)]:min-h-11">Listing <ExternalLink className="h-3 w-3" /></a>
+                <a href={app.listing.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary [@media(pointer:coarse)]:min-h-11">Listing <ArrowSquareOutIcon className="h-3 w-3" /></a>
               </div>
               {app.listing.screenshots.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
@@ -397,7 +397,7 @@ export default function AddBrandPage() {
 
       {phase === "done" && (
         <section className="space-y-3 rounded-2xl border border-border/60 bg-card p-6 text-center shadow-card">
-          <Check className="mx-auto h-10 w-10 text-success" />
+          <CheckIcon className="mx-auto h-10 w-10 text-success" />
           <h2 className="font-serif text-2xl font-semibold">{created} is ready</h2>
           <p className="text-sm text-muted-foreground">It has its own posts, plan, calendar and links, kept apart from your other brands.</p>
           <div className="flex flex-wrap justify-center gap-2">

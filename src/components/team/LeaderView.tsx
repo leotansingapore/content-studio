@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Copy, Link2, UserPlus } from "lucide-react";
+import { CopyIcon, LinkIcon, UserPlusIcon } from "@phosphor-icons/react";
 
 import {
   Card,
@@ -190,7 +190,7 @@ function TeamCard({
       <CardContent className="space-y-5">
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 sm:p-4">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-            <UserPlus className="h-3.5 w-3.5 text-primary" /> Invite consultants
+            <UserPlusIcon className="h-3.5 w-3.5 text-primary" /> Invite consultants
           </p>
           {inviteCode ? (
             <>
@@ -210,7 +210,7 @@ function TeamCard({
                   onClick={() => copy(formatInviteCode(inviteCode), "Invite code copied")}
                   className="gap-1.5"
                 >
-                  <Copy className="h-3.5 w-3.5" /> Copy code
+                  <CopyIcon className="h-3.5 w-3.5" /> Copy code
                 </Button>
                 <Button
                   size="sm"
@@ -218,7 +218,7 @@ function TeamCard({
                   onClick={() => copy(inviteLink(window.location.origin, inviteCode), "Invite link copied")}
                   className="gap-1.5"
                 >
-                  <Link2 className="h-3.5 w-3.5" /> Copy invite link
+                  <LinkIcon className="h-3.5 w-3.5" /> Copy invite link
                 </Button>
               </div>
             </>

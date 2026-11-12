@@ -2,7 +2,7 @@
 // picture, a link to a picture on the web, or the brand kit's logo and headshot. Uploads and AI pictures go into Media like everywhere else.
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Search, Upload } from "lucide-react";
+import { CircleNotchIcon, MagnifyingGlassIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/design/fields";
 import { pictureUrl } from "@/components/design/SlideView";
@@ -107,7 +107,7 @@ export default function ImagePicker({ userId, format, tag, onPick }: { userId: s
           >
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search photos" aria-label="Search photos" className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" />
             <Button type="submit" size="sm" variant="outline" disabled={busy || !query.trim()} className="h-8 gap-1">
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} Search
+              {busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <MagnifyingGlassIcon className="h-3.5 w-3.5" />} Search
             </Button>
           </form>
           {found && (
@@ -140,7 +140,7 @@ export default function ImagePicker({ userId, format, tag, onPick }: { userId: s
         >
           <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." aria-label="Picture link" className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm" />
           <Button type="submit" size="sm" disabled={busy || !link.trim()} className="w-full gap-1.5">
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Use this picture
+            {busy && <CircleNotchIcon className="h-4 w-4 animate-spin" />} Use this picture
           </Button>
         </form>
       )}
@@ -148,7 +148,7 @@ export default function ImagePicker({ userId, format, tag, onPick }: { userId: s
         <>
           <input ref={file} type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/gif" className="hidden" onChange={(e) => void upload(e.target.files?.[0])} />
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => file.current?.click()} className="w-full gap-1.5">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Choose a picture
+            {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <UploadSimpleIcon className="h-4 w-4" />} Choose a picture
           </Button>
           <p className="text-[11px] text-muted-foreground">PNG, JPEG, WebP or AVIF, up to 10 MB. Kept in Media on this device.</p>
         </>
@@ -169,7 +169,7 @@ export default function ImagePicker({ userId, format, tag, onPick }: { userId: s
         <>
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={3} maxLength={600} placeholder="A quiet harbour at dawn, soft film grain" aria-label="Describe the picture" className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm" />
           <Button type="button" size="sm" disabled={making || !prompt.trim() || left === 0} onClick={() => void makeImage(userId, prompt, prompt.slice(0, 60), tag)} className="w-full gap-1.5">
-            {making && <Loader2 className="h-4 w-4 animate-spin" />} {making ? "Making the picture" : "Generate"}
+            {making && <CircleNotchIcon className="h-4 w-4 animate-spin" />} {making ? "Making the picture" : "Generate"}
           </Button>
           <p className="text-[11px] text-muted-foreground">{left === null ? "Saved to Media under AI images." : `${left} left today. Saved to Media under AI images.`}</p>
         </>

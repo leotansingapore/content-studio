@@ -4,7 +4,7 @@
 // in src/lib/competitorPosts.ts. ?c= is the pill, ?platform= and ?sort= the filters, ?post= marks one post.
 import { Fragment, type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, RefreshCw, Shuffle } from "lucide-react";
+import { ArrowSquareOutIcon, CircleNotchIcon, ArrowsClockwiseIcon, ShuffleIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import OutlierBadge, { OutlierScoreTip } from "@/components/OutlierBadge";
 import PriceChip from "@/components/PriceChip";
@@ -143,7 +143,7 @@ export default function TheirPosts({ userId, list, store, openEdit }: {
                       <td className="max-w-[8rem] p-2 sm:max-w-none">
                         <span className="flex items-center gap-1.5 font-medium">
                           <span className="truncate">{r.c.name} ({SHORT[r.platform]})</span>
-                          {isCheckingPosts(r.k) && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" aria-label={`Reading @${r.handle}`} />}
+                          {isCheckingPosts(r.k) && <CircleNotchIcon className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" aria-label={`Reading @${r.handle}`} />}
                         </span>
                       </td>
                       <td className="p-2 text-right tabular-nums">{s?.followers == null ? "-" : fmt(s.followers)}</td>
@@ -203,7 +203,7 @@ export default function TheirPosts({ userId, list, store, openEdit }: {
       <div className="space-y-2 border-t border-border/60 pt-4">
         {reading && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading @{reading.handle}, about a minute...
+            <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Reading @{reading.handle}, about a minute...
           </p>
         )}
         {stopped && !busy && <p role="alert" className="text-xs text-destructive">{stopped.message}</p>}
@@ -211,7 +211,7 @@ export default function TheirPosts({ userId, list, store, openEdit }: {
           <p className="mr-auto text-xs text-muted-foreground">We check each account once a week, when you open Competitors.</p>
           <div className="flex items-center gap-3">
             <Button variant="outline" className={`h-10 gap-2 ${TOUCH}`} onClick={checkNow} disabled={busy || Boolean(why) || !due.length}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Check now
+              {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <ArrowsClockwiseIcon className="h-4 w-4" />} Check now
             </Button>
             {!busy && due.length > 0 && (
               <PriceChip feature="competitor-posts" price={due.length > 1 ? sumPrices(...due.map(() => priceOf("competitor-posts"))) : undefined} uses={due.length} left={left} />
@@ -264,12 +264,12 @@ export function PostCard({ f, name, path, linked, media, children }: {
       <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
         <RemixButton source={fromFollowPost(a, p)} label={`${name}'s post`}>
           <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
-            <Link to={remixUrl(a, p)}><Shuffle className="h-3.5 w-3.5" /> Remix</Link>
+            <Link to={remixUrl(a, p)}><ShuffleIcon className="h-3.5 w-3.5" /> Remix</Link>
           </Button>
         </RemixButton>
         {open && (
           <Button asChild size="sm" variant="ghost" className={`h-9 gap-1.5 px-2 ${TOUCH}`}>
-            <a href={open} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Open</a>
+            <a href={open} target="_blank" rel="noopener noreferrer"><ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open</a>
           </Button>
         )}
         {children}

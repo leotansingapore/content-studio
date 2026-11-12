@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, ChevronDown, ExternalLink, Loader2, Shuffle, X } from "lucide-react";
+import { WarningIcon, CaretDownIcon, ArrowSquareOutIcon, CircleNotchIcon, ShuffleIcon, XIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import BreakdownRow from "@/components/remix/BreakdownRow";
 import FitLine from "@/components/remix/FitLine";
@@ -353,7 +353,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
         </ul>
         {lost > 0 && (
           <p className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {versionsDone.rows.find((r) => r.state === "failed")?.error ?? "This one didn't go through."}
+            <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {versionsDone.rows.find((r) => r.state === "failed")?.error ?? "This one didn't go through."}
           </p>
         )}
         <div className="flex flex-wrap items-center gap-2">
@@ -492,7 +492,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
             More options
             <span className="flex items-center gap-1 font-normal">
               {CLOSE_LABELS[closeness]}
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${more ? "rotate-180" : ""}`} />
+              <CaretDownIcon className={`h-3.5 w-3.5 transition-transform ${more ? "rotate-180" : ""}`} />
             </span>
           </button>
           {more && (
@@ -536,7 +536,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     footer = working ? (
       <div className="space-y-1.5">
         <Button type="button" disabled className="w-full gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" /> Remixing...
+          <CircleNotchIcon className="h-4 w-4 animate-spin" /> Remixing...
         </Button>
         <p role="status" className="text-center text-xs font-medium text-foreground">
           {mine?.step}
@@ -555,13 +555,13 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
         {/* out of uses: the button and the line under it already say so */}
         {failedRow && !out && (
           <p role="alert" className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {failedRow.error}
+            <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {failedRow.error}
           </p>
         )}
         {/* the price and uses wrap right-aligned beside the label on a phone */}
         <Button type="button" onClick={() => void press()} disabled={out || short || otherRunning || waiting || !!videoStop} className="h-auto min-h-10 w-full justify-between gap-3 whitespace-normal py-2">
           <span className="flex shrink-0 items-center gap-2">
-            {waiting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shuffle className="h-4 w-4" />}
+            {waiting ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <ShuffleIcon className="h-4 w-4" />}
             {out ? "No remixes left today" : waiting ? "Checking the fit..." : failedRow ? "Try again" : three ? "Remix 3 versions" : remixLabel(uses)}
           </span>
           {!out && (
@@ -612,7 +612,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
             aria-label="Close"
             className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </header>
         <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
@@ -631,7 +631,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
                       className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
                     >
                       {showOriginal ? "Hide the original" : "Show the original"}
-                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showOriginal ? "rotate-180" : ""}`} />
+                      <CaretDownIcon className={`h-3.5 w-3.5 transition-transform ${showOriginal ? "rotate-180" : ""}`} />
                     </button>
                   )}
                 </div>
@@ -641,7 +641,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
                   <p className="whitespace-pre-line">{source.caption}</p>
                   {source.url && (
                     <a href={source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
-                      Open the original <ExternalLink className="h-3 w-3" />
+                      Open the original <ArrowSquareOutIcon className="h-3 w-3" />
                     </a>
                   )}
                 </div>
@@ -692,7 +692,7 @@ function ResultRow({ row, primary, madeWith, onRetry, onOpen }: { row: RemixRow;
       <section className="space-y-2">
         <h3 className="text-base font-semibold text-foreground">{AS_LABELS[row.as]}</h3>
         <p className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {row.error ?? "This one didn't go through."}
+          <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {row.error ?? "This one didn't go through."}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {row.scriptHref && (

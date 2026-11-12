@@ -1,10 +1,10 @@
 // The saved snapshot of a remix source: header, cover, caption excerpt and numbers (docs/north-star/items/remix-compare.md).
 // Kept apart from RemixCompare so a page can show it without loading the top posts, advisors and ads drops.
 
-import { ExternalLink, Facebook, Globe, Instagram, Linkedin, Video, Youtube } from "lucide-react";
+import { ArrowSquareOutIcon, FacebookLogoIcon, GlobeIcon, InstagramLogoIcon, LinkedinLogoIcon, VideoCameraIcon, YoutubeLogoIcon } from "@phosphor-icons/react";
 import { sourceNoun, type RemixSource } from "@/lib/remixSource";
 
-const ICONS: Record<string, typeof Globe> = { instagram: Instagram, linkedin: Linkedin, facebook: Facebook, youtube: Youtube, tiktok: Video };
+const ICONS: Record<string, typeof GlobeIcon> = { instagram: InstagramLogoIcon, linkedin: LinkedinLogoIcon, facebook: FacebookLogoIcon, youtube: YoutubeLogoIcon, tiktok: VideoCameraIcon };
 
 const COMPACT = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 /** 141900 -> "141.9K", as topPosts' compactNum, without loading the top posts. */
@@ -54,7 +54,7 @@ export function OriginalPane({
   /** The whole original when a store on this device still holds it; the snapshot keeps only 400 characters. */
   text?: string;
 }) {
-  const Icon = ICONS[source.platform ?? ""] ?? Globe;
+  const Icon = ICONS[source.platform ?? ""] ?? GlobeIcon;
   const caption = text && text.length > (source.caption?.length ?? 0) ? text : source.caption;
   const numbers = numberParts(source.numbers);
   return (
@@ -72,7 +72,7 @@ export function OriginalPane({
               rel="noopener noreferrer"
               className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
             >
-              {linkText} <ExternalLink className="h-3 w-3" aria-hidden />
+              {linkText} <ArrowSquareOutIcon className="h-3 w-3" aria-hidden />
             </a>
           )}
         </div>

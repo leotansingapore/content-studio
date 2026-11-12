@@ -2,7 +2,7 @@
 // profile linked to a board brand whose site publishes a kit (brandKitFeed.ts KIT_FEEDS), Leo only (BrandPage
 // mounts it). Its swatches and logo are what carousels, videos and posts use; Refresh reads the site again.
 import { useState } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { CircleNotchIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import type { KitRefresh } from "@/lib/brandKitFeed";
 
@@ -29,7 +29,7 @@ export default function KitFromSite({ feed, state, onRefresh }: { feed: string; 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-serif text-lg font-semibold">From {site}</h2>
         <Button variant="outline" size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11" onClick={refresh} disabled={busy || !state}>
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Refresh
+          {busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <ArrowsClockwiseIcon className="h-3.5 w-3.5" />} Refresh
         </Button>
       </div>
       {cache && (

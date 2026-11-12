@@ -10,7 +10,7 @@
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Check, Loader2 } from "lucide-react";
+import { WarningIcon, CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import ComplianceChips from "@/components/ComplianceChips";
 import FormatShell from "@/components/make/FormatShell";
 import { metaOf } from "@/components/make/PickList";
@@ -329,7 +329,7 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
     <>
       {textHeavy(plan) && (
         <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> {TEXT_HEAVY}
+          <WarningIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> {TEXT_HEAVY}
         </p>
       )}
       {(asking || priced) && !busy && (
@@ -351,7 +351,7 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
           <ol className="space-y-2 text-left" aria-live="polite">
             {READ_STEPS.map((s, i) => (
               <li key={s} className={`flex items-center gap-2 ${i === job.at ? "text-foreground" : ""}`}>
-                {i < (job.at ?? 0) ? <Check className="h-4 w-4 text-success" aria-hidden /> : i === job.at ? <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden /> : <span className="h-4 w-4" />}
+                {i < (job.at ?? 0) ? <CheckIcon className="h-4 w-4 text-success" aria-hidden /> : i === job.at ? <CircleNotchIcon className="h-4 w-4 animate-spin text-primary" aria-hidden /> : <span className="h-4 w-4" />}
                 {s}
               </li>
             ))}
@@ -359,7 +359,7 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
         </Frame>
       ) : shownStop ? (
         <div role="alert" className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
-          <p className="flex items-start gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden /> {stopLine(shownStop)}</p>
+          <p className="flex items-start gap-2"><WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden /> {stopLine(shownStop)}</p>
           {shownStop === "tiktok" && source && (
             <Button size="sm" variant="outline" className={TOUCH} onClick={() => navigate(withRemix(location.pathname + location.search, source.key))}>Remix its words</Button>
           )}
@@ -379,7 +379,7 @@ export default function SameEdit({ userId, source: linked }: { userId: string; s
         <div className="space-y-3">
           {making ? (
             <Frame>
-              <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+              <CircleNotchIcon className="h-5 w-5 animate-spin text-primary" aria-hidden />
               <span role="status">{job!.step || "Picking up your video..."}</span>
               {job!.state === "joining" && <Button variant="link" onClick={() => navigate(links.edit())} className={TOUCH}>Open the editor</Button>}
             </Frame>
@@ -479,7 +479,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function Failed({ error, children }: { error?: string; children?: ReactNode }) {
   return (
     <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
-      <p className="flex items-start gap-2 text-destructive"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {error || "That didn't go through. Try again."}</p>
+      <p className="flex items-start gap-2 text-destructive"><WarningIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {error || "That didn't go through. Try again."}</p>
       {children}
     </div>
   );

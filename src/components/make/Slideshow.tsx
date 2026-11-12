@@ -9,7 +9,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, CalendarClock, ChevronLeft, ChevronRight, Copy, Download, Loader2, Pencil, Save } from "lucide-react";
+import { WarningIcon, CalendarDotsIcon, CaretLeftIcon, CaretRightIcon, CopyIcon, DownloadSimpleIcon, CircleNotchIcon, PencilSimpleIcon, FloppyDiskIcon } from "@phosphor-icons/react";
 import FormatShell from "@/components/make/FormatShell";
 import SlideshowBatchCard, { useBatch } from "@/components/make/SlideshowBatch";
 import PickList, { metaOf } from "@/components/make/PickList";
@@ -395,13 +395,13 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
         </Card>
       ) : busy && job ? (
         <Placeholder size={size}>
-          <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+          <CircleNotchIcon className="h-5 w-5 animate-spin text-primary" aria-hidden />
           <span role="status">{stepText(job)}</span>
         </Placeholder>
       ) : job?.state === "failed" && !showId ? (
         <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
           <p className="flex items-start gap-2 text-destructive">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
+            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
           </p>
           <div className="flex flex-wrap gap-2">
             {/* a refusal keeps its use and the cap only fails again, so neither offers Try again */}
@@ -558,7 +558,7 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
         <SlidePreview slide={slide} size={show.size} look={look} picture={pics[slide.id] ?? null} />
         <div className="flex items-center justify-center gap-2">
           <Button size="icon" variant="outline" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Previous slide" className="rounded-full">
-            <ChevronLeft className="h-4 w-4" />
+            <CaretLeftIcon className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-1.5" aria-hidden>
             {show.slides.map((s, i) => (
@@ -566,7 +566,7 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
             ))}
           </div>
           <Button size="icon" variant="outline" onClick={() => go(index + 1)} disabled={index === n - 1} aria-label="Next slide" className="rounded-full">
-            <ChevronRight className="h-4 w-4" />
+            <CaretRightIcon className="h-4 w-4" />
           </Button>
         </div>
         <p className="text-center text-xs text-muted-foreground" aria-live="polite">
@@ -591,7 +591,7 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-semibold text-muted-foreground">Caption</p>
             <Button size="sm" variant="ghost" onClick={() => void copyCaption()} className="gap-1.5">
-              <Copy className="h-3.5 w-3.5" /> Copy
+              <CopyIcon className="h-3.5 w-3.5" /> Copy
             </Button>
           </div>
           <p className="whitespace-pre-line break-words text-sm">{show.caption}</p>
@@ -604,7 +604,7 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
             <span className="flex-1 text-destructive">{prep}</span>
           ) : (
             <>
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <CircleNotchIcon className="h-4 w-4 animate-spin text-primary" />
               <span className="flex-1">
                 Preparing slides {prep.done} of {prep.total}
               </span>
@@ -619,24 +619,24 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
       <div className="flex flex-wrap items-center gap-2">
         {canSchedule ? (
           <Button onClick={schedule} disabled={preparing} className="gap-1.5">
-            <CalendarClock className="h-4 w-4" /> Schedule
+            <CalendarDotsIcon className="h-4 w-4" /> Schedule
           </Button>
         ) : (
           <Button onClick={() => void downloadAll()} disabled={preparing} className="gap-1.5">
-            <Download className="h-4 w-4" /> Download all
+            <DownloadSimpleIcon className="h-4 w-4" /> Download all
           </Button>
         )}
         <Button variant="outline" onClick={save} disabled={preparing} className="gap-1.5">
-          <Save className="h-4 w-4" /> Save
+          <FloppyDiskIcon className="h-4 w-4" /> Save
         </Button>
         <Button variant="outline" asChild className="gap-1.5">
           <Link to={links.slideshow({ s: show.id })}>
-            <Pencil className="h-4 w-4" /> Edit slides
+            <PencilSimpleIcon className="h-4 w-4" /> Edit slides
           </Link>
         </Button>
         {canSchedule && (
           <Button variant="ghost" onClick={() => void downloadAll()} disabled={preparing} className="gap-1.5">
-            <Download className="h-4 w-4" /> Download all
+            <DownloadSimpleIcon className="h-4 w-4" /> Download all
           </Button>
         )}
       </div>

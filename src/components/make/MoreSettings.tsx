@@ -3,7 +3,7 @@
 // nothing is hidden silently. Open or shut lives in the address (?more=open, replace), so a reload or a shared link keeps it.
 
 import { useId, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { CaretDownIcon } from "@phosphor-icons/react";
 import { useUrlState } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +32,7 @@ export default function MoreSettings({ picks, children }: { picks: (string | nul
         </span>
         <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
           {open ? "Hide" : "Show"}
-          <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} aria-hidden />
+          <CaretDownIcon className={cn("h-4 w-4 transition-transform", open && "rotate-180")} aria-hidden />
         </span>
       </button>
       {open && (

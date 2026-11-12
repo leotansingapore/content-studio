@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, ImagePlus, Loader2, Search, Sparkles } from "lucide-react";
+import { CheckIcon, ImageSquareIcon, CircleNotchIcon, MagnifyingGlassIcon, SparkleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import StockSearch from "@/components/StockSearch";
 import { Button } from "@/components/ui/button";
@@ -356,7 +356,7 @@ export function MemePicture(p: {
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Which picture">
           {(["Expectation", "Reality"] as const).map((label, i) => (
             <FilterChip key={label} active={at === i} disabled={p.disabled} onClick={() => setSlot(i as 0 | 1)}>
-              {keys[i] && <Check className="h-3.5 w-3.5" aria-hidden />}
+              {keys[i] && <CheckIcon className="h-3.5 w-3.5" aria-hidden />}
               {label}
             </FilterChip>
           ))}
@@ -364,13 +364,13 @@ export function MemePicture(p: {
       )}
       <div className="flex flex-wrap gap-1.5">
         <FilterChip active={p.pick === "make"} disabled={p.disabled} onClick={() => p.onOpen("make")}>
-          <Sparkles className="h-3.5 w-3.5" aria-hidden /> Make one
+          <SparkleIcon className="h-3.5 w-3.5" aria-hidden /> Make one
         </FilterChip>
         <FilterChip active={p.pick === "media"} disabled={p.disabled} onClick={() => p.onOpen("media")}>
-          <ImagePlus className="h-3.5 w-3.5" aria-hidden /> From Media
+          <ImageSquareIcon className="h-3.5 w-3.5" aria-hidden /> From Media
         </FilterChip>
         <FilterChip active={p.pick === "stock"} disabled={p.disabled} onClick={() => p.onOpen("stock")}>
-          <Search className="h-3.5 w-3.5" aria-hidden /> Free stock
+          <MagnifyingGlassIcon className="h-3.5 w-3.5" aria-hidden /> Free stock
         </FilterChip>
       </div>
 
@@ -403,7 +403,7 @@ export function MemePicture(p: {
           ))}
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" onClick={make} disabled={making || imageBusy() || short || p.left === 0 || (p.left !== null && p.left < uses)} className={cn("gap-1.5", TOUCH)}>
-              {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {making ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}
               {making ? (two ? "Making your pictures..." : PICTURE_STEP) : two ? "Make both, 2 uses" : "Make it"}
             </Button>
             <PriceChip feature="ai-image" price={price} uses={uses} left={p.left} />

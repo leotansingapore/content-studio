@@ -3,7 +3,7 @@
 // touch screens. Side handles change the width, the rest change the size; a centre guide snaps within 12 px.
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { Loader2, X } from "lucide-react";
+import { CircleNotchIcon, XIcon } from "@phosphor-icons/react";
 import { FRAME_W, MAX_BOX_CHARS, frameHeight, type ShowSlide, type Slideshow, type TextBox } from "@/lib/slideshow";
 import { bitmapOf, boxCss, cutoutsOf, logoOf, paintSlide, slidePicture, type BoxLayout, type SlideLook } from "@/lib/slideshowDraw";
 import { cn } from "@/lib/utils";
@@ -167,7 +167,7 @@ export default function SlideCanvas({
       }}
     >
       <canvas ref={canvas} width={FRAME_W} height={H} className="absolute inset-0 h-full w-full" aria-label="The slide" role="img" />
-      {picture === "loading" && <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-white/80" aria-label="Loading the picture" />}
+      {picture === "loading" && <CircleNotchIcon className="absolute right-3 top-3 h-5 w-5 animate-spin text-white/80" aria-label="Loading the picture" />}
       {picture === "missing" && (
         <div className="absolute inset-x-3 bottom-3 flex flex-wrap items-center justify-between gap-2 rounded-md bg-black/60 px-3 py-2 text-xs text-white" onPointerDown={(e) => e.stopPropagation()}>
           <span>This picture is on the device you added it from.</span>
@@ -223,7 +223,7 @@ export default function SlideCanvas({
             onClick={() => onDelete(picking.id)}
           >
             <span className="grid h-6 w-6 place-items-center rounded-full bg-zinc-900 text-white shadow">
-              <X className="h-3.5 w-3.5" />
+              <XIcon className="h-3.5 w-3.5" />
             </span>
           </button>
         </>

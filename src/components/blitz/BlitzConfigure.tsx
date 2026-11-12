@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { X } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { candidatesOf, loadBlitz, saveMix, SOURCE_KINDS, SOURCE_LABELS, type BlitzMix } from "@/lib/blitz";
@@ -65,7 +65,7 @@ export default function BlitzConfigure({ userId, onClose }: { userId: string; on
           <p className="text-sm text-muted-foreground">Changes apply to the next deck.</p>
         </div>
         <Button variant="ghost" size="icon" className="shrink-0" aria-label="Close Configure" onClick={onClose}>
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </Button>
       </div>
 

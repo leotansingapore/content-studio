@@ -1,4 +1,4 @@
-import { UserRound } from "lucide-react";
+import { UserCircleIcon } from "@phosphor-icons/react";
 
 // What a link-in-bio page looks like: the public /l/<slug> page and the
 // editor's live preview both draw it.
@@ -25,7 +25,7 @@ export default function BioView({
         {photo ? (
           <img src={photo} alt={displayName} className="h-full w-full object-cover" />
         ) : (
-          <UserRound className="h-1/2 w-1/2 text-muted-foreground" aria-hidden />
+          <UserCircleIcon className="h-1/2 w-1/2 text-muted-foreground" aria-hidden />
         )}
       </span>
       <div className="space-y-1">

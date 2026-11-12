@@ -7,7 +7,7 @@
 
 import { useEffect, useReducer, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MoreHorizontal, X } from "lucide-react";
+import { DotsThreeIcon, XIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -245,7 +245,7 @@ function MySkillRow({ s, onTry, onEdit, onDelete }: { s: MySkill; onTry: () => v
         <Button size="sm" variant="outline" className={`h-10 ${TOUCH}`} onClick={onTry}>Try it</Button>
         <div ref={box} className="relative">
           <Button variant="ghost" size="icon" className="h-10 w-10" aria-label={`More for /${s.slash}`} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
-            <MoreHorizontal className="h-4 w-4" />
+            <DotsThreeIcon className="h-4 w-4" />
           </Button>
           {menu && (
             <div role="menu" aria-label={`More for /${s.slash}`} onKeyDown={(e) => e.key === "Escape" && setMenu(false)}
@@ -397,7 +397,7 @@ function Chooser({ userId, skill, own, post, onPick, onClose }: { userId: string
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="chooser-title" className="max-h-[85vh] w-full space-y-3 overflow-y-auto rounded-t-2xl bg-background p-4 shadow-elegant sm:max-w-md sm:rounded-2xl">
         <div className="flex items-center justify-between gap-2">
           <h2 id="chooser-title" className="font-serif text-lg font-semibold">{PICK_LINE}</h2>
-          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Close" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Close" onClick={onClose}><XIcon className="h-4 w-4" /></Button>
         </div>
         <p className="text-xs text-muted-foreground">
           {name}

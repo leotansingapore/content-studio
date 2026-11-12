@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon } from "@phosphor-icons/react";
 
 import { supabase } from "@/lib/supabase";
 import { cloudSyncOutOfRoom, initCloudSync } from "@/lib/cloudSync";
@@ -55,7 +55,7 @@ export default function ProtectedRoute({
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
+        <CircleNotchIcon className="h-5 w-5 animate-spin" />
       </div>
     );
   }

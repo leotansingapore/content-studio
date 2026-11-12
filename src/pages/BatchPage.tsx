@@ -34,16 +34,16 @@ import AudiencePicker, { useSavedAudiences } from "@/components/AudiencePicker";
 import { audienceFromParams, audienceLine, loadAudiences } from "@/lib/audiences";
 import { speakerFor } from "@/lib/remixBrand";
 import {
-  Layers,
-  Check,
-  Copy,
-  Save,
-  RotateCcw,
-  Linkedin,
-  Instagram,
-  Facebook,
-  Video,
-} from "lucide-react";
+  StackIcon,
+  CheckIcon,
+  CopyIcon,
+  FloppyDiskIcon,
+  ArrowCounterClockwiseIcon,
+  LinkedinLogoIcon,
+  InstagramLogoIcon,
+  FacebookLogoIcon,
+  VideoCameraIcon,
+} from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import type { Audience, Format, Pillar, Platform } from "../../supabase/functions/generate-social-content/logic.ts";
 import { adviserBrand } from "@/lib/profession";
@@ -53,16 +53,16 @@ interface BatchTarget {
   platform: Platform;
   format: Format;
   label: string;
-  icon: typeof Linkedin;
+  icon: typeof LinkedinLogoIcon;
   defaultOn: boolean;
 }
 
 const TARGETS: BatchTarget[] = [
-  { key: "li", platform: "linkedin", format: "text-post", label: "LinkedIn post", icon: Linkedin, defaultOn: true },
-  { key: "ig-carousel", platform: "instagram", format: "carousel", label: "Instagram carousel", icon: Instagram, defaultOn: true },
-  { key: "tiktok", platform: "tiktok", format: "short-video", label: "TikTok script", icon: Video, defaultOn: true },
-  { key: "fb", platform: "facebook", format: "text-post", label: "Facebook post", icon: Facebook, defaultOn: false },
-  { key: "ig-reel", platform: "instagram", format: "short-video", label: "Instagram Reel", icon: Instagram, defaultOn: false },
+  { key: "li", platform: "linkedin", format: "text-post", label: "LinkedIn post", icon: LinkedinLogoIcon, defaultOn: true },
+  { key: "ig-carousel", platform: "instagram", format: "carousel", label: "Instagram carousel", icon: InstagramLogoIcon, defaultOn: true },
+  { key: "tiktok", platform: "tiktok", format: "short-video", label: "TikTok script", icon: VideoCameraIcon, defaultOn: true },
+  { key: "fb", platform: "facebook", format: "text-post", label: "Facebook post", icon: FacebookLogoIcon, defaultOn: false },
+  { key: "ig-reel", platform: "instagram", format: "short-video", label: "Instagram Reel", icon: InstagramLogoIcon, defaultOn: false },
 ];
 
 const AUDIENCES: { value: Audience; label: string }[] = [
@@ -330,7 +330,7 @@ export default function BatchPage() {
     <div className="space-y-6">
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Layers className="h-6 w-6 text-primary" /> Weekly batch
+          <StackIcon className="h-6 w-6 text-primary" /> Weekly batch
         </h1>
       </header>
 
@@ -438,7 +438,7 @@ export default function BatchPage() {
               </>
             ) : (
               <>
-                <Layers className="h-4 w-4" /> Generate {activeTargets.length || ""} draft
+                <StackIcon className="h-4 w-4" /> Generate {activeTargets.length || ""} draft
                 {activeTargets.length === 1 ? "" : "s"}
               </>
             )}
@@ -449,7 +449,7 @@ export default function BatchPage() {
       {hasResults && !running && unsaved.length > 1 && (
         <div className="flex justify-end">
           <Button onClick={handleSaveAll} className="w-full gap-1.5 sm:w-auto">
-            <Save className="h-4 w-4" /> Save all {unsaved.length} to All posts
+            <FloppyDiskIcon className="h-4 w-4" /> Save all {unsaved.length} to All posts
           </Button>
         </div>
       )}
@@ -472,7 +472,7 @@ export default function BatchPage() {
                   )}
                   {card.status === "saved" && (
                     <span className="flex items-center gap-1 text-xs font-semibold text-success">
-                      <Check className="h-3.5 w-3.5" /> Saved
+                      <CheckIcon className="h-3.5 w-3.5" /> Saved
                     </span>
                   )}
                 </CardHeader>
@@ -481,7 +481,7 @@ export default function BatchPage() {
                     <div className="space-y-2">
                       <p className="text-sm text-destructive">{card.error}</p>
                       <Button size="sm" variant="outline" disabled={running} onClick={() => void runBatch(t)} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
-                        <RotateCcw className="h-3.5 w-3.5" /> Try again
+                        <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Try again
                       </Button>
                     </div>
                   ) : (
@@ -505,7 +505,7 @@ export default function BatchPage() {
                         disabled={card.status === "saved"}
                         className="gap-1.5"
                       >
-                        <Save className="h-3.5 w-3.5" />{" "}
+                        <FloppyDiskIcon className="h-3.5 w-3.5" />{" "}
                         {card.status === "saved" ? "Saved" : "Save to All posts"}
                       </Button>
                       <Button
@@ -514,7 +514,7 @@ export default function BatchPage() {
                         onClick={() => handleCopy(card.text, t.platform, topic)}
                         className="relative gap-1.5"
                       >
-                        <Copy className="h-3.5 w-3.5" /> Copy
+                        <CopyIcon className="h-3.5 w-3.5" /> Copy
                         <ComplianceBadge flags={flags} />
                       </Button>
                     </div>
@@ -533,7 +533,7 @@ export default function BatchPage() {
           onClick={() => okToDropUnsaved() && setCards({})}
           className="gap-1.5 text-muted-foreground"
         >
-          <RotateCcw className="h-3.5 w-3.5" /> Start a new batch
+          <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Start a new batch
         </Button>
       )}
     </div>

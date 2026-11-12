@@ -2,7 +2,7 @@
 // TikToks the morning trend scout reads, from src/data/hashtagStats.json. No calls. The open tag lives in the URL.
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { PenLine } from "lucide-react";
+import { PencilLineIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { Sparkline, TrendsDrawer } from "@/components/trends/SearchTopics";
@@ -42,7 +42,7 @@ function MakePost({ r, className = "" }: { r: HashtagRow; className?: string }) 
   return (
     <Button asChild variant="outline" size="sm" className={`gap-1.5 [@media(pointer:coarse)]:h-11 ${className}`}>
       <Link to={hashtagWriteUrl(r)}>
-        <PenLine className="h-3.5 w-3.5" /> Make a post
+        <PencilLineIcon className="h-3.5 w-3.5" /> Make a post
       </Link>
     </Button>
   );

@@ -45,14 +45,14 @@ import {
   type LearningScope,
 } from "@/lib/voiceMemory";
 import {
-  Save,
-  RefreshCw,
-  Loader2,
-  Sparkles,
-  Check,
-  ArrowLeft,
-  X,
-} from "lucide-react";
+  FloppyDiskIcon,
+  ArrowsClockwiseIcon,
+  CircleNotchIcon,
+  SparkleIcon,
+  CheckIcon,
+  ArrowLeftIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import { scoped } from "@/lib/profiles";
 import {
   loadVoiceProfile,
@@ -248,7 +248,7 @@ export default function VoicePage() {
         <header className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">Your voice</h1>
           <Link to="/generate" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary [@media(pointer:coarse)]:min-h-11">
-            <ArrowLeft className="h-3 w-3" /> Skip for now
+            <ArrowLeftIcon className="h-3 w-3" /> Skip for now
           </Link>
         </header>
         {userId ? (
@@ -296,7 +296,7 @@ export default function VoicePage() {
           to="/generate"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary [@media(pointer:coarse)]:min-h-11"
         >
-          <ArrowLeft className="h-3 w-3" /> Skip for now
+          <ArrowLeftIcon className="h-3 w-3" /> Skip for now
         </Link>
       </header>
 
@@ -329,7 +329,7 @@ export default function VoicePage() {
                   >
                     {ready ? (
                       <span className="inline-flex items-center gap-1">
-                        <Check className="h-3 w-3" /> {len} chars
+                        <CheckIcon className="h-3 w-3" /> {len} chars
                       </span>
                     ) : (
                       <>
@@ -372,7 +372,7 @@ export default function VoicePage() {
                   disabled={!canDistill || distilling}
                   className="gap-1.5"
                 >
-                  <RefreshCw
+                  <ArrowsClockwiseIcon
                     className={`h-3.5 w-3.5 ${distilling ? "animate-spin" : ""}`}
                   />{" "}
                   Re-distill
@@ -386,11 +386,11 @@ export default function VoicePage() {
               >
                 {distilling ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Distilling...
+                    <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Distilling...
                   </>
                 ) : (
                   <>
-                    <Save className="h-3.5 w-3.5" /> Save voice profile
+                    <FloppyDiskIcon className="h-3.5 w-3.5" /> Save voice profile
                   </>
                 )}
               </Button>
@@ -417,7 +417,7 @@ export default function VoicePage() {
                 onClick={() => navigate("/generate")}
                 className="gap-1.5"
               >
-                <Sparkles className="h-3.5 w-3.5" /> Generate a post
+                <SparkleIcon className="h-3.5 w-3.5" /> Generate a post
               </Button>
             </div>
           </CardContent>
@@ -574,7 +574,7 @@ function HowYouSound(p: {
                 <span className={`text-[11px] ${ready ? "text-primary" : "text-muted-foreground"}`}>
                   {ready ? (
                     <span className="inline-flex items-center gap-1">
-                      <Check className="h-3 w-3" /> {len} chars
+                      <CheckIcon className="h-3 w-3" /> {len} chars
                     </span>
                   ) : (
                     <>
@@ -629,7 +629,7 @@ function HowYouSound(p: {
             {p.summary && (
               <span className="inline-flex items-center gap-1.5">
                 <Button variant="outline" size="sm" onClick={() => run("distill")} disabled={!p.canDistill || p.distilling} className="gap-1.5">
-                  <RefreshCw className={`h-3.5 w-3.5 ${p.distilling ? "animate-spin" : ""}`} /> Re-distill
+                  <ArrowsClockwiseIcon className={`h-3.5 w-3.5 ${p.distilling ? "animate-spin" : ""}`} /> Re-distill
                 </Button>
                 {p.canDistill && price}
               </span>
@@ -643,11 +643,11 @@ function HowYouSound(p: {
               >
                 {p.distilling ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Distilling...
+                    <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Distilling...
                   </>
                 ) : (
                   <>
-                    <Save className="h-3.5 w-3.5" /> Save voice profile
+                    <FloppyDiskIcon className="h-3.5 w-3.5" /> Save voice profile
                   </>
                 )}
               </Button>
@@ -706,7 +706,7 @@ function FactsSection({ userId }: { userId: string }) {
               <li key={f.id} className="flex items-center gap-2 py-1 pl-3 pr-1 text-sm">
                 <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{f.text}</span>
                 <Button variant="ghost" size="icon" aria-label={`Remove ${f.text}`} title="Remove" onClick={() => remove(f.id)} className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive">
-                  <X className="h-4 w-4" />
+                  <XIcon className="h-4 w-4" />
                 </Button>
               </li>
             ))}

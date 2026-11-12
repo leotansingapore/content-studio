@@ -3,7 +3,7 @@
 // the copy that posts it. Anything still in the way (a blank, too many
 // characters) is said here too.
 
-import { AlertTriangle, Check, Copy } from "lucide-react";
+import { WarningIcon, CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
 export default function PostReceipt({
@@ -38,7 +38,7 @@ export default function PostReceipt({
       className={`mt-4 space-y-2.5 rounded-xl border p-3 ${ready ? "border-success/40 bg-success/5" : "border-warning/50 bg-warning/5"}`}
     >
       <p className="flex items-center gap-1.5 text-sm font-semibold">
-        {ready ? <Check className="h-4 w-4 text-success" /> : <AlertTriangle className="h-4 w-4 text-warning" />}
+        {ready ? <CheckIcon className="h-4 w-4 text-success" /> : <WarningIcon className="h-4 w-4 text-warning" />}
         {ready ? "Ready to post" : "Nearly ready"}
       </p>
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
@@ -61,11 +61,11 @@ export default function PostReceipt({
       </dl>
       {blanks.length > 0 && (
         <p className="flex items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Fill {blanks.join(", ")} first.
+          <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Fill {blanks.join(", ")} first.
         </p>
       )}
       <Button size="sm" onClick={onCopy} disabled={copyBlocked !== null} title={copyBlocked ?? undefined} className="h-11 gap-1.5 sm:h-9">
-        <Copy className="h-3.5 w-3.5" /> {copyLabel}
+        <CopyIcon className="h-3.5 w-3.5" /> {copyLabel}
       </Button>
     </section>
   );

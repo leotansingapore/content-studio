@@ -4,7 +4,7 @@
 
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MessageSquare } from "lucide-react";
+import { ChatIcon } from "@phosphor-icons/react";
 import AgentNow from "@/components/home/AgentNow";
 import AskFor from "@/components/home/AskFor";
 import { useBrandChannels } from "@/components/ChannelsBlock";
@@ -105,7 +105,7 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
           <p className="text-xs tabular-nums text-muted-foreground">{meta}</p>
           <Button asChild variant="outline" size="sm" className="gap-1.5">
             <Link to={links.agent()}>
-              <MessageSquare /> Ask the agent
+              <ChatIcon /> Ask the agent
             </Link>
           </Button>
         </div>

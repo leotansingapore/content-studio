@@ -5,7 +5,7 @@
 // on each post from one long piece.
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { WarningIcon, ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -59,7 +59,7 @@ export default function FactFlags({ text, live = true }: {
   const stale = shown.key !== key;
   const again = (
     <Button size="sm" variant="ghost" className="h-11 gap-1.5 px-2 text-xs sm:h-8" onClick={() => void run(text)}>
-      <RotateCcw className="h-3.5 w-3.5" /> Check again
+      <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Check again
     </Button>
   );
   if ("skipped" in shown.result)
@@ -79,7 +79,7 @@ export default function FactFlags({ text, live = true }: {
   return (
     <section aria-label="Check this before you post" className="space-y-1.5 rounded-xl border border-warning/50 bg-warning/5 p-3">
       <div className="flex flex-wrap items-center gap-1.5">
-        <AlertTriangle className="h-4 w-4 text-warning" aria-hidden />
+        <WarningIcon className="h-4 w-4 text-warning" aria-hidden />
         <p className="text-sm font-semibold">Check this before you post</p>
         <InfoTip label="About the facts check">Lines that state a CPF, insurance or scheme fact. Check each against the official source.</InfoTip>
         {stale && <span className="ml-auto">{again}</span>}

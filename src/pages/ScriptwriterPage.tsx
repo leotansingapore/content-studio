@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { RotateCcw, Sparkles } from "lucide-react";
+import { ArrowCounterClockwiseIcon, SparkleIcon } from "@phosphor-icons/react";
 import { DeskError, DeskWait, ScriptExtras, TOUCH, useDeskRun, withHook } from "@/components/ScriptDeskParts";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -240,7 +240,7 @@ function Scriptwriter({ userId }: { userId: string }) {
               </div>
               <BandChips band={desk.band} onBand={(band) => setDesk({ band })} />
               {status}
-              <Button type="submit" className="w-full gap-1.5" disabled={running || !desk.topic.trim()}><Sparkles className="h-4 w-4" /> Write it</Button>
+              <Button type="submit" className="w-full gap-1.5" disabled={running || !desk.topic.trim()}><SparkleIcon className="h-4 w-4" /> Write it</Button>
             </form>
           )}
         </section>
@@ -276,7 +276,7 @@ function DialsPanel(p: {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Dials</h2>
-        <Button type="button" variant="ghost" size="sm" className={`gap-1 ${TOUCH}`} onClick={p.onReset} disabled={p.running}><RotateCcw className="h-3.5 w-3.5" /> Reset</Button>
+        <Button type="button" variant="ghost" size="sm" className={`gap-1 ${TOUCH}`} onClick={p.onReset} disabled={p.running}><ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Reset</Button>
       </div>
       <div className="grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4">
         <Dial id="sw-dial-length" label="Script length" shown={`${p.length}s`} sub={`${lo}-${hi} words`} pct={at / (SECONDS.length - 1)}
@@ -293,7 +293,7 @@ function DialsPanel(p: {
       )}
       {p.status}
       <Button type="button" className="w-full gap-1.5 bg-gradient-primary text-primary-foreground" onClick={p.onGenerate} disabled={p.running}>
-        <Sparkles className="h-4 w-4" /> Generate
+        <SparkleIcon className="h-4 w-4" /> Generate
       </Button>
     </div>
   );

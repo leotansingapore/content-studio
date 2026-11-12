@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, ChevronLeft, Crosshair, Loader2, Pause, Play, Undo2 } from "lucide-react";
+import { WarningIcon, CaretLeftIcon, CrosshairIcon, CircleNotchIcon, PauseIcon, PlayIcon, ArrowUUpLeftIcon } from "@phosphor-icons/react";
 import FormatShell from "@/components/make/FormatShell";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,7 @@ function Head({ title, blurb }: { title: string; blurb: string }) {
   return (
     <header className="space-y-1">
       <Button variant="ghost" size="sm" onClick={back} className="-ml-2 gap-1 text-muted-foreground">
-        <ChevronLeft className="h-4 w-4" /> Back
+        <CaretLeftIcon className="h-4 w-4" /> Back
       </Button>
       <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">{title}</h1>
       <p className="text-sm text-muted-foreground">{blurb}</p>
@@ -108,7 +108,7 @@ function Step({ label, since }: { label: string; since: number }) {
   }, []);
   return (
     <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden />
+      <CircleNotchIcon className="h-4 w-4 animate-spin text-primary" aria-hidden />
       {label} <span className="tabular-nums">{clock((Date.now() - since) / 1000)}</span>
     </p>
   );
@@ -118,7 +118,7 @@ function Failed({ line, children }: { line: string; children?: ReactNode }) {
   return (
     <div role="alert" className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
       <p className="flex items-start gap-2 text-destructive">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {line}
+        <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {line}
       </p>
       {children}
     </div>
@@ -127,7 +127,7 @@ function Failed({ line, children }: { line: string; children?: ReactNode }) {
 
 const Warn = ({ children }: { children: ReactNode }) => (
   <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning">
-    <AlertTriangle className="h-3 w-3" aria-hidden /> {children}
+    <WarningIcon className="h-3 w-3" aria-hidden /> {children}
   </span>
 );
 
@@ -818,13 +818,13 @@ function Studio({ userId, film, spec: stored }: { userId: string; film: StoredFi
           <div className="flex flex-wrap items-center gap-2">
             <span className="min-w-[5.5rem] text-sm tabular-nums" aria-live="off">{clock(t)} / {clock(length)}</span>
             <Button variant="outline" size="sm" onClick={playing ? pause : play} disabled={!mix && !playing} className={cn("gap-1.5", BIG)}>
-              {playing ? <Pause className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />} {playing ? "Pause" : "Play"}
+              {playing ? <PauseIcon className="h-4 w-4" aria-hidden /> : <PlayIcon className="h-4 w-4" aria-hidden />} {playing ? "Pause" : "Play"}
             </Button>
             <Button variant={pointing ? "default" : "outline"} size="sm" onClick={togglePoint} aria-pressed={pointing} aria-keyshortcuts="C" className={cn("gap-1.5", BIG)}>
-              <Crosshair className="h-4 w-4" aria-hidden /> Point to change <kbd className="hidden rounded border px-1 text-[10px] sm:inline">C</kbd>
+              <CrosshairIcon className="h-4 w-4" aria-hidden /> Point to change <kbd className="hidden rounded border px-1 text-[10px] sm:inline">C</kbd>
             </Button>
             <Button variant="ghost" size="sm" onClick={() => undoFilm(userId, film.id)} disabled={!canUndo || busyNote} className={cn("gap-1.5", BIG)}>
-              <Undo2 className="h-4 w-4" aria-hidden /> Undo
+              <ArrowUUpLeftIcon className="h-4 w-4" aria-hidden /> Undo
             </Button>
           </div>
           <div className="relative">
@@ -949,7 +949,7 @@ function Notes({ userId, film, onOpen }: { userId: string; film: StoredFilm; onO
               {n.text || n.thread.length ? <>&quot;{n.text || n.thread[n.thread.length - 1].note}&quot;</> : <span className="text-muted-foreground">{n.label}</span>}
             </button>
             {n.status === "waiting" && <p className="text-xs text-muted-foreground">Waiting</p>}
-            {n.status === "changing" && <p role="status" className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" aria-hidden /> Changing...</p>}
+            {n.status === "changing" && <p role="status" className="flex items-center gap-1 text-xs text-muted-foreground"><CircleNotchIcon className="h-3 w-3 animate-spin" aria-hidden /> Changing...</p>}
             {n.status === "done" && n.undone && <p className="text-xs text-muted-foreground">Undone.</p>}
             {n.status === "done" && !n.undone && (
               <div className="flex flex-wrap items-center gap-2">

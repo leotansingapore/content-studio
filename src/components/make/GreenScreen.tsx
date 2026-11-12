@@ -13,7 +13,7 @@
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
+import { WarningIcon, CircleNotchIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
 import { SavedDemos } from "@/components/brand/DemoVideosSection";
 import FormatShell from "@/components/make/FormatShell";
 import MoreSettings from "@/components/make/MoreSettings";
@@ -369,7 +369,7 @@ export default function GreenScreen({ userId, source }: { userId: string; source
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className={FIELD_LABEL}>Items</p>
                   <Button size="sm" variant="outline" onClick={() => void writeList(userId, ask())} disabled={!canWriteList(typed.title, source) || left("remix-make") === 0} className={`gap-1.5 ${TOUCH}`}>
-                    {writing && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+                    {writing && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" aria-hidden />}
                     Write it for me
                   </Button>
                 </div>
@@ -380,7 +380,7 @@ export default function GreenScreen({ userId, source }: { userId: string; source
                     {typed.items.length > 1 && (
                       <Button size="icon" variant="ghost" aria-label={`Remove item ${i + 1}`} className={`h-9 w-9 shrink-0 ${TOUCH}`}
                         onClick={() => setTyped({ ...typed, items: typed.items.filter((_, j) => j !== i) })}>
-                        <X className="h-4 w-4" />
+                        <XIcon className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
@@ -388,7 +388,7 @@ export default function GreenScreen({ userId, source }: { userId: string; source
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   {items.length < NOTE_ITEMS ? (
                     <Button size="sm" variant="ghost" className={`-ml-2 gap-1 ${TOUCH}`} onClick={() => setTyped({ ...typed, items: [...items, ""] })}>
-                      <Plus className="h-3.5 w-3.5" /> Add item
+                      <PlusIcon className="h-3.5 w-3.5" /> Add item
                     </Button>
                   ) : <span />}
                   {canWriteList(typed.title, source) && <span className="pt-2 text-xs"><PriceChip feature="remix-make" left={left("remix-make")} /></span>}
@@ -448,14 +448,14 @@ export default function GreenScreen({ userId, source }: { userId: string; source
     <div ref={resultRef} className="scroll-mt-16 space-y-3 lg:scroll-mt-0">
       {busy && job ? (
         <Frame>
-          <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+          <CircleNotchIcon className="h-5 w-5 animate-spin text-primary" aria-hidden />
           <span role="status">{stepText}</span>
           {job.state === "joining" && <Button variant="link" onClick={() => navigate(links.edit())} className={TOUCH}>Open the editor</Button>}
         </Frame>
       ) : job?.state === "failed" && !job.writeOnly ? (
         <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
           <p className="flex items-start gap-2 text-destructive">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
+            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
           </p>
           {job.waiting && oursWaiting && <Button size="sm" onClick={tryAgainFree} className={TOUCH}>Try again at no cost</Button>}
         </div>

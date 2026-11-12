@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowRight, Check, Image as ImageIcon, LayoutGrid, MessageCircle, Plus, RotateCw, Trash2, X } from "lucide-react";
+import { ArrowRightIcon, CheckIcon, ImageIcon, SquaresFourIcon, ChatCircleIcon, PlusIcon, ArrowClockwiseIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -266,7 +266,7 @@ function AutoDm() {
           </div>
           {state === "ready" && accounts.length > 0 && (
             <Button className="h-11 gap-1.5 px-3.5 text-[15px] font-semibold sm:gap-2 sm:px-[18px]" aria-label="New auto-DM" onClick={() => openEdit("new")}>
-              <Plus className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+              <PlusIcon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
               <span className="sm:hidden">New</span>
               <span className="hidden sm:inline">New auto-DM</span>
             </Button>
@@ -292,7 +292,7 @@ function AutoDm() {
               void load(userId);
             }}
           >
-            <RotateCw className="h-4 w-4" /> Try again
+            <ArrowClockwiseIcon className="h-4 w-4" /> Try again
           </Button>
         </div>
       )}
@@ -401,7 +401,7 @@ function FirstVisit({ account, onNew }: { account?: AccountOption; onNew: () => 
   );
   const arrow = (
     <li aria-hidden className="flex items-center text-muted-foreground/60">
-      <ArrowRight className="h-7 w-7 rotate-90 sm:rotate-0" />
+      <ArrowRightIcon className="h-7 w-7 rotate-90 sm:rotate-0" />
     </li>
   );
   return (
@@ -443,7 +443,7 @@ function FirstVisit({ account, onNew }: { account?: AccountOption; onNew: () => 
       </ol>
       {account ? (
         <Button className="h-12 gap-2 px-6 text-base font-semibold" onClick={onNew}>
-          <Plus className="h-[18px] w-[18px]" /> New auto-DM
+          <PlusIcon className="h-[18px] w-[18px]" /> New auto-DM
         </Button>
       ) : (
         <Button asChild className="h-12 px-6 text-base font-semibold">
@@ -467,7 +467,7 @@ function Thumb({ a, post, small }: { a: AutomationView; post?: PostOption; small
     );
   return (
     <span aria-hidden className={`${box} flex items-center justify-center border-[1.5px] border-dashed border-muted-foreground/50 text-muted-foreground`}>
-      {a.trigger === "comment" ? <LayoutGrid className="h-[22px] w-[22px]" /> : <MessageCircle className="h-[22px] w-[22px]" />}
+      {a.trigger === "comment" ? <SquaresFourIcon className="h-[22px] w-[22px]" /> : <ChatCircleIcon className="h-[22px] w-[22px]" />}
     </span>
   );
 }
@@ -843,7 +843,7 @@ function Editor({
       </ul>
     ) : anyWords ? (
       <p className="flex items-center gap-2 text-[13px] text-success">
-        <Check className="h-4 w-4" aria-hidden /> Wording check: nothing flagged
+        <CheckIcon className="h-4 w-4" aria-hidden /> Wording check: nothing flagged
       </p>
     ) : null;
 
@@ -1029,7 +1029,7 @@ function Editor({
                           className="-my-1.5 flex h-11 w-11 shrink-0 items-center justify-center"
                           onClick={() => set({ keywordsText: chips.filter((x) => x !== k).join(", ") })}
                         >
-                          <X className="h-3.5 w-3.5" />
+                          <XIcon className="h-3.5 w-3.5" />
                         </button>
                       </span>
                     ))}
@@ -1089,7 +1089,7 @@ function Editor({
                 <div key={i} className="flex items-start gap-2">
                   <Textarea aria-label={`DM ${i + 2}`} rows={2} value={v} placeholder="Another way to say it" onChange={(e) => set({ dmVariations: f.dmVariations.map((x, j) => (j === i ? e.target.value : x)) })} className="text-sm" />
                   <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remove DM ${i + 2}`} onClick={() => set({ dmVariations: f.dmVariations.filter((_, j) => j !== i) })}>
-                    <X className="h-4 w-4" />
+                    <XIcon className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
@@ -1112,7 +1112,7 @@ function Editor({
                       <Input type="url" inputMode="url" value={b.url} placeholder="https://your-link" onChange={(e) => set({ buttons: f.buttons.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)) })} className="h-11 text-[15px] text-foreground" />
                     </label>
                     <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remove button ${i + 1}`} onClick={() => set({ buttons: f.buttons.filter((_, j) => j !== i) })}>
-                      <X className="h-4 w-4" />
+                      <XIcon className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
@@ -1142,7 +1142,7 @@ function Editor({
                   />
                   {replies.length > 1 && (
                     <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remove public reply ${i + 1}`} onClick={() => setReplies(replies.filter((_, j) => j !== i))}>
-                      <X className="h-4 w-4" />
+                      <XIcon className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
@@ -1199,7 +1199,7 @@ function Editor({
             </Button>
             {onDelete && (
               <Button variant="ghost" className="ml-auto h-12 gap-1.5 text-muted-foreground hover:text-destructive" onClick={onDelete} disabled={!!saving || deleting}>
-                <Trash2 className="h-4 w-4" /> {deleting ? "Deleting..." : "Delete"}
+                <TrashIcon className="h-4 w-4" /> {deleting ? "Deleting..." : "Delete"}
               </Button>
             )}
             {(problem || blocked) && (

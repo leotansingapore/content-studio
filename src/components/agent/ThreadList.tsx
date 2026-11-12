@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, MoreHorizontal, Plus } from "lucide-react";
+import { CaretDownIcon, DotsThreeIcon, PlusIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
@@ -104,7 +104,7 @@ export default function ThreadList({
       {newChat && (
         <Button asChild variant="outline" className="h-11 w-full justify-start gap-2">
           <Link to={links.agent()} replace={replace}>
-            <Plus /> New chat
+            <PlusIcon /> New chat
           </Link>
         </Button>
       )}
@@ -115,7 +115,7 @@ export default function ThreadList({
             {g === "Archived" ? (
               <button type="button" onClick={() => setShowArchived(!archivedOpen)} aria-expanded={archivedOpen} className={cn(HEAD, "flex min-h-9 w-full items-center gap-1 text-left hover:text-foreground [@media(pointer:coarse)]:min-h-11")}>
                 Archived <span className="tabular-nums">{archived.length}</span>
-                <ChevronDown className={cn("ml-auto h-3.5 w-3.5 transition-transform", archivedOpen && "rotate-180")} aria-hidden />
+                <CaretDownIcon className={cn("ml-auto h-3.5 w-3.5 transition-transform", archivedOpen && "rotate-180")} aria-hidden />
               </button>
             ) : (
               <h2 className={HEAD}>{g}</h2>
@@ -164,7 +164,7 @@ export default function ThreadList({
                       aria-expanded={menu === t.id}
                       className="absolute right-1 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground opacity-100 hover:bg-background hover:text-foreground focus-visible:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:opacity-100"
                     >
-                      <MoreHorizontal className="h-4 w-4" />
+                      <DotsThreeIcon className="h-4 w-4" />
                     </button>
                   )}
                   {menu === t.id && (

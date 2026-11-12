@@ -1,7 +1,7 @@
 // Content labels on My posts: the chip a post wears, the picker that sets a
 // post's labels, and the manager that adds, renames, recolours and deletes them.
 import { useState, type FormEvent } from "react";
-import { Check, Plus, Trash2, X } from "lucide-react";
+import { CheckIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
   addLabel,
@@ -58,7 +58,7 @@ function NewLabelForm({ userId, labels, onAdded }: { userId: string; labels: Lab
           className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <Button type="submit" size="sm" variant="outline" disabled={!name.trim()} className="gap-1">
-          <Plus className="h-3.5 w-3.5" /> Add
+          <PlusIcon className="h-3.5 w-3.5" /> Add
         </Button>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
@@ -91,7 +91,7 @@ export function LabelPicker({
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">Labels</p>
         <button type="button" onClick={onClose} aria-label="Close labels" className="-m-2 p-2 text-muted-foreground hover:text-foreground">
-          <X className="h-3.5 w-3.5" />
+          <XIcon className="h-3.5 w-3.5" />
         </button>
       </div>
       {labels.length > 0 && (
@@ -108,7 +108,7 @@ export function LabelPicker({
                   on ? LABEL_CHIP[l.color] : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {on ? <Check className="h-3.5 w-3.5" /> : <span className={`h-2.5 w-2.5 rounded-full ${LABEL_SWATCH[l.color]}`} />}
+                {on ? <CheckIcon className="h-3.5 w-3.5" /> : <span className={`h-2.5 w-2.5 rounded-full ${LABEL_SWATCH[l.color]}`} />}
                 {l.name}
               </button>
             );
@@ -206,7 +206,7 @@ export function LabelManager({
                 onBlur={() => setConfirmId((cur) => (cur === l.id ? null : cur))}
                 className={`ml-auto gap-1.5 text-xs ${confirmId === l.id ? "text-destructive hover:text-destructive" : "text-muted-foreground"}`}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <TrashIcon className="h-3.5 w-3.5" />
                 {confirmId === l.id ? (n ? `Remove from ${n} post${n === 1 ? "" : "s"}` : "Confirm") : "Delete"}
               </Button>
             </div>

@@ -4,7 +4,7 @@
 
 import { useEffect, useReducer, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Trophy } from "lucide-react";
+import { CircleNotchIcon, TrophyIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import PriceChip from "@/components/PriceChip";
@@ -100,7 +100,7 @@ export default function WinnerCard({ userId, drafts, now = Date.now }: { userId:
           <div key={id} className="space-y-2 rounded-xl border border-primary/30 bg-primary/[0.05] p-3 shadow-card">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                {c.status === "making" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trophy className="h-4 w-4" />}
+                {c.status === "making" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <TrophyIcon className="h-4 w-4" />}
               </span>
               <h3 className="text-sm font-semibold text-foreground" aria-live="polite">
                 {heading(c)}

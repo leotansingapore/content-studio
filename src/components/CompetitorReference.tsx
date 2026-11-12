@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import {
-  Users,
-  Search,
-  X as XIcon,
-  ExternalLink,
-  Star,
-  Instagram,
-} from "lucide-react";
+  UsersIcon,
+  MagnifyingGlassIcon,
+  XIcon,
+  ArrowSquareOutIcon,
+  StarIcon,
+  InstagramLogoIcon,
+} from "@phosphor-icons/react";
 import advisorsData from "@/data/advisors.json";
 import type { AdvisorEntry } from "@/components/AdvisorProfiles";
 
@@ -146,7 +146,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
     return (
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs">
         <div className="flex items-start gap-2">
-          <Users className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <UsersIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
           <div className="space-y-0.5">
             <p className="font-semibold text-primary">
               Referencing {selected.name}{" "}
@@ -167,7 +167,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-background px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10"
           >
-            <ExternalLink className="h-3 w-3" /> View
+            <ArrowSquareOutIcon className="h-3 w-3" /> View
           </a>
           <button
             type="button"
@@ -192,7 +192,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
         className="flex w-full items-center justify-between gap-2 text-left [@media(pointer:coarse)]:min-h-11"
       >
         <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          <Users className="h-3.5 w-3.5" /> Reference a competitor's angle
+          <UsersIcon className="h-3.5 w-3.5" /> Reference a competitor's angle
           <span className="rounded-full border border-border/60 bg-background px-1.5 py-0.5 text-[9px] font-medium normal-case tracking-normal text-muted-foreground">
             optional
           </span>
@@ -205,7 +205,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
       {open && (
         <div className="mt-3 space-y-2">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -230,7 +230,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
                 return (
                   <div className="space-y-1.5 rounded-lg border border-primary/40 bg-primary/5 p-2">
                     <p className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                      <Instagram className="h-3.5 w-3.5" /> {ig.handle}
+                      <InstagramLogoIcon className="h-3.5 w-3.5" /> {ig.handle}
                     </p>
                     <input
                       value={customNote}
@@ -270,7 +270,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
                   }}
                   className="flex w-full items-start gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 text-left transition-colors hover:border-primary hover:bg-primary/10"
                 >
-                  <Instagram className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                  <InstagramLogoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                   <div className="min-w-0 flex-1">
                     <span className="text-xs font-semibold text-primary">
                       Use {ig.handle} from Instagram
@@ -298,7 +298,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       {featured && (
-                        <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
+                        <StarIcon weight="fill" className="h-3 w-3 shrink-0 text-amber-400" />
                       )}
                       <span className="truncate text-xs font-semibold text-foreground">
                         {e.name}

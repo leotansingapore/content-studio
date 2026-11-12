@@ -77,19 +77,19 @@ import {
   type PlanItem,
 } from "@/lib/contentPlan";
 import {
-  Target,
-  Sparkles,
-  Shuffle,
-  Pencil,
-  CheckCircle2,
-  Circle,
-  ArrowRight,
-  Trash2,
-  Calendar,
-  Compass,
-  ChevronDown,
-  TrendingUp,
-} from "lucide-react";
+  TargetIcon,
+  SparkleIcon,
+  ShuffleIcon,
+  PencilSimpleIcon,
+  CheckCircleIcon,
+  CircleIcon,
+  ArrowRightIcon,
+  TrashIcon,
+  CalendarIcon,
+  CompassIcon,
+  CaretDownIcon,
+  TrendUpIcon,
+} from "@phosphor-icons/react";
 import { adviserBrand } from "@/lib/profession";
 
 const AUDIENCE_LABEL: Record<PlanAudience, string> = {
@@ -500,7 +500,7 @@ export default function PlanPage() {
         <Card className="overflow-hidden border-border/60 shadow-card">
           <div className="bg-gradient-hero px-5 py-5 text-primary-foreground sm:px-6">
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-90">
-              <Compass className="h-3.5 w-3.5" /> Content system
+              <CompassIcon className="h-3.5 w-3.5" /> Content system
             </div>
             <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight">
               Turn your positioning into a week of posts
@@ -536,7 +536,7 @@ export default function PlanPage() {
             <p className="font-serif text-lg font-semibold text-foreground">
               The two frameworks behind your plan
             </p>
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+            <CaretDownIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
           </summary>
           <div className="space-y-3 px-5 pb-5">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -641,7 +641,7 @@ export default function PlanPage() {
               disabled={!fadsPaste.trim()}
               className="gap-1.5"
             >
-              <Sparkles className="h-3.5 w-3.5" /> Prefill from this
+              <SparkleIcon className="h-3.5 w-3.5" /> Prefill from this
             </Button>
           </CardContent>
         </Card>
@@ -861,7 +861,7 @@ export default function PlanPage() {
               disabled={!usable || !userId}
               className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
             >
-              <Sparkles className="h-4 w-4" />
+              <SparkleIcon className="h-4 w-4" />
               Build my content plan
             </Button>
           </div>
@@ -879,7 +879,7 @@ export default function PlanPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-90">
-                <Target className="h-3.5 w-3.5" /> Your content plan
+                <TargetIcon className="h-3.5 w-3.5" /> Your content plan
               </div>
               <h2 className="font-serif text-2xl font-semibold leading-tight">
                 {plan.cadence} posts / week · {plan.weeks} week
@@ -890,7 +890,7 @@ export default function PlanPage() {
               )}
               {plan.performanceNote && (
                 <p className="flex items-center gap-1.5 text-xs font-medium opacity-90">
-                  <TrendingUp className="h-3 w-3" /> {plan.performanceNote}
+                  <TrendUpIcon className="h-3 w-3" /> {plan.performanceNote}
                 </p>
               )}
               {plan.thisWeek && (
@@ -946,7 +946,7 @@ export default function PlanPage() {
               onClick={handleAddToCalendar}
               className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"
             >
-              <Calendar className="h-3.5 w-3.5" /> Add {totalCount} posts to calendar
+              <CalendarIcon className="h-3.5 w-3.5" /> Add {totalCount} posts to calendar
             </Button>
             <Button
               variant="outline"
@@ -954,7 +954,7 @@ export default function PlanPage() {
               onClick={handleReshuffle}
               className="gap-1.5"
             >
-              <Shuffle className="h-3.5 w-3.5" /> Reshuffle
+              <ShuffleIcon className="h-3.5 w-3.5" /> Reshuffle
             </Button>
             <Button
               variant="outline"
@@ -962,7 +962,7 @@ export default function PlanPage() {
               onClick={() => setEditing(true)}
               className="gap-1.5"
             >
-              <Pencil className="h-3.5 w-3.5" /> Edit positioning
+              <PencilSimpleIcon className="h-3.5 w-3.5" /> Edit positioning
             </Button>
             <Button
               variant="ghost"
@@ -972,7 +972,7 @@ export default function PlanPage() {
               aria-label="Delete plan"
               title="Delete plan"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <TrashIcon className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -1003,7 +1003,7 @@ export default function PlanPage() {
         return (
           <div key={week} className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
               <h3 className="font-serif text-lg font-semibold">Week {week}</h3>
               <span className="text-xs text-muted-foreground">
                 {weekPosted}/{items.length} posted
@@ -1029,9 +1029,9 @@ export default function PlanPage() {
                         title={item.posted ? "Posted" : "Mark posted"}
                       >
                         {item.posted ? (
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                          <CheckCircleIcon className="h-5 w-5 text-emerald-500" />
                         ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground hover:text-primary" />
+                          <CircleIcon className="h-5 w-5 text-muted-foreground hover:text-primary" />
                         )}
                       </button>
 
@@ -1111,7 +1111,7 @@ export default function PlanPage() {
                         >
                           <Link to={planSlotWriteUrl(labelled(item), drafts, plan.thisWeek)}>
                             {drafts.some((d) => d.id === planDraftId(item) && d.draft.trim()) ? "Open post" : "Write it"}
-                            <ArrowRight className="h-3.5 w-3.5" />
+                            <ArrowRightIcon className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
                       </div>

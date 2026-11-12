@@ -5,7 +5,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowDown, ArrowUp, Copy, ListOrdered, Plus, Scissors, Send, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, CopyIcon, ListNumbersIcon, PlusIcon, ScissorsIcon, PaperPlaneTiltIcon, SparkleIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,7 +69,7 @@ export function ThreadButton({ draftId, post, ready }: { draftId: string; post: 
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => (open ? update({ panel: null, network: null }) : openPanel("thread"))} aria-expanded={open} className={`h-9 gap-1.5 ${TOUCH}`}>
-        <ListOrdered className="h-3.5 w-3.5" /> Make it a thread
+        <ListNumbersIcon className="h-3.5 w-3.5" /> Make it a thread
       </Button>
       {good && <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">Reads well as a thread</span>}
     </>
@@ -253,7 +253,7 @@ export default function ThreadPanel({
         <div className="flex shrink-0 items-center gap-1">
           <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{posts.length} {posts.length === 1 ? "post" : "posts"}</span>
           <button type="button" onClick={() => update({ panel: null, network: null })} aria-label="Close the thread" className={ICON}>
-            <X className="h-3.5 w-3.5" />
+            <XIcon className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -286,16 +286,16 @@ export default function ThreadPanel({
                 {p.length}/{max}
               </span>
               <button type="button" aria-label={`Move post ${i + 1} up`} disabled={writing || i === 0} onClick={() => move(i, -1)} className={ICON}>
-                <ArrowUp className="h-3.5 w-3.5" />
+                <ArrowUpIcon className="h-3.5 w-3.5" />
               </button>
               <button type="button" aria-label={`Move post ${i + 1} down`} disabled={writing || i === posts.length - 1} onClick={() => move(i, 1)} className={ICON}>
-                <ArrowDown className="h-3.5 w-3.5" />
+                <ArrowDownIcon className="h-3.5 w-3.5" />
               </button>
               <button type="button" aria-label={`Copy post ${i + 1}`} title={blockReason ?? undefined} onClick={() => void copy(p, `Post ${i + 1} copied`)} className={ICON}>
-                <Copy className="h-3.5 w-3.5" />
+                <CopyIcon className="h-3.5 w-3.5" />
               </button>
               <button type="button" aria-label={`Remove post ${i + 1}`} disabled={writing || posts.length < 2} onClick={() => replace(renumber(posts.filter((_, k) => k !== i), isNum))} className={ICON}>
-                <Trash2 className="h-3.5 w-3.5" />
+                <TrashIcon className="h-3.5 w-3.5" />
               </button>
             </div>
             <div className="pl-7">
@@ -313,19 +313,19 @@ export default function ThreadPanel({
 
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => change(renumber([...posts, ""], isNum))} disabled={writing || posts.length >= THREAD_MAX_POSTS} className={`h-9 gap-1.5 ${TOUCH}`}>
-          <Plus className="h-3.5 w-3.5" /> Add a post
+          <PlusIcon className="h-3.5 w-3.5" /> Add a post
         </Button>
         <Button variant="outline" size="sm" aria-pressed={isNum} onClick={() => change(isNum ? unnumbered(posts) : numbered(posts))} disabled={writing || posts.length < 2} className={`h-9 gap-1.5 ${TOUCH}`}>
-          <ListOrdered className="h-3.5 w-3.5" /> {isNum ? "Take the numbers off" : "Number them"}
+          <ListNumbersIcon className="h-3.5 w-3.5" /> {isNum ? "Take the numbers off" : "Number them"}
         </Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => replace(splitThread(text, network, tails))} disabled={writing} className={`h-9 gap-1.5 ${TOUCH}`}>
-          <Scissors className="h-3.5 w-3.5" /> Split it myself
+          <ScissorsIcon className="h-3.5 w-3.5" /> Split it myself
         </Button>
         <Button variant="outline" size="sm" onClick={write} disabled={writing || left === 0} className={`h-9 gap-1.5 ${TOUCH}`}>
-          <Sparkles className="h-3.5 w-3.5" /> {wrote ? "Write it again" : "Write it as a thread"}
+          <SparkleIcon className="h-3.5 w-3.5" /> {wrote ? "Write it again" : "Write it as a thread"}
         </Button>
         <PriceChip feature="thread-copy" left={left} />
         {undo && !writing && (
@@ -343,11 +343,11 @@ export default function ThreadPanel({
 
       <div className="flex flex-wrap items-center gap-2 border-t border-primary/20 pt-3">
         <Button size="sm" onClick={() => void copy(joined, "Thread copied")} disabled={!!blockReason || writing} title={blockReason ?? undefined} className={`h-9 gap-1.5 ${TOUCH}`}>
-          <Copy className="h-3.5 w-3.5" /> Copy all
+          <CopyIcon className="h-3.5 w-3.5" /> Copy all
         </Button>
         {canPost && (
           <Button variant="outline" size="sm" onClick={() => setPosting((o) => !o)} aria-expanded={posting} disabled={!!postWhy || writing} className={`h-9 gap-1.5 ${TOUCH}`}>
-            <Send className="h-3.5 w-3.5" /> Post it for me
+            <PaperPlaneTiltIcon className="h-3.5 w-3.5" /> Post it for me
           </Button>
         )}
         {canPost && postWhy && !overLine && <span className="text-xs text-muted-foreground">{postWhy}</span>}

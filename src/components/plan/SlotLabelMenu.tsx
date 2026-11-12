@@ -1,7 +1,7 @@
 // A /plan slot's label (Leo only): the chip it counts toward, and Change to move the slot to another label or off any.
 // The options open inline under the slot's chips, so nothing floats over the plan.
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react";
 import { LabelChip } from "@/components/Labels";
 import { LABEL_CHIP, LABEL_SWATCH, type Label } from "@/lib/labels";
 
@@ -38,7 +38,7 @@ export default function SlotLabelMenu({ label, labels, onPick }: { label: Label 
             const on = l.id === label?.id;
             return (
               <button key={l.id} type="button" aria-pressed={on} onClick={() => pick(l)} className={option(on, LABEL_CHIP[l.color])}>
-                {on ? <Check className="h-3.5 w-3.5" /> : <span className={`h-2.5 w-2.5 rounded-full ${LABEL_SWATCH[l.color]}`} />}
+                {on ? <CheckIcon className="h-3.5 w-3.5" /> : <span className={`h-2.5 w-2.5 rounded-full ${LABEL_SWATCH[l.color]}`} />}
                 {l.name}
               </button>
             );

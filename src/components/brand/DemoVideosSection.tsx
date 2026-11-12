@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import { Film, Loader2, X } from "lucide-react";
+import { FilmStripIcon, CircleNotchIcon, XIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -48,7 +48,7 @@ export function DemoThumb({ demoKey, seconds, className = "h-14 w-14" }: { demoK
   }, [demoKey]);
   return (
     <span className={cn("relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted text-muted-foreground", className)}>
-      {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : <Film className="h-5 w-5" aria-hidden />}
+      {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : <FilmStripIcon className="h-5 w-5" aria-hidden />}
       {seconds !== undefined && (
         <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 text-[10px] font-medium tabular-nums text-white">{clock(seconds)}</span>
       )}
@@ -155,7 +155,7 @@ export default function DemoVideosSection({ userId }: { userId: string; brand: C
           {s.saving && (
             <li className="flex items-center gap-3 py-3" role="status">
               <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+                <CircleNotchIcon className="h-5 w-5 animate-spin text-primary" aria-hidden />
               </span>
               <span className="min-w-0 truncate text-sm">Saving {s.saving}</span>
             </li>
@@ -185,7 +185,7 @@ function Row({ userId, d, reading, picking, note, onOpen }: { userId: string; d:
         </div>
         {reading ? (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Reading what it shows
+            <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" aria-hidden /> Reading what it shows
           </p>
         ) : picking ? (
           <p className="text-xs text-muted-foreground">Pick the 30 seconds to use</p>
@@ -313,7 +313,7 @@ function DemoEditor({ userId, demoKey, left, picking, onClose }: { userId: strin
         className="flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-background shadow-elegant sm:max-w-lg sm:rounded-2xl">
         <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
           <h2 id="demo-editor-title" className="truncate font-serif text-lg font-semibold">{d.name}</h2>
-          <Button ref={first} type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Close" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <Button ref={first} type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Close" onClick={onClose}><XIcon className="h-4 w-4" /></Button>
         </div>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-3">
           {gone ? (

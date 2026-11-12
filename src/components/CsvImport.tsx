@@ -1,7 +1,7 @@
 // My posts: import post ideas or drafts from a CSV file. Pick a file, check every
 // row's problems, then the row, date, time and platform summary, and import on confirm.
 import { useRef, useState } from "react";
-import { Download, FileUp, X } from "lucide-react";
+import { DownloadSimpleIcon, FileArrowUpIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { MAX_DRAFTS, type DraftEntry } from "@/lib/draftHistory";
 import { exampleCsv, importDrafts, MAX_IMPORT_ROWS, planImport, PLATFORM_NAME, type ImportPlan } from "@/lib/csvImport";
@@ -69,7 +69,7 @@ export default function CsvImport({
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-serif text-lg font-semibold text-foreground">{plan ? `Import from ${fileName}` : "Import posts from a CSV"}</h2>
         <button type="button" onClick={onClose} aria-label="Close import" className="-m-2 p-2 text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:-m-3.5 [@media(pointer:coarse)]:p-3.5">
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
       </div>
       <input
@@ -97,10 +97,10 @@ export default function CsvImport({
           {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={() => input.current?.click()} disabled={room === 0} className="gap-1.5">
-              <FileUp className="h-4 w-4" /> Choose CSV file
+              <FileArrowUpIcon className="h-4 w-4" /> Choose CSV file
             </Button>
             <Button variant="ghost" size="sm" onClick={downloadExample} className="gap-1.5 text-xs">
-              <Download className="h-3.5 w-3.5" /> Download example CSV
+              <DownloadSimpleIcon className="h-3.5 w-3.5" /> Download example CSV
             </Button>
           </div>
         </>

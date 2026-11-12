@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, BookmarkPlus, ChevronDown, Clock, Copy, RotateCcw, X, Zap } from "lucide-react";
+import { WarningIcon, BookmarkSimpleIcon, CaretDownIcon, ClockIcon, CopyIcon, ArrowCounterClockwiseIcon, XIcon, LightningIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -178,10 +178,10 @@ export function Draft({ userId, label, text, onCopy }: { userId: string; label: 
           aria-label="Insert a saved reply"
           className={`${chip} ${menu ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-primary/10 hover:text-primary"}`}
         >
-          <Zap className="h-3.5 w-3.5" /> Insert
+          <LightningIcon className="h-3.5 w-3.5" /> Insert
         </button>
         <button type="button" onClick={keep} aria-label={`Save this ${label.toLowerCase()} to your saved replies`} className={`${chip} text-muted-foreground hover:bg-primary/10 hover:text-primary`}>
-          <BookmarkPlus className="h-3.5 w-3.5" /> Save
+          <BookmarkSimpleIcon className="h-3.5 w-3.5" /> Save
         </button>
         <button
           type="button"
@@ -192,7 +192,7 @@ export function Draft({ userId, label, text, onCopy }: { userId: string; label: 
           aria-label={`Copy ${label.toLowerCase()}`}
           className={`${chip} ml-auto text-primary hover:bg-primary/10`}
         >
-          <Copy className="h-3.5 w-3.5" /> Copy
+          <CopyIcon className="h-3.5 w-3.5" /> Copy
         </button>
       </div>
       {menu && (
@@ -252,16 +252,16 @@ export function RunStatus({
       {!busy && outcome?.kind === "error" && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4" role="alert">
           <p className="flex min-w-0 flex-1 items-start gap-2 text-sm text-destructive">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {outcome.message}
+            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0" /> {outcome.message}
           </p>
           <Button size="sm" variant="outline" onClick={retry} disabled={noRetry} className="h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
-            <RotateCcw className="h-4 w-4" /> Try again
+            <ArrowCounterClockwiseIcon className="h-4 w-4" /> Try again
           </Button>
         </div>
       )}
       {!busy && outcome?.kind === "limit" && (
         <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-foreground" role="status">
-          <Clock className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <ClockIcon className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <p>{outcome.message} What you pasted stays here.</p>
         </div>
       )}
@@ -294,7 +294,7 @@ export function HandleYourselfTopics({ userId }: { userId: string }) {
         <span>
           Topics you handle yourself{topics.length > 0 && <span className="tabular-nums text-muted-foreground"> +{topics.length}</span>}
         </span>
-        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+        <CaretDownIcon className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
       <div className="space-y-2 border-t border-border/60 p-3">
         <p className="text-[11px] leading-relaxed text-muted-foreground">
@@ -311,7 +311,7 @@ export function HandleYourselfTopics({ userId }: { userId: string }) {
                   aria-label={`Remove ${t}`}
                   className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground sm:h-7 sm:w-7 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <XIcon className="h-3.5 w-3.5" />
                 </button>
               </li>
             ))}

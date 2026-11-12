@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Diamond, Image as ImageIcon, Search, VolumeX } from "lucide-react";
+import { DiamondIcon, ImageIcon, MagnifyingGlassIcon, SpeakerXIcon } from "@phosphor-icons/react";
 import FormatTile from "@/components/make/FormatTile";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -124,7 +124,7 @@ function Gallery({ userId }: { userId: string }) {
           })}
         </div>
         <div className="relative w-full sm:w-64">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={`Search ${what}`} aria-label={`Search ${what}`} className={`pl-8 ${TOUCH}`} />
         </div>
       </div>
@@ -182,7 +182,7 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
   const needsHref = lacking && f.needs ? NEED_HREFS[f.needs] : undefined;
   const need = lacking && f.needs && (
     <>
-      <Diamond className="h-3 w-3 shrink-0 fill-warning text-warning" aria-hidden /> {NEED_LINES[f.needs]}
+      <DiamondIcon weight="fill" className="h-3 w-3 shrink-0 text-warning" aria-hidden /> {NEED_LINES[f.needs]}
     </>
   );
   const card = (
@@ -197,7 +197,7 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
           <>
             <video src={`/formats/${f.slug}.mp4`} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
             <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground">
-              <VolumeX className="h-3 w-3" aria-hidden /> Muted preview
+              <SpeakerXIcon className="h-3 w-3" aria-hidden /> Muted preview
             </span>
           </>
         )}
@@ -253,7 +253,7 @@ function StaticCard({ f }: { f: StaticFormat }) {
         <p className="line-clamp-2 text-xs text-muted-foreground">{f.blurb}</p>
         {extra && (
           <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Diamond className="h-3 w-3 shrink-0 fill-warning text-warning" aria-hidden /> {extra}
+            <DiamondIcon weight="fill" className="h-3 w-3 shrink-0 text-warning" aria-hidden /> {extra}
           </p>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Columns3, GripVertical, Lightbulb, Pencil, Send } from "lucide-react";
+import { ArrowRightIcon, ColumnsIcon, DotsSixVerticalIcon, LightbulbIcon, PencilSimpleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
 
 import LibraryViews from "@/components/library/LibraryViews";
 import { Button } from "@/components/ui/button";
@@ -138,7 +138,7 @@ function BoardCard({
     >
       <CardContent className="space-y-2.5 p-3">
         <div className="flex items-start gap-1.5">
-          <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-muted-foreground" />
+          <DotsSixVerticalIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-muted-foreground" />
           {editing ? (
             <input
               value={title}
@@ -190,7 +190,7 @@ function BoardCard({
             to={`/generate?draft=${draft.id}`}
             className="-ml-2 inline-flex h-9 items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:underline sm:h-7 sm:text-[11px] [@media(pointer:coarse)]:h-11"
           >
-            <Pencil className="h-3 w-3" /> Open
+            <PencilSimpleIcon className="h-3 w-3" /> Open
           </Link>
           <CopyLinkButton path={`/generate?draft=${encodeURIComponent(draft.id)}`} label={`Copy link to ${(draft.hook || "this post").slice(0, 60)}`} className="-my-1" />
           {onMove && !children && (
@@ -214,7 +214,7 @@ function BoardCard({
               onClick={onAdvance}
               className="inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-md border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary sm:h-7 sm:px-2 sm:text-[11px] [@media(pointer:coarse)]:h-11"
             >
-              {advanceLabel} <ArrowRight className="h-3 w-3" />
+              {advanceLabel} <ArrowRightIcon className="h-3 w-3" />
             </button>
           )}
         </div>
@@ -244,7 +244,7 @@ function FeedCard({ item, onOpen }: { item: CalendarFeedItem; onOpen: () => void
             {item.business}
           </span>
           <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            <Send className="h-2.5 w-2.5" /> {item.channel}
+            <PaperPlaneTiltIcon className="h-2.5 w-2.5" /> {item.channel}
           </span>
           <span className="whitespace-nowrap text-[10px] text-muted-foreground">
             {when} · {STATUS_LABEL[item.status]}
@@ -422,7 +422,7 @@ export default function BoardPage() {
       <LibraryViews />
       <div className="flex items-center gap-1">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-          <Columns3 className="h-5 w-5" /> Board
+          <ColumnsIcon className="h-5 w-5" /> Board
         </h1>
         <InfoTip label="About moving cards">
           Drag a card, or pick its column in Move to.
@@ -541,7 +541,7 @@ export default function BoardPage() {
                           to="/coach#idea-dump"
                           className="inline-flex items-center gap-1 self-start px-0.5 text-[11px] font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
                         >
-                          <Lightbulb className="h-3 w-3" /> Dump ideas
+                          <LightbulbIcon className="h-3 w-3" /> Dump ideas
                           <span className="font-normal text-muted-foreground">
                             and get post briefs back
                           </span>

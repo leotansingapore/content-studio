@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useUrlState } from "@/lib/urlState";
-import { Check, Copy, ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react";
+import { CheckIcon, CopyIcon, ArrowSquareOutIcon, CircleNotchIcon, PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
 
 import { TrendChart } from "@/components/charts/TrendChart";
 import { Button } from "@/components/ui/button";
@@ -221,7 +221,7 @@ export default function TrackedLinksPage() {
 
       {state === "loading" ? (
         <div role="status" className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading your links...
+          <CircleNotchIcon className="h-4 w-4 animate-spin" /> Loading your links...
         </div>
       ) : state === "error" ? (
         <div role="alert" className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
@@ -291,7 +291,7 @@ export default function TrackedLinksPage() {
               </div>
               <div className="space-y-2">
                 <Button onClick={() => void make()} disabled={saving} className="h-11 w-full gap-1.5 sm:h-10 sm:w-auto">
-                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {saving && <CircleNotchIcon className="h-4 w-4 animate-spin" />}
                   Make link
                 </Button>
                 {formError && (
@@ -373,7 +373,7 @@ export default function TrackedLinksPage() {
                         {isEditing ? (
                           <>
                             <Button size="sm" onClick={() => void saveEdit()} disabled={busy === l.id} className={`${TOUCH} gap-1.5`}>
-                              {busy === l.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                              {busy === l.id ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <CheckIcon className="h-3.5 w-3.5" />}
                               {editing.warned ? "Save and end report" : "Save"}
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => (setEditing(null), setRowError(null))} className={TOUCH}>
@@ -383,7 +383,7 @@ export default function TrackedLinksPage() {
                         ) : (
                           <>
                             <Button size="sm" variant="outline" onClick={() => void copy(address)} className={`${TOUCH} gap-1.5`}>
-                              <Copy className="h-3.5 w-3.5" /> Copy link
+                              <CopyIcon className="h-3.5 w-3.5" /> Copy link
                             </Button>
                             {member && (
                               <Button
@@ -392,7 +392,7 @@ export default function TrackedLinksPage() {
                                 onClick={() => (setEditing({ id: l.id, label: l.label, campaign: camp?.name ?? "", warned: false }), setConfirmDelete(null), setRowError(null))}
                                 className={`${TOUCH} gap-1.5 text-muted-foreground`}
                               >
-                                <Pencil className="h-3.5 w-3.5" /> Rename
+                                <PencilSimpleIcon className="h-3.5 w-3.5" /> Rename
                               </Button>
                             )}
                             <Button
@@ -402,7 +402,7 @@ export default function TrackedLinksPage() {
                               disabled={busy === l.id}
                               className={`${TOUCH} gap-1.5 ${confirmDelete === l.id ? "text-destructive" : "text-muted-foreground"}`}
                             >
-                              <Trash2 className="h-3.5 w-3.5" /> {confirmDelete === l.id ? "Confirm delete" : "Delete"}
+                              <TrashIcon className="h-3.5 w-3.5" /> {confirmDelete === l.id ? "Confirm delete" : "Delete"}
                             </Button>
                           </>
                         )}
@@ -443,11 +443,11 @@ export default function TrackedLinksPage() {
                             {address}
                           </a>
                           <Button size="sm" variant="outline" onClick={() => void copy(address)} className={`${TOUCH} gap-1.5`}>
-                            <Copy className="h-3.5 w-3.5" /> Copy
+                            <CopyIcon className="h-3.5 w-3.5" /> Copy
                           </Button>
                           <Button size="sm" variant="ghost" asChild className={`${TOUCH} gap-1.5`}>
                             <a href={address} target="_blank" rel="noopener">
-                              <ExternalLink className="h-3.5 w-3.5" /> Open
+                              <ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open
                             </a>
                           </Button>
                         </div>

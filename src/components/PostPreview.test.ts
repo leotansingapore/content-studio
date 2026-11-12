@@ -51,7 +51,7 @@ function Pinned(props: Parameters<typeof PostPreview>[0]) {
     shim.i = was.i;
   }
 }
-// an icon by its class only, so a lucide upgrade that redraws one doesn't fail this
+// an icon by its class only, so an icon library upgrade that redraws one doesn't fail this
 const draw = (platform: string) =>
   renderToStaticMarkup(createElement(Pinned, { text: TEXT, platform, format: "text-post" })).replace(/<svg[^>]*class="([^"]*)"[^>]*>[\s\S]*?<\/svg>/g, '<svg class="$1"/>');
 

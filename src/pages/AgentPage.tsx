@@ -7,7 +7,7 @@
 // from (navigation state, agentStarters.ts handoff). Everyone else gets the 404.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { MessagesSquare } from "lucide-react";
+import { ChatsIcon } from "@phosphor-icons/react";
 import AgentThread, { useThreads } from "@/components/agent/AgentThread";
 import ThreadList from "@/components/agent/ThreadList";
 import WorkPanel from "@/components/agent/WorkPanel";
@@ -128,7 +128,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
       <section className="flex min-w-0 flex-1 flex-col" aria-label="Chat">
         <header className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/60 pb-3">
           <Button type="button" variant="outline" onClick={() => openPanel("chats")} className="h-11 shrink-0 gap-1.5 lg:hidden">
-            <MessagesSquare /> Chats
+            <ChatsIcon /> Chats
           </Button>
           <h1 className="order-last min-w-0 basis-full truncate font-serif text-xl font-semibold tracking-tight sm:order-none sm:flex-1 sm:basis-auto sm:text-2xl">{thread?.title ?? "Agent"}</h1>
           <Button

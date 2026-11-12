@@ -3,7 +3,7 @@
 // hidden cards. Matching runs outside React (src/lib/nicheFeed.ts); this only draws the stores and the job.
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { EyeOff, ExternalLink, Loader2, Search, Shuffle } from "lucide-react";
+import { EyeSlashIcon, ArrowSquareOutIcon, CircleNotchIcon, MagnifyingGlassIcon, ShuffleIcon } from "@phosphor-icons/react";
 import OutlierBadge, { OutlierScoreTip } from "@/components/OutlierBadge";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
@@ -127,7 +127,7 @@ export default function ForYou({ userId }: { userId: string }) {
         </p>
       ) : running > 0 ? (
         <p className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground" aria-live="polite">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Matching {running} new posts to {brand}...
+          <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" aria-hidden /> Matching {running} new posts to {brand}...
         </p>
       ) : off ? (
         <p role="status" className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-sm">Matching is off right now. Showing everything by outlier score.</p>
@@ -138,7 +138,7 @@ export default function ForYou({ userId }: { userId: string }) {
           {KINDS.map((k) => <FilterChip key={k.id} active={kind === k.id} onClick={() => setKind(k.id)}>{k.label}</FilterChip>)}
         </div>
         <div className="relative min-w-0 flex-1 basis-full sm:max-w-sm sm:basis-auto">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -208,7 +208,7 @@ function Grid({ children }: { children: ReactNode }) {
 function HideButton({ onClick }: { onClick(): void }) {
   return (
     <Button type="button" size="sm" variant="ghost" className={`h-9 gap-1.5 px-2 text-destructive hover:text-destructive ${TOUCH}`} onClick={onClick}>
-      <EyeOff className="h-3.5 w-3.5" aria-hidden /> Hide
+      <EyeSlashIcon className="h-3.5 w-3.5" aria-hidden /> Hide
     </Button>
   );
 }
@@ -243,14 +243,14 @@ function FeedCard({ item: i, action, className = "" }: { item: FeedItem; action?
       <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
         <RemixButton source={i.source} label={`${i.who}'s ${i.kind === "ad" ? "ad" : "post"}`}>
           <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
-            <Link to={i.remixUrl}><Shuffle className="h-3.5 w-3.5" /> Remix this</Link>
+            <Link to={i.remixUrl}><ShuffleIcon className="h-3.5 w-3.5" /> Remix this</Link>
           </Button>
         </RemixButton>
         {action}
         {open && (
           <Button asChild size="sm" variant="ghost" className={`ml-auto h-9 w-9 p-0 ${TOUCH} [@media(pointer:coarse)]:w-11`}>
             <a href={open} target="_blank" rel="noopener noreferrer" aria-label={`Open ${i.who}'s ${i.kind === "ad" ? "ad" : "post"}`} title="Open the original">
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              <ArrowSquareOutIcon className="h-3.5 w-3.5" aria-hidden />
             </a>
           </Button>
         )}

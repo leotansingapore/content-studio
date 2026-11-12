@@ -4,7 +4,7 @@
 // this device and used from the next view, so the list never moves under the reader's finger.
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { ArrowRightIcon, TrendUpIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -83,7 +83,7 @@ export default function WhatMovedCard({ userId }: { userId: string }) {
     <section id="what-moved" className="scroll-mt-20 space-y-3">
       <div className="flex items-center gap-1">
         <h2 className="flex items-center gap-1.5 font-serif text-lg font-semibold text-foreground">
-          <TrendingUp className="h-4 w-4 text-primary" /> What moved this week
+          <TrendUpIcon className="h-4 w-4 text-primary" /> What moved this week
         </h2>
         <InfoTip label="About what moved">Up to five things from your accounts and the ones you follow, picked each Monday.</InfoTip>
       </div>
@@ -97,7 +97,7 @@ export default function WhatMovedCard({ userId }: { userId: string }) {
               <p className="min-w-0 flex-1 text-sm leading-snug text-foreground">{findingLine(f)}</p>
               <Button asChild variant="outline" size="sm" className="min-h-11 shrink-0 self-start sm:self-auto">
                 <Link to={findingUrl(f)}>
-                  {FINDING_ACTION[f.kind]} <ArrowRight className="h-3.5 w-3.5" />
+                  {FINDING_ACTION[f.kind]} <ArrowRightIcon className="h-3.5 w-3.5" />
                 </Link>
               </Button>
             </div>

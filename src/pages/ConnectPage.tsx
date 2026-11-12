@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Copy, Link2, Trash2 } from "lucide-react";
+import { CheckIcon, CopyIcon, LinkIcon, TrashIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
@@ -110,7 +110,7 @@ export default function ConnectPage() {
   const made = (l: ClaudeLink) => `Made ${l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "earlier"}`;
   const makeButton = (
     <Button onClick={make} disabled={making} className="h-11 gap-2">
-      <Link2 className="h-4 w-4" /> {making ? "Making the link..." : "Make a connection link"}
+      <LinkIcon className="h-4 w-4" /> {making ? "Making the link..." : "Make a connection link"}
     </Button>
   );
   // one line truncates (Copy takes it whole); Cursor's JSON wraps
@@ -118,13 +118,13 @@ export default function ConnectPage() {
     <div className="flex gap-2">
       <code className={`min-w-0 flex-1 rounded-md border border-border/60 bg-background px-2 py-2 text-xs ${text.includes("\n") ? "whitespace-pre-wrap break-all" : "truncate"}`}>{text}</code>
       <Button size="sm" variant="outline" onClick={() => copy(text, which)} className="h-9 shrink-0 gap-1.5 self-start">
-        {copied === which ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied === which ? "Copied" : "Copy"}
+        {copied === which ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />} {copied === which ? "Copied" : "Copy"}
       </Button>
     </div>
   );
   const turnOff = (l: ClaudeLink) => (
     <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-muted-foreground hover:text-destructive" onClick={() => remove(l)}>
-      <Trash2 className="h-3.5 w-3.5" /> Turn off
+      <TrashIcon className="h-3.5 w-3.5" /> Turn off
     </Button>
   );
 
@@ -143,7 +143,7 @@ export default function ConnectPage() {
               <input readOnly value={fresh.url} aria-label="Connection link" onFocus={(e) => e.currentTarget.select()}
                 className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-2 font-mono text-xs" />
               <Button onClick={() => copy(fresh.url, "url")} className="h-10 shrink-0 gap-1.5">
-                {copied === "url" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied === "url" ? "Copied" : "Copy"}
+                {copied === "url" ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />} {copied === "url" ? "Copied" : "Copy"}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground" aria-live="polite">
@@ -193,7 +193,7 @@ export default function ConnectPage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
             <code className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded-md border border-border/60 bg-background px-2 py-2 text-xs">{curl}</code>
             <Button size="sm" variant="outline" onClick={() => copy(curl, "api")} className="h-9 shrink-0 gap-1.5 self-start">
-              {copied === "api" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied === "api" ? "Copied" : "Copy"}
+              {copied === "api" ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />} {copied === "api" ? "Copied" : "Copy"}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">Each call is JSON-RPC 2.0 over POST. Use the tool names below. {DAILY_LIMITS["mcp-calls"]} calls a day.</p>

@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { Link } from "react-router-dom";
-import { Pencil } from "lucide-react";
+import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { readUsageWeek } from "@/lib/aiUsage";
@@ -178,7 +178,7 @@ export function PaceView({ pace, job, connected, paused, week, goalHit, runs, no
             <h3 className={TAG}>POSTS OUT</h3>
             {week.goal > 0 && (
               <Button variant="ghost" size="icon" className="-my-1 -mr-2 h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={onEditGoal} aria-label="Edit weekly goal">
-                <Pencil className="h-3.5 w-3.5" />
+                <PencilSimpleIcon className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>

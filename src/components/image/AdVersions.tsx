@@ -10,7 +10,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
+import { WarningIcon } from "@phosphor-icons/react";
 import { renderSvg } from "@/lib/carouselLayout";
 import type { Measure } from "@/lib/carouselLayout";
 import { svgDataUrl } from "@/lib/carouselRender";
@@ -181,7 +181,7 @@ export function AdVersions(p: {
       )}
       {!p.set.checked && (
         <p className="flex items-start gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden /> These weren't checked against your brand facts. Read each one before you run it.
+          <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden /> These weren't checked against your brand facts. Read each one before you run it.
         </p>
       )}
     </fieldset>

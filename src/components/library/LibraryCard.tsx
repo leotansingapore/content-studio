@@ -3,7 +3,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock, ExternalLink, Loader2 } from "lucide-react";
+import { ClockIcon, ArrowSquareOutIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import CampaignPostLink from "@/components/campaign/CampaignPostLink";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import LibraryThumb, { useOnScreen, type ThumbSources } from "@/components/library/LibraryThumb";
@@ -50,7 +50,7 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
         {item.source && <p className="truncate text-xs text-muted-foreground" title={item.source}>{item.source}</p>}
         {item.key.startsWith("d:") && <CampaignPostLink userId={sources.userId} draft={{ id: item.key.slice(2), campaign: item.campaign }} />}
         <p className={cn("flex items-start gap-1 text-xs", failed ? "text-destructive" : "text-muted-foreground")}>
-          {making && (item.waiting ? <Clock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> : <Loader2 className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />)}
+          {making && (item.waiting ? <ClockIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> : <CircleNotchIcon className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />)}
           <span className="min-w-0 break-words">{statusLine(item)}</span>
         </p>
         {item.autoPost && <span className="inline-block rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Auto-post</span>}
@@ -60,7 +60,7 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
           <p className="flex flex-wrap gap-x-3 text-xs">
             {item.live.map((l) => (
               <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className={cn("inline-flex items-center gap-1 font-semibold text-primary hover:underline", TOUCH)}>
-                {platformName(l.platform)} <ExternalLink className="h-3 w-3" aria-hidden />
+                {platformName(l.platform)} <ArrowSquareOutIcon className="h-3 w-3" aria-hidden />
               </a>
             ))}
           </p>

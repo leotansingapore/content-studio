@@ -3,7 +3,7 @@
 // maker turns the kept words into the video).
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { FRAME_W, frameHeight, loadSlideshows, type ShowSlide, type Slideshow } from "@/lib/slideshow";
 import { drawSlide, lookOf, pictureKey, slidePicture, type SlideLook } from "@/lib/slideshowDraw";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
@@ -43,10 +43,10 @@ function ShowPreview({ userId, showId }: { userId: string; showId: string }) {
         <SlideView slide={show.slides[i]} size={show.size} look={look} />
       </div>
       <button type="button" className={cn(arrow, "left-2")} onClick={() => setI(i - 1)} disabled={i === 0} aria-label="Previous slide">
-        <ChevronLeft className="h-5 w-5" />
+        <CaretLeftIcon className="h-5 w-5" />
       </button>
       <button type="button" className={cn(arrow, "right-2")} onClick={() => setI(i + 1)} disabled={i >= n - 1} aria-label="Next slide">
-        <ChevronRight className="h-5 w-5" />
+        <CaretRightIcon className="h-5 w-5" />
       </button>
       <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1" aria-hidden>
         {show.slides.map((s, n2) => <span key={s.id} className={cn("h-1.5 w-1.5 rounded-full", n2 === i ? "bg-white" : "bg-white/50")} />)}

@@ -16,7 +16,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { Info } from "lucide-react";
+import { InfoIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 const EDGE = 12;
@@ -136,7 +136,7 @@ export function InfoTip({
           setOpen(pinned.current);
         }}
       >
-        <Info className="h-3.5 w-3.5" aria-hidden />
+        <InfoIcon className="h-3.5 w-3.5" aria-hidden />
       </button>
       {/* z-[90]: above every drawer and sheet (z-[70], z-[80]), under the z-[100] toasts */}
       {open &&

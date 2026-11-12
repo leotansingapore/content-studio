@@ -97,39 +97,39 @@ import {
   type SocialPlatform,
 } from "@/lib/socialAccounts";
 import {
-  ChevronRight,
-  BarChart3,
-  Eye,
-  Heart,
-  TrendingUp,
-  TrendingDown,
-  Linkedin,
-  Instagram,
-  Facebook,
-  Video,
-  Plug,
-  Check,
-  ExternalLink,
-  ArrowRight,
-  ArrowDown,
-  ArrowUp,
-  Lightbulb,
-  Info,
-  Ruler,
-  CalendarDays,
-  Download,
-  Hash,
-} from "lucide-react";
+  CaretRightIcon,
+  ChartBarIcon,
+  EyeIcon,
+  HeartIcon,
+  TrendUpIcon,
+  TrendDownIcon,
+  LinkedinLogoIcon,
+  InstagramLogoIcon,
+  FacebookLogoIcon,
+  VideoCameraIcon,
+  PlugIcon,
+  CheckIcon,
+  ArrowSquareOutIcon,
+  ArrowRightIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  LightbulbIcon,
+  InfoIcon,
+  RulerIcon,
+  CalendarDotsIcon,
+  DownloadSimpleIcon,
+  HashIcon,
+} from "@phosphor-icons/react";
 
 const HOUR_NAMES = Array.from({ length: 24 }, (_, h) => timeLabel(`${String(h).padStart(2, "0")}:00`));
 const HOUR_HEADS = HOUR_NAMES.map((n, h) => (h % 3 === 0 ? n : ""));
 const DAYPART_NAMES = DAYPARTS.map((d) => d.label);
 
-const ACCOUNT_ICON: Record<SocialPlatform, typeof Linkedin> = {
-  linkedin: Linkedin,
-  tiktok: Video,
-  instagram: Instagram,
-  facebook: Facebook,
+const ACCOUNT_ICON: Record<SocialPlatform, typeof LinkedinLogoIcon> = {
+  linkedin: LinkedinLogoIcon,
+  tiktok: VideoCameraIcon,
+  instagram: InstagramLogoIcon,
+  facebook: FacebookLogoIcon,
 };
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -191,25 +191,25 @@ const paramOf = <V,>(map: Record<string, V>, v: V, fallback: string) => Object.k
 
 const INSIGHT_STYLE: Record<
   Insight["tone"],
-  { icon: typeof Lightbulb; card: string; icon_: string }
+  { icon: typeof LightbulbIcon; card: string; icon_: string }
 > = {
   positive: {
-    icon: TrendingUp,
+    icon: TrendUpIcon,
     card: "border-success/30 bg-success/[0.05]",
     icon_: "bg-success/10 text-success",
   },
   negative: {
-    icon: TrendingDown,
+    icon: TrendDownIcon,
     card: "border-destructive/30 bg-destructive/[0.05]",
     icon_: "bg-destructive/10 text-destructive",
   },
   tip: {
-    icon: Lightbulb,
+    icon: LightbulbIcon,
     card: "border-primary/20 bg-primary/[0.04]",
     icon_: "bg-primary/10 text-primary",
   },
   neutral: {
-    icon: Info,
+    icon: InfoIcon,
     card: "border-border/60 bg-muted/20",
     icon_: "bg-muted text-muted-foreground",
   },
@@ -235,7 +235,7 @@ function Stat({
   tint,
   delta,
 }: {
-  icon: typeof Eye;
+  icon: typeof EyeIcon;
   value: string;
   label: string;
   tint: string;
@@ -442,7 +442,7 @@ function ThisWeekCard({ userId, version, grade }: { userId: string; version: num
           {(move || picking) && (
             <div className="flex items-start gap-3 rounded-lg border border-primary/25 bg-primary/[0.05] p-3">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Lightbulb className="h-4 w-4" />
+                <LightbulbIcon className="h-4 w-4" />
               </span>
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">One thing this week</p>
@@ -799,7 +799,7 @@ export default function AnalyticsPage() {
       {adviser && (
         <details open={!fresh} className="group">
           <summary className={fresh ? FOLD : "hidden"}>
-            <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" /> Look up another creator
+            <CaretRightIcon className="h-4 w-4 transition-transform group-open:rotate-90" /> Look up another creator
           </summary>
           <CreatorLookup />
         </details>
@@ -807,14 +807,14 @@ export default function AnalyticsPage() {
 
       <details open={!fresh} className="group">
       <summary className={fresh ? FOLD : "hidden"}>
-        <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" /> Add LinkedIn or Facebook by hand
+        <CaretRightIcon className="h-4 w-4 transition-transform group-open:rotate-90" /> Add LinkedIn or Facebook by hand
       </summary>
       {/* Your accounts — register a handle per platform. */}
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center justify-between gap-2 font-serif text-lg">
             <span className="flex items-center gap-2">
-              <Plug className="h-4 w-4 text-primary" /> Your accounts
+              <PlugIcon className="h-4 w-4 text-primary" /> Your accounts
             </span>
             <span className="text-xs font-normal text-muted-foreground">
               {connectedCount(accounts)}/{SOCIAL_PLATFORMS.length} connected
@@ -846,7 +846,7 @@ export default function AnalyticsPage() {
                       </p>
                       {acct && (
                         <span className="inline-flex items-center gap-0.5 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-success">
-                          <Check className="h-2.5 w-2.5" /> Connected
+                          <CheckIcon className="h-2.5 w-2.5" /> Connected
                         </span>
                       )}
                     </div>
@@ -871,7 +871,7 @@ export default function AnalyticsPage() {
                       aria-label={`Open ${p.label} profile`}
                       className="shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-primary [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                     >
-                      <ExternalLink className="h-3.5 w-3.5" />
+                      <ArrowSquareOutIcon className="h-3.5 w-3.5" />
                     </a>
                   )}
                 </div>
@@ -947,7 +947,7 @@ export default function AnalyticsPage() {
                     <span aria-live="polite">
                       {savedId === d.id && (
                         <span className="ml-2 inline-flex items-center gap-1 font-medium text-success">
-                          <Check className="h-3 w-3" /> Saved
+                          <CheckIcon className="h-3 w-3" /> Saved
                         </span>
                       )}
                     </span>
@@ -999,28 +999,28 @@ export default function AnalyticsPage() {
       {hasData && (
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat
-            icon={BarChart3}
+            icon={ChartBarIcon}
             value={String(cmp ? cmp.current.posts : tracked.length)}
             label="Posts tracked"
             tint="bg-muted text-foreground"
             delta={cmp?.change.posts}
           />
           <Stat
-            icon={Eye}
+            icon={EyeIcon}
             value={(cmp ? cmp.current.impressions : totals.totalImpressions).toLocaleString()}
             label="Impressions tracked"
             tint="bg-primary/10 text-primary"
             delta={cmp?.change.impressions}
           />
           <Stat
-            icon={Heart}
+            icon={HeartIcon}
             value={(cmp ? cmp.current.engagements : totals.totalEngagement).toLocaleString()}
             label="Total engagement"
             tint="bg-brand/10 text-brand"
             delta={cmp?.change.engagements}
           />
           <Stat
-            icon={TrendingUp}
+            icon={TrendUpIcon}
             value={`${cmp ? cmp.current.rate : totals.avgEngagementRate}%`}
             label="Avg engagement rate"
             tint="bg-success/10 text-success"
@@ -1147,7 +1147,7 @@ export default function AnalyticsPage() {
               <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <CardTitle className="font-serif text-lg">Posts</CardTitle>
                 <Button variant="outline" size="sm" onClick={() => download(postsTableCsv(table), "content-studio-real-posts")} className="h-9 gap-1.5">
-                  <Download className="h-3.5 w-3.5" /> Export CSV
+                  <DownloadSimpleIcon className="h-3.5 w-3.5" /> Export CSV
                 </Button>
               </CardHeader>
               <CardContent>
@@ -1160,7 +1160,7 @@ export default function AnalyticsPage() {
                             <button type="button" onClick={() => sortOn(c)}
                               className={`inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] hover:text-foreground ${c === sortBy ? "text-foreground" : "text-muted-foreground"}`}>
                               {POST_COLUMN_LABEL[c]}
-                              {c === sortBy && (sortAsc ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+                              {c === sortBy && (sortAsc ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />)}
                             </button>
                           </th>
                         ))}
@@ -1291,7 +1291,7 @@ export default function AnalyticsPage() {
             <Card className="border-border/60 shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-serif text-lg">
-                  <Ruler className="h-4 w-4 text-muted-foreground" /> Length vs
+                  <RulerIcon className="h-4 w-4 text-muted-foreground" /> Length vs
                   engagement {allTime}
                 </CardTitle>
               </CardHeader>
@@ -1308,7 +1308,7 @@ export default function AnalyticsPage() {
               <Card className="border-border/60 shadow-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-serif text-lg">
-                    <Hash className="h-4 w-4 text-muted-foreground" /> Hashtags {allTime}
+                    <HashIcon className="h-4 w-4 text-muted-foreground" /> Hashtags {allTime}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1322,7 +1322,7 @@ export default function AnalyticsPage() {
             <Card className="border-border/60 shadow-card">
               <CardHeader className="space-y-2.5">
                 <CardTitle className="flex items-center gap-1.5 font-serif text-lg">
-                  <CalendarDays className="mr-0.5 h-4 w-4 text-muted-foreground" /> Best time to post
+                  <CalendarDotsIcon className="mr-0.5 h-4 w-4 text-muted-foreground" /> Best time to post
                   <InfoTip label="About best time to post">From the scheduled time, or else when you marked it posted.</InfoTip>
                   {allTime && <span className="ml-1.5 flex">{allTime}</span>}
                 </CardTitle>
@@ -1382,7 +1382,7 @@ export default function AnalyticsPage() {
                 <option value="commentRatio">By comments per like</option>
               </select>
               <Button variant="outline" size="sm" onClick={exportCsv} className="h-9 gap-1.5">
-                <Download className="h-3.5 w-3.5" /> Export CSV
+                <DownloadSimpleIcon className="h-3.5 w-3.5" /> Export CSV
               </Button>
             </div>
             {leoOn && <WinnerCard userId={userId} drafts={drafts} />}
@@ -1464,7 +1464,7 @@ export default function AnalyticsPage() {
         <Card className="border-border/60 shadow-card">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <BarChart3 className="h-5 w-5" />
+              <ChartBarIcon className="h-5 w-5" />
             </span>
             <p className="max-w-sm text-sm text-muted-foreground">
               {postedCount > 0
@@ -1475,7 +1475,7 @@ export default function AnalyticsPage() {
               // quiet: the account audit above holds the page's one filled button
               <Button asChild size="sm" variant="outline" className="gap-1.5">
                 <Link to="/drafts">
-                  Go to All posts <ArrowRight className="h-3.5 w-3.5" />
+                  Go to All posts <ArrowRightIcon className="h-3.5 w-3.5" />
                 </Link>
               </Button>
             )}

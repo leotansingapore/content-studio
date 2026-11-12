@@ -4,7 +4,7 @@
 // running when the page was left, are kept per post on this device; the wait picks up again on return.
 
 import { useEffect, useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { DeskError, DeskWait, ScriptExtras, TOUCH, useDeskRun } from "@/components/ScriptDeskParts";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -208,9 +208,9 @@ function ScriptActions({ userId, title, script }: { userId: string; title: strin
   };
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" variant="outline" size="sm" className={`gap-1 ${TOUCH}`} onClick={() => void copy()}><Copy className="h-3.5 w-3.5" /> Copy</Button>
+      <Button type="button" variant="outline" size="sm" className={`gap-1 ${TOUCH}`} onClick={() => void copy()}><CopyIcon className="h-3.5 w-3.5" /> Copy</Button>
       <Button type="button" variant="outline" size="sm" className={TOUCH} onClick={() => (setDraftId(saveScriptDraft(userId, { title, script }, draftId).id), setDone("saved"))}>Save to All posts</Button>
-      {done && <span role="status" className="flex items-center gap-1 text-xs text-success"><Check className="h-3.5 w-3.5" />{done === "copied" ? "Copied" : "Saved"}</span>}
+      {done && <span role="status" className="flex items-center gap-1 text-xs text-success"><CheckIcon className="h-3.5 w-3.5" />{done === "copied" ? "Copied" : "Saved"}</span>}
     </div>
   );
 }

@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Check, Pencil, Rocket } from "lucide-react";
+import { ArrowRightIcon, CheckIcon, PencilSimpleIcon, RocketLaunchIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -56,7 +56,7 @@ function Launch({ userId }: { userId: string }) {
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Rocket className="h-6 w-6 shrink-0 text-primary" aria-hidden /> Launch plan
+          <RocketLaunchIcon className="h-6 w-6 shrink-0 text-primary" aria-hidden /> Launch plan
         </h1>
       </header>
       {editing || !plan ? (
@@ -137,7 +137,7 @@ function Month({ plan, today, onEdit, onToggle }: { plan: LaunchPlan; today: str
               </p>
             </div>
             <Button size="sm" variant="ghost" onClick={onEdit} className={`gap-1.5 ${TOUCH}`}>
-              <Pencil className="h-3.5 w-3.5" /> Change
+              <PencilSimpleIcon className="h-3.5 w-3.5" /> Change
             </Button>
           </div>
           <div className="flex items-center gap-3">
@@ -165,7 +165,7 @@ function Month({ plan, today, onEdit, onToggle }: { plan: LaunchPlan; today: str
                   aria-label={state === "done" ? `Mark ${s.stage} not made` : `Mark ${s.stage} made`}
                   className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${state === "done" ? "border-success bg-success text-white" : "border-border"} ${TOUCH}`}
                 >
-                  {state === "done" && <Check className="h-4 w-4" />}
+                  {state === "done" && <CheckIcon className="h-4 w-4" />}
                 </button>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-muted-foreground">
@@ -180,7 +180,7 @@ function Month({ plan, today, onEdit, onToggle }: { plan: LaunchPlan; today: str
                 {state !== "done" && (
                   <Button asChild size="sm" variant={lead ? "default" : "outline"} className={`shrink-0 gap-1.5 ${TOUCH}`}>
                     <Link to={makerUrl(plan, s)}>
-                      Make it <ArrowRight className="h-3.5 w-3.5" />
+                      Make it <ArrowRightIcon className="h-3.5 w-3.5" />
                     </Link>
                   </Button>
                 )}

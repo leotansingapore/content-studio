@@ -4,7 +4,7 @@
 // translateJob.ts, outside React, so leaving the page keeps them going.
 
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { AlertTriangle, Languages, RefreshCw } from "lucide-react";
+import { WarningIcon, TranslateIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -106,9 +106,9 @@ export function VersionTabs({ userId, entry, onOpen }: { userId: string; entry: 
       )}
       {lang && isStale(entry, english) && (
         <p role="status" className="flex flex-wrap items-center gap-x-1.5 font-medium text-amber-800 dark:text-amber-300">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> The English changed after this was made.
+          <WarningIcon className="h-3.5 w-3.5 shrink-0" /> The English changed after this was made.
           <button type="button" disabled={again?.state === "running"} onClick={() => void translateAgain(userId, entry.id)} className={`${linkButton} inline-flex items-center gap-1 disabled:opacity-100`}>
-            {again?.state === "running" ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {again?.state === "running" ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <ArrowsClockwiseIcon className="h-3.5 w-3.5" />}
             {again?.state === "running" ? "Translating..." : "Translate again"}
           </button>
         </p>
@@ -120,7 +120,7 @@ export function VersionTabs({ userId, entry, onOpen }: { userId: string; entry: 
       )}
       {lang && sameWarns(entry.sameP) && (
         <p role="status" className="flex flex-wrap items-center gap-x-1.5 font-medium text-amber-800 dark:text-amber-300">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Check this version: it may say something the English doesn't.
+          <WarningIcon className="h-3.5 w-3.5 shrink-0" /> Check this version: it may say something the English doesn't.
           <button type="button" onClick={() => openMeaning("1")} className={linkButton}>
             Show the English meaning
           </button>
@@ -128,7 +128,7 @@ export function VersionTabs({ userId, entry, onOpen }: { userId: string; entry: 
       )}
       {flags.map((f) => (
         <p key={f.id} role="status" className="flex items-start gap-1.5 font-medium text-amber-800 dark:text-amber-300">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
             In English this says "{f.match}". {f.message}
           </span>
@@ -278,7 +278,7 @@ export default function TranslateBar(p: {
       {missing.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-            <Languages className="h-3.5 w-3.5" /> Make it in
+            <TranslateIcon className="h-3.5 w-3.5" /> Make it in
           </span>
           {missing.map((l) => (
             <Button

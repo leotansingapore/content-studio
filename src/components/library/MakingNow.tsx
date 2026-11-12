@@ -5,7 +5,7 @@
 
 import { useEffect, useId, useMemo, useReducer } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, Clock, Download, FileText, Film, GalleryHorizontal, Image as ImageIcon, Loader2, Shuffle } from "lucide-react";
+import { WarningCircleIcon, ClockIcon, DownloadSimpleIcon, FileTextIcon, FilmStripIcon, SlideshowIcon, ImageIcon, CircleNotchIcon, ShuffleIcon } from "@phosphor-icons/react";
 import { imageJob, onImageJob } from "@/lib/aiImage";
 import { aiJob, onAiJob, pendingAvatar } from "@/lib/aiVideo";
 import { formatJobs, onFormatJob } from "@/lib/formatJob";
@@ -19,9 +19,9 @@ import { onWallJob, wallJob } from "@/lib/wallJob";
 import { cn } from "@/lib/utils";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
-const FORMAT_ICON = { text: FileText, carousel: GalleryHorizontal, video: Film, image: ImageIcon };
+const FORMAT_ICON = { text: FileTextIcon, carousel: SlideshowIcon, video: FilmStripIcon, image: ImageIcon };
 /** A row's icon by kind: an export and a montage have their own, the rest show what they make. */
-const iconOf = (j: LibraryJob) => (j.kind === "export" ? Download : j.kind === "montage" ? Shuffle : FORMAT_ICON[j.format]);
+const iconOf = (j: LibraryJob) => (j.kind === "export" ? DownloadSimpleIcon : j.kind === "montage" ? ShuffleIcon : FORMAT_ICON[j.format]);
 
 /** Every job the library shows, current within a frame of its change. `base`: the page a Remix row reopens the sheet over. */
 export function useLibraryJobs(base: string): LibraryJob[] {
@@ -64,7 +64,7 @@ export default function MakingNow({ items, jobs, className }: { items: LibraryIt
         <ul className="space-y-1">
           {rows.map((j) => {
             const failed = j.state === "failed";
-            const Icon = failed ? AlertCircle : iconOf(j);
+            const Icon = failed ? WarningCircleIcon : iconOf(j);
             return (
               <li key={j.kind}>
                 <Link to={j.href} className={cn("flex items-start gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted/60", TOUCH)}>
@@ -72,7 +72,7 @@ export default function MakingNow({ items, jobs, className }: { items: LibraryIt
                   <span className="min-w-0">
                     <span className="block font-medium">{j.label}</span>
                     <span className={cn("flex items-start gap-1 text-xs", failed ? "text-destructive" : "text-muted-foreground")}>
-                      {!failed && (j.waiting ? <Clock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> : <Loader2 className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />)}
+                      {!failed && (j.waiting ? <ClockIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> : <CircleNotchIcon className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />)}
                       <span className="min-w-0">{failed ? j.error || "That didn't go through." : j.step}</span>
                     </span>
                   </span>

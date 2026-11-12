@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, LogOut } from "lucide-react";
+import { CircleNotchIcon, SignOutIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -40,7 +40,7 @@ export default function LeaveTeam({
         onClick={() => setConfirming(true)}
         className="gap-1.5 px-2 text-muted-foreground"
       >
-        <LogOut className="h-3.5 w-3.5" /> Leave team
+        <SignOutIcon className="h-3.5 w-3.5" /> Leave team
       </Button>
     );
   }
@@ -52,7 +52,7 @@ export default function LeaveTeam({
       </p>
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="destructive" onClick={handleLeave} disabled={busy} className="gap-1.5">
-          {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Leave team
+          {busy && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />} Leave team
         </Button>
         <Button
           size="sm"

@@ -4,7 +4,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
-import { Check, ChevronDown, ChevronLeft } from "lucide-react";
+import { CheckIcon, CaretDownIcon, CaretLeftIcon } from "@phosphor-icons/react";
 import { isLibraryView } from "@/components/library/LibraryViews";
 import { sectionTabs, type Tab } from "@/lib/nav";
 
@@ -67,7 +67,7 @@ function Picker({ tab, pages }: { tab: Tab; pages: Tab[] }) {
       <button ref={button} type="button" aria-current="page" aria-haspopup="true" aria-expanded={!!at} onClick={toggle} className={`${tabClass(true)} gap-1.5`}>
         {tab.label}
         {open && open.label !== tab.label && <span className="font-normal text-muted-foreground">{open.label}</span>}
-        <ChevronDown aria-hidden className={`h-4 w-4 text-muted-foreground transition-transform ${at ? "rotate-180" : ""}`} />
+        <CaretDownIcon aria-hidden className={`h-4 w-4 text-muted-foreground transition-transform ${at ? "rotate-180" : ""}`} />
       </button>
       {at && createPortal(
         <div ref={list} data-nav style={at} className="fixed z-40 w-60 rounded-xl border border-border bg-popover p-1 shadow-lg">
@@ -83,7 +83,7 @@ function Picker({ tab, pages }: { tab: Tab; pages: Tab[] }) {
                 {p.label}
                 {p.hint && <span className="block text-xs font-normal text-muted-foreground">{p.hint}</span>}
               </span>
-              {p.active && <Check aria-hidden className="h-4 w-4 shrink-0 text-primary" />}
+              {p.active && <CheckIcon aria-hidden className="h-4 w-4 shrink-0 text-primary" />}
             </Link>
           ))}
         </div>,
@@ -136,7 +136,7 @@ export default function SectionTabs({ email }: { email: string }) {
     return (
       <nav aria-label="Section" data-nav className="mb-4">
         <Link to={back.to} className="inline-flex min-h-9 items-center gap-1 rounded-lg pr-2 text-sm text-muted-foreground transition-colors hover:text-foreground [@media(pointer:coarse)]:min-h-11">
-          <ChevronLeft className="h-4 w-4" /> {back.label}
+          <CaretLeftIcon className="h-4 w-4" /> {back.label}
         </Link>
       </nav>
     );

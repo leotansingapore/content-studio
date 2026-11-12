@@ -3,7 +3,7 @@
 // user's work is named only when the question asks for it (Starter Story: Elephas, Sheets Resume, Algrow).
 // Copy out only: nothing is saved to My posts or sent anywhere. Every field lives in the URL.
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, MessageCircleQuestion } from "lucide-react";
+import { CheckIcon, CopyIcon, ChatCircleDotsIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -143,7 +143,7 @@ export default function AnswerPage() {
     <div className="space-y-6">
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <MessageCircleQuestion className="h-6 w-6 text-primary" /> Answer a question
+          <ChatCircleDotsIcon className="h-6 w-6 text-primary" /> Answer a question
         </h1>
       </header>
 
@@ -182,7 +182,7 @@ export default function AnswerPage() {
           </RadioGroup>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <Button onClick={() => void write()} disabled={!question.trim() || writing} className="min-h-11 gap-1.5">
-              <MessageCircleQuestion className="h-4 w-4" /> {writing ? "Writing..." : `Write ${ANSWER_COUNT} answers`}
+              <ChatCircleDotsIcon className="h-4 w-4" /> {writing ? "Writing..." : `Write ${ANSWER_COUNT} answers`}
             </Button>
             <span className="text-xs text-muted-foreground">You post it yourself. Nothing is sent from here.</span>
           </div>
@@ -219,11 +219,11 @@ export default function AnswerPage() {
                     <div className="flex flex-wrap gap-2">
                       {title && (
                         <Button size="sm" variant="outline" className="min-h-11 gap-1.5 sm:min-h-9" onClick={() => void copy(`${i}-title`, title)}>
-                          {copied === `${i}-title` ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />} Copy title
+                          {copied === `${i}-title` ? <CheckIcon className="h-3.5 w-3.5 text-success" /> : <CopyIcon className="h-3.5 w-3.5" />} Copy title
                         </Button>
                       )}
                       <Button size="sm" className="relative min-h-11 gap-1.5 sm:min-h-9" onClick={() => void copy(`${i}`, body)}>
-                        {copied === `${i}` ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {title ? "Copy post" : "Copy answer"}
+                        {copied === `${i}` ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />} {title ? "Copy post" : "Copy answer"}
                         <ComplianceBadge flags={flags} />
                       </Button>
                     </div>

@@ -37,8 +37,8 @@ const marked = {
 const html = (project: typeof plain, leo: boolean, at = "/edit?p=v1") =>
   renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(Editor, { userId: "u1", leo, project, onSave: () => {}, onBack: () => {} })));
 
-const PLAIN = "7074e298d92dc25a88686897f9843816caa81d4bf795697570951ea1da3aa345";
-const PLAIN_LEO = "78e6d6ed50704ed712474f1d863a2787a4ed611bde261c0631262785a268259e";
+const PLAIN = "872ea140b49027d52821145369f07adb3bbd46422bcacb9a1fa2f8fe9e96aa4b";
+const PLAIN_LEO = "a95518a598be5298c034a75c091a601d6217221c6a5d81250580d5598fe62eb9";
 
 describe("the editor for a project the AI didn't make", () => {
   it("draws as before for everyone else and for Leo, with or without ?script and ?lang", () => {

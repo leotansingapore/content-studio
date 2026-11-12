@@ -3,37 +3,37 @@ import FactFlags from "@/components/FactFlags";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
-  AlertTriangle,
-  ArrowRight,
-  Bookmark,
-  ChevronDown,
-  Camera,
-  Check,
-  Clapperboard,
-  Clock,
-  Columns3,
-  Copy,
-  ExternalLink,
-  Eye,
-  Film,
-  Heart,
-  Image as ImageIcon,
-  Info,
-  Instagram,
-  Loader2,
-  MessageCircle,
-  Pencil,
-  Play,
-  RotateCcw,
-  Share2,
-  ShieldCheck,
-  Shuffle,
-  Sparkles,
-  Upload,
-  Video,
-  Wand2,
-  Youtube,
-} from "lucide-react";
+  WarningIcon,
+  ArrowRightIcon,
+  BookmarkSimpleIcon,
+  CaretDownIcon,
+  CameraIcon,
+  CheckIcon,
+  FilmSlateIcon,
+  ClockIcon,
+  ColumnsIcon,
+  CopyIcon,
+  ArrowSquareOutIcon,
+  EyeIcon,
+  FilmStripIcon,
+  HeartIcon,
+  ImageIcon,
+  InfoIcon,
+  InstagramLogoIcon,
+  CircleNotchIcon,
+  ChatCircleIcon,
+  PencilSimpleIcon,
+  PlayIcon,
+  ArrowCounterClockwiseIcon,
+  ShareNetworkIcon,
+  ShieldCheckIcon,
+  ShuffleIcon,
+  SparkleIcon,
+  UploadSimpleIcon,
+  VideoCameraIcon,
+  MagicWandIcon,
+  YoutubeLogoIcon,
+} from "@phosphor-icons/react";
 
 import ShotList, { CopyButton } from "@/components/ShotList";
 import CopyLinkButton from "@/components/CopyLinkButton";
@@ -109,7 +109,7 @@ const DAY_MS = 86_400_000;
 const LABEL = "text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 
 function PlatformIcon({ platform, className }: { platform: ReelPlatform; className?: string }) {
-  return platform === "instagram" ? <Instagram className={className} /> : <Video className={className} />;
+  return platform === "instagram" ? <InstagramLogoIcon className={className} /> : <VideoCameraIcon className={className} />;
 }
 
 function ExpandableText({ text, clampAt = 280 }: { text: string; clampAt?: number }) {
@@ -195,7 +195,7 @@ function EmptyState({ hasVoice }: { hasVoice: boolean }) {
         {!hasVoice && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
             <p className="min-w-0 text-foreground/80">
-              <Sparkles className="mr-1 inline h-3.5 w-3.5 text-primary" />
+              <SparkleIcon className="mr-1 inline h-3.5 w-3.5 text-primary" />
               Add a few of your own posts so the script sounds like you.
             </p>
             <Button asChild size="sm" variant="outline" className="h-8">
@@ -259,7 +259,7 @@ function LoadingSteps({ startedAt, onCancel }: { startedAt: number; onCancel: ()
                         : "border-border bg-background text-muted-foreground"
                   }`}
                 >
-                  {done ? <Check className="h-3 w-3" /> : active ? <Loader2 className="h-3 w-3 animate-spin" /> : i + 1}
+                  {done ? <CheckIcon className="h-3 w-3" /> : active ? <CircleNotchIcon className="h-3 w-3 animate-spin" /> : i + 1}
                 </span>
                 <div className="min-w-0">
                   <p className={`text-sm font-medium ${active ? "text-foreground" : done ? "text-foreground/70" : "text-muted-foreground"}`}>
@@ -272,7 +272,7 @@ function LoadingSteps({ startedAt, onCancel }: { startedAt: number; onCancel: ()
           })}
         </ol>
         <p className="text-[11px] text-muted-foreground">
-          <Clock className="mr-1 inline h-3 w-3" />
+          <ClockIcon className="mr-1 inline h-3 w-3" />
           {seconds}s elapsed
         </p>
       </CardContent>
@@ -323,9 +323,9 @@ function ErrorCard({
     >
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-6">
         {code === "timeout" ? (
-          <Clock className="h-5 w-5 shrink-0 text-warning" />
+          <ClockIcon className="h-5 w-5 shrink-0 text-warning" />
         ) : (
-          <AlertTriangle className={`h-5 w-5 shrink-0 ${soft ? "text-warning" : "text-destructive"}`} />
+          <WarningIcon className={`h-5 w-5 shrink-0 ${soft ? "text-warning" : "text-destructive"}`} />
         )}
         <div className="min-w-0 flex-1 space-y-3">
           <div>
@@ -342,7 +342,7 @@ function ErrorCard({
           <div className="flex flex-wrap gap-2">
             {canRetry && (
               <Button size="sm" onClick={onRetry} disabled={Boolean(why)} className="gap-1.5">
-                <RotateCcw className="h-3.5 w-3.5" /> Try again
+                <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Try again
               </Button>
             )}
             {canRetry && leo && (
@@ -374,11 +374,11 @@ function Metrics({ source }: { source: CloneSource }) {
   const m = source.metrics;
   const items = m
     ? [
-        { icon: Play, label: "views", value: m.views },
-        { icon: Heart, label: "likes", value: m.likes },
-        { icon: MessageCircle, label: "comments", value: m.comments },
-        { icon: Share2, label: "shares", value: m.shares },
-        { icon: Bookmark, label: "saves", value: m.saves },
+        { icon: PlayIcon, label: "views", value: m.views },
+        { icon: HeartIcon, label: "likes", value: m.likes },
+        { icon: ChatCircleIcon, label: "comments", value: m.comments },
+        { icon: ShareNetworkIcon, label: "shares", value: m.shares },
+        { icon: BookmarkSimpleIcon, label: "saves", value: m.saves },
       ].filter((i): i is typeof i & { value: number } => i.value !== null)
     : [];
   const asOf = source.metricsAsOf;
@@ -426,7 +426,7 @@ function SourceCard({ source }: { source: CloneSource }) {
           </div>
           <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
             <a href={source.url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5" /> View original
+              <ArrowSquareOutIcon className="h-3.5 w-3.5" /> View original
             </a>
           </Button>
         </div>
@@ -435,7 +435,7 @@ function SourceCard({ source }: { source: CloneSource }) {
 
         {!source.transcript && (
           <div className="flex gap-2 rounded-lg border border-warning/30 bg-warning/[0.06] p-3 text-xs text-foreground/85">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+            <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
             <p>
               <span className="font-semibold">No transcript for this {source.isVideo ? "video" : "post"}.</span>{" "}
               {source.isVideo
@@ -562,7 +562,7 @@ function VisualsCard({ clone, job, onRetry }: { clone: SavedClone; job: VisualsJ
     <Card className="min-w-0 border-border/60 shadow-card">
       <CardContent className="space-y-4 p-4 sm:p-6">
         <h2 className="flex items-center gap-2 font-serif text-xl font-semibold text-foreground">
-          <Eye className="h-5 w-5 shrink-0 text-primary" /> What's on screen
+          <EyeIcon className="h-5 w-5 shrink-0 text-primary" /> What's on screen
         </h2>
 
         {running && (
@@ -582,7 +582,7 @@ function VisualsCard({ clone, job, onRetry }: { clone: SavedClone; job: VisualsJ
                             : "border-border bg-background text-muted-foreground"
                       }`}
                     >
-                      {done ? <Check className="h-3 w-3" /> : active ? <Loader2 className="h-3 w-3 animate-spin" /> : i + 1}
+                      {done ? <CheckIcon className="h-3 w-3" /> : active ? <CircleNotchIcon className="h-3 w-3 animate-spin" /> : i + 1}
                     </span>
                     <span className={active ? "font-medium text-foreground" : done ? "text-foreground/70" : "text-muted-foreground"}>
                       {step.label}
@@ -605,7 +605,7 @@ function VisualsCard({ clone, job, onRetry }: { clone: SavedClone; job: VisualsJ
             {canReadVideo(clone) && (
               <div className="flex shrink-0 flex-col gap-1 sm:items-end">
                 <Button size="sm" variant="outline" onClick={onRetry} disabled={Boolean(why)} className="shrink-0 gap-1.5">
-                  <RotateCcw className="h-3.5 w-3.5" /> Try again
+                  <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Try again
                 </Button>
                 <PriceChip feature="reel-visuals" left={left} />
                 {why && <p className="text-xs text-destructive">{why}</p>}
@@ -684,7 +684,7 @@ function ComplianceFlags({ flags }: { flags: ComplianceFlag[] }) {
   if (flags.length === 0) {
     return (
       <p className="flex items-center gap-1.5 text-xs font-medium text-success">
-        <ShieldCheck className="h-3.5 w-3.5 shrink-0" /> No compliance flags. Still read it through before you post.
+        <ShieldCheckIcon className="h-3.5 w-3.5 shrink-0" /> No compliance flags. Still read it through before you post.
       </p>
     );
   }
@@ -701,7 +701,7 @@ function ComplianceFlags({ flags }: { flags: ComplianceFlag[] }) {
                 : "border-warning/40 bg-warning/10 text-foreground"
             }`}
           >
-            <AlertTriangle className={`mt-0.5 h-3 w-3 shrink-0 ${isError ? "text-destructive" : "text-warning"}`} />
+            <WarningIcon className={`mt-0.5 h-3 w-3 shrink-0 ${isError ? "text-destructive" : "text-warning"}`} />
             <div className="min-w-0 space-y-0.5">
               <div className="font-semibold uppercase tracking-[0.14em]">
                 {isError ? "Compliance error" : "Compliance warning"}
@@ -779,7 +779,7 @@ function ConceptPicker({
                   on ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
                 }`}
               >
-                {busy ? <Loader2 className="h-3 w-3 animate-spin text-primary" /> : on && <Check className="h-3 w-3" />}
+                {busy ? <CircleNotchIcon className="h-3 w-3 animate-spin text-primary" /> : on && <CheckIcon className="h-3 w-3" />}
               </span>
               <span className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
                 <span className="block text-sm font-semibold leading-snug text-foreground">{c.title}</span>
@@ -898,7 +898,7 @@ export function VersionCard({
                         on ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
                       }`}
                     >
-                      {on && <Check className="h-3 w-3" />}
+                      {on && <CheckIcon className="h-3 w-3" />}
                     </span>
                     <span className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
                       <span
@@ -939,7 +939,7 @@ export function VersionCard({
         {v.filmingNotes && (
           <div className="space-y-1 rounded-lg border border-border/50 bg-muted/20 p-3">
             <p className={`${LABEL} flex items-center gap-1`}>
-              <Clapperboard className="h-3 w-3" /> Filming notes
+              <FilmSlateIcon className="h-3 w-3" /> Filming notes
             </p>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">{v.filmingNotes}</p>
           </div>
@@ -950,13 +950,13 @@ export function VersionCard({
             onClick={onOpenInWrite}
             className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
           >
-            <Pencil className="h-4 w-4" /> Open in Write
+            <PencilSimpleIcon className="h-4 w-4" /> Open in Write
           </Button>
           {leo && (
             <details className="relative">
               <Button asChild variant="outline" className="w-full cursor-pointer list-none gap-1.5 sm:w-auto [&::-webkit-details-marker]:hidden">
                 <summary>
-                  <Wand2 className="h-4 w-4" /> Make the video <ChevronDown className="h-4 w-4" />
+                  <MagicWandIcon className="h-4 w-4" /> Make the video <CaretDownIcon className="h-4 w-4" />
                 </summary>
               </Button>
               <div className="absolute left-0 top-full z-30 mt-1 w-52 rounded-xl border border-border/70 bg-popover p-1 shadow-elegant">
@@ -970,25 +970,25 @@ export function VersionCard({
           {clone.onBoard ? (
             <Button asChild variant="outline" className="gap-1.5 border-success/40 text-success">
               <Link to="/board">
-                <Check className="h-4 w-4" /> On your board in Scripted <ArrowRight className="h-3.5 w-3.5" />
+                <CheckIcon className="h-4 w-4" /> On your board in Scripted <ArrowRightIcon className="h-3.5 w-3.5" />
               </Link>
             </Button>
           ) : (
             <Button variant="outline" onClick={onAddToBoard} className="gap-1.5">
-              <Columns3 className="h-4 w-4" /> Add to board
+              <ColumnsIcon className="h-4 w-4" /> Add to board
             </Button>
           )}
           {talkHref && (
             <Button asChild variant="outline" className="gap-1.5">
               <Link to={talkHref}>
-                <Video className="h-4 w-4" /> Make it as a talking head
+                <VideoCameraIcon className="h-4 w-4" /> Make it as a talking head
               </Link>
             </Button>
           )}
           {leo && clone.result.source.platform === "instagram" && clone.result.source.isVideo && (
             <Button asChild variant="outline" className="gap-1.5">
               <Link to={links.makeFormat("same-edit", { source: sourceKey.clone(clone.result.source.platform, clone.result.source.postId) })}>
-                <Film className="h-4 w-4" /> Rebuild this edit
+                <FilmStripIcon className="h-4 w-4" /> Rebuild this edit
               </Link>
             </Button>
           )}
@@ -1026,7 +1026,7 @@ function RecentClones({ clones, onOpen }: { clones: SavedClone[]; onOpen: (clone
                   {timeAgo(c.savedAt)}
                 </span>
               </span>
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <ArrowRightIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             </button>
           </li>
         ))}
@@ -1038,10 +1038,10 @@ function RecentClones({ clones, onOpen }: { clones: SavedClone[]; onOpen: (clone
 // ---- Remix a post (Leo's sign-ins, north star remix-any-link) ----------------------------------------
 
 function LinkIcon({ source, className }: { source: LinkedSource; className?: string }) {
-  if (source.kind === "upload") return source.format === "video" ? <Film className={className} /> : <ImageIcon className={className} />;
-  if (source.platform === "instagram") return <Instagram className={className} />;
-  if (source.platform === "youtube") return <Youtube className={className} />;
-  return <Video className={className} />;
+  if (source.kind === "upload") return source.format === "video" ? <FilmStripIcon className={className} /> : <ImageIcon className={className} />;
+  if (source.platform === "instagram") return <InstagramLogoIcon className={className} />;
+  if (source.platform === "youtube") return <YoutubeLogoIcon className={className} />;
+  return <VideoCameraIcon className={className} />;
 }
 
 const linkLabel = (s: LinkedSource) =>
@@ -1058,10 +1058,10 @@ function ReadingCard({ read, onCancel }: { read: LinkRead; onCancel: () => void 
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6">
         <div className="min-w-0" role="status" aria-live="polite">
           <p className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" /> {read.step}
+            <CircleNotchIcon className="h-4 w-4 shrink-0 animate-spin text-primary" /> {read.step}
           </p>
           <p className="text-[11px] text-muted-foreground">
-            <Clock className="mr-1 inline h-3 w-3" />
+            <ClockIcon className="mr-1 inline h-3 w-3" />
             {Math.max(0, Math.floor((now - read.startedAt) / 1000))}s elapsed
           </p>
         </div>
@@ -1076,9 +1076,9 @@ function ReadingCard({ read, onCancel }: { read: LinkRead; onCancel: () => void 
 function LinkResult({ source, cloneLeft, onRemix, onClone, onReset }: { source: LinkedSource; cloneLeft: number | null; onRemix: () => void; onClone: () => void; onReset: () => void }) {
   const n = source.numbers ?? {};
   const numbers = [
-    { icon: Play, label: "views", value: n.views },
-    { icon: Heart, label: "likes", value: n.likes },
-    { icon: MessageCircle, label: "comments", value: n.comments },
+    { icon: PlayIcon, label: "views", value: n.views },
+    { icon: HeartIcon, label: "likes", value: n.likes },
+    { icon: ChatCircleIcon, label: "comments", value: n.comments },
   ].filter((i): i is typeof i & { value: number } => typeof i.value === "number");
   const canClone = source.kind === "link" && (source.platform === "instagram" || source.platform === "tiktok") && Boolean(source.url);
   const cloneWhy = reasonText({ left: cloneLeft, leo: true });
@@ -1086,7 +1086,7 @@ function LinkResult({ source, cloneLeft, onRemix, onClone, onReset }: { source: 
     <div className="space-y-2">
       <div className="flex items-center justify-end">
         <Button variant="ghost" size="sm" onClick={onReset} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
-          <RotateCcw className="h-3.5 w-3.5" /> Read another
+          <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Read another
         </Button>
       </div>
       <Card className="border-border/60 shadow-card">
@@ -1101,7 +1101,7 @@ function LinkResult({ source, cloneLeft, onRemix, onClone, onReset }: { source: 
             {source.url && (
               <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 [@media(pointer:coarse)]:min-h-11">
                 <a href={source.url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" /> Open original
+                  <ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open original
                 </a>
               </Button>
             )}
@@ -1124,12 +1124,12 @@ function LinkResult({ source, cloneLeft, onRemix, onClone, onReset }: { source: 
           </div>
           <div className="flex flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:flex-wrap sm:items-center">
             <Button onClick={onRemix} className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11">
-              <Shuffle className="h-4 w-4" /> Remix
+              <ShuffleIcon className="h-4 w-4" /> Remix
             </Button>
             {canClone && (
               <>
                 <Button variant="outline" onClick={onClone} disabled={cloneLeft === 0} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
-                  <Sparkles className="h-4 w-4" /> Clone it instead
+                  <SparkleIcon className="h-4 w-4" /> Clone it instead
                 </Button>
                 {/* an Instagram clone also reads its frames (reel-visuals) */}
                 <PriceChip price={sumPrices(priceOf("reel-clone"), source.platform === "instagram" ? priceOf("reel-visuals") : null)} left={cloneLeft} />
@@ -1169,7 +1169,7 @@ function RecentReads({ items, onOpen }: { items: LinkedSource[]; onOpen: (s: Lin
                   {[linkLabel(s), s.author].filter(Boolean).join(" | ")}
                 </span>
               </span>
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <ArrowRightIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             </button>
           </li>
         ))}
@@ -1276,7 +1276,7 @@ function RemixLinkBox({
     <>
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Shuffle className="h-6 w-6 shrink-0 text-primary" /> Remix a post
+          <ShuffleIcon className="h-6 w-6 shrink-0 text-primary" /> Remix a post
         </h1>
       </header>
 
@@ -1309,7 +1309,7 @@ function RemixLinkBox({
               disabled={working}
               className="h-11 gap-1.5 bg-gradient-primary px-5 text-primary-foreground shadow-sm hover:opacity-95"
             >
-              {working ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {working ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}
               {working ? "Reading..." : "Read it"}
             </Button>
             {!working && <PriceChip feature="remix-link" left={linkLeft} />}
@@ -1318,7 +1318,7 @@ function RemixLinkBox({
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={working || fileLeft === 0} className="h-11 gap-1.5">
-            <Upload className="h-4 w-4" /> Upload a screenshot or video
+            <UploadSimpleIcon className="h-4 w-4" /> Upload a screenshot or video
           </Button>
           {!working && <PriceChip feature="remix-image" left={fileLeft} />}
           {!working && fileReason && <p className="text-xs text-destructive">{fileReason}</p>}
@@ -1350,13 +1350,13 @@ function RemixLinkBox({
       {read?.state === "failed" && (
         <Card role="alert" className="border-destructive/30 bg-destructive/[0.03] shadow-card">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-6">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-destructive" />
+            <WarningIcon className="h-5 w-5 shrink-0 text-destructive" />
             <div className="min-w-0 flex-1 space-y-3">
               <p className="text-sm text-foreground/85">{read.error}</p>
               <div className="flex flex-wrap gap-2">
                 {retryable(read.code) && (
                   <Button size="sm" onClick={() => void startLinkRead(userId, read.input)} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
-                    <RotateCcw className="h-3.5 w-3.5" /> Try again
+                    <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Try again
                   </Button>
                 )}
                 <Button size="sm" variant="outline" onClick={reset} className="[@media(pointer:coarse)]:min-h-11">
@@ -1677,7 +1677,7 @@ export default function CloneReelPage() {
       <>
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Clapperboard className="h-6 w-6 shrink-0 text-primary" /> Clone a reel
+          <FilmSlateIcon className="h-6 w-6 shrink-0 text-primary" /> Clone a reel
         </h1>
       </header>
 
@@ -1748,7 +1748,7 @@ export default function CloneReelPage() {
             disabled={loading || !input.trim()}
             className="h-11 gap-1.5 bg-gradient-primary px-5 text-primary-foreground shadow-sm hover:opacity-95"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {loading ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}
             {loading ? "Cloning…" : "Clone it"}
           </Button>
         </div>
@@ -1773,7 +1773,7 @@ export default function CloneReelPage() {
             <div className="flex items-center gap-1">
               {cloneParam === view.clone.id && <CopyLinkButton label="Copy link to this clone" />}
               <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5">
-                <RotateCcw className="h-3.5 w-3.5" /> Clone another
+                <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Clone another
               </Button>
             </div>
           </div>

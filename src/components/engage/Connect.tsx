@@ -2,7 +2,7 @@
 // message after they accept and two follow-ups, timed at 4 and 10 days and
 // added to your calendar with one tap. You send each one by hand.
 import { useState } from "react";
-import { CalendarCheck, CalendarPlus, Copy, UserRoundPlus } from "lucide-react";
+import { CalendarCheckIcon, CalendarPlusIcon, CopyIcon, UserCirclePlusIcon } from "@phosphor-icons/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +67,7 @@ export default function Connect({ userId }: { userId: string }) {
               added ? "text-success" : "text-primary hover:bg-primary/10"
             }`}
           >
-            {added ? <CalendarCheck className="h-3.5 w-3.5" /> : <CalendarPlus className="h-3.5 w-3.5" />}
+            {added ? <CalendarCheckIcon className="h-3.5 w-3.5" /> : <CalendarPlusIcon className="h-3.5 w-3.5" />}
             {added ? "On your calendar" : "Add to calendar"}
           </button>
         </div>
@@ -81,7 +81,7 @@ export default function Connect({ userId }: { userId: string }) {
       <Card className="border-border/60 shadow-card">
         <CardContent className="space-y-3 p-4 sm:p-5">
           <h2 id="connect-title" className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-            <UserRoundPlus className="h-4 w-4 text-primary" /> Connection note and follow-ups
+            <UserCirclePlusIcon className="h-4 w-4 text-primary" /> Connection note and follow-ups
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
@@ -159,7 +159,7 @@ export default function Connect({ userId }: { userId: string }) {
                   aria-label="Copy note"
                   className="inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:h-8 [@media(pointer:coarse)]:h-11"
                 >
-                  <Copy className="h-3.5 w-3.5" /> Copy
+                  <CopyIcon className="h-3.5 w-3.5" /> Copy
                 </button>
               </div>
               {noteLen > NOTE_MAX && <p className="text-[11px] text-destructive">LinkedIn stops a note at {NOTE_MAX} characters. Cut {noteLen - NOTE_MAX}.</p>}

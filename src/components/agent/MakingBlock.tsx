@@ -2,7 +2,7 @@
 // when it started (stored on the message, so a reload or another device shows the same time), the step it is on, and
 // where it lands. The engine runs outside React (agentRun.ts), so leaving the page loses nothing.
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon } from "@phosphor-icons/react";
 import { tookWords } from "@/components/agent/MadeBlock";
 
 export default function MakingBlock({ title, startedAt, step }: { title: string; startedAt: string; step?: string }) {
@@ -20,7 +20,7 @@ export default function MakingBlock({ title, startedAt, step }: { title: string;
       </header>
       <div className="space-y-2 px-4 py-3">
         <p className="flex items-center gap-2 text-sm font-medium" role="status">
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+          <CircleNotchIcon className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
           <span className="min-w-0 break-words">{step?.replace(/\.\.\.$/, "") || "Getting it ready"}</span>
         </p>
         <div className="h-1 overflow-hidden rounded-full bg-muted" aria-hidden>

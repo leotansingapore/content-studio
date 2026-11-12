@@ -3,7 +3,7 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import { links } from "@/lib/links";
 import { useScrollToItem } from "@/lib/urlState";
 import { Link } from "react-router-dom";
-import { ChevronDown, Play, Sparkles, Wand2 } from "lucide-react";
+import { CaretDownIcon, PlayIcon, SparkleIcon, MagicWandIcon } from "@phosphor-icons/react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Markdown from "@/components/hub/Markdown";
@@ -48,7 +48,7 @@ export default function TrendCard({ trend, linked = false }: { trend: HubTrend; 
           </span>
           {trend.audience_type === "client" && (
             <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-primary">
-              <Sparkles className="h-3 w-3" /> For you
+              <SparkleIcon className="h-3 w-3" /> For you
             </span>
           )}
           <span className="ml-auto text-muted-foreground">{timeAgo(trend.created_at)}</span>
@@ -71,7 +71,7 @@ export default function TrendCard({ trend, linked = false }: { trend: HubTrend; 
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20"
                 >
-                  <Play className="h-3 w-3" />
+                  <PlayIcon className="h-3 w-3" />
                   {arr.length === 1 ? "Watch an example" : `Example ${i + 1}`}
                 </a>
               ))}
@@ -82,7 +82,7 @@ export default function TrendCard({ trend, linked = false }: { trend: HubTrend; 
           onClick={() => setOpen((v) => !v)}
         >
           Fresh angles
-          <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+          <CaretDownIcon className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
         {open && (
           <div className="space-y-3 rounded-md border border-border/60 p-3">
@@ -92,7 +92,7 @@ export default function TrendCard({ trend, linked = false }: { trend: HubTrend; 
                 to={buildTrendRemixUrl(trend)}
                 className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
               >
-                <Wand2 className="h-3.5 w-3.5" /> Remix in Write
+                <MagicWandIcon className="h-3.5 w-3.5" /> Remix in Write
               </Link>
             </RemixButton>
           </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { CircleNotchIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,7 +131,7 @@ export default function AllowlistManager() {
             />
           </div>
           <Button onClick={save} disabled={saving}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+            {saving ? <CircleNotchIcon className="mr-2 h-4 w-4 animate-spin" /> : <PlusIcon className="mr-2 h-4 w-4" />}
             Save client
           </Button>
         </CardContent>
@@ -139,7 +139,7 @@ export default function AllowlistManager() {
 
       {loading ? (
         <div className="flex h-24 items-center justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <CircleNotchIcon className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : rows.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
@@ -171,7 +171,7 @@ export default function AllowlistManager() {
                     Edit
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => remove(r)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <TrashIcon className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </CardContent>

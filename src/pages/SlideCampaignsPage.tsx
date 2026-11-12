@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Loader2, Plus } from "lucide-react";
+import { CircleNotchIcon, PlusIcon } from "@phosphor-icons/react";
 import { Segmented } from "@/components/design/fields";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -102,7 +102,7 @@ export default function SlideCampaignsPage() {
           {rows && <p className="text-sm text-muted-foreground">{`${rows.length} campaign${rows.length === 1 ? "" : "s"}, ${rows.filter((r) => r.status === "live").length} live`}</p>}
         </div>
         <Button onClick={() => void create()} disabled={making || !canPost} className="gap-1.5">
-          {making ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} New campaign
+          {making ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <PlusIcon className="h-4 w-4" />} New campaign
         </Button>
       </header>
       {canPost && meter && <p className="text-xs text-muted-foreground">Used today: {meter}</p>}

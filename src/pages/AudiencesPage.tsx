@@ -6,7 +6,7 @@
 
 import { useEffect, useReducer, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Check, X } from "lucide-react";
+import { CheckIcon, XIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -116,7 +116,7 @@ function Audiences({ userId }: { userId: string }) {
           <InfoTip label="About audiences">Who your posts are for. Write uses the one you pick.</InfoTip>
         </div>
         <span aria-live="polite" className={`flex items-center gap-1 text-xs font-medium text-success transition-opacity ${saved ? "opacity-100" : "opacity-0"}`}>
-          <Check className="h-3.5 w-3.5" /> Saved
+          <CheckIcon className="h-3.5 w-3.5" /> Saved
         </span>
       </header>
 
@@ -324,7 +324,7 @@ function Editor({ userId, audience, onClose, onSaved, onCreated, onRemoved }: {
         className="max-h-[88vh] w-full space-y-3 overflow-y-auto rounded-t-2xl bg-background p-4 shadow-elegant lg:sticky lg:top-20 lg:max-h-none lg:rounded-xl lg:border lg:border-border/60 lg:shadow-card">
         <div className="flex items-center justify-between gap-2">
           <h2 id="audience-editor-title" className="truncate font-serif text-lg font-semibold">{audience ? audience.name : "Add an audience"}</h2>
-          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Close" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Close" onClick={onClose}><XIcon className="h-4 w-4" /></Button>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="aud-name">Name</Label>
@@ -352,7 +352,7 @@ function Editor({ userId, audience, onClose, onSaved, onCreated, onRemoved }: {
                   {c}
                   <button type="button" aria-label={`Remove ${c}`} onClick={() => set({ cares: f.cares.filter((x) => x !== c) })}
                     className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:text-foreground">
-                    <X className="h-3 w-3" />
+                    <XIcon className="h-3 w-3" />
                   </button>
                 </li>
               ))}

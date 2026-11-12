@@ -3,7 +3,7 @@
 // Data comes from the tracked-link edge function; nothing about the adviser.
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon } from "@phosphor-icons/react";
 
 import { TrendChart } from "@/components/charts/TrendChart";
 import { dayLabel, fetchPublicReport, type PublicReport } from "@/lib/trackedLinks";
@@ -45,7 +45,7 @@ export default function TrackedReportPublicPage() {
     <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:py-16">
       {state === "loading" ? (
         <div role="status" className="flex justify-center py-16 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <CircleNotchIcon className="h-5 w-5 animate-spin" />
           <span className="sr-only">Loading</span>
         </div>
       ) : state === "ready" && report ? (

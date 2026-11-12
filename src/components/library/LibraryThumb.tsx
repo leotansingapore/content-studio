@@ -3,7 +3,7 @@
 // Studio's Your latest draw the same thumbs. Each drawing is memoised by id and updatedAt.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, Clock, Film, Loader2 } from "lucide-react";
+import { WarningCircleIcon, ClockIcon, FilmStripIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import SlideView from "@/components/design/SlideView";
 import { SlideThumb } from "@/components/slideshow/SlideCanvas";
 import { DEFAULT_BRAND, loadBrand, type CarouselBrand, type SavedCarousel } from "@/lib/carousel";
@@ -206,13 +206,13 @@ export default function LibraryThumb({ item, sources, seen }: { item: LibraryIte
   if (item.key.startsWith("j:") && (making || item.status === "failed"))
     return (
       <span className="flex h-full w-full items-center justify-center text-muted-foreground">
-        {item.waiting ? <Clock className="h-6 w-6" /> : making ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <AlertCircle className="h-6 w-6 text-destructive" />}
+        {item.waiting ? <ClockIcon className="h-6 w-6" /> : making ? <CircleNotchIcon className="h-6 w-6 animate-spin text-primary" /> : <WarningCircleIcon className="h-6 w-6 text-destructive" />}
       </span>
     );
   if (item.format === "video")
     return (
       <span className="flex h-full w-full items-center justify-center text-muted-foreground">
-        <Film className="h-6 w-6" />
+        <FilmStripIcon className="h-6 w-6" />
       </span>
     );
   return (

@@ -35,28 +35,28 @@ import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
 import { isOnboarded } from "@/lib/onboarding";
 import { loadResult, nextAction, type NextAction } from "@/lib/diagnosis";
 import {
-  Pencil,
-  Lightbulb,
-  Users as UsersIcon,
-  ArrowRight,
-  CheckCircle2,
-  ChevronRight,
-  Circle,
-  Clock,
-  FileText,
-  Sparkles,
-  CalendarClock,
-  Gauge,
-  Flame,
-  Target,
-  Minus,
-  Plus,
-  Inbox,
-  Eye,
-  Heart,
-  MessageCircle,
-  Share2,
-} from "lucide-react";
+  PencilSimpleIcon,
+  LightbulbIcon,
+  UsersIcon,
+  ArrowRightIcon,
+  CheckCircleIcon,
+  CaretRightIcon,
+  CircleIcon,
+  ClockIcon,
+  FileTextIcon,
+  SparkleIcon,
+  CalendarDotsIcon,
+  GaugeIcon,
+  FireIcon,
+  TargetIcon,
+  MinusIcon,
+  PlusIcon,
+  TrayIcon,
+  EyeIcon,
+  HeartIcon,
+  ChatCircleIcon,
+  ShareNetworkIcon,
+} from "@phosphor-icons/react";
 import { loadBrand } from "@/lib/carousel";
 import { adviserBrand } from "@/lib/profession";
 import { checkMe, sharedBoard, waitsOnMe, type Board, type Me } from "@/lib/reelsBoard";
@@ -135,7 +135,7 @@ function StatCard({
   label,
   tint,
 }: {
-  icon: typeof FileText;
+  icon: typeof FileTextIcon;
   value: number;
   label: string;
   tint: string;
@@ -455,7 +455,7 @@ export default function HomePage() {
                   >
                     <span className="min-w-0 flex-1 truncate font-medium text-foreground">{r.label}</span>
                     {r.n !== undefined && <span className="shrink-0 font-semibold tabular-nums text-foreground">{r.n}</span>}
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <ArrowRightIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
                   </Link>
                 ))}
               </div>
@@ -466,7 +466,7 @@ export default function HomePage() {
           {dueNow.length > 0 && (
             <section className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-4">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                <CalendarClock className="h-4 w-4 text-warning" />
+                <CalendarDotsIcon className="h-4 w-4 text-warning" />
                 {dueHeading(dueNow.length, overdueCount)}
               </p>
               <div className="space-y-1.5">
@@ -516,7 +516,7 @@ export default function HomePage() {
                         title={reviews.blockReason(d) ?? undefined}
                         className="h-9 gap-1 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11"
                       >
-                        <CheckCircle2 className="h-3 w-3" /> Mark posted
+                        <CheckCircleIcon className="h-3 w-3" /> Mark posted
                       </Button>
                     </div>
                   </div>
@@ -554,13 +554,13 @@ export default function HomePage() {
                         to="/coach"
                         className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
                       >
-                        <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
+                        <GaugeIcon className="h-3.5 w-3.5" /> Score {contentScore}/100
                       </Link>
                     )}
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Target className="h-4 w-4" />
+                      <TargetIcon className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground">
@@ -577,11 +577,11 @@ export default function HomePage() {
                   <div className="flex flex-wrap items-center gap-3">
                     <Button asChild variant="outline" className="gap-2">
                       <Link to={nextAct.mission.to}>
-                        Start mission <ArrowRight className="h-4 w-4" />
+                        Start mission <ArrowRightIcon className="h-4 w-4" />
                       </Link>
                     </Button>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" /> ~{nextAct.mission.effortMins} min
+                      <ClockIcon className="h-3.5 w-3.5" /> ~{nextAct.mission.effortMins} min
                     </span>
                   </div>
                 </CardContent>
@@ -592,7 +592,7 @@ export default function HomePage() {
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
                   <div className="flex items-start gap-2.5">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
-                      <Sparkles className="h-4 w-4" />
+                      <SparkleIcon className="h-4 w-4" />
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-foreground">
@@ -607,7 +607,7 @@ export default function HomePage() {
                     to="/coach"
                     className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
                   >
-                    <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
+                    <GaugeIcon className="h-3.5 w-3.5" /> Score {contentScore}/100
                   </Link>
                 </CardContent>
               </Card>
@@ -618,7 +618,7 @@ export default function HomePage() {
               <div className="min-w-0">
                 <Button asChild size="lg" className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 sm:w-auto">
                   <Link to={primary.to}>
-                    <Pencil className="h-4 w-4" /> {primary.label}
+                    <PencilSimpleIcon className="h-4 w-4" /> {primary.label}
                   </Link>
                 </Button>
                 {primary.title && <p className="mt-1.5 max-w-sm truncate text-xs text-muted-foreground">{primary.title}</p>}
@@ -636,7 +636,7 @@ export default function HomePage() {
           {showChecklist && (
             <details className="group rounded-xl border border-border/70 bg-card">
               <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 text-sm [&::-webkit-details-marker]:hidden">
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
+                <CaretRightIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
                 <span className="font-medium text-foreground">Get set up</span>
                 <span className="ml-auto text-xs text-muted-foreground">
                   {checklistDone} of {checklist.length} done
@@ -655,15 +655,15 @@ export default function HomePage() {
                       }`}
                     >
                       {c.done ? (
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
+                        <CheckCircleIcon className="h-4 w-4 shrink-0 text-success" />
                       ) : (
-                        <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <CircleIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
                       )}
                       <span className={c.done ? "line-through" : "font-medium"}>
                         {c.label}
                       </span>
                       {!c.done && (
-                        <ArrowRight className="ml-auto h-3.5 w-3.5 text-primary" />
+                        <ArrowRightIcon className="ml-auto h-3.5 w-3.5 text-primary" />
                       )}
                     </Link>
                   ))}
@@ -684,10 +684,10 @@ export default function HomePage() {
             Last 30 days
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard icon={Eye} value={last30.views} label="Views" tint="bg-primary/10 text-primary" />
-            <StatCard icon={Heart} value={last30.likes} label="Likes" tint="bg-brand/10 text-brand" />
-            <StatCard icon={MessageCircle} value={last30.comments} label="Comments" tint="bg-success/10 text-success" />
-            <StatCard icon={Share2} value={last30.shares} label="Shares" tint="bg-accent text-foreground" />
+            <StatCard icon={EyeIcon} value={last30.views} label="Views" tint="bg-primary/10 text-primary" />
+            <StatCard icon={HeartIcon} value={last30.likes} label="Likes" tint="bg-brand/10 text-brand" />
+            <StatCard icon={ChatCircleIcon} value={last30.comments} label="Comments" tint="bg-success/10 text-success" />
+            <StatCard icon={ShareNetworkIcon} value={last30.shares} label="Shares" tint="bg-accent text-foreground" />
           </div>
         </section>
       )}
@@ -697,13 +697,13 @@ export default function HomePage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 font-serif text-lg font-semibold text-foreground">
-              <CalendarClock className="h-4 w-4 text-primary" /> Coming up
+              <CalendarDotsIcon className="h-4 w-4 text-primary" /> Coming up
             </h2>
             <Link
               to="/calendar"
               className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
             >
-              Calendar <ArrowRight className="h-3 w-3" />
+              Calendar <ArrowRightIcon className="h-3 w-3" />
             </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -754,7 +754,7 @@ export default function HomePage() {
               to="/design/campaigns"
               className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
             >
-              See all <ArrowRight className="h-3 w-3" />
+              See all <ArrowRightIcon className="h-3 w-3" />
             </Link>
           </div>
           <ul className="divide-y divide-border/60 rounded-xl border border-border/70 bg-card shadow-card">
@@ -775,25 +775,25 @@ export default function HomePage() {
       {stats && (
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard
-            icon={CheckCircle2}
+            icon={CheckCircleIcon}
             value={stats.postedThisMonth}
             label="Posted this month"
             tint="bg-success/10 text-success"
           />
           <StatCard
-            icon={Clock}
+            icon={ClockIcon}
             value={stats.scheduled}
             label="Scheduled"
             tint="bg-primary/10 text-primary"
           />
           <StatCard
-            icon={FileText}
+            icon={FileTextIcon}
             value={stats.drafts}
             label="Drafts in progress"
             tint="bg-brand/10 text-brand"
           />
           <StatCard
-            icon={Sparkles}
+            icon={SparkleIcon}
             value={stats.posted}
             label="Posted all-time"
             tint="bg-accent text-foreground"
@@ -820,13 +820,13 @@ export default function HomePage() {
                       <span className="text-foreground">{PLATFORM_LABEL[p]}</span>
                       <span className="flex items-center gap-1">
                         <Button type="button" variant="outline" size="icon" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={() => set(n - 1)} disabled={n <= 0} aria-label={`Fewer ${PLATFORM_LABEL[p]} posts`}>
-                          <Minus className="h-3.5 w-3.5" />
+                          <MinusIcon className="h-3.5 w-3.5" />
                         </Button>
                         <span className={`w-8 text-center font-semibold tabular-nums ${n ? "text-foreground" : "text-muted-foreground"}`} aria-live="polite">
                           {n}
                         </span>
                         <Button type="button" variant="outline" size="icon" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={() => set(n + 1)} disabled={n >= MAX_WEEKLY_GOAL} aria-label={`More ${PLATFORM_LABEL[p]} posts`}>
-                          <Plus className="h-3.5 w-3.5" />
+                          <PlusIcon className="h-3.5 w-3.5" />
                         </Button>
                       </span>
                     </div>
@@ -851,7 +851,7 @@ export default function HomePage() {
                     {week.goal > 0 ? ` / ${week.goal}` : ""} posted
                     {week.goal > 0 && (
                       <Button variant="ghost" size="icon" className="-my-2 -mr-2 h-9 w-9 [@media(pointer:coarse)]:-my-3 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={() => setGoalDraft(goals)} aria-label="Edit weekly goal">
-                        <Pencil className="h-3.5 w-3.5" />
+                        <PencilSimpleIcon className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </span>
@@ -907,7 +907,7 @@ export default function HomePage() {
           <Card className="border-border/60 shadow-card">
             <CardContent className="flex items-center gap-3 py-4">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">
-                <Flame className="h-5 w-5" />
+                <FireIcon className="h-5 w-5" />
               </span>
               <div>
                 <div className="font-serif text-2xl font-semibold leading-none text-foreground">
@@ -938,7 +938,7 @@ export default function HomePage() {
               to="/drafts"
               className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
             >
-              See all <ArrowRight className="h-3 w-3" />
+              See all <ArrowRightIcon className="h-3 w-3" />
             </Link>
           )}
         </div>
@@ -983,14 +983,14 @@ export default function HomePage() {
           <Card className="border-border/60 shadow-card">
             <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Pencil className="h-5 w-5" />
+                <PencilSimpleIcon className="h-5 w-5" />
               </span>
               <p className="text-sm text-muted-foreground">
                 No posts yet.
               </p>
               <Button asChild size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11">
                 <Link to={newPostHref(uid)}>
-                  <Pencil className="h-3.5 w-3.5" /> Write your first post
+                  <PencilSimpleIcon className="h-3.5 w-3.5" /> Write your first post
                 </Link>
               </Button>
             </CardContent>
@@ -1010,7 +1010,7 @@ export default function HomePage() {
             className="group flex items-start gap-3 rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
-              <Lightbulb className="h-5 w-5" />
+              <LightbulbIcon className="h-5 w-5" />
             </span>
             <div>
               <p className="text-sm font-semibold text-foreground">
@@ -1044,7 +1044,7 @@ export default function HomePage() {
               className="group flex items-start gap-3 rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
-                <Inbox className="h-5 w-5" />
+                <TrayIcon className="h-5 w-5" />
               </span>
               <div>
                 <p className="text-sm font-semibold text-foreground">Today's ideas</p>

@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react";
 import { safeExternalUrl } from "@/lib/embed";
 import type { PlanAudience } from "@/lib/positioning";
 import { REAL_QUESTIONS, questionsFor, type RealQuestion } from "@/lib/sgFeeds";
@@ -35,7 +35,7 @@ export default function RealQuestions({
               aria-label={`Read it on ${q.source}`}
               className="flex w-11 shrink-0 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              <ExternalLink className="h-4 w-4" />
+              <ArrowSquareOutIcon className="h-4 w-4" />
             </a>
           </li>
         ))}

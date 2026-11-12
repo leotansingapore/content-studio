@@ -3,19 +3,18 @@ import { Link } from "react-router-dom";
 import { safeExternalUrl } from "@/lib/embed";
 import { Button } from "@/components/ui/button";
 import {
-  Heart,
-  MessageCircle,
-  Play,
-  ExternalLink,
-  Wand2,
-  Bookmark,
-  BookmarkCheck,
-  Film,
-  Images,
-  FileText,
-  Flame,
-  Clapperboard,
-} from "lucide-react";
+  HeartIcon,
+  ChatCircleIcon,
+  PlayIcon,
+  ArrowSquareOutIcon,
+  MagicWandIcon,
+  BookmarkSimpleIcon,
+  FilmStripIcon,
+  ImagesIcon,
+  FileTextIcon,
+  FireIcon,
+  FilmSlateIcon,
+} from "@phosphor-icons/react";
 import { buildRemixUrl, generatorFormat, topAdvisorId, type TopPost, type TopPostWithAdvisor } from "@/lib/topPosts";
 import { cloneLinkFor } from "@/lib/reelClone";
 import { cutAtWord } from "../../supabase/functions/video-assist/captions.ts";
@@ -40,10 +39,10 @@ const FORMAT_LABEL: Record<string, string> = {
   carousel: "Carousel",
   "text-post": "Single post",
 };
-const FORMAT_ICON: Record<string, typeof Film> = {
-  "short-video": Film,
-  carousel: Images,
-  "text-post": FileText,
+const FORMAT_ICON: Record<string, typeof FilmStripIcon> = {
+  "short-video": FilmStripIcon,
+  carousel: ImagesIcon,
+  "text-post": FileTextIcon,
 };
 
 /** Best-effort insight when the page didn't pass one (e.g. profile page). */
@@ -88,7 +87,7 @@ export default function TopPostCard({
 }) {
   const fmt = generatorFormat(post);
   const insight = displayInsight(post, insightProp);
-  const Icon = FORMAT_ICON[fmt] ?? FileText;
+  const Icon = FORMAT_ICON[fmt] ?? FileTextIcon;
   const hook = post.idea?.hook || cutAtWord(post.caption.trim(), 80) || "Untitled post";
 
   return (
@@ -119,7 +118,7 @@ export default function TopPostCard({
         </span>
         {insight.breakout && (
           <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-warning/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm dark:text-black">
-            <Flame className="h-3 w-3" /> {insight.ratio.toFixed(1)}× avg
+            <FireIcon className="h-3 w-3" /> {insight.ratio.toFixed(1)}× avg
           </span>
         )}
         {href && (
@@ -133,14 +132,14 @@ export default function TopPostCard({
         {/* Performance */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-muted-foreground">
           <span className="inline-flex items-center gap-1">
-            <Heart className="h-3 w-3" /> {fmtNum(post.likes)}
+            <HeartIcon className="h-3 w-3" /> {fmtNum(post.likes)}
           </span>
           <span className="inline-flex items-center gap-1">
-            <MessageCircle className="h-3 w-3" /> {fmtNum(post.comments)}
+            <ChatCircleIcon className="h-3 w-3" /> {fmtNum(post.comments)}
           </span>
           {post.views > 0 && (
             <span className="inline-flex items-center gap-1">
-              <Play className="h-3 w-3" /> {fmtNum(post.views)}
+              <PlayIcon className="h-3 w-3" /> {fmtNum(post.views)}
             </span>
           )}
         </div>
@@ -202,14 +201,14 @@ export default function TopPostCard({
                   structure: insight.structure,
                 })}
               >
-                <Wand2 className="h-3.5 w-3.5" /> Remix this
+                <MagicWandIcon className="h-3.5 w-3.5" /> Remix this
               </Link>
             </Button>
           </RemixButton>
           {fmt === "short-video" && cloneLinkFor(post.url) && (
             <Button asChild variant="outline" size="sm" className="shrink-0 px-2.5" title="Clone this reel">
               <Link to={cloneLinkFor(post.url)!} aria-label="Clone this reel">
-                <Clapperboard className="h-4 w-4" />
+                <FilmSlateIcon className="h-4 w-4" />
               </Link>
             </Button>
           )}
@@ -223,11 +222,7 @@ export default function TopPostCard({
               title={saved ? "Saved" : "Save"}
               className={`shrink-0 px-2.5 ${saved ? "border-primary/50 text-primary" : ""}`}
             >
-              {saved ? (
-                <BookmarkCheck className="h-4 w-4" />
-              ) : (
-                <Bookmark className="h-4 w-4" />
-              )}
+              <BookmarkSimpleIcon className="h-4 w-4" weight={saved ? "fill" : "regular"} />
             </Button>
           )}
           <Button
@@ -238,7 +233,7 @@ export default function TopPostCard({
             title="View original post"
           >
             <a href={safeExternalUrl(post.url) ?? undefined} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ArrowSquareOutIcon className="h-3.5 w-3.5" />
             </a>
           </Button>
         </div>

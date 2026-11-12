@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download, Loader2, ScrollText } from "lucide-react";
+import { DownloadSimpleIcon, CircleNotchIcon, ScrollIcon } from "@phosphor-icons/react";
 
 import {
   Card,
@@ -224,9 +224,9 @@ export default function AuditTrail({ team, refreshKey }: { team: Team; refreshKe
             className="col-span-2 gap-1.5 sm:col-span-1"
           >
             {exporting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <CircleNotchIcon className="h-4 w-4 animate-spin" />
             ) : (
-              <Download className="h-4 w-4" />
+              <DownloadSimpleIcon className="h-4 w-4" />
             )}
             Export CSV
           </Button>
@@ -248,7 +248,7 @@ export default function AuditTrail({ team, refreshKey }: { team: Team; refreshKe
           <ErrorBlock message={error} onRetry={() => void load()} />
         ) : rows.length === 0 ? (
           bounds && (
-            <EmptyBlock icon={<ScrollText className="h-6 w-6" />}>
+            <EmptyBlock icon={<ScrollIcon className="h-6 w-6" />}>
               <p>No events between {from} and {to}.</p>
             </EmptyBlock>
           )
@@ -315,7 +315,7 @@ export default function AuditTrail({ team, refreshKey }: { team: Team; refreshKe
             {hasMore && (
               <div className="flex justify-center">
                 <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore} className="gap-1.5">
-                  {loadingMore && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Load more
+                  {loadingMore && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />} Load more
                 </Button>
               </div>
             )}

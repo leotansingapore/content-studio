@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle2, MoreHorizontal } from "lucide-react";
+import { CheckCircleIcon, DotsThreeIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
@@ -103,7 +103,7 @@ export default function NextUp({ userId, input, today, usage, markPosted, blocke
   const menuFor = (item: NextUpItem) => (
     <div className="relative shrink-0" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setMenu(null)}>
       <Button type="button" variant="ghost" size="icon" onClick={() => setMenu(menu === item.id ? null : item.id)} aria-label={`More for ${item.title}`} aria-haspopup="menu" aria-expanded={menu === item.id} className="h-9 w-9 text-muted-foreground">
-        <MoreHorizontal />
+        <DotsThreeIcon />
       </Button>
       {menu === item.id && (
         <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-border bg-popover p-1 shadow-lg">
@@ -124,7 +124,7 @@ export default function NextUp({ userId, input, today, usage, markPosted, blocke
           const why = blocked(a.markPosted);
           return (
             <Button key={a.label} type="button" size="sm" variant="outline" onClick={() => markPosted(a.markPosted!)} disabled={why !== null} title={why ?? undefined} className="gap-1 [@media(pointer:coarse)]:h-11">
-              <CheckCircle2 /> {a.label}
+              <CheckCircleIcon /> {a.label}
             </Button>
           );
         }

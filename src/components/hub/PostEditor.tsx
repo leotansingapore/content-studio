@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Eye, Loader2, Pencil, Plus } from "lucide-react";
+import { EyeIcon, CircleNotchIcon, PencilSimpleIcon, PlusIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,7 +117,7 @@ export default function PostEditor() {
   if (loading) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <CircleNotchIcon className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -221,7 +221,7 @@ export default function PostEditor() {
             <div className="flex items-center justify-between">
               <Label htmlFor="pe-body">Body (markdown)</Label>
               <Button variant="ghost" size="sm" onClick={() => setPreview((v) => !v)}>
-                <Eye className="mr-1 h-3.5 w-3.5" /> {preview ? "Edit" : "Preview"}
+                <EyeIcon className="mr-1 h-3.5 w-3.5" /> {preview ? "Edit" : "Preview"}
               </Button>
             </div>
             {preview ? (
@@ -240,7 +240,7 @@ export default function PostEditor() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={save} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {saving ? <CircleNotchIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save
             </Button>
             <Button
@@ -261,7 +261,7 @@ export default function PostEditor() {
   return (
     <div className="space-y-3">
       <Button onClick={() => setDraft(EMPTY)}>
-        <Plus className="mr-2 h-4 w-4" /> New post
+        <PlusIcon className="mr-2 h-4 w-4" /> New post
       </Button>
       {posts.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">No posts yet.</p>
@@ -296,7 +296,7 @@ export default function PostEditor() {
                     })
                   }
                 >
-                  <Pencil className="h-4 w-4" />
+                  <PencilSimpleIcon className="h-4 w-4" />
                 </Button>
               </CardContent>
             </Card>

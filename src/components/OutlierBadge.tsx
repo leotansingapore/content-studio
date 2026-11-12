@@ -1,6 +1,6 @@
 // How a post did against its own account's usual (docs/north-star/items/find-outlier-score.md), on any post card that
 // has numbers. ASCII only: "3.2x their usual", never a multiplication sign.
-import { Flame } from "lucide-react";
+import { FireIcon } from "@phosphor-icons/react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { cn } from "@/lib/utils";
 import { times, type Outlier } from "../../supabase/functions/_shared/outlier.ts";
@@ -20,7 +20,7 @@ export default function OutlierBadge({ outlier: o, whose = "their" }: { outlier:
         hot || o.tier === "above" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
       )}
     >
-      {hot && <Flame className="h-3 w-3" aria-hidden />}
+      {hot && <FireIcon className="h-3 w-3" aria-hidden />}
       {o.confidence === "low" ? `${text} (few posts)` : text}
     </span>
   );

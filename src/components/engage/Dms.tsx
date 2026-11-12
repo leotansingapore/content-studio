@@ -6,7 +6,7 @@
 // (or a conversation) to handle yourself come first with the reason and no
 // draft. Every draft is copied out and sent by hand.
 import { useMemo, useState } from "react";
-import { Inbox } from "lucide-react";
+import { TrayIcon } from "@phosphor-icons/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -103,7 +103,7 @@ export default function Dms({ userId }: { userId: string }) {
       <Card className="border-border/60 shadow-card">
         <CardContent className="space-y-3 p-4 sm:p-5">
           <h2 id="dms-title" className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-            <Inbox className="h-4 w-4 text-primary" /> Reply to your DMs
+            <TrayIcon className="h-4 w-4 text-primary" /> Reply to your DMs
           </h2>
           <Pills aria-label="What you are pasting" options={VIEWS} value={view} onPick={(v) => batch.edit({ form: { ...batch.run.form, view: v } })} disabled={busy} />
 

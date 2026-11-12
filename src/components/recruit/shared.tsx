@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Check, Copy } from "lucide-react";
+import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +31,7 @@ export function Part({
               done ? "bg-success text-white dark:text-black" : "bg-primary/10 text-primary"
             }`}
           >
-            {done ? <Check className="h-3.5 w-3.5" /> : n}
+            {done ? <CheckIcon className="h-3.5 w-3.5" /> : n}
           </span>
           {title}
           {tip && <InfoTip label={`About ${title}`}>{tip}</InfoTip>}
@@ -84,7 +84,7 @@ export function CopyButton({ text, label, what = "Copied" }: { text: string; lab
       aria-label={label ?? "Copy"}
       className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:min-h-0 [@media(pointer:coarse)]:min-h-11"
     >
-      <Copy className="h-3.5 w-3.5" />
+      <CopyIcon className="h-3.5 w-3.5" />
       {label}
     </button>
   );

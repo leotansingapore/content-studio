@@ -5,7 +5,7 @@
 // settings dialog.
 import { useEffect, useReducer, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { WarningIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ToastAction } from "@/components/ui/toast";
@@ -167,7 +167,7 @@ export default function AutopilotCard({ userId, onDraftsChange }: { userId: stri
         {flags.length > 0 && <ComplianceChips flags={flags} onDismiss={(id) => setDismissed((s) => new Set(s).add(`${p.draftId}:${id}`))} />}
         {repeat && (
           <p className="flex items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             {repeat.percent}% the same words as your post "{repeat.post.hook.length > 40 ? `${repeat.post.hook.slice(0, 40).trim()}...` : repeat.post.hook}". Near copies reach fewer people.
           </p>
         )}
@@ -248,7 +248,7 @@ export default function AutopilotCard({ userId, onDraftsChange }: { userId: stri
               {run.running ? (
                 <div className="space-y-1.5" role="status">
                   <p className="flex items-center gap-2 text-sm font-medium">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Writing next week's posts... {run.running.done} of {run.running.of}
+                    <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Writing next week's posts... {run.running.done} of {run.running.of}
                   </p>
                   <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
                     <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.max(8, (run.running.done / run.running.of) * 100)}%` }} />

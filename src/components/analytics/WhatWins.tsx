@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon } from "@phosphor-icons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -192,7 +192,7 @@ export default function WhatWins({ userId, drafts }: { userId: string; drafts: D
           <div className="space-y-4">
             {reading && (
               <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />
                 Reading your posts... {job.done} of {job.total}
               </p>
             )}

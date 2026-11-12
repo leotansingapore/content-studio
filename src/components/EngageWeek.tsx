@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2 } from "lucide-react";
+import { CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import {
   engageList, fetchClients, isoWeek, loadEngage, saveEngage, sizedCreators,
   type ClientPick, type EngagePerson, type EngageState,
@@ -63,7 +63,7 @@ export default function EngageWeek({ userId }: { userId: string | null }) {
         <div className="space-y-2">
           <h3 className="text-xs font-semibold text-muted-foreground">Likely clients</h3>
           {loading ? (
-            <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading your comments...</p>
+            <p className="flex items-center gap-2 text-xs text-muted-foreground"><CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Reading your comments...</p>
           ) : failed ? (
             <p role="alert" className="text-xs text-destructive">{failed}</p>
           ) : clients.length ? (
@@ -94,7 +94,7 @@ function Row({ on, onToggle, name, href, why }: { on: boolean; onToggle: () => v
     <li className="flex items-center gap-3">
       <button type="button" role="checkbox" aria-checked={on} aria-label={`Done with ${name}`} onClick={onToggle}
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors ${on ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/60"}`}>
-        {on && <Check className="h-4 w-4" />}
+        {on && <CheckIcon className="h-4 w-4" />}
       </button>
       <div className="min-w-0">
         <a href={href} target="_blank" rel="noreferrer" className={`block truncate text-sm font-semibold hover:underline [@media(pointer:coarse)]:relative [@media(pointer:coarse)]:-my-3 [@media(pointer:coarse)]:py-3 ${on ? "text-muted-foreground line-through" : ""}`}>{name}</a>

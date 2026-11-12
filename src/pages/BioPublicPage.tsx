@@ -3,7 +3,7 @@
 // counts the click and sends the visitor on.
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon } from "@phosphor-icons/react";
 
 import BioView from "@/components/bio/BioView";
 import { clickHref, fetchPublicBio, type PublicBio } from "@/lib/bioPage";
@@ -35,7 +35,7 @@ export default function BioPublicPage() {
     <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:py-16">
       {state === "loading" ? (
         <div role="status" className="flex justify-center py-16 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <CircleNotchIcon className="h-5 w-5 animate-spin" />
           <span className="sr-only">Loading</span>
         </div>
       ) : state === "ready" && page ? (

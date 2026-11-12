@@ -3,7 +3,7 @@
 // itself. The slideshow editor offers them under Your fonts; the video end card uses the first.
 
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { TrashIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { FONT_TYPE_ERROR, MAX_BRAND_FONTS, addBrandFont, fontLoads, loadBrandFonts, readFont, registerBrandFonts, removeBrandFont, type UploadedFont } from "@/lib/brandFont";
 
@@ -72,7 +72,7 @@ export default function BrandFontSection({ userId }: { userId: string }) {
                 </p>
               </div>
               <Button variant="ghost" size="sm" aria-label={`Remove ${f.name}`} className="h-9 shrink-0 gap-1.5 text-muted-foreground [@media(pointer:coarse)]:h-11" onClick={() => remove(f)}>
-                <Trash2 className="h-3.5 w-3.5" /> Remove
+                <TrashIcon className="h-3.5 w-3.5" /> Remove
               </Button>
             </li>
           ))}

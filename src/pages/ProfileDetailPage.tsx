@@ -11,18 +11,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowLeft,
-  ExternalLink,
-  Linkedin,
-  Instagram,
-  Facebook,
-  Youtube,
-  Music,
-  Globe,
-  CheckCircle2,
-  AlertTriangle,
-  Copy,
-} from "lucide-react";
+  ArrowLeftIcon,
+  ArrowSquareOutIcon,
+  LinkedinLogoIcon,
+  InstagramLogoIcon,
+  FacebookLogoIcon,
+  YoutubeLogoIcon,
+  MusicNotesIcon,
+  GlobeIcon,
+  CheckCircleIcon,
+  WarningIcon,
+  CopyIcon,
+} from "@phosphor-icons/react";
 import advisorsData from "@/data/advisors.json";
 import { FollowButton, type AdvisorEntry, type AdvisorPlatform } from "@/components/AdvisorProfiles";
 import { WhatWorks } from "@/components/CreatorInsights";
@@ -37,19 +37,19 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import { normalizeHandle } from "../../supabase/functions/_shared/socialAudit.ts";
 import { getTopPostsForAdvisor, topAdvisorId } from "@/lib/topPosts";
 import { humanLabel } from "@/lib/utils";
-import { TrendingUp } from "lucide-react";
+import { TrendUpIcon } from "@phosphor-icons/react";
 
 const ENTRIES = advisorsData as AdvisorEntry[];
 
 const PLATFORM_META: Record<
   AdvisorPlatform,
-  { label: string; Icon: typeof Linkedin }
+  { label: string; Icon: typeof LinkedinLogoIcon }
 > = {
-  linkedin: { label: "LinkedIn", Icon: Linkedin },
-  instagram: { label: "Instagram", Icon: Instagram },
-  facebook: { label: "Facebook", Icon: Facebook },
-  tiktok: { label: "TikTok", Icon: Music },
-  youtube: { label: "YouTube", Icon: Youtube },
+  linkedin: { label: "LinkedIn", Icon: LinkedinLogoIcon },
+  instagram: { label: "Instagram", Icon: InstagramLogoIcon },
+  facebook: { label: "Facebook", Icon: FacebookLogoIcon },
+  tiktok: { label: "TikTok", Icon: MusicNotesIcon },
+  youtube: { label: "YouTube", Icon: YoutubeLogoIcon },
 };
 
 export default function ProfileDetailPage() {
@@ -89,7 +89,7 @@ export default function ProfileDetailPage() {
         <CardContent>
           <Button asChild variant="outline" className="gap-1.5">
             <Link to="/profiles">
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to all creators
+              <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to all creators
             </Link>
           </Button>
         </CardContent>
@@ -122,7 +122,7 @@ export default function ProfileDetailPage() {
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
           {/* Back to the list as it was filtered when this was opened from it. */}
           <Link to={(state as { back?: string } | null)?.back ?? "/profiles"}>
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to all creators
+            <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to all creators
           </Link>
         </Button>
         <CopyLinkButton label="Copy link to this creator" />
@@ -142,11 +142,11 @@ export default function ProfileDetailPage() {
             )}
             {entry.verified ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-                <CheckCircle2 className="h-3 w-3" /> Verified {entry.last_checked}
+                <CheckCircleIcon className="h-3 w-3" /> Verified {entry.last_checked}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
-                <AlertTriangle className="h-3 w-3" /> Unverified
+                <WarningIcon className="h-3 w-3" /> Unverified
               </span>
             )}
           </div>
@@ -164,7 +164,7 @@ export default function ProfileDetailPage() {
               aria-label="Copy handle"
               title="Copy handle"
             >
-              <Copy className="h-3 w-3" />
+              <CopyIcon className="h-3 w-3" />
             </button>
           </CardDescription>
         </CardHeader>
@@ -233,7 +233,7 @@ export default function ProfileDetailPage() {
             </p>
             {entry.secondary_platforms && entry.secondary_platforms.length > 0 && (
               <p className="flex items-center gap-1">
-                <Globe className="h-3 w-3" />
+                <GlobeIcon className="h-3 w-3" />
                 Also on: {entry.secondary_platforms.join(", ")}
               </p>
             )}
@@ -271,7 +271,7 @@ export default function ProfileDetailPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  <ArrowSquareOutIcon className="h-4 w-4" />
                   Open profile
                 </a>
               </Button>
@@ -288,7 +288,7 @@ export default function ProfileDetailPage() {
         <section className="space-y-3">
           <div className="flex items-baseline gap-2 border-b border-border/60 pb-1.5">
             <h2 className="flex items-center gap-1.5 font-serif text-lg font-semibold tracking-tight text-foreground">
-              <TrendingUp className="h-4 w-4 text-primary" />
+              <TrendUpIcon className="h-4 w-4 text-primary" />
               Top performing posts
             </h2>
           </div>
@@ -379,7 +379,7 @@ function OpenProfile({ url, main }: { url: string; main: boolean }) {
       className={`w-full gap-2 sm:w-auto ${main ? "bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95" : ""}`}
     >
       <a href={url} target="_blank" rel="noopener noreferrer">
-        <ExternalLink className="h-4 w-4" />
+        <ArrowSquareOutIcon className="h-4 w-4" />
         Open profile
       </a>
     </Button>

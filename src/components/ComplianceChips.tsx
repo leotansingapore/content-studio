@@ -1,7 +1,7 @@
 // Compliance chips under a post: one per scanCompliance flag, red for an error and amber for a warning, each
 // dismissable. Moved out of Write (GeneratePage.tsx) unchanged, so every format page shows the same chips.
 
-import { AlertTriangle, X as XIcon } from "lucide-react";
+import { WarningIcon, XIcon } from "@phosphor-icons/react";
 import { hasComplianceErrors, type ComplianceFlag } from "@/lib/compliance";
 
 export const ComplianceBadge = ({ flags }: { flags: ComplianceFlag[] }) =>
@@ -35,7 +35,7 @@ export default function ComplianceChips({
                 : "border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200"
             }`}
           >
-            <AlertTriangle
+            <WarningIcon
               className={`mt-0.5 h-3 w-3 shrink-0 ${
                 isError ? "text-destructive" : "text-amber-600"
               }`}

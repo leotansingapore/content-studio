@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ExternalLink, Send, X } from "lucide-react";
+import { ArrowSquareOutIcon, PaperPlaneTiltIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { STATUS_LABEL, parseCaption, type CalendarFeedItem } from "@/lib/channelFeeds";
@@ -111,7 +111,7 @@ export default function ChannelPostDrawer({
             <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
               <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-sky-700 dark:text-sky-300">{item.business}</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-                <Send className="h-3 w-3" /> {item.channel}
+                <PaperPlaneTiltIcon className="h-3 w-3" /> {item.channel}
               </span>
               <span className={`rounded-full px-2 py-0.5 ${STATUS_STYLE[item.status]}`}>{STATUS_LABEL[item.status]}</span>
             </div>
@@ -129,7 +129,7 @@ export default function ChannelPostDrawer({
             aria-label="Close"
             className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-muted/70 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
 
@@ -181,7 +181,7 @@ export default function ChannelPostDrawer({
           {item.link && (
             <Button asChild variant="outline" className="w-full gap-2">
               <a href={item.link} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4" /> Open the article
+                <ArrowSquareOutIcon className="h-4 w-4" /> Open the article
               </a>
             </Button>
           )}

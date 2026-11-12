@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, PenLine, Plus, RefreshCw, X } from "lucide-react";
+import { ArrowSquareOutIcon, PencilLineIcon, PlusIcon, ArrowsClockwiseIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import PriceChip from "@/components/PriceChip";
@@ -116,7 +116,7 @@ export default function YourFeeds() {
         {!loading && <PriceChip feature="feeds" left={left} />}
         {feeds.length > 0 && (
           <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => void load(feeds, true)} disabled={loading || left === 0}>
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> {loading ? "Reading..." : "Refresh"}
+            <ArrowsClockwiseIcon className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> {loading ? "Reading..." : "Refresh"}
           </Button>
         )}
       </div>
@@ -129,7 +129,7 @@ export default function YourFeeds() {
               {f.label || labelFor(f.url)}
               <button type="button" aria-label={`Stop following ${f.label || labelFor(f.url)}`} onClick={() => remove(f.url)}
                 className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
+                <XIcon className="h-3.5 w-3.5" />
               </button>
             </li>
           ))}
@@ -141,7 +141,7 @@ export default function YourFeeds() {
           {suggestions.map((s) => (
             <button key={s.url} type="button" onClick={() => void add(s)}
               className="flex min-h-9 items-center gap-1 rounded-full border border-dashed border-border px-3 text-xs font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground">
-              <Plus className="h-3.5 w-3.5" /> {s.label}
+              <PlusIcon className="h-3.5 w-3.5" /> {s.label}
             </button>
           ))}
         </div>
@@ -171,11 +171,11 @@ export default function YourFeeds() {
                 {s.source}{s.date ? `, ${new Date(s.date).toLocaleDateString("en-SG", { day: "numeric", month: "short" })}` : ""}
               </p>
               <a href={safeExternalUrl(s.link) ?? undefined} target="_blank" rel="noopener noreferrer" className="block text-sm font-semibold leading-snug text-foreground hover:text-primary">
-                {s.title} <ExternalLink className="ml-0.5 inline h-3 w-3 align-[-1px] text-muted-foreground" />
+                {s.title} <ArrowSquareOutIcon className="ml-0.5 inline h-3 w-3 align-[-1px] text-muted-foreground" />
               </a>
               {s.summary && <p className="line-clamp-2 text-xs text-muted-foreground">{s.summary}</p>}
               <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
-                <Link to={storyWriteUrl(s)}><PenLine className="h-3.5 w-3.5" /> Write about this</Link>
+                <Link to={storyWriteUrl(s)}><PencilLineIcon className="h-3.5 w-3.5" /> Write about this</Link>
               </Button>
             </li>
           ))}

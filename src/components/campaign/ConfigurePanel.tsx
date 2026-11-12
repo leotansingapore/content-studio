@@ -4,7 +4,7 @@
 // Pace and length lock once a post is made or while words are being written (replanLock).
 
 import { useState } from "react";
-import { Minus, Plus, X } from "lucide-react";
+import { MinusIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
 import { ROW, dot, rowOn } from "@/components/campaign/WhoStep";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +76,7 @@ export default function ConfigurePanel({ userId, campaign: c, onClose }: { userI
           <p className="mt-1 text-sm text-muted-foreground">{c.runs === "ads" ? plural(c.weeks, "week") : `${plural(c.posts.length, "post")} | ${paceLabel(c.perWeek)} | ${plural(c.weeks, "week")}`}</p>
         </div>
         <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 sm:h-10 sm:w-10" aria-label="Close campaign settings" onClick={onClose}>
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </Button>
       </div>
 
@@ -110,11 +110,11 @@ export default function ConfigurePanel({ userId, campaign: c, onClose }: { userI
           <p id="cfg-length" className={HEAD}>Length</p>
           <div className="flex items-center gap-2" role="group" aria-labelledby="cfg-length">
             <Button type="button" variant="outline" size="icon" className="h-11 w-11 sm:h-10 sm:w-10" aria-label="One week shorter" disabled={weeks <= MIN_WEEKS} onClick={() => setWeeks(weeks - 1)}>
-              <Minus />
+              <MinusIcon />
             </Button>
             <span className="min-w-[5.5rem] text-center font-semibold tabular-nums" aria-live="polite">{plural(weeks, "week")}</span>
             <Button type="button" variant="outline" size="icon" className="h-11 w-11 sm:h-10 sm:w-10" aria-label="One week longer" disabled={weeks >= MAX_WEEKS} onClick={() => setWeeks(weeks + 1)}>
-              <Plus />
+              <PlusIcon />
             </Button>
           </div>
         </div>

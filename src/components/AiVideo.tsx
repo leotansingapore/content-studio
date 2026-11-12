@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { WarningIcon, CaretDownIcon, CaretUpIcon, TrashIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -426,7 +426,7 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
       {inSlot && <p className="text-xs text-muted-foreground">{inSlot.person === "mine" ? "Made by AI from your saved face." : "The person is made by AI."}</p>}
       <ul className="space-y-1" aria-label="Before you make it">
         {pick.warnings.map((w) => (
-          <li key={w} className="flex items-start gap-1.5 text-xs"><AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-warning" aria-hidden /> {w}</li>
+          <li key={w} className="flex items-start gap-1.5 text-xs"><WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-warning" aria-hidden /> {w}</li>
         ))}
       </ul>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -1009,11 +1009,11 @@ function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
                   <span className="text-xs font-semibold text-muted-foreground">Scene {i + 1}</span>
                   <div className="flex">
                     <Button size="sm" variant="ghost" className={iconBtn} aria-label={`Move scene ${i + 1} up`} disabled={busy || i === 0}
-                      onClick={() => setScenes(moveTake(scenes, i, -1))}><ChevronUp className="h-4 w-4" /></Button>
+                      onClick={() => setScenes(moveTake(scenes, i, -1))}><CaretUpIcon className="h-4 w-4" /></Button>
                     <Button size="sm" variant="ghost" className={iconBtn} aria-label={`Move scene ${i + 1} down`} disabled={busy || i === scenes.length - 1}
-                      onClick={() => setScenes(moveTake(scenes, i, 1))}><ChevronDown className="h-4 w-4" /></Button>
+                      onClick={() => setScenes(moveTake(scenes, i, 1))}><CaretDownIcon className="h-4 w-4" /></Button>
                     <Button size="sm" variant="ghost" className={`${iconBtn} text-muted-foreground hover:text-destructive`} aria-label={`Remove scene ${i + 1}`}
-                      disabled={busy || scenes.length <= MIN_SCENES} onClick={() => setScenes(scenes.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
+                      disabled={busy || scenes.length <= MIN_SCENES} onClick={() => setScenes(scenes.filter((_, j) => j !== i))}><TrashIcon className="h-4 w-4" /></Button>
                   </div>
                 </div>
                 <Textarea rows={2} value={s.say} maxLength={300} disabled={busy} aria-label={`Scene ${i + 1}, what the voice says`} className="text-sm"
@@ -1277,11 +1277,11 @@ function Narrated({ userId, busy }: { userId: string; busy: boolean }) {
                     <span className="text-xs font-semibold text-muted-foreground">Scene {i + 1}</span>
                     <div className="flex">
                       <Button size="sm" variant="ghost" className={iconBtn} aria-label={`Move scene ${i + 1} up`} disabled={off || i === 0}
-                        onClick={() => patch({ scenes: moveTake(scenes, i, -1) })}><ChevronUp className="h-4 w-4" /></Button>
+                        onClick={() => patch({ scenes: moveTake(scenes, i, -1) })}><CaretUpIcon className="h-4 w-4" /></Button>
                       <Button size="sm" variant="ghost" className={iconBtn} aria-label={`Move scene ${i + 1} down`} disabled={off || i === scenes.length - 1}
-                        onClick={() => patch({ scenes: moveTake(scenes, i, 1) })}><ChevronDown className="h-4 w-4" /></Button>
+                        onClick={() => patch({ scenes: moveTake(scenes, i, 1) })}><CaretDownIcon className="h-4 w-4" /></Button>
                       <Button size="sm" variant="ghost" className={`${iconBtn} text-muted-foreground hover:text-destructive`} aria-label={`Remove scene ${i + 1}`}
-                        disabled={off || scenes.length <= MIN_SCENES} onClick={() => patch({ scenes: scenes.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" /></Button>
+                        disabled={off || scenes.length <= MIN_SCENES} onClick={() => patch({ scenes: scenes.filter((_, j) => j !== i) })}><TrashIcon className="h-4 w-4" /></Button>
                     </div>
                   </div>
                   <Textarea rows={2} value={s.say} maxLength={300} disabled={off} aria-label={`Scene ${i + 1}, what the voice says`} className="text-sm"

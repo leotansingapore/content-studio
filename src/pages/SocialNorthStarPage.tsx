@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, Shuffle } from "lucide-react";
+import { ArrowSquareOutIcon, CircleNotchIcon, ShuffleIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import VideoEmbed from "@/components/VideoEmbed";
@@ -131,7 +131,7 @@ function SocialNorthStar({ userId }: { userId: string }) {
 
       {status && (
         <p className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-live="polite">
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> {status}
+          <CircleNotchIcon className="h-4 w-4 shrink-0 animate-spin" /> {status}
         </p>
       )}
       {!busy && found?.error && <p role="alert" className="text-sm text-destructive">{found.text}</p>}
@@ -246,7 +246,7 @@ function PlayCard({ play: p, media, done, counted, next, linked }: {
           {/* a play is a format: Remix keeps it and writes about the brand, whatever the example's own topic */}
           <RemixButton source={fromFollowPost(best, best.post)} label={`${name}, from @${best.handle}'s post`} note={note} keep="topic" text="Make one like this" variant={next ? "default" : "outline"} size="default">
             <Button asChild variant={next ? "default" : "outline"} className={cn("gap-1.5", TOUCH)}>
-              <Link to={remixUrl(best, best.post)}><Shuffle className="h-4 w-4" /> Make one like this</Link>
+              <Link to={remixUrl(best, best.post)}><ShuffleIcon className="h-4 w-4" /> Make one like this</Link>
             </Button>
           </RemixButton>
         </div>
@@ -300,7 +300,7 @@ function ExampleTile({ e, cover, linked }: { e: PlayExample; cover: string | und
               aria-label={`Open @${e.handle}'s post on ${e.platform === "tiktok" ? "TikTok" : "Instagram"}`}
               className="-my-1 -mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md hover:text-primary [@media(pointer:coarse)]:-my-3 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ArrowSquareOutIcon className="h-3.5 w-3.5" />
             </a>
           )}
         </p>

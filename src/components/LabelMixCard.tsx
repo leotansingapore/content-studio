@@ -2,7 +2,7 @@
 // share, against the share the user is aiming for (equal unless they set one).
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Shapes } from "lucide-react";
+import { ShapesIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LABEL_SWATCH, updateLabel, type Label, type MixRow } from "@/lib/labels";
@@ -34,7 +34,7 @@ export default function LabelMixCard({
     <Card className="border-border/60 shadow-card">
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
         <CardTitle className="flex items-center gap-2 font-serif text-lg">
-          <Shapes className="h-4 w-4 text-muted-foreground" /> Mix
+          <ShapesIcon className="h-4 w-4 text-muted-foreground" /> Mix
         </CardTitle>
         {!targets && (
           <Button

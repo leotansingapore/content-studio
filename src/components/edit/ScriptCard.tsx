@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Mic, Square } from "lucide-react";
+import { MicrophoneIcon, SquareIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -417,10 +417,10 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
                           </>
                         )
                       ) : recording?.i === i ? (
-                        <Button size="sm" className={`${btn} gap-1.5`} onClick={stop}><Square className="h-3.5 w-3.5" /> Stop, {clock(recSeconds)}</Button>
+                        <Button size="sm" className={`${btn} gap-1.5`} onClick={stop}><SquareIcon className="h-3.5 w-3.5" /> Stop, {clock(recSeconds)}</Button>
                       ) : (
                         <Button size="sm" variant="outline" className={`${btn} gap-1.5`} disabled={busy || !!recording} onClick={() => void record(i)}>
-                          <Mic className="h-3.5 w-3.5" /> {take ? "Record it again" : "Record it"}
+                          <MicrophoneIcon className="h-3.5 w-3.5" /> {take ? "Record it again" : "Record it"}
                         </Button>
                       )}
                       {take && <audio src={take.url} controls autoPlay className="h-11 max-w-full sm:h-9" aria-label={`Part ${i + 1}, the new line`} />}

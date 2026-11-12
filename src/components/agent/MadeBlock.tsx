@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Image as ImageIcon, Play } from "lucide-react";
+import { ImageIcon, PlayIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { isAppPath } from "@/components/agent/dockActions";
 import type { AgentMsg } from "@/lib/agentThreads";
@@ -76,7 +76,7 @@ export default function MadeBlock({ userId, job }: { userId: string; job: Job })
         <div className={`relative shrink-0 overflow-hidden rounded-md border border-border/60 ${video ? "h-24 w-[54px]" : "h-[85px] w-[68px]"}`} aria-hidden>
           {video ? (
             <div className="flex h-full w-full items-center justify-center bg-foreground/85 text-background">
-              <Play className="h-5 w-5 fill-current" />
+              <PlayIcon weight="fill" className="h-5 w-5" />
             </div>
           ) : job.kind === "image" ? (
             <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">

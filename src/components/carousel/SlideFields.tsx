@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ThinkingOrb } from "thinking-orbs";
-import { ChevronDown, ImagePlus, Sparkles, TriangleAlert } from "lucide-react";
+import { CaretDownIcon, ImageSquareIcon, SparkleIcon, WarningIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -153,7 +153,7 @@ export default function SlideFields(p: {
           <span className="text-[11px] text-muted-foreground">The picture is on the device you added it from.</span>
         )}
         <label className={`inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-semibold hover:border-primary/40 ${busy ? "pointer-events-none opacity-60" : ""}`}>
-          <ImagePlus className="h-3.5 w-3.5" /> {s.image ? "Change picture" : "Add a picture"}
+          <ImageSquareIcon className="h-3.5 w-3.5" /> {s.image ? "Change picture" : "Add a picture"}
           <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; p.onPicture(f); }} />
         </label>
         <Button type="button" size="sm" variant="outline" className="h-8 text-xs" aria-expanded={p.media !== null} onClick={p.onMedia} disabled={busy}>
@@ -169,7 +169,7 @@ export default function SlideFields(p: {
       {p.media !== null && <MediaPicker media={p.media} onPick={p.onPickMedia} />}
       {p.overflow && (
         <p className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-200">
-          <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           Too much text to fit, so the slide cuts it off. Shorten it.
         </p>
       )}
@@ -314,7 +314,7 @@ export function SlideRewrite(p: {
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" variant="outline" aria-expanded={menu} onClick={() => setMenu(!menu)}
           disabled={p.busy || working || empty || p.left === 0} className="h-8 gap-1.5 text-xs [@media(pointer:coarse)]:h-11">
-          <Sparkles className="h-3.5 w-3.5" /> Rewrite this slide <ChevronDown className="h-3.5 w-3.5" />
+          <SparkleIcon className="h-3.5 w-3.5" /> Rewrite this slide <CaretDownIcon className="h-3.5 w-3.5" />
         </Button>
         {!working && <PriceChip feature="edit-ask" left={p.left} />}
         {why && <span className="text-[11px] text-muted-foreground">{why}</span>}

@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ArrowSquareOutIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -148,7 +148,7 @@ function TodayNumbers({ userId, audited, onChange, onFollowers }: Props) {
           </Button>
         ) : (
           <Button type="button" size="sm" variant={state.at === "done" ? "outline" : "default"} onClick={pull} disabled={busy} className={`gap-1.5 ${TOUCH}`}>
-            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {busy && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />}
             {busy ? "Pulling your numbers..." : state.at === "done" ? "Update" : state.at === "error" ? "Try again" : "Use my real numbers"}
           </Button>
         )}
@@ -178,7 +178,7 @@ function TodayNumbers({ userId, audited, onChange, onFollowers }: Props) {
                       aria-label={`Open the post on ${platformName(p.platform)}`}
                       className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <ArrowSquareOutIcon className="h-4 w-4" />
                     </a>
                   )}
                 </li>
@@ -295,7 +295,7 @@ function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
         <div aria-live="polite" className="space-y-3">
           {chip ? (
             <p className={`flex items-center gap-1.5 text-sm ${chip.tone === "error" ? "text-destructive" : "text-muted-foreground"}`}>
-              {job.running && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {job.running && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />}
               {chip.text}
             </p>
           ) : job.none ? (
@@ -368,7 +368,7 @@ function LeoNumbers({ userId, audited, onChange, onFollowers }: Props) {
                         aria-label={`Open the post on ${platformName(p.platform)}`}
                         className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ArrowSquareOutIcon className="h-4 w-4" />
                       </a>
                     )}
                   </div>

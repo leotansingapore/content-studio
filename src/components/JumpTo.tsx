@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CornerDownLeft, Search } from "lucide-react";
+import { ArrowElbowDownLeftIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { jumpList, loadRecent, searchJump, type JumpItem } from "@/lib/jumpTo";
 
 /** "⌘K" on Apple keyboards, "Ctrl K" elsewhere. */
@@ -83,7 +83,7 @@ export default function JumpTo({ open, onClose, email }: { open: boolean; onClos
       className="m-auto mt-[10vh] w-[min(36rem,calc(100vw-2rem))] max-w-none rounded-2xl border border-border/70 bg-background p-0 shadow-xl backdrop:bg-foreground/40"
     >
       <div className="flex items-center gap-2 border-b border-border/70 px-4">
-        <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <MagnifyingGlassIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <input
           ref={inputRef}
           value={query}
@@ -121,7 +121,7 @@ export default function JumpTo({ open, onClose, email }: { open: boolean; onClos
               >
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
                 {searching && <span className="shrink-0 text-[11px] text-muted-foreground">{item.group}</span>}
-                {i === current && <CornerDownLeft className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />}
+                {i === current && <ArrowElbowDownLeftIcon className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />}
               </div>
             ))}
           </div>

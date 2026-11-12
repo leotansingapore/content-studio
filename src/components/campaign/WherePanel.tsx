@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check } from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import type { Campaign } from "@/lib/campaigns";
 import { activeProfileId } from "@/lib/profiles";
@@ -57,7 +57,7 @@ export default function WherePanel({ userId, campaign: c }: { userId: string; ca
           </div>
         ) : (
           <p className="flex items-start gap-2">
-            <Check className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden />
+            <CheckIcon className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden />
             <span className="min-w-0">
               <span className="block text-sm font-medium">Accounts ready</span>
               <span className="block text-sm text-muted-foreground">{c.platforms.map(platformName).join(", ")}</span>

@@ -2,7 +2,7 @@
 // No backdrop, so the page stays usable. Closing it or finishing it marks the tour done (pageTour.ts).
 
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { finishPageTour, type PageStep, type PageTourId } from "@/lib/pageTour";
 
@@ -52,7 +52,7 @@ export default function PageTour({ id, userId, steps, onClose, onStep }: { id: P
           <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
         </div>
         <button type="button" aria-label="Close the tour" onClick={close} className="rounded p-1 text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:-m-2.5 [@media(pointer:coarse)]:p-3.5">
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
       </div>
       <div className="mt-3 flex items-center justify-end gap-2">

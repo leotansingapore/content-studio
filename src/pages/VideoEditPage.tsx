@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { EDIT_TABS, links, type EditTab, type PostLang } from "@/lib/links";
 import { useScrollToHash, useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
-import { Check, ChevronDown, ChevronUp, Download, Eye, Layers, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
+import { CheckIcon, CaretDownIcon, CaretUpIcon, DownloadSimpleIcon, EyeIcon, StackIcon, MicrophoneIcon, MusicNotesIcon, ArrowClockwiseIcon, SquareIcon, SpeakerHighIcon, FilmStripIcon, ImageIcon, PauseIcon, PlayIcon, MagnifyingGlassIcon, SparkleIcon, TrashIcon, ArrowUUpLeftIcon, UploadSimpleIcon, MagicWandIcon, TranslateIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import StockSearch from "@/components/StockSearch";
 import YoutubeClips from "@/components/YoutubeClips";
@@ -539,7 +539,7 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
         ) : (
           <>
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-elegant">
-              <Upload className="h-6 w-6" />
+              <UploadSimpleIcon className="h-6 w-6" />
             </span>
             <span className="text-base font-semibold">Upload a video of you talking</span>
             <span className="text-xs text-muted-foreground">A video, or a podcast or voice clip (MP3, M4A, WAV). Up to 4 GB and about 2 hours. It stays on this device.</span>
@@ -581,7 +581,7 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
                 </Link>
                 <button type="button" aria-label={`Delete ${p.name}`} onClick={() => window.confirm(`Delete ${p.name}?`) && onRemove(p.id)}
                   className="absolute right-1.5 top-1.5 rounded-md bg-background/85 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus:opacity-100 [@media(pointer:coarse)]:p-[15px] [@media(pointer:coarse)]:opacity-100">
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <TrashIcon className="h-3.5 w-3.5" />
                 </button>
               </li>
             ))}
@@ -618,11 +618,11 @@ function WallStart({ busy, onMake, onClose }: { busy: string; onMake: (file: Fil
         <p className="text-xs font-semibold">Pick a clip</p>
         <div className="flex flex-wrap items-center gap-2">
           <label className={pickBtn}>
-            <Upload className="h-3.5 w-3.5" /> Upload
+            <UploadSimpleIcon className="h-3.5 w-3.5" /> Upload
             <input type="file" accept="video/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setClip(f); setStock(false); } }} />
           </label>
-          <button type="button" className={pickBtn} onClick={() => setStock(true)} aria-expanded={stock}><Film className="h-3.5 w-3.5" /> Stock clip</button>
-          {clip && <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground"><Check className="h-3.5 w-3.5 shrink-0 text-success" /><span className="truncate">{clip.name}</span></span>}
+          <button type="button" className={pickBtn} onClick={() => setStock(true)} aria-expanded={stock}><FilmStripIcon className="h-3.5 w-3.5" /> Stock clip</button>
+          {clip && <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-success" /><span className="truncate">{clip.name}</span></span>}
         </div>
         {stock && (
           <StockSearch kind="video" orientation="portrait" placeholder="City at night, coffee on a desk, rain on a window"
@@ -2071,11 +2071,11 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
       <div className="flex flex-wrap gap-2">
         {sel.kind !== "block" && <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => editOverlay(sel.id, { from: Math.floor(outT * 10) / 10, to: Math.floor(outT * 10) / 10 + (sel.to - sel.from) })}>Start at {fmtTime(outT)}</Button>}
         {(sel.kind === "arrow" || sel.kind === "underline") && (
-          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => editOverlay(sel.id, { turn: (sel.turn + 1) % 4 })}><RotateCw className="h-3.5 w-3.5" /> Turn</Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => editOverlay(sel.id, { turn: (sel.turn + 1) % 4 })}><ArrowClockwiseIcon className="h-3.5 w-3.5" /> Turn</Button>
         )}
         <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
           onClick={() => { change({ ...settings, overlays: overlays.filter((o) => o.id !== sel.id) }); setSelected(null); }}>
-          <Trash2 className="h-3.5 w-3.5" /> Delete
+          <TrashIcon className="h-3.5 w-3.5" /> Delete
         </Button>
       </div>
     </div>
@@ -2114,13 +2114,13 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
             <InfoTip label="About the AI label">{"Made by the Postmosis AI. Posts from it get the AI label."}</InfoTip>
           </span>
         )}
-        <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>
+        <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><ArrowUUpLeftIcon className="h-3.5 w-3.5" /> Undo</Button>
         <Button variant="outline" size="sm" onClick={() => void saveCover()} disabled={!file} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
         {settings.exportAs !== "audio" && settings.exportAs !== "small" && (
-          <Button variant="outline" size="sm" onClick={() => setSizesOpen(!showSizes)} aria-expanded={showSizes} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><Layers className="h-3.5 w-3.5" /> More sizes</Button>
+          <Button variant="outline" size="sm" onClick={() => setSizesOpen(!showSizes)} aria-expanded={showSizes} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><StackIcon className="h-3.5 w-3.5" /> More sizes</Button>
         )}
         <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60 [@media(pointer:coarse)]:min-h-11">
-          <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : <>{exportLabel} <span className="font-normal opacity-80">{fmtBytes(size.bytes)}</span></>}
+          <DownloadSimpleIcon className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : <>{exportLabel} <span className="font-normal opacity-80">{fmtBytes(size.bytes)}</span></>}
         </Button>
       </div>
       {wideForUpright(size) && (
@@ -2147,14 +2147,14 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
         <section className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3" aria-label="Ready to post">
           <p className="text-sm font-semibold">Ready to post</p>
           <div className="flex flex-wrap gap-2">
-            <Button asChild size="sm" variant="outline" className="h-9 gap-1.5"><a href={job.url} download={`${project.name}-${job.kind === "audio" ? "audio" : "edited"}.${job.ext}`}><Download className="h-3.5 w-3.5" /> {job.kind === "audio" ? "Sound" : "Video"}{job.bytes ? `, ${fmtBytes(job.bytes)}` : ""}</a></Button>
+            <Button asChild size="sm" variant="outline" className="h-9 gap-1.5"><a href={job.url} download={`${project.name}-${job.kind === "audio" ? "audio" : "edited"}.${job.ext}`}><DownloadSimpleIcon className="h-3.5 w-3.5" /> {job.kind === "audio" ? "Sound" : "Video"}{job.bytes ? `, ${fmtBytes(job.bytes)}` : ""}</a></Button>
             <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => void saveCover()}><ImageIcon className="h-3.5 w-3.5" /> Cover</Button>
-            {words.length > 0 && <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={downloadSrt}><Download className="h-3.5 w-3.5" /> Subtitles</Button>}
+            {words.length > 0 && <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={downloadSrt}><DownloadSimpleIcon className="h-3.5 w-3.5" /> Subtitles</Button>}
             {caption ? (
               <Button size="sm" className="h-9 [@media(pointer:coarse)]:min-h-11" onClick={copyCaption}>Copy caption</Button>
             ) : (
               <Button size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:min-h-11" onClick={writeCaption} disabled={writingCaption || !words.length}>
-                {writingCaption ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />} {writingCaption ? "Writing..." : "Write the caption"}
+                {writingCaption ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <MagicWandIcon className="h-3.5 w-3.5" />} {writingCaption ? "Writing..." : "Write the caption"}
               </Button>
             )}
           </div>
@@ -2164,7 +2164,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
               <p className="text-xs text-muted-foreground" aria-live="polite">Checking the file...</p>
             ) : fileCheck.issues.length === 0 ? (
               <p className="flex items-center gap-1.5 text-xs" role="status">
-                {fileCheck.read ? <><Check className="h-3.5 w-3.5 text-success" /> File checked: the right length, and the sound comes through.</> : "Couldn't read the file back to check it."}
+                {fileCheck.read ? <><CheckIcon className="h-3.5 w-3.5 text-success" /> File checked: the right length, and the sound comes through.</> : "Couldn't read the file back to check it."}
               </p>
             ) : (
               <ul className="space-y-1.5" aria-label="Before you post">
@@ -2190,7 +2190,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
               <span className="flex flex-wrap items-center gap-2">
                 <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 ${watching ? "disabled:opacity-100" : ""}`} disabled={watching || none("video-watch")}
                   onClick={() => void startWatch(job.id, job.url!, job.seconds ?? total)}>
-                  {watching ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Eye className="h-3.5 w-3.5" />}
+                  {watching ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <EyeIcon className="h-3.5 w-3.5" />}
                   {watching ? "Watching it, 1-2 minutes..." : watch?.exportId === job.id && watch.state === "done" ? "Watch it again" : "Watch it like a viewer"}
                 </Button>
                 <Left n={left("video-watch")} feature="video-watch" busy={watching} />
@@ -2198,7 +2198,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
               {watch?.exportId === job.id && watch.state === "failed" && <p className="text-xs text-destructive" role="alert">{watch.error}</p>}
               {watch?.exportId === job.id && watch.state === "done" && watch.findings && (
                 watch.findings.length === 0 ? (
-                  <p className="flex items-center gap-1.5 text-xs" role="status"><Check className="h-3.5 w-3.5 text-success" /> Watched it: nothing a viewer would trip on.</p>
+                  <p className="flex items-center gap-1.5 text-xs" role="status"><CheckIcon className="h-3.5 w-3.5 text-success" /> Watched it: nothing a viewer would trip on.</p>
                 ) : (
                   <ul className="space-y-1.5" aria-label="What a viewer would trip on">
                     {watch.findings.map((f) => (
@@ -2311,7 +2311,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
             onLoadedData={() => paint()} onSeeked={() => paint()} />
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={toggle} aria-label={playing ? "Pause" : "Play"} className="h-9 w-9 p-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {playing ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
             </Button>
             <input type="range" min={0} max={total || 1} step={0.05} value={Math.min(introT ?? intro + outT, total)} aria-label="Position"
               onChange={(e) => seekPos(Number(e.target.value))} className="flex-1 accent-primary" />
@@ -2370,7 +2370,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
 
         <div className="space-y-4">
           <section className="space-y-2 rounded-xl border border-primary/25 bg-primary/5 p-3">
-            <p className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="h-4 w-4 text-primary" /> Vibe edit
+            <p className="flex items-center gap-1.5 text-sm font-semibold"><SparkleIcon className="h-4 w-4 text-primary" /> Vibe edit
               <InfoTip label="About vibe edit">Say the change in plain words; Undo puts it back.</InfoTip></p>
             <StylePresets settings={settings} words={words} segs={plan.segs} total={plan.total} speed={speed} disabled={thinking}
               apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }} />
@@ -2412,10 +2412,10 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), runVibe())} />
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" onClick={() => runVibe()} disabled={thinking || !ask.trim() || none("vibe-edit")} className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${thinking ? "disabled:opacity-100" : ""}`}>
-                {thinking ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />} {thinking ? "Editing..." : "Change it"}
+                {thinking ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <MagicWandIcon className="h-3.5 w-3.5" />} {thinking ? "Editing..." : "Change it"}
               </Button>
               <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold hover:border-primary/40 [@media(pointer:coarse)]:min-h-11 ${thinking || none("vibe-edit") ? "pointer-events-none opacity-60" : ""}`}>
-                <Film className="h-3.5 w-3.5" /> Match a reference video
+                <FilmStripIcon className="h-3.5 w-3.5" /> Match a reference video
                 <input type="file" accept="video/*" className="sr-only" disabled={none("vibe-edit")} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void matchReference(f); }} />
               </label>
               <Left n={left("vibe-edit")} feature="vibe-edit" busy={thinking} />
@@ -2451,7 +2451,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold">Post caption</p>
               <Button size="sm" variant="outline" onClick={writeCaption} disabled={writingCaption || !words.length} className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${writingCaption ? "disabled:opacity-100" : ""}`}>
-                {writingCaption ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
+                {writingCaption ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <MagicWandIcon className="h-3.5 w-3.5" />}
                 {writingCaption ? "Writing..." : caption ? "Write it again" : "Write the caption"}
               </Button>
             </div>
@@ -2482,7 +2482,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                 <span className={leo ? "flex flex-wrap items-center justify-end gap-2 text-right" : "flex items-center gap-2"}>
                   <Left n={left("video-publish")} feature="video-publish" busy={ideating} />
                   <Button size="sm" variant="outline" onClick={suggestPublish} disabled={ideating || !words.length || none("video-publish")} className={`h-11 gap-1.5 sm:h-9 ${ideating ? "disabled:opacity-100" : ""}`}>
-                    {ideating ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
+                    {ideating ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <SparkleIcon className="h-3.5 w-3.5" />}
                     {ideating ? "Writing..." : publish ? "Write again" : "Suggest from what I say"}
                   </Button>
                 </span>
@@ -2576,7 +2576,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                     ))}
                   </div>
                   <label className={`${pickBtn} ${musicBusy ? "pointer-events-none opacity-60" : ""}`}>
-                    <MusicIcon className="h-3.5 w-3.5" /> {musicBusy ? "Reading..." : "Swap sound"}
+                    <MusicNotesIcon className="h-3.5 w-3.5" /> {musicBusy ? "Reading..." : "Swap sound"}
                     <input type="file" accept="audio/*" className="sr-only" disabled={musicBusy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addMusic(f, { volume: 0 }); }} />
                   </label>
                 </div>
@@ -2593,11 +2593,11 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium">Swap video</span>
                   <label className={`${pickBtn} ${swapping ? "pointer-events-none opacity-60" : ""}`}>
-                    <Upload className="h-3.5 w-3.5" /> Upload
+                    <UploadSimpleIcon className="h-3.5 w-3.5" /> Upload
                     <input type="file" accept="video/*" className="sr-only" disabled={swapping} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) uploadSwap(f); }} />
                   </label>
                   <button type="button" className={`${pickBtn} disabled:pointer-events-none disabled:opacity-60`} disabled={swapping} onClick={() => setSwapStock(true)} aria-expanded={swapStock}>
-                    <Film className="h-3.5 w-3.5" /> Stock clip
+                    <FilmStripIcon className="h-3.5 w-3.5" /> Stock clip
                   </button>
                 </div>
                 {swapStock && (
@@ -2763,21 +2763,21 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                     <InfoTip label="About voiceover">The edit plays muted from the playhead while you talk over it.</InfoTip></span>
                   {recording ? (
                     <Button size="sm" variant="destructive" className="h-9 gap-1.5" onClick={stopVoice}>
-                      <Square className="h-3.5 w-3.5" /> Stop {fmtTime(recSeconds).replace(/\.\d$/, "")}
+                      <SquareIcon className="h-3.5 w-3.5" /> Stop {fmtTime(recSeconds).replace(/\.\d$/, "")}
                     </Button>
                   ) : (
                     <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={startVoice} disabled={!file || playing}>
-                      <Mic className="h-3.5 w-3.5" /> {settings.voiceover ? "Record again" : "Record from the mic"}
+                      <MicrophoneIcon className="h-3.5 w-3.5" /> {settings.voiceover ? "Record again" : "Record from the mic"}
                     </Button>
                   )}
                   {!recording && (
                     <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={openTts} disabled={!file || playing} aria-expanded={ttsOpen}>
-                      <Sparkles className="h-3.5 w-3.5" /> Voiceover from text
+                      <SparkleIcon className="h-3.5 w-3.5" /> Voiceover from text
                     </Button>
                   )}
                   {!recording && (
                     <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => setDubOpen((o) => !o)} disabled={!file || playing || !words.length} aria-expanded={dubOpen}>
-                      <Languages className="h-3.5 w-3.5" /> Dub it
+                      <TranslateIcon className="h-3.5 w-3.5" /> Dub it
                     </Button>
                   )}
                 </div>
@@ -2789,7 +2789,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                     <VoicePicker voice={ttsVoice} how={ttsHow} onVoice={setTtsVoice} onHow={setTtsHow} />
                     <div className="flex flex-wrap items-center gap-2">
                       <Button size="sm" className={`h-9 gap-1.5 ${dubBusy ? "disabled:opacity-100" : ""}`} onClick={() => void makeDub()} disabled={!!dubBusy || none("ai-voice") || none("video-translate")}>
-                        {dubBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
+                        {dubBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <MagicWandIcon className="h-3.5 w-3.5" />}
                         {dubBusy || `Dub into ${DUB_LANGS[dubLang]}`}
                       </Button>
                       {/* the translation and the new voice: two caps, so the smaller of the two is what's left */}
@@ -2804,7 +2804,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                     <VoicePicker voice={ttsVoice} how={ttsHow} onVoice={setTtsVoice} onHow={setTtsHow} />
                     <div className="flex flex-wrap items-center gap-2">
                       <Button size="sm" className={`h-9 gap-1.5 ${ttsBusy ? "disabled:opacity-100" : ""}`} onClick={() => void makeTts()} disabled={ttsBusy || ttsText.trim().length < 5 || none("ai-voice")}>
-                        {ttsBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
+                        {ttsBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <MagicWandIcon className="h-3.5 w-3.5" />}
                         {ttsBusy ? "Making the voiceover..." : `Make it from ${fmtTime(Math.min(outT, Math.max(0, plan.total - 0.5)))}`}
                       </Button>
                       <span className="text-[11px] text-muted-foreground">{ttsText.length.toLocaleString("en-US")} / {MAX_SCRIPT.toLocaleString("en-US")}</span>
@@ -2832,11 +2832,11 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                     <InfoTip label="About background music">{aiMusicOn() ? "Yours or one made for you, looped." : "Your own track, looped."} It drops while you talk.</InfoTip></span>
                   {aiMusicOn() && (
                     <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={openAiMusic} aria-expanded={aiMusicOpen || musicMaking}>
-                      <Sparkles className="h-3.5 w-3.5" /> Music for me
+                      <SparkleIcon className="h-3.5 w-3.5" /> Music for me
                     </Button>
                   )}
                   <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => musicInput.current?.click()} disabled={musicBusy}>
-                    <MusicIcon className="h-3.5 w-3.5" /> {musicBusy ? "Reading..." : settings.music ? "Change track" : "Add a track"}
+                    <MusicNotesIcon className="h-3.5 w-3.5" /> {musicBusy ? "Reading..." : settings.music ? "Change track" : "Add a track"}
                   </Button>
                   <input ref={musicInput} type="file" accept="audio/*" className="sr-only" tabIndex={-1} aria-hidden
                     onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addMusic(f); }} />
@@ -2848,7 +2848,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Button size="sm" className={`h-11 gap-1.5 sm:h-9 ${musicMaking ? "disabled:opacity-100" : ""}`} onClick={makeMusic} disabled={musicMaking || !mood || none("ai-music")}>
-                        {musicMaking || !mood ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
+                        {musicMaking || !mood ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <MagicWandIcon className="h-3.5 w-3.5" />}
                         {musicMaking ? "Making the track..." : !mood ? "Picking a mood..." : `Make a ${Math.floor(trackSecs / 60)}:${String(trackSecs % 60).padStart(2, "0")} track`}
                       </Button>
                       <Left n={left("ai-music")} feature="ai-music" opts={{ minutes: trackSecs / 60 }} busy={musicMaking} />
@@ -2906,7 +2906,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                               : <>{c.before} <mark className="rounded bg-warning/30 px-1 text-foreground">{c.kind === "filler" ? c.word : `${(c.end - c.start).toFixed(1)}s pause`}</mark> {c.after}</>}
                           </span>
                           <Button size="sm" variant="ghost" className="h-11 w-11 shrink-0 p-0 sm:h-8 sm:w-8" aria-label={`Listen to ${c.kind === "filler" ? c.word : c.kind === "retake" ? "the first take" : "the pause"} at ${fmtTime(c.start)}`} onClick={() => listen(c.start, c.end)}>
-                            <Volume2 className="h-3.5 w-3.5" />
+                            <SpeakerHighIcon className="h-3.5 w-3.5" />
                           </Button>
                           <Chip on={!kept} onClick={() => toggleCut(c.id)} className="min-h-11 sm:min-h-0 [@media(pointer:coarse)]:min-h-11">{kept ? "Kept" : c.kind === "pause" && settings.pauseFast ? `${FAST}x` : "Cut"}</Chip>
                         </li>
@@ -3088,7 +3088,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                 <div className="flex flex-wrap items-center gap-2">
                   {backdropVideo === null && <span className="text-xs text-muted-foreground">The video is on the device you added it on.</span>}
                   <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => backdropVideoInput.current?.click()}>
-                    <Film className="h-3.5 w-3.5" /> Change video
+                    <FilmStripIcon className="h-3.5 w-3.5" /> Change video
                   </Button>
                 </div>
               )}
@@ -3129,7 +3129,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                   <span className={leo ? "flex flex-wrap items-center justify-end gap-2 text-right" : "flex items-center gap-2"}>
                     <Left n={left("video-cutaways")} feature="video-cutaways" busy={suggesting} />
                     <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 ${suggesting ? "disabled:opacity-100" : ""}`} onClick={suggest} disabled={suggesting || !words.length || none("video-cutaways")}>
-                      {suggesting ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
+                      {suggesting ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <SparkleIcon className="h-3.5 w-3.5" />}
                       {suggesting ? "Reading..." : cutaways.length ? "Suggest again" : "Suggest from what I say"}
                     </Button>
                   </span>
@@ -3147,7 +3147,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                             {c.show && <span className="block text-muted-foreground">Show: {c.show}</span>}
                           </span>
                           <Button size="sm" variant={added ? "ghost" : "outline"} className="h-11 shrink-0 gap-1 text-xs sm:h-8" disabled={added} onClick={() => addCallout(c)}>
-                            {added ? <><Check className="h-3.5 w-3.5" /> Added</> : "Add"}
+                            {added ? <><CheckIcon className="h-3.5 w-3.5" /> Added</> : "Add"}
                           </Button>
                         </li>
                       );
@@ -3187,7 +3187,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                   apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }} />
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => setBrollSearch(true)} disabled={brolls.length >= MAX_BROLL}>
-                    <Film className="h-3.5 w-3.5" /> Add B-roll at {fmtTime(Math.min(outT, plan.total))}
+                    <FilmStripIcon className="h-3.5 w-3.5" /> Add B-roll at {fmtTime(Math.min(outT, plan.total))}
                   </Button>
                   <InfoTip label="About B-roll">A free stock clip over your video from the playhead. Your voice carries on under it.</InfoTip>
                 </div>
@@ -3218,7 +3218,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                     <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { const from = Math.floor(Math.min(outT, plan.total) * 10) / 10; editBroll(selB.id, { from, to: from + (selB.to - selB.from) }); }}>Start at {fmtTime(Math.min(outT, plan.total))}</Button>
                     <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
                       onClick={() => { change({ ...settings, broll: brolls.filter((b) => b.id !== selB.id) }); setSelBroll(null); }}>
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                      <TrashIcon className="h-3.5 w-3.5" /> Delete
                     </Button>
                   </div>
                   {selB.by && (
@@ -3246,14 +3246,14 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                 <>
                 <div className="flex items-center gap-1.5">
                   <label className="relative flex-1">
-                    <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                    <MagnifyingGlassIcon className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
                     <input value={find} onChange={(e) => { setFind(e.target.value); setHit(0); }} placeholder="Find a word or phrase" aria-label="Find in what you said"
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); jumpTo(hit + (e.shiftKey ? -1 : 1)); } }}
                       className="h-9 w-full rounded-md border border-input bg-background pl-7 pr-2 text-sm [@media(pointer:coarse)]:h-11" />
                   </label>
                   {find.trim() && <span className="w-14 text-center text-[11px] text-muted-foreground" aria-live="polite">{hits.length ? `${hit + 1} of ${hits.length}` : "None"}</span>}
-                  <Button size="sm" variant="outline" className="h-9 w-9 p-0" aria-label="Previous match" disabled={!hits.length} onClick={() => jumpTo(hit - 1)}><ChevronUp className="h-4 w-4" /></Button>
-                  <Button size="sm" variant="outline" className="h-9 w-9 p-0" aria-label="Next match" disabled={!hits.length} onClick={() => jumpTo(hit + 1)}><ChevronDown className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="outline" className="h-9 w-9 p-0" aria-label="Previous match" disabled={!hits.length} onClick={() => jumpTo(hit - 1)}><CaretUpIcon className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="outline" className="h-9 w-9 p-0" aria-label="Next match" disabled={!hits.length} onClick={() => jumpTo(hit + 1)}><CaretDownIcon className="h-4 w-4" /></Button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" role="group" aria-label="What a tap on a word does">
@@ -3314,7 +3314,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
                         <li key={f.from} className="flex items-center gap-1 rounded-full border border-border/70 py-0.5 pl-2.5 pr-1 text-xs">
                           <span className="text-muted-foreground line-through">{f.from}</span> {f.to}
                           <button type="button" aria-label={`Stop fixing ${f.from}`} onClick={() => setFixes(saveFixes(userId, fixes.filter((x) => x !== f)))}
-                            className="rounded-full p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                            className="rounded-full p-1 text-muted-foreground hover:text-destructive"><TrashIcon className="h-3 w-3" /></button>
                         </li>
                       ))}
                     </ul>
@@ -3330,7 +3330,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
               </details>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[11px] text-muted-foreground">{wordMode === "fix" ? "Click a word to fix its spelling in the captions." : ""}</p>
-                {words.length > 0 && <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={downloadSrt}><Download className="h-3.5 w-3.5" /> Subtitles (.srt)</Button>}
+                {words.length > 0 && <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={downloadSrt}><DownloadSimpleIcon className="h-3.5 w-3.5" /> Subtitles (.srt)</Button>}
               </div>
             </div>
           )}

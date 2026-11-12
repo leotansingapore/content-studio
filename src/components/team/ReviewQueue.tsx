@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Ban, CheckCircle2, ClipboardCheck, Loader2, MessageSquareWarning } from "lucide-react";
+import { ProhibitIcon, CheckCircleIcon, ClipboardTextIcon, CircleNotchIcon, ChatCenteredTextIcon } from "@phosphor-icons/react";
 
 import {
   Card,
@@ -177,7 +177,7 @@ export default function ReviewQueue({
         ) : status === "error" ? (
           <ErrorBlock message={error} onRetry={() => void load()} />
         ) : current.length === 0 ? (
-          <EmptyBlock icon={<ClipboardCheck className="h-6 w-6" />}>
+          <EmptyBlock icon={<ClipboardTextIcon className="h-6 w-6" />}>
             <p>{TABS.find((t) => t.key === tab)?.empty}</p>
           </EmptyBlock>
         ) : (
@@ -317,11 +317,11 @@ function SubmissionCard({
                 className="gap-1.5"
               >
                 {busy === asking ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />
                 ) : asking === "rejected" ? (
-                  <Ban className="h-3.5 w-3.5" />
+                  <ProhibitIcon className="h-3.5 w-3.5" />
                 ) : (
-                  <MessageSquareWarning className="h-3.5 w-3.5" />
+                  <ChatCenteredTextIcon className="h-3.5 w-3.5" />
                 )}
                 {asking === "rejected" ? "Reject post" : "Send request"}
               </Button>
@@ -347,9 +347,9 @@ function SubmissionCard({
               className="gap-1.5 bg-success text-white hover:bg-success/90 dark:text-black"
             >
               {busy === "approved" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <CheckCircle2 className="h-3.5 w-3.5" />
+                <CheckCircleIcon className="h-3.5 w-3.5" />
               )}
               Approve
             </Button>
@@ -360,7 +360,7 @@ function SubmissionCard({
               disabled={busy !== null}
               className="gap-1.5"
             >
-              <MessageSquareWarning className="h-3.5 w-3.5" /> Request changes
+              <ChatCenteredTextIcon className="h-3.5 w-3.5" /> Request changes
             </Button>
             <Button
               size="sm"
@@ -369,7 +369,7 @@ function SubmissionCard({
               disabled={busy !== null}
               className="gap-1.5 text-destructive hover:text-destructive"
             >
-              <Ban className="h-3.5 w-3.5" /> Reject
+              <ProhibitIcon className="h-3.5 w-3.5" /> Reject
             </Button>
           </div>
         )

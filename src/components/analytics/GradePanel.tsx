@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { X } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -123,7 +123,7 @@ export default function GradePanel({
         <h3 className="mr-auto pt-2 text-sm font-semibold text-foreground">{graded ? BAND_LABEL[graded.band] : "Not graded"}</h3>
         <CopyLinkButton path={links.analytics({ grade: post.id })} label="Copy link to this grade" />
         <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close the grade" className="h-9 w-9 shrink-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </Button>
       </div>
 

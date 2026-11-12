@@ -8,7 +8,7 @@ import { links } from "@/lib/links";
 import { useUrlItem } from "@/lib/urlState";
 import { supabase } from "@/lib/supabase";
 import { ACADEMY, type AcademyLesson } from "@/data/academy";
-import { ArrowRight, GraduationCap, Play, CheckCircle2, Circle } from "lucide-react";
+import { ArrowRightIcon, GraduationCapIcon, PlayIcon, CheckCircleIcon, CircleIcon } from "@phosphor-icons/react";
 
 const KEY_PREFIX = "content-studio-academy-";
 
@@ -93,7 +93,7 @@ export default function AcademyPage() {
     <div className="space-y-6">
       <header className="space-y-3">
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <GraduationCap className="h-6 w-6 text-primary" /> Academy
+          <GraduationCapIcon className="h-6 w-6 text-primary" /> Academy
         </h1>
         <div className="max-w-md space-y-1.5">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -126,12 +126,12 @@ export default function AcademyPage() {
               <p className="text-xs text-muted-foreground">{next.channel}</p>
             </div>
             <Button onClick={() => play(next.youtubeId, true)} className="shrink-0 gap-1.5">
-              <Play className="h-3.5 w-3.5 fill-current" /> Play
+              <PlayIcon weight="fill" className="h-3.5 w-3.5" /> Play
             </Button>
           </Card>
         ) : (
           <Card className="flex flex-wrap items-center gap-3 border-success/30 bg-success/5 p-4 shadow-card">
-            <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+            <CheckCircleIcon className="h-5 w-5 shrink-0 text-success" />
             <p className="min-w-0 flex-1 text-sm font-semibold text-foreground">All {ALL_IDS.length} lessons watched</p>
             <Button asChild>
               <Link to="/generate">Write a post</Link>
@@ -148,7 +148,7 @@ export default function AcademyPage() {
             <div className="space-y-0.5">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="flex items-center gap-1.5 font-serif text-lg font-semibold text-foreground">
-                  {modDone === mod.lessons.length && <CheckCircle2 className="h-4 w-4 text-success" aria-label="Module done" />}
+                  {modDone === mod.lessons.length && <CheckCircleIcon className="h-4 w-4 text-success" aria-label="Module done" />}
                   {mod.title}
                 </h2>
                 <span className="shrink-0 text-xs font-medium text-muted-foreground">
@@ -162,7 +162,7 @@ export default function AcademyPage() {
                   title="Do it in the studio"
                   className="inline-flex items-center gap-1 whitespace-nowrap font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
                 >
-                  {mod.studio.label} <ArrowRight className="h-3.5 w-3.5" />
+                  {mod.studio.label} <ArrowRightIcon className="h-3.5 w-3.5" />
                 </Link>
               </p>
             </div>
@@ -199,7 +199,7 @@ export default function AcademyPage() {
                           <img src={thumb(lesson.youtubeId)} alt="" loading="lazy" className="h-full w-full object-cover" />
                           <span className="absolute inset-0 flex items-center justify-center bg-foreground/10 transition-colors group-hover:bg-foreground/30">
                             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-primary shadow-lg">
-                              <Play className="ml-0.5 h-4 w-4 fill-current" />
+                              <PlayIcon weight="fill" className="ml-0.5 h-4 w-4" />
                             </span>
                           </span>
                         </button>
@@ -216,7 +216,7 @@ export default function AcademyPage() {
                               isWatched ? "text-success" : "text-muted-foreground"
                             }`}
                           >
-                            {isWatched ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
+                            {isWatched ? <CheckCircleIcon className="h-3.5 w-3.5" /> : <CircleIcon className="h-3.5 w-3.5" />}
                             {isWatched ? "Watched" : "Mark watched"}
                           </button>
                           <CopyLinkButton path={links.academy({ lesson: lesson.youtubeId })} label={`Copy link to ${lesson.title}`} className="-my-2 -mr-2" />

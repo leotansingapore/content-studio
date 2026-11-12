@@ -3,7 +3,7 @@
 // React (src/lib/viralSearch.ts); everything on screen reads the URL (q, platform, sort, posted) and the saved searches.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ExternalLink, Loader2, Search, Video, Youtube } from "lucide-react";
+import { CaretDownIcon, ArrowSquareOutIcon, CircleNotchIcon, MagnifyingGlassIcon, VideoCameraIcon, YoutubeLogoIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import RemixButton from "@/components/remix/RemixButton";
 import SaveButton from "@/components/SaveButton";
@@ -44,7 +44,7 @@ function Select<T extends string>({ label, value, onChange, options }: { label: 
   );
 }
 
-const PlatformIcon = ({ p, className }: { p: SearchPlatform; className?: string }) => (p === "youtube" ? <Youtube className={className} /> : <Video className={className} />);
+const PlatformIcon = ({ p, className }: { p: SearchPlatform; className?: string }) => (p === "youtube" ? <YoutubeLogoIcon className={className} /> : <VideoCameraIcon className={className} />);
 
 function ResultCard({ f }: { f: Found }) {
   const [broken, setBroken] = useState(false);
@@ -100,7 +100,7 @@ function ResultCard({ f }: { f: Found }) {
         </RemixButton>
         <Button asChild variant="ghost" size="sm" className="shrink-0 px-2">
           <a href={f.url} target="_blank" rel="noopener noreferrer" aria-label={`Open on ${name}`}>
-            <ExternalLink className="h-4 w-4" />
+            <ArrowSquareOutIcon className="h-4 w-4" />
           </a>
         </Button>
         <SaveButton source={sourceFor(f)} className="basis-full sm:basis-auto" />
@@ -179,7 +179,7 @@ export default function ViralSearch({ userId }: { userId: string }) {
             }}
           >
             <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={text}
                 maxLength={Q_MAX}
@@ -190,7 +190,7 @@ export default function ViralSearch({ userId }: { userId: string }) {
               />
             </div>
             <Button type="submit" variant={again && !searching ? "outline" : "default"} disabled={!valid || left === 0 || isSearching(words)} className="shrink-0 gap-1.5 [@media(pointer:coarse)]:h-11">
-              {isSearching(words) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              {isSearching(words) ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <MagnifyingGlassIcon className="h-3.5 w-3.5" />}
               {isSearching(words) ? "Searching..." : again ? "Search again" : "Search"}
             </Button>
           </form>
@@ -248,7 +248,7 @@ export default function ViralSearch({ userId }: { userId: string }) {
           <CardContent className="space-y-1.5 py-4 text-sm" aria-live="polite">
             {(["tiktok", "youtube"] as const).map((p) => (
               <p key={p} className="flex items-center gap-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                <CircleNotchIcon className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                 {platformName(p)}: searching
               </p>
             ))}
@@ -301,7 +301,7 @@ export default function ViralSearch({ userId }: { userId: string }) {
                 ) : (
                   <div className="flex justify-center">
                     <Button variant="outline" onClick={() => setShowLess(true)} className="gap-1.5 [@media(pointer:coarse)]:h-11">
-                      <ChevronDown className="h-4 w-4" /> Show {less.length} less relevant
+                      <CaretDownIcon className="h-4 w-4" /> Show {less.length} less relevant
                     </Button>
                   </div>
                 ))}

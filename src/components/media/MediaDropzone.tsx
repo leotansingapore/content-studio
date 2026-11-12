@@ -3,7 +3,7 @@
 // React, so leaving the page mid-add still adds every file.
 
 import { useRef, useState, useSyncExternalStore } from "react";
-import { Upload } from "lucide-react";
+import { UploadSimpleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { useUsesLeft } from "@/lib/aiUsage";
@@ -69,7 +69,7 @@ export default function MediaDropzone({ userId, folder, onChange }: { userId: st
           <p className="text-xs text-muted-foreground">Photos: JPG, PNG or WebP up to 10 MB. Videos: MP4 or MOV up to 50 MB and 3 minutes. Up to 20 at a time.</p>
         </div>
         <Button type="button" className="h-11 shrink-0 gap-2 sm:h-10" disabled={!!progress} onClick={() => input.current?.click()}>
-          <Upload className="h-4 w-4" aria-hidden /> Choose files
+          <UploadSimpleIcon className="h-4 w-4" aria-hidden /> Choose files
         </Button>
         <input
           ref={input}

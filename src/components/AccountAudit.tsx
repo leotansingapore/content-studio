@@ -62,26 +62,26 @@ import type { FollowerSeries } from "../../supabase/functions/social/metrics.ts"
 import ProfileScore from "@/components/ProfileScore";
 import { TrendChart } from "@/components/charts/TrendChart";
 import {
-  AlertTriangle,
-  Ban,
-  ChevronDown,
-  ExternalLink,
-  Instagram,
-  Loader2,
-  RefreshCw,
-  Sparkles,
-  Trash2,
-  TrendingUp,
-  Images,
-  Image as ImageIcon,
-  Video,
-  Wand2,
-  Wrench,
-  PenLine,
-} from "lucide-react";
+  WarningIcon,
+  ProhibitIcon,
+  CaretDownIcon,
+  ArrowSquareOutIcon,
+  InstagramLogoIcon,
+  CircleNotchIcon,
+  ArrowsClockwiseIcon,
+  SparkleIcon,
+  TrashIcon,
+  TrendUpIcon,
+  ImagesIcon,
+  ImageIcon,
+  VideoCameraIcon,
+  MagicWandIcon,
+  WrenchIcon,
+  PencilLineIcon,
+} from "@phosphor-icons/react";
 
 const PLATFORM_NAME: Record<AuditPlatform, string> = { instagram: "Instagram", tiktok: "TikTok" };
-const PLATFORM_ICON: Record<AuditPlatform, typeof Instagram> = { instagram: Instagram, tiktok: Video };
+const PLATFORM_ICON: Record<AuditPlatform, typeof InstagramLogoIcon> = { instagram: InstagramLogoIcon, tiktok: VideoCameraIcon };
 const POLL_MS = 5000;
 const POLL_GIVE_UP_MS = 4 * 60_000;
 const BEST_POSTS_SHOWN = 3;
@@ -210,7 +210,7 @@ function AddAccount({
           />
           {/* the first account is the page's one filled button; a second account is an extra, so it stays quiet */}
           <Button type="submit" size="sm" variant={first ? "default" : "outline"} className="h-10 gap-1.5">
-            <Sparkles className="h-3.5 w-3.5" /> Audit my {PLATFORM_NAME[platform]}
+            <SparkleIcon className="h-3.5 w-3.5" /> Audit my {PLATFORM_NAME[platform]}
           </Button>
         </form>
         {error && <p className="text-xs font-medium text-destructive">{error}</p>}
@@ -353,7 +353,7 @@ function AuditPanel({
           <div className="flex shrink-0 items-center gap-1">
             {busy && audit ? (
               <span className="inline-flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Updating
+                <CircleNotchIcon className="h-3 w-3 animate-spin" /> Updating
               </span>
             ) : (
               fetchedAt && (
@@ -379,7 +379,7 @@ function AuditPanel({
                 title="Refresh"
                 className="h-8 [@media(pointer:coarse)]:h-11 w-8 [@media(pointer:coarse)]:w-11 p-0 text-muted-foreground"
               >
-                <RefreshCw className="h-3.5 w-3.5" />
+                <ArrowsClockwiseIcon className="h-3.5 w-3.5" />
               </Button>
             )}
             <Button
@@ -392,7 +392,7 @@ function AuditPanel({
               title="Stop auditing"
               className="h-8 [@media(pointer:coarse)]:h-11 w-8 [@media(pointer:coarse)]:w-11 p-0 text-muted-foreground hover:text-destructive"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <TrashIcon className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -445,7 +445,7 @@ function AuditPanel({
             <details className="group rounded-xl border border-border/60">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2.5 text-sm font-medium text-foreground [@media(pointer:coarse)]:min-h-11 [&::-webkit-details-marker]:hidden">
                 See how all {posts.length} posts did
-                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                <CaretDownIcon className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
               <div className="space-y-5 border-t border-border/60 p-3.5">
                 <RatioChart platform={platform} posts={posts} />
@@ -479,7 +479,7 @@ export function AuditReading({ platform, stalled }: { platform: AuditPlatform; s
       />
       <Button asChild size="sm" className="h-10 gap-1.5 [@media(pointer:coarse)]:h-11">
         <Link to={NEW_POST}>
-          <PenLine className="h-3.5 w-3.5" /> Write a post while it reads
+          <PencilLineIcon className="h-3.5 w-3.5" /> Write a post while it reads
         </Link>
       </Button>
     </div>
@@ -489,7 +489,7 @@ export function AuditReading({ platform, stalled }: { platform: AuditPlatform; s
 function StatusLine({ text }: { text: string }) {
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 text-sm text-muted-foreground">
-      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" /> {text}
+      <CircleNotchIcon className="h-4 w-4 shrink-0 animate-spin text-primary" /> {text}
     </div>
   );
 }
@@ -497,7 +497,7 @@ function StatusLine({ text }: { text: string }) {
 function ErrorNote({ message }: { message: string }) {
   return (
     <p className="flex items-start gap-1.5 text-xs text-destructive">
-      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {message}
+      <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {message}
     </p>
   );
 }
@@ -506,11 +506,11 @@ function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void 
   return (
     <div className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/[0.05] p-3.5">
       <p className="flex items-start gap-2 text-sm text-foreground">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" /> {message}
+        <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-destructive" /> {message}
       </p>
       {onRetry ? (
         <Button size="sm" variant="outline" onClick={onRetry} className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5">
-          <RefreshCw className="h-3.5 w-3.5" /> Try again
+          <ArrowsClockwiseIcon className="h-3.5 w-3.5" /> Try again
         </Button>
       ) : (
         <p className="text-xs text-muted-foreground">You can try again in a couple of minutes.</p>
@@ -601,7 +601,7 @@ export function FollowerGrowth({ snapshots = [], zernio }: { snapshots?: AuditSn
       <details className="group text-xs">
         <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1 font-medium text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [&::-webkit-details-marker]:hidden">
           Each change
-          <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+          <CaretDownIcon className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
         </summary>
         <table className="w-full text-left tabular-nums">
           <thead className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
@@ -629,13 +629,13 @@ export function FollowerGrowth({ snapshots = [], zernio }: { snapshots?: AuditSn
 const ADVICE_GROUPS: {
   key: "doubleDown" | "fix" | "stop";
   label: string;
-  icon: typeof TrendingUp;
+  icon: typeof TrendUpIcon;
   iconClass: string;
   empty: string;
 }[] = [
-  { key: "doubleDown", label: "Double down", icon: TrendingUp, iconClass: "text-success", empty: "No clear winner yet." },
-  { key: "fix", label: "Fix", icon: Wrench, iconClass: "text-warning", empty: "Nothing obvious to fix." },
-  { key: "stop", label: "Stop now", icon: Ban, iconClass: "text-destructive", empty: "Nothing is holding you back." },
+  { key: "doubleDown", label: "Double down", icon: TrendUpIcon, iconClass: "text-success", empty: "No clear winner yet." },
+  { key: "fix", label: "Fix", icon: WrenchIcon, iconClass: "text-warning", empty: "Nothing obvious to fix." },
+  { key: "stop", label: "Stop now", icon: ProhibitIcon, iconClass: "text-destructive", empty: "Nothing is holding you back." },
 ];
 
 function AdviceBlock({
@@ -694,9 +694,9 @@ function AdviceBlock({
   );
 }
 
-const FORMAT_TILE_ICON: Record<string, typeof Video> = {
-  video: Video,
-  carousel: Images,
+const FORMAT_TILE_ICON: Record<string, typeof VideoCameraIcon> = {
+  video: VideoCameraIcon,
+  carousel: ImagesIcon,
   image: ImageIcon,
 };
 
@@ -721,7 +721,7 @@ function SeePosts({ posts, platform }: { posts: RatedPost[]; platform: AuditPlat
         <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] tabular-nums">
           {posts.length}
         </span>
-        <ChevronDown
+        <CaretDownIcon
           className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
@@ -729,7 +729,7 @@ function SeePosts({ posts, platform }: { posts: RatedPost[]; platform: AuditPlat
       {open && (
         <ul className="mt-2 space-y-1.5">
           {posts.map((p) => {
-            const TileIcon = FORMAT_TILE_ICON[p.format] ?? Video;
+            const TileIcon = FORMAT_TILE_ICON[p.format] ?? VideoCameraIcon;
             const breakout = p.ratio !== null && p.ratio >= BREAKOUT_RATIO;
             const counts = [
               p.views !== null ? `${formatCount(p.views)} views` : null,
@@ -767,7 +767,7 @@ function SeePosts({ posts, platform }: { posts: RatedPost[]; platform: AuditPlat
                       {counts.length > 0 && ` · ${counts.join(" · ")}`}
                     </span>
                   </span>
-                  <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                  <ArrowSquareOutIcon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
                 </a>
               </li>
             );
@@ -853,13 +853,13 @@ function AuditPostRow({ p, platform, handle, pick, linked = false }: {
         <RemixButton source={fromAuditPost(p, platform, handle)} note={pick && `Angle for the new version: ${pick.newAngle}`}>
           <Button asChild size="sm" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5">
             <Link to={remixUrl(p, platform, handle, pick?.newAngle)}>
-              <Wand2 className="h-3.5 w-3.5" /> Remix this
+              <MagicWandIcon className="h-3.5 w-3.5" /> Remix this
             </Link>
           </Button>
         </RemixButton>
         <Button asChild size="sm" variant="ghost" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5 text-muted-foreground">
           <a href={p.url} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="h-3.5 w-3.5" /> View post
+            <ArrowSquareOutIcon className="h-3.5 w-3.5" /> View post
           </a>
         </Button>
         <CopyLinkButton path={links.analytics({ audit: auditKey(platform, p) })} label="Copy link to this post" className="ml-auto" />
@@ -930,7 +930,7 @@ function PostIdeas({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 max-w-2xl">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <Sparkles className="h-4 w-4 text-primary" /> Post ideas in your style
+            <SparkleIcon className="h-4 w-4 text-primary" /> Post ideas in your style
           </p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
             {formula
@@ -946,11 +946,11 @@ function PostIdeas({
           className="h-8 [@media(pointer:coarse)]:h-11 shrink-0 gap-1.5"
         >
           {working ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />
           ) : visible.length ? (
-            <RefreshCw className="h-3.5 w-3.5" />
+            <ArrowsClockwiseIcon className="h-3.5 w-3.5" />
           ) : (
-            <Sparkles className="h-3.5 w-3.5" />
+            <SparkleIcon className="h-3.5 w-3.5" />
           )}
           {working ? "Thinking…" : visible.length ? "5 different ideas" : "Get 5 post ideas"}
         </Button>
@@ -1004,7 +1004,7 @@ function PostIdeas({
                           setIdeaStatus(idea.id, "used").catch(() => {});
                         }}
                       >
-                        <Wand2 className="h-3 w-3" /> Write this
+                        <MagicWandIcon className="h-3 w-3" /> Write this
                       </Link>
                     </Button>
                   </div>

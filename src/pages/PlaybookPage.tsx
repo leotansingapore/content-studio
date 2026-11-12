@@ -22,15 +22,15 @@ import { ThemeSwitch } from "@/pages/StudioLayout";
 import inspirationData from "@/data/inspiration.json";
 import advisorsData from "@/data/advisors.json";
 import {
-  Target,
-  Lightbulb,
-  Users as UsersIcon,
-  CheckCircle2,
-  ChevronRight,
-  ArrowRight,
-  Bookmark,
-  Palette,
-} from "lucide-react";
+  TargetIcon,
+  LightbulbIcon,
+  UsersIcon,
+  CheckCircleIcon,
+  CaretRightIcon,
+  ArrowRightIcon,
+  BookmarkSimpleIcon,
+  PaletteIcon,
+} from "@phosphor-icons/react";
 
 type Insp = { id: string; hook: string; topic: string };
 type Adv = { id: string; name: string; handle: string };
@@ -44,7 +44,7 @@ function SectionCard({
   action,
   children,
 }: {
-  icon: typeof Target;
+  icon: typeof TargetIcon;
   title: string;
   action?: React.ReactNode;
   children: React.ReactNode;
@@ -128,7 +128,7 @@ export default function PlaybookPage() {
             {next && (
               <Button asChild size="sm" className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 [@media(pointer:coarse)]:h-11">
                 <Link to={next.to}>
-                  Next: {next.add} <ArrowRight className="h-4 w-4" />
+                  Next: {next.add} <ArrowRightIcon className="h-4 w-4" />
                 </Link>
               </Button>
             )}
@@ -147,7 +147,7 @@ export default function PlaybookPage() {
             <p className="shrink-0 text-xs tabular-nums text-muted-foreground" data-testid="known-count">
               {done.missing.length ? `${done.set} of ${done.total} on file` : (
                 <span className="inline-flex items-center gap-1 font-medium text-success">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> All {done.total} on file
+                  <CheckCircleIcon className="h-3.5 w-3.5" /> All {done.total} on file
                 </span>
               )}
             </p>
@@ -187,7 +187,7 @@ export default function PlaybookPage() {
                             <span className="font-medium text-primary group-hover:underline">{r.add}</span>
                           )}
                         </span>
-                        <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                        <CaretRightIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                       </Link>
                     </li>
                   ))}
@@ -200,7 +200,7 @@ export default function PlaybookPage() {
 
       {/* Saved: Inspiration and Creators are an adviser brand's libraries; another brand sees only what it saved before */}
       {(adviserBrand(user?.id) || savedInsp.length + savedAdv.length > 0) && <div className="grid gap-4 md:grid-cols-2">
-        <SectionCard icon={Lightbulb} title={`Saved inspiration (${savedInsp.length})`}>
+        <SectionCard icon={LightbulbIcon} title={`Saved inspiration (${savedInsp.length})`}>
           {savedInsp.length ? (
             <ul className="space-y-2">
               {savedInsp.slice(0, 6).map((e) => (
@@ -209,7 +209,7 @@ export default function PlaybookPage() {
                     to={`/inspiration/${encodeURIComponent(e.id)}`}
                     className="group flex items-start gap-2 text-sm text-foreground hover:text-primary"
                   >
-                    <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-primary/20 text-primary" />
+                    <BookmarkSimpleIcon weight="duotone" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                     <span className="line-clamp-2 leading-snug">{e.hook}</span>
                   </Link>
                 </li>
@@ -235,7 +235,7 @@ export default function PlaybookPage() {
                     to={`/profiles/${encodeURIComponent(a.id)}`}
                     className="group flex items-center gap-2 text-sm text-foreground hover:text-primary"
                   >
-                    <Bookmark className="h-3.5 w-3.5 shrink-0 fill-primary/20 text-primary" />
+                    <BookmarkSimpleIcon weight="duotone" className="h-3.5 w-3.5 shrink-0 text-primary" />
                     <span className="font-medium">{a.name}</span>
                     <span className="truncate text-xs text-muted-foreground">
                       {a.handle}
@@ -257,7 +257,7 @@ export default function PlaybookPage() {
       </div>}
 
       {look && (
-        <SectionCard icon={Palette} title="Appearance">
+        <SectionCard icon={PaletteIcon} title="Appearance">
           <p className="mb-3 text-sm text-muted-foreground">Light, Dark, or System to follow this device.</p>
           <div className="max-w-sm">
             <ThemeSwitch theme={look.theme} onTheme={look.onTheme} />
@@ -268,7 +268,7 @@ export default function PlaybookPage() {
       <div className="flex flex-wrap gap-2">
         <Button asChild variant={next ? "outline" : "default"} className={next ? "gap-1.5" : "gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"}>
           <Link to="/generate">
-            Write a post <ArrowRight className="h-4 w-4" />
+            Write a post <ArrowRightIcon className="h-4 w-4" />
           </Link>
         </Button>
         <Button asChild variant="outline" className="gap-1.5">

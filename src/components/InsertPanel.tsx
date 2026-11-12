@@ -4,7 +4,7 @@
 // that would go over the brand kit's or the platform's limit asks first. Free: nothing leaves the device.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Plus, X } from "lucide-react";
+import { PlusIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Snippets from "@/components/engage/Snippets";
 import { hashtagMax, HASHTAG_MAX } from "@/lib/brandRules";
@@ -47,7 +47,7 @@ export function InsertButton({ disabled }: { disabled?: boolean }) {
   const open = panel === "insert";
   return (
     <button type="button" disabled={disabled} aria-expanded={open} onClick={() => (open ? update({ panel: null, kind: null }) : openPanel("insert"))} className={`gap-1 disabled:opacity-50 ${pill(open)}`}>
-      <Plus className="h-3.5 w-3.5" /> Insert
+      <PlusIcon className="h-3.5 w-3.5" /> Insert
     </button>
   );
 }
@@ -164,7 +164,7 @@ export default function InsertPanel({
           aria-label="Close insert"
           className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
       </div>
 
@@ -262,7 +262,7 @@ export default function InsertPanel({
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" aria-expanded={manage === "new"} onClick={() => setManage(manage === "new" ? null : "new")} className="h-11 gap-1 sm:h-9">
-          <Plus className="h-3.5 w-3.5" /> New {name.one}
+          <PlusIcon className="h-3.5 w-3.5" /> New {name.one}
         </Button>
         <Button type="button" size="sm" variant="ghost" aria-expanded={manage === "manage"} onClick={() => setManage(manage === "manage" ? null : "manage")} className="h-11 sm:h-9">
           Manage

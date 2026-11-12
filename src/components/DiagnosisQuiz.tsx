@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QUESTIONS, type DiagnosisRecord } from "@/lib/diagnosis";
-import { Gauge, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { GaugeIcon, ArrowRightIcon, ArrowLeftIcon, CheckCircleIcon } from "@phosphor-icons/react";
 
 /**
  * The Content Diagnosis intake — an intro then a one-question-at-a-time stepper.
@@ -81,7 +81,7 @@ export default function DiagnosisQuiz({
       <Card className="border-border/60 shadow-card">
         <CardContent className="space-y-5 py-8 text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Gauge className="h-7 w-7" />
+            <GaugeIcon className="h-7 w-7" />
           </span>
           <div className="space-y-2">
             <h2 className="font-serif text-2xl font-semibold text-foreground">{title}</h2>
@@ -92,7 +92,7 @@ export default function DiagnosisQuiz({
             onClick={() => setStarted(true)}
             className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
           >
-            Start the diagnosis <ArrowRight className="h-4 w-4" />
+            Start the diagnosis <ArrowRightIcon className="h-4 w-4" />
           </Button>
         </CardContent>
       </Card>
@@ -142,9 +142,9 @@ export default function DiagnosisQuiz({
                 >
                   <span className="font-medium">{opt.label}</span>
                   {active ? (
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                    <CheckCircleIcon className="h-4 w-4 shrink-0 text-primary" />
                   ) : (
-                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <ArrowRightIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
                   )}
                 </button>
               );
@@ -161,7 +161,7 @@ export default function DiagnosisQuiz({
           disabled={step === 0}
           onClick={() => setStep((s) => Math.max(0, s - 1))}
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
         </Button>
         <span className="text-xs text-muted-foreground">Tap an answer to continue</span>
       </div>

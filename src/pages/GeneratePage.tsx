@@ -45,48 +45,48 @@ import { currentScore, labelFor, loadScores, saveScore, scoreFix, scorePost, tex
 import { otherFormulas, splitHook } from "@/lib/variants";
 import { seriesSlots, slotTimesFor } from "@/lib/postingSlots";
 import {
-  CalendarDays,
-  Sparkles,
-  Copy,
-  Clapperboard,
-  RefreshCw,
-  Heart,
-  User,
-  BookOpen,
-  Users,
-  Image as ImageIcon,
-  Video,
-  AlignLeft,
-  Smartphone,
-  Linkedin,
-  Instagram,
-  Facebook,
-  Lightbulb,
-  X as XIcon,
-  Check,
-  StopCircle,
-  Wand2,
-  AlertTriangle,
-  ImagePlus,
-  Loader2,
-  Mic,
-  Hash,
-  Image as ImageWandIcon,
-  Keyboard,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Pencil,
-  Gauge,
-  BookmarkPlus,
-  MessageSquare,
-  Eraser,
-  Columns3,
-  ArrowRight,
-  Star,
-  Shuffle,
-  ExternalLink,
-} from "lucide-react";
+  CalendarDotsIcon,
+  SparkleIcon,
+  CopyIcon,
+  FilmSlateIcon,
+  ArrowsClockwiseIcon,
+  HeartIcon,
+  UserIcon,
+  BookOpenIcon,
+  UsersIcon,
+  ImageIcon,
+  VideoCameraIcon,
+  TextAlignLeftIcon,
+  DeviceMobileIcon,
+  LinkedinLogoIcon,
+  InstagramLogoIcon,
+  FacebookLogoIcon,
+  LightbulbIcon,
+  XIcon,
+  CheckIcon,
+  StopCircleIcon,
+  MagicWandIcon,
+  WarningIcon,
+  ImageSquareIcon,
+  CircleNotchIcon,
+  MicrophoneIcon,
+  HashIcon,
+  ImageIcon as ImageWandIcon,
+  KeyboardIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  CaretDownIcon,
+  PencilSimpleIcon,
+  GaugeIcon,
+  BookmarkSimpleIcon,
+  ChatIcon,
+  EraserIcon,
+  ColumnsIcon,
+  ArrowRightIcon,
+  StarIcon,
+  ShuffleIcon,
+  ArrowSquareOutIcon,
+} from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
 import { type InspirationEntry } from "@/components/Inspiration";
@@ -231,7 +231,7 @@ const PILLARS: {
   value: Pillar;
   label: string;
   sub: string;
-  icon: typeof Heart;
+  icon: typeof HeartIcon;
   tag: "Social" | "Authority";
   placeholder: string;
 }[] = [
@@ -239,7 +239,7 @@ const PILLARS: {
     value: "interest",
     label: "Interest",
     sub: "A hobby/passion that humanises you",
-    icon: Heart,
+    icon: HeartIcon,
     tag: "Social",
     placeholder:
       "e.g. weekend running, photography, gaming, hawker hunting",
@@ -248,7 +248,7 @@ const PILLARS: {
     value: "identity",
     label: "Identity",
     sub: "A life-stage or role you share with the audience",
-    icon: User,
+    icon: UserIcon,
     tag: "Social",
     placeholder:
       "e.g. mum of two, fresh grad, ex-engineer turned FC, late-30s career-switcher",
@@ -257,7 +257,7 @@ const PILLARS: {
     value: "topic",
     label: "Topic",
     sub: "A specific financial area you teach",
-    icon: BookOpen,
+    icon: BookOpenIcon,
     tag: "Authority",
     placeholder:
       "e.g. CPF SA top-ups, ILPs, critical illness, retirement planning",
@@ -266,7 +266,7 @@ const PILLARS: {
     value: "market",
     label: "Market",
     sub: "A specific client segment you serve",
-    icon: Users,
+    icon: UsersIcon,
     tag: "Authority",
     placeholder:
       "e.g. fresh graduates earning $3.5-4.5K, SME owners, young families with kids under 7",
@@ -344,28 +344,28 @@ const FORMATS: {
     value: "short-video",
     label: "Short video",
     sub: "Script for Reels, Shorts or TikTok",
-    icon: Video,
+    icon: VideoCameraIcon,
   },
   {
     value: "text-post",
     label: "Text post",
     sub: "100-250 words, mobile-readable",
-    icon: AlignLeft,
+    icon: TextAlignLeftIcon,
   },
   {
     value: "story",
     label: "Story frames",
     sub: "3-5 IG/FB story frames",
-    icon: Smartphone,
+    icon: DeviceMobileIcon,
   },
 ];
 
-const PLATFORMS: { value: Platform; label: string; icon: typeof Linkedin }[] =
+const PLATFORMS: { value: Platform; label: string; icon: typeof LinkedinLogoIcon }[] =
   [
-    { value: "linkedin", label: "LinkedIn", icon: Linkedin },
-    { value: "instagram", label: "Instagram", icon: Instagram },
-    { value: "facebook", label: "Facebook", icon: Facebook },
-    { value: "tiktok", label: "TikTok", icon: Video },
+    { value: "linkedin", label: "LinkedIn", icon: LinkedinLogoIcon },
+    { value: "instagram", label: "Instagram", icon: InstagramLogoIcon },
+    { value: "facebook", label: "Facebook", icon: FacebookLogoIcon },
+    { value: "tiktok", label: "TikTok", icon: VideoCameraIcon },
   ];
 
 const CTAS: { value: CtaType; label: string; sub: string }[] = [
@@ -709,7 +709,7 @@ function RemixFlags({
     <div className={`${items.every((f) => wide(f.id)) ? "lg:hidden " : ""}mb-3 flex flex-wrap gap-2`}>
       {items.map((f) => (
         <div key={f.id} className={`${wide(f.id)}flex items-start gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200`}>
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
+          <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
           <div className="space-y-0.5">
             <div className="font-semibold">{f.title}</div>
             {f.match && <div className="font-mono text-[10px]">{f.match}</div>}
@@ -755,7 +755,7 @@ function LimitChips({ check, platform }: { check: LimitCheck; platform: Platform
             w.level === "over" ? "text-red-700 dark:text-red-300" : "text-amber-800 dark:text-amber-300"
           }`}
         >
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {w.message}
+          <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {w.message}
         </span>
       ))}
     </>
@@ -3298,7 +3298,7 @@ function Writer() {
     <div key={text} className="flex items-center gap-2 rounded-lg border border-border/60 bg-background py-1 pl-3 pr-1 text-sm">
       <span className="min-w-0 flex-1">{text}</span>
       <Button variant="ghost" size="sm" className="h-11 shrink-0 gap-1.5 sm:h-9" onClick={() => void navigator.clipboard.writeText(text).then(() => toast({ title: "Copied" }))}>
-        <Copy className="h-3.5 w-3.5" /> Copy
+        <CopyIcon className="h-3.5 w-3.5" /> Copy
       </Button>
     </div>
   );
@@ -3409,7 +3409,7 @@ function Writer() {
       {showVoiceNudge && (
         <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs">
           <div className="flex items-start gap-2">
-            <Mic className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <MicrophoneIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
             <div className="space-y-0.5">
               <p className="font-semibold text-primary">
                 Set your voice (recommended)
@@ -3425,7 +3425,7 @@ function Writer() {
               to="/voice"
               className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-background px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:px-3"
             >
-              <Mic className="h-3 w-3" /> Set voice
+              <MicrophoneIcon className="h-3 w-3" /> Set voice
             </Link>
             <Button
               variant="ghost"
@@ -3442,7 +3442,7 @@ function Writer() {
       {voiceProfileUsable && (
         <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs">
           <div className="flex items-start gap-2">
-            <Mic className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+            <MicrophoneIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
             <p className="font-semibold text-emerald-700 dark:text-emerald-400">
               Voice profile active
             </p>
@@ -3459,7 +3459,7 @@ function Writer() {
       {styleReference && (
         <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 p-3 text-xs">
           <div className="flex items-start gap-2">
-            <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-foreground" />
+            <LightbulbIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-foreground" />
             <div className="space-y-0.5">
               <p className="font-semibold text-accent-foreground">
                 Vibe locked in
@@ -3486,7 +3486,7 @@ function Writer() {
         <div className="space-y-1.5 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs">
           <div className="flex items-center justify-between gap-2">
             <p className="flex min-w-0 items-center gap-2 font-semibold text-foreground">
-              <Shuffle className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <ShuffleIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="min-w-0 break-words">{sourceChip(remixSource)}</span>
             </p>
             {/* Opens the Remix sheet on this source (north star): the one way in until the browse cards carry the button */}
@@ -3571,7 +3571,7 @@ function Writer() {
                           : "border border-border/70 text-muted-foreground"
                     }`}
                   >
-                    {done ? <Check className="h-3 w-3" /> : i + 1}
+                    {done ? <CheckIcon className="h-3 w-3" /> : i + 1}
                   </span>
                   <span
                     className={`hidden text-xs font-semibold leading-none sm:block ${
@@ -3606,7 +3606,7 @@ function Writer() {
                   aria-pressed={appliedTemplateId === t.id}
                   className="flex h-9 max-w-[16rem] items-center gap-1.5 truncate pl-3 pr-1"
                 >
-                  {appliedTemplateId === t.id && <Check className="h-3.5 w-3.5 shrink-0" />}
+                  {appliedTemplateId === t.id && <CheckIcon className="h-3.5 w-3.5 shrink-0" />}
                   <span className="truncate">{t.name}</span>
                 </button>
                 <button
@@ -3981,7 +3981,7 @@ function Writer() {
           aria-expanded={templateForm !== null}
           className="gap-1.5 text-muted-foreground"
         >
-          <BookmarkPlus className="h-4 w-4" /> Save as template
+          <BookmarkSimpleIcon className="h-4 w-4" /> Save as template
         </Button>
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <label
@@ -3999,7 +3999,7 @@ function Writer() {
               onChange={(e) => setHooksFirst(e.target.checked)}
               disabled={isStreaming}
             />
-            <Wand2 className="h-3.5 w-3.5" />
+            <MagicWandIcon className="h-3.5 w-3.5" />
             Hooks first (recommended)
           </label>
           <button
@@ -4009,7 +4009,7 @@ function Writer() {
             aria-label="Keyboard shortcuts"
             className="hidden h-8 w-8 items-center justify-center rounded-lg border border-border/70 text-muted-foreground hover:border-primary/40 hover:text-primary sm:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
-            <Keyboard className="h-3.5 w-3.5" />
+            <KeyboardIcon className="h-3.5 w-3.5" />
           </button>
           {isStreaming ? (
             <Button
@@ -4018,7 +4018,7 @@ function Writer() {
               onClick={stopStreaming}
               className="gap-2"
             >
-              <StopCircle className="h-4 w-4" /> Stop
+              <StopCircleIcon className="h-4 w-4" /> Stop
             </Button>
           ) : (
             <Button
@@ -4027,7 +4027,7 @@ function Writer() {
               disabled={checkingIdea}
               className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
             >
-              <Sparkles className="h-4 w-4" />
+              <SparkleIcon className="h-4 w-4" />
               {generateButtonLabel}
             </Button>
           )}
@@ -4063,7 +4063,7 @@ function Writer() {
               Keep the topic
             </label>
             <Button type="submit" variant="outline" className="gap-1.5">
-              <Check className="h-4 w-4" /> Save template
+              <CheckIcon className="h-4 w-4" /> Save template
             </Button>
           </form>
         )}
@@ -4093,7 +4093,7 @@ function Writer() {
               />
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => answerIdea(false)} disabled={!ideaAsk.answer.trim()} className="h-11 gap-1.5 sm:h-10">
-                  <Sparkles className="h-4 w-4" /> Write with this
+                  <SparkleIcon className="h-4 w-4" /> Write with this
                 </Button>
                 <Button variant="ghost" onClick={() => answerIdea(true)} className="h-11 sm:h-10">
                   Skip
@@ -4111,7 +4111,7 @@ function Writer() {
               disabled={wizardStep === 0}
               className="gap-1.5 text-muted-foreground disabled:opacity-40 [@media(pointer:coarse)]:h-11"
             >
-              <ChevronLeft className="h-4 w-4" /> Back
+              <CaretLeftIcon className="h-4 w-4" /> Back
             </Button>
             <span className={`text-xs text-muted-foreground ${canGenerateEarly ? "hidden sm:inline" : ""}`}>
               Step {wizardStep + 1} of {STEP_META.length}
@@ -4124,7 +4124,7 @@ function Writer() {
                   onClick={goNext}
                   className="gap-1.5 [@media(pointer:coarse)]:h-11"
                 >
-                  Next <ChevronRight className="h-4 w-4" />
+                  Next <CaretRightIcon className="h-4 w-4" />
                 </Button>
                 {canGenerateEarly && (
                   <div className="flex flex-col items-end gap-0.5">
@@ -4134,7 +4134,7 @@ function Writer() {
                       disabled={checkingIdea}
                       className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 [@media(pointer:coarse)]:h-11"
                     >
-                      <Sparkles className="h-4 w-4" />
+                      <SparkleIcon className="h-4 w-4" />
                       {generateButtonLabel}
                     </Button>
                     {/* under the button, so the footer still fits at 390 px */}
@@ -4150,7 +4150,7 @@ function Writer() {
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">
           <div className="flex items-start gap-2 text-xs">
-            <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <PencilSimpleIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
             <div className="space-y-0.5">
               <p className="font-semibold text-foreground">Your brief</p>
               <p className="text-muted-foreground">
@@ -4168,7 +4168,7 @@ function Writer() {
             onClick={() => setBriefOpen(true)}
             className="gap-1.5"
           >
-            <Pencil className="h-3.5 w-3.5" /> Edit brief
+            <PencilSimpleIcon className="h-3.5 w-3.5" /> Edit brief
           </Button>
         </div>
       )}
@@ -4250,7 +4250,7 @@ function Writer() {
                     )}
                     {hookPick?.key === hookKey && hookPick.index === h.index && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                        <Star className="h-3 w-3" aria-hidden /> Recommended
+                        <StarIcon className="h-3 w-3" aria-hidden /> Recommended
                       </span>
                     )}
                     {formula && (
@@ -4260,7 +4260,7 @@ function Writer() {
                     )}
                     {isPicked && (
                       <span className="flex items-center gap-1 text-[11px] font-semibold text-primary">
-                        <Check className="h-3 w-3" /> Chosen
+                        <CheckIcon className="h-3 w-3" /> Chosen
                       </span>
                     )}
                   </div>
@@ -4273,7 +4273,7 @@ function Writer() {
                     Seen in {seen.from}, {Math.round(seen.ratio * 10) / 10}x their usual
                     {seen.url && (
                       <a href={seen.url} target="_blank" rel="noreferrer" className="-my-3.5 inline-flex items-center gap-1 py-3.5 font-semibold text-primary hover:underline sm:-my-2 sm:py-2">
-                        <ExternalLink className="h-3 w-3" aria-hidden /> Open post
+                        <ArrowSquareOutIcon className="h-3 w-3" aria-hidden /> Open post
                       </a>
                     )}
                   </p>
@@ -4285,7 +4285,7 @@ function Writer() {
             {/* every hook failed or stopped: the brief is folded away, so the retry sits here */}
             {!isStreaming && !hookOptions.some((h) => h.complete) && (
               <Button variant="outline" size="sm" onClick={() => void handleGenerate()} disabled={checkingIdea} className="gap-1.5 [@media(pointer:coarse)]:h-11">
-                <RefreshCw className="h-3.5 w-3.5" /> Try again
+                <ArrowsClockwiseIcon className="h-3.5 w-3.5" /> Try again
               </Button>
             )}
             {myHooks.length > 0 && (
@@ -4326,7 +4326,7 @@ function Writer() {
                 disabled={isStreaming}
                 className="gap-1.5"
               >
-                <RefreshCw
+                <ArrowsClockwiseIcon
                   className={`h-3.5 w-3.5 ${isStreaming ? "animate-spin" : ""}`}
                 />{" "}
                 Re-roll 3
@@ -4339,7 +4339,7 @@ function Writer() {
                   disabled={isStreaming || !!keptNow || !variants.some((v) => v.complete && v.text.trim())}
                   className="gap-1.5"
                 >
-                  {keptNow ? <Check className="h-3.5 w-3.5" /> : <BookmarkPlus className="h-3.5 w-3.5" />}
+                  {keptNow ? <CheckIcon className="h-3.5 w-3.5" /> : <BookmarkSimpleIcon className="h-3.5 w-3.5" />}
                   {keptNow ? "Kept" : "Keep all 3"}
                 </Button>
               )}
@@ -4373,7 +4373,7 @@ function Writer() {
                         </span>
                       ) : (
                         <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <Check className="h-3 w-3" /> ready
+                          <CheckIcon className="h-3 w-3" /> ready
                         </span>
                       )}
                     </div>
@@ -4394,7 +4394,7 @@ function Writer() {
                     >
                       {isSelected ? (
                         <>
-                          <Check className="h-3.5 w-3.5" /> Selected
+                          <CheckIcon className="h-3.5 w-3.5" /> Selected
                         </>
                       ) : (
                         <>Use this</>
@@ -4493,7 +4493,7 @@ function Writer() {
                     }
                     className="relative gap-1.5"
                   >
-                    <Copy className="h-3.5 w-3.5" /> Copy caption
+                    <CopyIcon className="h-3.5 w-3.5" /> Copy caption
                     {hasErrors && (
                       <span
                         title="Compliance error flag detected - review before posting"
@@ -4515,7 +4515,7 @@ function Writer() {
                     }
                     className="gap-1.5"
                   >
-                    <Clapperboard className="h-3.5 w-3.5" /> Copy script
+                    <FilmSlateIcon className="h-3.5 w-3.5" /> Copy script
                   </Button>
                 </>
               ) : (
@@ -4527,7 +4527,7 @@ function Writer() {
                   title={mainCopyBlock ?? undefined}
                   className="relative gap-1.5"
                 >
-                  <Copy className="h-3.5 w-3.5" /> Copy
+                  <CopyIcon className="h-3.5 w-3.5" /> Copy
                   {hasErrors && (
                     <span
                       title="Compliance error flag detected - review before posting"
@@ -4545,7 +4545,7 @@ function Writer() {
                 disabled={isStreaming}
                 className="gap-1.5"
               >
-                <RefreshCw
+                <ArrowsClockwiseIcon
                   className={`h-3.5 w-3.5 ${isStreaming ? "animate-spin" : ""}`}
                 />{" "}
                 Re-roll
@@ -4564,7 +4564,7 @@ function Writer() {
               ))}
             {saveState === "failed" && (
               <p role="alert" className="mb-3 flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-red-700 dark:text-red-300">
-                <AlertTriangle className="h-3.5 w-3.5" /> Not saved: this browser's storage is full. Copy your post somewhere safe.
+                <WarningIcon className="h-3.5 w-3.5" /> Not saved: this browser's storage is full. Copy your post somewhere safe.
                 <button type="button" onClick={() => flushSave.current()} className="-my-2 py-2 font-semibold text-primary hover:underline">
                   Retry
                 </button>
@@ -4590,7 +4590,7 @@ function Writer() {
             {savedEntry && (
               <p className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                 <CopyLinkButton path={links.generate({ draft: savedEntry.id })} label="Copy link to this post" className="-my-2 -ml-2 order-last" />
-                {saveState === "saving" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-success" />}
+                {saveState === "saving" ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <CheckIcon className="h-3.5 w-3.5 text-success" />}
                 {savedEntry.status === "posted" ? (
                   "Posted. Edits save to All posts."
                 ) : savedEntry.status === "scheduled" && savedEntry.scheduledFor ? (
@@ -4666,7 +4666,7 @@ function Writer() {
             <div className={`grid gap-4 ${versions.length > 0 || compareOn ? "" : "lg:grid-cols-2"}`}>
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  <Pencil className="h-3.5 w-3.5" /> Edit
+                  <PencilSimpleIcon className="h-3.5 w-3.5" /> Edit
                 </div>
                 <Textarea
                   ref={editorRef}
@@ -4713,7 +4713,7 @@ function Writer() {
                     title="Removes hidden characters and swaps fancy punctuation and stock AI words."
                     className="flex h-11 items-center gap-1 rounded-full border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:h-9 [@media(pointer:coarse)]:h-11"
                   >
-                    <Eraser className="h-3.5 w-3.5" /> Clean AI tells
+                    <EraserIcon className="h-3.5 w-3.5" /> Clean AI tells
                   </button>
                   {leo && userId && (
                     <Suspense fallback={null}>
@@ -4728,7 +4728,7 @@ function Writer() {
                         onClick={() => void tryNewHooks()}
                         className="flex h-11 items-center gap-1 rounded-full border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 sm:h-9 [@media(pointer:coarse)]:h-11"
                       >
-                        <Shuffle className="h-3.5 w-3.5" /> Try new hooks
+                        <ShuffleIcon className="h-3.5 w-3.5" /> Try new hooks
                       </button>
                       {!isStreaming && <PriceChip price={WRITE_PRICE} left={null} />}
                       {isStreaming && streamingMode !== "newHooks" && (
@@ -4739,7 +4739,7 @@ function Writer() {
                 </div>
                 {undoText !== null && (
                   <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-                    <Check className="h-3.5 w-3.5 text-success" /> {undoNote}
+                    <CheckIcon className="h-3.5 w-3.5 text-success" /> {undoNote}
                     <button
                       type="button"
                       onClick={undoRewrite}
@@ -4751,7 +4751,7 @@ function Writer() {
                 )}
                 {userId && rewriteHabit && (
                   <p data-testid="rewrite-nudge" className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-                    <Lightbulb className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                    <LightbulbIcon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
                     <span>{REWRITE_LEARNINGS[rewriteHabit].nudge}</span>
                     <span className="flex gap-3">
                       <button type="button" onClick={rememberHabit} className="-my-3.5 py-3.5 font-semibold text-primary hover:underline sm:-my-2 sm:py-2">
@@ -4798,7 +4798,7 @@ function Writer() {
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Button size="sm" onClick={discardRewrite}>Keep the old one</Button>
                           <Button size="sm" variant="outline" onClick={acceptRewrite} className="gap-1.5">
-                            <Check className="h-3.5 w-3.5" /> Use this anyway
+                            <CheckIcon className="h-3.5 w-3.5" /> Use this anyway
                           </Button>
                         </div>
                       </>
@@ -4810,7 +4810,7 @@ function Writer() {
                           onClick={acceptRewrite}
                           className="gap-1.5"
                         >
-                          <Check className="h-3.5 w-3.5" /> Use this
+                          <CheckIcon className="h-3.5 w-3.5" /> Use this
                         </Button>
                         <Button size="sm" variant="ghost" onClick={discardRewrite}>
                           {rewrite.status === "done" ? "Discard" : "Stop"}
@@ -4843,7 +4843,7 @@ function Writer() {
                       {!ours && (
                         <div className="flex flex-wrap items-center gap-2">
                           <Button size="sm" variant="outline" disabled={isStreaming} onClick={() => void tryNewHooks()} className="h-11 gap-1.5 sm:h-9">
-                            <Shuffle className="h-3.5 w-3.5" /> Try new hooks
+                            <ShuffleIcon className="h-3.5 w-3.5" /> Try new hooks
                           </Button>
                           {!isStreaming && <PriceChip price={WRITE_PRICE} left={null} />}
                         </div>
@@ -4865,17 +4865,17 @@ function Writer() {
                               </span>
                               {ours?.pick?.key === pickKey && ours.pick.index === r.index && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                                  <Star className="h-3 w-3" aria-hidden /> Recommended
+                                  <StarIcon className="h-3 w-3" aria-hidden /> Recommended
                                 </span>
                               )}
                             </div>
                             {done && (
                               <div className="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-8" disabled={withOpening(draft, r.text) === draft} onClick={() => pickNewHook(r)}>
-                                  <Check className="h-3.5 w-3.5" /> Use this one
+                                  <CheckIcon className="h-3.5 w-3.5" /> Use this one
                                 </Button>
                                 <Button size="sm" variant="ghost" className="h-11 gap-1.5 sm:h-8" disabled={Boolean(savedId)} onClick={() => saveHookVersion(r)}>
-                                  {savedId ? <Check className="h-3.5 w-3.5 text-success" /> : <BookmarkPlus className="h-3.5 w-3.5" />}
+                                  {savedId ? <CheckIcon className="h-3.5 w-3.5 text-success" /> : <BookmarkSimpleIcon className="h-3.5 w-3.5" />}
                                   {savedId ? "Saved" : "Save as a version"}
                                 </Button>
                               </div>
@@ -4899,11 +4899,11 @@ function Writer() {
                       {ours && !ours.running && rows.some((r) => r.complete && r.text.trim()) && (
                         <div className="border-t border-border/50 pt-2">
                           <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" disabled={isStreaming || Boolean(ours.testSet)} onClick={saveHookTest}>
-                            {ours.testSet ? <Check className="h-3.5 w-3.5 text-success" /> : <Columns3 className="h-3.5 w-3.5" />} Save all as a hook test
+                            {ours.testSet ? <CheckIcon className="h-3.5 w-3.5 text-success" /> : <ColumnsIcon className="h-3.5 w-3.5" />} Save all as a hook test
                           </Button>
                           {ours.testSet && (
                             <Button size="sm" variant="outline" className="ml-2 h-11 gap-1.5 sm:h-9" disabled={Boolean(ours.series?.length)} onClick={scheduleSeries}>
-                              {ours.series?.length ? <Check className="h-3.5 w-3.5 text-success" /> : <CalendarDays className="h-3.5 w-3.5" />} Post them twice a week
+                              {ours.series?.length ? <CheckIcon className="h-3.5 w-3.5 text-success" /> : <CalendarDotsIcon className="h-3.5 w-3.5" />} Post them twice a week
                             </Button>
                           )}
                         </div>
@@ -4922,7 +4922,7 @@ function Writer() {
                 }}
               >
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  <Sparkles className="h-3.5 w-3.5" /> Live preview
+                  <SparkleIcon className="h-3.5 w-3.5" /> Live preview
                 </div>
                 <PostPreview text={draft} platform={platform} format={format} disclosure={disclosure} media={attachedMedia.media} source={remixSource ?? undefined} />
                 <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -4953,7 +4953,7 @@ function Writer() {
                   ))}
                   {!attachedVideo && attachedKeys.length < MAX_PICTURES && (
                     <Button type="button" size="sm" variant="outline" className="h-9 [@media(pointer:coarse)]:h-11" disabled={attaching} onClick={() => attachInput.current?.click()}>
-                      {attaching ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1.5 h-4 w-4" />}
+                      {attaching ? <CircleNotchIcon className="mr-1.5 h-4 w-4 animate-spin" /> : <ImageSquareIcon className="mr-1.5 h-4 w-4" />}
                       {attachedKeys.length ? "Add more" : "Add your photo or video"}
                     </Button>
                   )}
@@ -4988,7 +4988,7 @@ function Writer() {
                   <p className="flex flex-wrap items-center gap-x-2 text-xs text-amber-800 dark:text-amber-300">
                     {shapeLine}
                     <button type="button" disabled={cropping} onClick={() => void cropToFit()} className="-my-2 inline-flex items-center gap-1 py-2 font-semibold text-primary hover:underline disabled:opacity-60 [@media(pointer:coarse)]:min-h-11">
-                      {cropping && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      {cropping && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />}
                       Crop to fit
                     </button>
                   </p>
@@ -5005,13 +5005,13 @@ function Writer() {
                       : "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                   }`}
                 >
-                  {scriptWarn ? <AlertTriangle className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                  {scriptWarn ? <WarningIcon className="h-3 w-3" /> : <CheckIcon className="h-3 w-3" />}
                   Script: {scriptWords} words, about {spokenSeconds(scriptWords)}s
                 </span>
                 <ReelLengthPicker value={reelSeconds} onChange={setReelSeconds} />
                 {scriptWarn && (
                   <span role="alert" className="flex basis-full items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {scriptWarn}
+                    <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {scriptWarn}
                   </span>
                 )}
               </div>
@@ -5033,9 +5033,9 @@ function Writer() {
                 }`}
               >
                 {counters.status === "good" ? (
-                  <Check className="h-3 w-3" />
+                  <CheckIcon className="h-3 w-3" />
                 ) : (
-                  <AlertTriangle className="h-3 w-3" />
+                  <WarningIcon className="h-3 w-3" />
                 )}
                 {counters.message}
               </span>
@@ -5047,13 +5047,13 @@ function Writer() {
               <LimitChips check={limits} platform={platform} />
               {tagsOver && (
                 <Button variant="outline" size="sm" onClick={cutHashtags} className="h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
-                  <Hash className="h-3.5 w-3.5" />
+                  <HashIcon className="h-3.5 w-3.5" />
                   {tagsToKeep ? `Keep the first ${tagsToKeep}` : "Take out the hashtags"}
                 </Button>
               )}
               {repeats && (
                 <span role="status" className="flex basis-full items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   {repeats.percent}% the same words as your post "{repeats.post.hook.length > 40 ? `${repeats.post.hook.slice(0, 40).trim()}...` : repeats.post.hook}",{" "}
                   {repeats.post.status === "posted" && repeats.post.postedAt
                     ? `posted ${keyToDate(postedDay(repeats.post.postedAt)).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`
@@ -5063,24 +5063,24 @@ function Writer() {
               )}
               {draftBlanks.length > 0 && (
                 <span role="status" className="flex basis-full items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   {draftBlanks.length === 1 ? "1 blank" : `${draftBlanks.length} blanks`} to fill before posting: {draftBlanks.join(", ")}
                 </span>
               )}
               {platform === "linkedin" && findLinks(draft).length > 0 && (
                 <Button variant="outline" size="sm" onClick={moveLinkToComment} className="h-11 gap-1.5 sm:h-9">
-                  <MessageSquare className="h-3.5 w-3.5" />
+                  <ChatIcon className="h-3.5 w-3.5" />
                   Move {findLinks(draft).length > 1 ? "links" : "link"} to first comment
                 </Button>
               )}
               {tagsMovable && (
                 <Button variant="outline" size="sm" onClick={moveTagsToComment} className="h-11 gap-1.5 sm:h-9">
-                  <Hash className="h-3.5 w-3.5" /> Move hashtags to first comment
+                  <HashIcon className="h-3.5 w-3.5" /> Move hashtags to first comment
                 </Button>
               )}
               {leo && firstComment === null && platform !== "tiktok" && (
                 <Button variant="outline" size="sm" onClick={() => setFirstComment("")} className="h-11 gap-1.5 sm:h-9">
-                  <MessageSquare className="h-3.5 w-3.5" /> Add a first comment
+                  <ChatIcon className="h-3.5 w-3.5" /> Add a first comment
                 </Button>
               )}
             </div>
@@ -5089,7 +5089,7 @@ function Writer() {
               <div className="mt-3 rounded-xl border border-border/60 bg-muted/20 p-3">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    <MessageSquare className="h-3.5 w-3.5" /> First comment
+                    <ChatIcon className="h-3.5 w-3.5" /> First comment
                     <InfoTip label="About the first comment">
                       Post this as your own first comment once the post is up.
                     </InfoTip>
@@ -5100,7 +5100,7 @@ function Writer() {
                     onClick={() => void copyText(commentText, "First comment copied", "Paste it as a comment on your post.")}
                     className="h-11 gap-1 text-xs sm:h-7"
                   >
-                    <Copy className="h-3 w-3" /> Copy
+                    <CopyIcon className="h-3 w-3" /> Copy
                   </Button>
                 </div>
                 {leo ? (
@@ -5142,7 +5142,7 @@ function Writer() {
                         : "border-border/70 text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {on && <Check className="h-3.5 w-3.5" />}
+                    {on && <CheckIcon className="h-3.5 w-3.5" />}
                     {DISCLOSURES[id].label}
                   </button>
                 );
@@ -5163,7 +5163,7 @@ function Writer() {
                     className="h-9 gap-1.5"
                   >
                     <Icon className="h-3.5 w-3.5" /> {platformLabel(p)}
-                    {has && <Check className="h-3.5 w-3.5 text-success" />}
+                    {has && <CheckIcon className="h-3.5 w-3.5 text-success" />}
                   </Button>
                 );
               })}
@@ -5207,14 +5207,14 @@ function Writer() {
             {format === "short-video" && savedEntry && (
               <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3" aria-live="polite">
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  <Clapperboard className="h-3.5 w-3.5" /> Storyboard
+                  <FilmSlateIcon className="h-3.5 w-3.5" /> Storyboard
                 </div>
                 {storyboard ? (
                   <>
                     <ShotList beats={storyboard.beats} />
                     {storyboardStale && (
                       <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-                        <AlertTriangle className="h-3.5 w-3.5 text-warning" /> Your script changed since.
+                        <WarningIcon className="h-3.5 w-3.5 text-warning" /> Your script changed since.
                         <button
                           type="button"
                           onClick={handleStoryboard}
@@ -5230,14 +5230,14 @@ function Writer() {
                     {readyToFilm ? (
                       <Button asChild variant="outline" size="sm" className="h-11 gap-1.5 border-success/40 text-success sm:h-9">
                         <Link to="/board">
-                          <Check className="h-3.5 w-3.5" /> On your board in{" "}
+                          <CheckIcon className="h-3.5 w-3.5" /> On your board in{" "}
                           {BOARD_COLUMNS.find((c) => c.key === boardColumn)?.label}
-                          <ArrowRight className="h-3.5 w-3.5" />
+                          <ArrowRightIcon className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
                     ) : (
                       <Button variant="outline" size="sm" onClick={markReadyToFilm} className="h-11 gap-1.5 sm:h-9">
-                        <Columns3 className="h-3.5 w-3.5" /> Mark ready to film
+                        <ColumnsIcon className="h-3.5 w-3.5" /> Mark ready to film
                       </Button>
                     )}
                   </>
@@ -5254,7 +5254,7 @@ function Writer() {
                       {storyboardBusy ? (
                         <ThinkingOrb state="working" size={20} theme="light" aria-hidden />
                       ) : (
-                        <Clapperboard className="h-3.5 w-3.5" />
+                        <FilmSlateIcon className="h-3.5 w-3.5" />
                       )}
                       {storyboardBusy ? "Planning the shots..." : "Make a storyboard"}
                     </Button>
@@ -5280,7 +5280,7 @@ function Writer() {
                   <details className="relative">
                     <Button asChild variant="outline" size="sm" className="h-11 cursor-pointer list-none gap-1.5 sm:h-9 [&::-webkit-details-marker]:hidden">
                       <summary>
-                        <Wand2 className="h-3.5 w-3.5" /> Make the video <ChevronDown className="h-3.5 w-3.5" />
+                        <MagicWandIcon className="h-3.5 w-3.5" /> Make the video <CaretDownIcon className="h-3.5 w-3.5" />
                       </summary>
                     </Button>
                     <div className="absolute left-0 top-full z-30 mt-1 w-52 rounded-xl border border-border/70 bg-popover p-1 shadow-elegant">
@@ -5291,7 +5291,7 @@ function Writer() {
                     </div>
                   </details>
                   <Button variant="outline" size="sm" onClick={() => openView("prompter")} disabled={isStreaming} className="h-11 gap-1.5 sm:h-9">
-                    <Video className="h-3.5 w-3.5" /> Film it
+                    <VideoCameraIcon className="h-3.5 w-3.5" /> Film it
                   </Button>
                   <Button
                     variant="outline"
@@ -5300,7 +5300,7 @@ function Writer() {
                     disabled={titlesBusy || isStreaming || titlesLeft === 0}
                     className={`h-11 gap-1.5 sm:h-9 ${titlesBusy ? "disabled:opacity-100" : ""}`}
                   >
-                    {titlesBusy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <AlignLeft className="h-3.5 w-3.5" />}
+                    {titlesBusy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <TextAlignLeftIcon className="h-3.5 w-3.5" />}
                     {titlesBusy ? "Writing titles..." : "Write 3 titles"}
                   </Button>
                   {!titlesBusy && <PriceChip feature="video-publish" left={titlesLeft} />}
@@ -5330,7 +5330,7 @@ function Writer() {
             {craftCheck && (
               <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">
                 <div className="flex items-center gap-2">
-                  <Gauge className="h-4 w-4 text-primary" />
+                  <GaugeIcon className="h-4 w-4 text-primary" />
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     Craft check
                   </span>
@@ -5363,7 +5363,7 @@ function Writer() {
                 {postScore ? (
                   <>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Gauge className="h-4 w-4 text-primary" />
+                      <GaugeIcon className="h-4 w-4 text-primary" />
                       <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                         Predicted engagement
                       </span>
@@ -5401,7 +5401,7 @@ function Writer() {
                                   disabled={(!!rewrite && rewrite.status !== "done") || !!scoring}
                                   onClick={() => fixFactor(id)}
                                 >
-                                  <Wand2 className="h-3.5 w-3.5" /> Fix this
+                                  <MagicWandIcon className="h-3.5 w-3.5" /> Fix this
                                 </Button>
                                 <PriceChip price={WRITE_PRICE} left={null} />
                               </span>
@@ -5443,7 +5443,7 @@ function Writer() {
                       onClick={() => void runScore()}
                       disabled={!!scoring || !userId || (leo && (draft.trim().length < 40 || scoreLeft === 0))}
                     >
-                      {scoring === scoreKeyNow ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Gauge className="h-3.5 w-3.5" />}
+                      {scoring === scoreKeyNow ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <GaugeIcon className="h-3.5 w-3.5" />}
                       {scoring === scoreKeyNow ? "Scoring..." : "Predict engagement"}
                     </Button>
                     {leo && scoring !== scoreKeyNow && <PriceChip feature="post-score" left={scoreLeft} />}
@@ -5486,7 +5486,7 @@ function Writer() {
               <div className="mt-4 rounded-xl border border-border/60 bg-muted/20 p-3">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    <Hash className="h-3.5 w-3.5" /> Hashtags
+                    <HashIcon className="h-3.5 w-3.5" /> Hashtags
                   </div>
                   {hashtags.length > 0 && (
                     <Button
@@ -5495,7 +5495,7 @@ function Writer() {
                       onClick={handleCopyHashtags}
                       className="h-7 gap-1 text-xs"
                     >
-                      <Copy className="h-3 w-3" /> Copy all
+                      <CopyIcon className="h-3 w-3" /> Copy all
                     </Button>
                   )}
                 </div>
@@ -5532,7 +5532,7 @@ function Writer() {
                         onClick={handleCopyImagePrompt}
                         className="h-9 gap-1 text-xs"
                       >
-                        <Copy className="h-3 w-3" /> Copy
+                        <CopyIcon className="h-3 w-3" /> Copy
                       </Button>
                       {!(imgJob?.prompt === imagePrompt && imgJob.state === "done") && (
                         <>
@@ -5542,7 +5542,7 @@ function Writer() {
                             onClick={() => userId && void makeImage(userId, imagePrompt, (chosenHook || draft.trim().split("\n")[0] || "AI image").slice(0, 80))}
                             className="h-9 gap-1.5 text-xs"
                           >
-                            <Sparkles className="h-3.5 w-3.5" />
+                            <SparkleIcon className="h-3.5 w-3.5" />
                             {imgJob?.prompt === imagePrompt && imgJob.state === "failed" ? "Try again" : "Make the image"}
                           </Button>
                           {!imgRunning && <PriceChip feature="ai-image" left={imageLeft} />}
@@ -5587,7 +5587,7 @@ function Writer() {
                         )}
                         <div className="space-y-1.5 text-xs">
                           <p className="flex items-center gap-1 font-semibold">
-                            <Check className="h-3.5 w-3.5 text-success" /> Saved to Media, in AI images
+                            <CheckIcon className="h-3.5 w-3.5 text-success" /> Saved to Media, in AI images
                           </p>
                           <Link to="/carousel" className="font-semibold text-primary hover:underline">
                             Use it on a carousel slide
@@ -5673,7 +5673,7 @@ function Writer() {
                   onClick={() => versionAbortRef.current.get(shownVersion.draftId)?.abort()}
                   className="shrink-0 gap-1.5"
                 >
-                  <StopCircle className="h-3.5 w-3.5" /> Stop
+                  <StopCircleIcon className="h-3.5 w-3.5" /> Stop
                 </Button>
               ) : (
                 <Button
@@ -5683,7 +5683,7 @@ function Writer() {
                   onClick={() => copyVersion(shownVersion)}
                   className="relative shrink-0 gap-1.5"
                 >
-                  <Copy className="h-3.5 w-3.5" /> Copy
+                  <CopyIcon className="h-3.5 w-3.5" /> Copy
                   {hasComplianceErrors(versionFlags) && (
                     <span
                       title="Compliance error flag detected - review before posting"
@@ -5728,7 +5728,7 @@ function Writer() {
                 </p>
               ) : shownVersion.status !== "done" && !versionSaved ? (
                 <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-                  <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                  <WarningIcon className="h-3.5 w-3.5 text-warning" />
                   {shownVersion.status === "stopped" ? "Stopped before finishing." : "Didn't finish."}
                   <button
                     type="button"
@@ -5740,7 +5740,7 @@ function Writer() {
                 </p>
               ) : versionSaved ? (
                 <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-                  {saveState === "saving" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-success" />}
+                  {saveState === "saving" ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <CheckIcon className="h-3.5 w-3.5 text-success" />}
                   {saveState === "saving" ? "Saving..." : "Saved to All posts."}
                   <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
                     Schedule it
@@ -5838,7 +5838,7 @@ function Writer() {
             onClick={stopStreaming}
             className="gap-2 bg-background shadow-lg"
           >
-            <StopCircle className="h-4 w-4" />
+            <StopCircleIcon className="h-4 w-4" />
             <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Stop
           </Button>
         </div>

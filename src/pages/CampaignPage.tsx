@@ -7,7 +7,7 @@
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { MoreHorizontal } from "lucide-react";
+import { DotsThreeIcon } from "@phosphor-icons/react";
 import AdsGroup from "@/components/campaign/AdsGroup";
 import CampaignQueue from "@/components/campaign/CampaignQueue";
 import ConfigurePanel from "@/components/campaign/ConfigurePanel";
@@ -175,7 +175,7 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
             <div ref={menuRef} className="relative">
               <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-10 sm:w-10" aria-label="More for this campaign" aria-haspopup="menu" aria-expanded={menu === "open"}
                 onClick={() => setMenu(menu === "open" ? "closed" : "open")}>
-                <MoreHorizontal className="h-4 w-4" />
+                <DotsThreeIcon className="h-4 w-4" />
               </Button>
               {menu === "open" && (
                 <div role="menu" aria-label="More for this campaign" onKeyDown={(e) => e.key === "Escape" && setMenu("closed")}

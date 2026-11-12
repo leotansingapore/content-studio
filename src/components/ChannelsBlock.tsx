@@ -5,14 +5,14 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AtSign, Facebook, Instagram, Linkedin, Plus, Send, Video, Youtube, type LucideIcon } from "lucide-react";
+import { AtIcon, FacebookLogoIcon, InstagramLogoIcon, LinkedinLogoIcon, PlusIcon, PaperPlaneTiltIcon, VideoCameraIcon, YoutubeLogoIcon, type Icon as IconType } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { activeProfileId } from "@/lib/profiles";
 import { loadChannels, onChannelsChanged, platformName, socialConnectShown, type BrandChannels } from "@/lib/socialConnect";
 import { TELEGRAM_CHANNELS_CHANGED, loadTelegramChannels, type BrandTelegram } from "@/lib/telegramConnect";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 
-const ICON: Record<string, LucideIcon> = { instagram: Instagram, facebook: Facebook, tiktok: Video, linkedin: Linkedin, youtube: Youtube, threads: AtSign, telegram: Send };
+const ICON: Record<string, IconType> = { instagram: InstagramLogoIcon, facebook: FacebookLogoIcon, tiktok: VideoCameraIcon, linkedin: LinkedinLogoIcon, youtube: YoutubeLogoIcon, threads: AtIcon, telegram: PaperPlaneTiltIcon };
 const SHOWN = 4;
 
 /** The open brand's channels as last read on this device (null when never read), redrawn as each read lands. */
@@ -52,7 +52,7 @@ export default function ChannelsBlock({ userId, className }: { userId: string | 
       {list.length > 0 && (
         <ul className="pb-1.5">
           {list.slice(0, SHOWN).map((c, i) => {
-            const Icon = ICON[c.platform] ?? AtSign;
+            const Icon = ICON[c.platform] ?? AtIcon;
             const name = platformName(c.platform);
             const off = c.health === "error" || c.health === "warning";
             return (
@@ -85,12 +85,12 @@ export default function ChannelsBlock({ userId, className }: { userId: string | 
       )}
       <Button asChild variant="outline" size="sm" className="h-9 w-full justify-start gap-2 [@media(pointer:coarse)]:h-11">
         <Link to="/accounts">
-          <Plus className="h-4 w-4" /> Connect a channel
+          <PlusIcon className="h-4 w-4" /> Connect a channel
         </Link>
       </Button>
       {leo && !telegram?.channels.length && (
         <Link to="/accounts#telegram" className={`${row} mt-1 text-muted-foreground hover:text-foreground`}>
-          <Send aria-hidden className="h-4 w-4 shrink-0" /> Connect Telegram
+          <PaperPlaneTiltIcon aria-hidden className="h-4 w-4 shrink-0" /> Connect Telegram
         </Link>
       )}
     </section>

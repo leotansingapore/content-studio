@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, ClipboardCopy, ExternalLink, FileText, Search, X } from "lucide-react";
+import { CaretRightIcon, ClipboardIcon, ArrowSquareOutIcon, FileTextIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import NorthStarTabs from "@/components/NorthStarTabs";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -191,7 +191,7 @@ function ItemCard({ book, item, highlighted }: { book: Book; item: BookItem; hig
           rel="noreferrer"
           className={cn("inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-xs font-semibold text-primary hover:underline", TOUCH)}
         >
-          <FileText className="h-3.5 w-3.5" aria-hidden />
+          <FileTextIcon className="h-3.5 w-3.5" aria-hidden />
           Spec
         </a>
         <button
@@ -199,7 +199,7 @@ function ItemCard({ book, item, highlighted }: { book: Book; item: BookItem; hig
           onClick={copyPrompt}
           className={cn("inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-xs font-semibold text-primary hover:underline", TOUCH)}
         >
-          <ClipboardCopy className="h-3.5 w-3.5" aria-hidden />
+          <ClipboardIcon className="h-3.5 w-3.5" aria-hidden />
           Copy prompt
         </button>
         <span className="flex-1" />
@@ -434,9 +434,9 @@ export default function NorthStarBook({ book: b, metrics, metricsLoading }: { bo
                     {!p.live ? (
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Being built</span>
                     ) : p.url.startsWith("/") ? (
-                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                      <CaretRightIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
                     ) : (
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                      <ArrowSquareOutIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
                     )}
                   </span>
                   <span className="text-xs leading-snug text-muted-foreground">{p.note}</span>
@@ -494,7 +494,7 @@ export default function NorthStarBook({ book: b, metrics, metricsLoading }: { bo
           </h2>
           {filtered ? (
             <button type="button" onClick={clearFilters} className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary hover:underline">
-              <X className="h-3.5 w-3.5" aria-hidden />
+              <XIcon className="h-3.5 w-3.5" aria-hidden />
               Clear filters
             </button>
           ) : (
@@ -511,7 +511,7 @@ export default function NorthStarBook({ book: b, metrics, metricsLoading }: { bo
           {shown.length} cards shown
         </p>
         <label className="flex h-11 items-center gap-2 rounded-lg border bg-background px-3 focus-within:ring-2 focus-within:ring-primary/40">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          <MagnifyingGlassIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
             ref={searchRef}
             value={text}
@@ -557,12 +557,12 @@ export default function NorthStarBook({ book: b, metrics, metricsLoading }: { bo
           <div className="flex flex-wrap gap-1.5">
             {ask && (
               <FilterChip active onClick={() => unset({ ask: null })}>
-                Leo: {ask.short} <X className="h-3 w-3" aria-hidden />
+                Leo: {ask.short} <XIcon className="h-3 w-3" aria-hidden />
               </FilterChip>
             )}
             {phase && (
               <FilterChip active onClick={() => unset({ phase: null })}>
-                Phase {phase.n}: {phase.title} <X className="h-3 w-3" aria-hidden />
+                Phase {phase.n}: {phase.title} <XIcon className="h-3 w-3" aria-hidden />
               </FilterChip>
             )}
           </div>
@@ -589,7 +589,7 @@ export default function NorthStarBook({ book: b, metrics, metricsLoading }: { bo
                       aria-disabled={filtered}
                       className="flex min-h-12 w-full items-center gap-3 px-3 py-2.5 text-left"
                     >
-                      <ChevronRight className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} aria-hidden />
+                      <CaretRightIcon className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} aria-hidden />
                       <span className="flex-1 text-base font-bold">{b.areas[a].label}</span>
                       <span className="hidden w-24 sm:block">
                         <ProgressBar items={items} />
@@ -658,7 +658,7 @@ export default function NorthStarBook({ book: b, metrics, metricsLoading }: { bo
           {b.sources.map((s) => (
             <li key={s.url}>
               <a href={s.url} target="_blank" rel="noreferrer" className={cn("inline-flex min-h-9 items-center gap-1.5 text-sm text-primary hover:underline", TOUCH)}>
-                <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <ArrowSquareOutIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 {s.label}
               </a>
             </li>

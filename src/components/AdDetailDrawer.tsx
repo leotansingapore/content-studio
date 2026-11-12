@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { ExternalLink, ImageOff, Loader2, Wand2, X } from "lucide-react";
+import { ArrowSquareOutIcon, ImageBrokenIcon, CircleNotchIcon, MagicWandIcon, XIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import SaveButton from "@/components/SaveButton";
 import BreakdownRow from "@/components/remix/BreakdownRow";
@@ -93,7 +93,7 @@ function Shell({ label, onClose, media, footer, children }: { label: string; onC
           <CopyLinkButton label="Copy link to this ad" className="rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/75 hover:text-white" />
           <button ref={closeRef} type="button" onClick={onClose} aria-label="Close"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition-colors hover:bg-black/75 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
         <div className="relative flex max-h-[45vh] min-h-[28vh] shrink-0 items-center justify-center overflow-hidden bg-black sm:max-h-none sm:min-h-[460px] sm:w-[46%]">{media}</div>
@@ -112,7 +112,7 @@ export function LoadingAdDrawer({ onClose }: { onClose(): void }) {
   return (
     <Shell label="Loading the ad" onClose={onClose} media={<div className="h-full min-h-[28vh] w-full animate-pulse bg-muted" />}>
       <p className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground" aria-live="polite">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading the ad
+        <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Loading the ad
       </p>
       <div aria-hidden className="space-y-3">
         <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
@@ -140,13 +140,13 @@ function Media({ ad }: { ad: DetailAd }) {
         <img src={ad.image} alt="" referrerPolicy="no-referrer" onError={() => setBrokenPic(true)} className="h-full max-h-[45vh] w-full object-contain sm:max-h-[92vh]" />
       ) : (
         <div className="flex h-full min-h-[28vh] w-full flex-col items-center justify-center gap-1 bg-muted text-xs text-muted-foreground">
-          <ImageOff className="h-5 w-5" aria-hidden /> No preview
+          <ImageBrokenIcon className="h-5 w-5" aria-hidden /> No preview
         </div>
       )}
       {ad.format === "video" && (
         <a href={meta} target="_blank" rel="noopener noreferrer"
           className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-black/75 px-3 py-1.5 text-xs font-semibold text-white hover:bg-black/90 [@media(pointer:coarse)]:min-h-11">
-          <ExternalLink className="h-3.5 w-3.5" /> Video ad. Play it on Meta.
+          <ArrowSquareOutIcon className="h-3.5 w-3.5" /> Video ad. Play it on Meta.
         </a>
       )}
     </>
@@ -179,12 +179,12 @@ export default function AdDetailDrawer({ ad, list, onClose }: { ad: DetailAd; li
     <div className="flex items-center gap-2">
       <RemixButton size="default" className="min-w-0 flex-1" source={source} label={`${ad.advertiser}'s ad`}>
         <Button asChild className="min-w-0 flex-1 gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
-          <Link to={remixWriteUrl(ad)}><Wand2 className="h-4 w-4" /> Remix this</Link>
+          <Link to={remixWriteUrl(ad)}><MagicWandIcon className="h-4 w-4" /> Remix this</Link>
         </Button>
       </RemixButton>
       <SaveButton size="default" source={source} />
       <Button asChild variant="outline" className="gap-1.5 px-3">
-        <a href={safeExternalUrl(ad.libraryUrl) ?? undefined} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /> Open on Meta</a>
+        <a href={safeExternalUrl(ad.libraryUrl) ?? undefined} target="_blank" rel="noopener noreferrer"><ArrowSquareOutIcon className="h-4 w-4" /> Open on Meta</a>
       </Button>
     </div>
   );

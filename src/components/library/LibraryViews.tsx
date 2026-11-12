@@ -1,14 +1,14 @@
 // The Library's four views as one switch, at the top of each of the four pages: Everything (/library), Posts
 // (/drafts), Board (/board) and Grid (/grid). Each is still its own page and address; the switch reopens a view with
 // the filters it last had in this tab, so going to Board and back does not clear a search.
-import { Columns3, Grid3x3, LayoutGrid, List, type LucideIcon } from "lucide-react";
+import { ColumnsIcon, GridNineIcon, SquaresFourIcon, ListIcon, type Icon } from "@phosphor-icons/react";
 import { Link, useLocation } from "react-router-dom";
 
-export const LIBRARY_VIEWS: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: "/library", label: "Everything", icon: LayoutGrid },
-  { to: "/drafts", label: "Posts", icon: List },
-  { to: "/board", label: "Board", icon: Columns3 },
-  { to: "/grid", label: "Grid", icon: Grid3x3 },
+export const LIBRARY_VIEWS: { to: string; label: string; icon: Icon }[] = [
+  { to: "/library", label: "Everything", icon: SquaresFourIcon },
+  { to: "/drafts", label: "Posts", icon: ListIcon },
+  { to: "/board", label: "Board", icon: ColumnsIcon },
+  { to: "/grid", label: "Grid", icon: GridNineIcon },
 ];
 export const isLibraryView = (pathname: string) => LIBRARY_VIEWS.some((v) => v.to === (pathname.replace(/\/+$/, "") || "/"));
 

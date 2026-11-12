@@ -5,7 +5,7 @@
 
 import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { CaretRightIcon } from "@phosphor-icons/react";
 import { readUsage, usesLeft, type Usage } from "@/lib/aiUsage";
 import { AUTOPILOT_CHANGED, loadAutopilot } from "@/lib/autopilot";
 import { AUTONOMY_CHANGED, SHADOW_CHANGED, loadAutonomy, loadShadow, saveAutonomy, type Autonomy } from "@/lib/autonomy";
@@ -208,7 +208,7 @@ function Go({ to, children }: { to: string; children: string }) {
   return (
     <Link to={to} className={LINK}>
       {children}
-      <ChevronRight aria-hidden className="h-4 w-4" />
+      <CaretRightIcon aria-hidden className="h-4 w-4" />
     </Link>
   );
 }

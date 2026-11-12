@@ -5,7 +5,7 @@
 
 import { useEffect, useReducer, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Check, Loader2, Package } from "lucide-react";
+import { CheckIcon, CircleNotchIcon, PackageIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import ProductEditor, { PictureTile } from "@/components/brand/ProductEditor";
 import { Button } from "@/components/ui/button";
@@ -110,7 +110,7 @@ export default function ProductsSection({ userId, brand }: { userId: string; bra
             const step = Math.min(Math.floor((Date.now() - scanning.startedAt) / STEP_MS), STEPS.length - 1);
             return (
               <li key={s} className={`flex items-center gap-2 text-sm ${i > step ? "text-muted-foreground" : ""}`}>
-                {i < step ? <Check className="h-4 w-4 text-success" /> : i === step ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="h-4 w-4" />}
+                {i < step ? <CheckIcon className="h-4 w-4 text-success" /> : i === step ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <span className="h-4 w-4" />}
                 {s}
               </li>
             );
@@ -205,7 +205,7 @@ function Item({ userId, p, onEdit }: { userId: string; p: Product; onEdit: () =>
 
 const Blank = () => (
   <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted text-muted-foreground" aria-hidden>
-    <Package className="h-5 w-5" />
+    <PackageIcon className="h-5 w-5" />
   </span>
 );
 
@@ -280,7 +280,7 @@ function FoundRow({ userId, r, waiting }: { userId: string; r: ReviewRow; waitin
       ) : url && got !== "failed" && state !== "failed" ? (
         <span className="block h-12 w-12 shrink-0 animate-pulse rounded-lg border border-border/60 bg-muted" aria-label={`Getting the picture of ${r.row.name}`} />
       ) : (
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted text-muted-foreground" aria-hidden><Package className="h-4 w-4" /></span>
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted text-muted-foreground" aria-hidden><PackageIcon className="h-4 w-4" /></span>
       )}
       <div className="min-w-0 flex-1 space-y-1">
         <label htmlFor={id} className="block cursor-pointer break-words text-sm font-semibold">{r.row.name}{r.row.price && <span className="font-normal text-muted-foreground">, {r.row.price}</span>}</label>

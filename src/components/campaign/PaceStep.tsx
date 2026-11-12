@@ -3,7 +3,7 @@
 // Make; an AI video is priced from the table), the length a 1 to 8 week stepper, the pace four radios, and a live
 // summary under them. The wizard page draws the step's header, Back and Confirm.
 
-import { Minus, Plus } from "lucide-react";
+import { MinusIcon, PlusIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { AI_VIDEO, type Campaign, type CampaignFormat } from "@/lib/campaigns";
 import { FORMAT_HINT, FORMAT_NAME, MAX_WEEKS, MIN_WEEKS, PACES, paceLabel } from "@/lib/campaignWizard";
@@ -21,11 +21,11 @@ export function WeeksStepper({ weeks, onWeeks, label }: { weeks: number; onWeeks
       <p id="length-q" className={HEAD}>{label}</p>
       <div className="flex items-center gap-2" role="group" aria-labelledby="length-q">
         <Button type="button" variant="outline" size="icon" aria-label="One week shorter" disabled={weeks <= MIN_WEEKS} onClick={() => onWeeks(weeks - 1)}>
-          <Minus />
+          <MinusIcon />
         </Button>
         <span className="min-w-[5.5rem] text-center font-semibold tabular-nums" aria-live="polite">{weeks} {weeks === 1 ? "week" : "weeks"}</span>
         <Button type="button" variant="outline" size="icon" aria-label="One week longer" disabled={weeks >= MAX_WEEKS} onClick={() => onWeeks(weeks + 1)}>
-          <Plus />
+          <PlusIcon />
         </Button>
       </div>
     </div>

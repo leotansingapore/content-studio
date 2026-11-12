@@ -3,7 +3,7 @@
 // outside React in src/lib/competitors.ts; this only draws their state.
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { CaretDownIcon, CircleNotchIcon, ArrowsClockwiseIcon, SparkleIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -104,7 +104,7 @@ function Row({ userId, c, open, onToggle, onClose, onRemove }: { userId: string;
             {where && <span className="truncate text-xs text-muted-foreground">{where}</span>}
           </p>
           {read?.status === "running" ? (
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Finding them...</p>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite"><CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Finding them...</p>
           ) : c.why ? (
             <p className="line-clamp-2 text-xs text-muted-foreground">{c.why}</p>
           ) : (
@@ -112,7 +112,7 @@ function Row({ userId, c, open, onToggle, onClose, onRemove }: { userId: string;
           )}
         </div>
         <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0" aria-expanded={open} aria-label={open ? `Close ${c.name}` : `Edit ${c.name}`} onClick={onToggle}>
-          <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+          <CaretDownIcon className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
         </Button>
       </div>
 
@@ -134,7 +134,7 @@ function Row({ userId, c, open, onToggle, onClose, onRemove }: { userId: string;
       {read?.status === "failed" && (
         <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 pl-[52px] text-xs text-destructive">
           {read.message}
-          <Button size="sm" variant="outline" className={`h-8 gap-1.5 ${TOUCH}`} onClick={() => runRead(userId, c.id, read.input)}><RefreshCw className="h-3.5 w-3.5" /> Try again</Button>
+          <Button size="sm" variant="outline" className={`h-8 gap-1.5 ${TOUCH}`} onClick={() => runRead(userId, c.id, read.input)}><ArrowsClockwiseIcon className="h-3.5 w-3.5" /> Try again</Button>
         </div>
       )}
 
@@ -226,7 +226,7 @@ function Suggested({ userId, state, primary }: { userId: string; state: Competit
         <h2 className="mr-auto font-serif text-lg font-semibold tracking-tight">Suggested for you</h2>
         <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
           <Button variant={primary ? "default" : "outline"} className={`h-10 gap-2 ${TOUCH}`} onClick={() => runSuggest(userId)} disabled={busy || full || Boolean(why)}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}
             {busy ? "Suggesting..." : "Suggest competitors"}
           </Button>
           {!busy && <PriceChip feature="competitor-suggest" left={left} />}

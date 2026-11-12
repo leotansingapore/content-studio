@@ -51,21 +51,21 @@ import { scoped } from "@/lib/profiles";
 import LongPiece from "@/components/LongPiece";
 import { useUrlItem } from "@/lib/urlState";
 import {
-  Gauge,
-  Sparkles,
-  CheckCircle2,
-  Wrench,
-  History as HistoryIcon,
-  TrendingUp,
-  PenLine,
-  Compass,
-  Heart,
-  ThumbsDown,
-  X,
-  Plus,
-  Save,
-  BookOpen,
-} from "lucide-react";
+  GaugeIcon,
+  SparkleIcon,
+  CheckCircleIcon,
+  WrenchIcon,
+  ClockCounterClockwiseIcon,
+  TrendUpIcon,
+  PencilLineIcon,
+  CompassIcon,
+  HeartIcon,
+  ThumbsDownIcon,
+  XIcon,
+  PlusIcon,
+  FloppyDiskIcon,
+  BookOpenIcon,
+} from "@phosphor-icons/react";
 import { adviserBrand } from "@/lib/profession";
 
 // Profile answers not saved yet and posts pasted for review, kept for this tab
@@ -160,7 +160,7 @@ function PrefChips({
             onClick={() => onRemove(it)}
             className="text-muted-foreground hover:text-foreground"
           >
-            <X className="h-3 w-3" />
+            <XIcon className="h-3 w-3" />
           </button>
         </span>
       ))}
@@ -348,7 +348,7 @@ export default function CoachPage() {
         <header>
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Compass className="h-5 w-5" />
+              <CompassIcon className="h-5 w-5" />
             </span>
             <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               Coach
@@ -370,7 +370,7 @@ export default function CoachPage() {
       <header>
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Compass className="h-5 w-5" />
+            <CompassIcon className="h-5 w-5" />
           </span>
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Coach
@@ -433,11 +433,11 @@ export default function CoachPage() {
                 disabled={!dirty}
                 className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"
               >
-                <Save className="h-4 w-4" /> Save what you told me
+                <FloppyDiskIcon className="h-4 w-4" /> Save what you told me
               </Button>
               {savedAt > 0 && !dirty && (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Saved
+                  <CheckCircleIcon className="h-3.5 w-3.5" /> Saved
                 </span>
               )}
             </div>
@@ -455,7 +455,7 @@ export default function CoachPage() {
                 "Give me one post idea that draws on my real story and fits my audience.",
               )}
             >
-              <PenLine className="h-4 w-4" /> Draft with everything the Coach knows
+              <PencilLineIcon className="h-4 w-4" /> Draft with everything the Coach knows
             </Link>
           </Button>
         )}
@@ -475,7 +475,7 @@ export default function CoachPage() {
           <Card className="border-border/60 shadow-card">
             <CardContent className="space-y-3 py-4">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-success">
-                <Heart className="h-4 w-4" /> Lean into
+                <HeartIcon className="h-4 w-4" /> Lean into
               </p>
               {profile && profile.likes.length > 0 ? (
                 <PrefChips
@@ -502,7 +502,7 @@ export default function CoachPage() {
                   onClick={() => addPref("like")}
                   className="shrink-0 gap-1"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Add
+                  <PlusIcon className="h-3.5 w-3.5" /> Add
                 </Button>
               </div>
             </CardContent>
@@ -510,7 +510,7 @@ export default function CoachPage() {
           <Card className="border-border/60 shadow-card">
             <CardContent className="space-y-3 py-4">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-destructive">
-                <ThumbsDown className="h-4 w-4" /> Steer clear of
+                <ThumbsDownIcon className="h-4 w-4" /> Steer clear of
               </p>
               {profile && profile.dislikes.length > 0 ? (
                 <PrefChips
@@ -537,7 +537,7 @@ export default function CoachPage() {
                   onClick={() => addPref("dislike")}
                   className="shrink-0 gap-1"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Add
+                  <PlusIcon className="h-3.5 w-3.5" /> Add
                 </Button>
               </div>
             </CardContent>
@@ -592,7 +592,7 @@ export default function CoachPage() {
                 disabled={text.trim().length < 20}
                 className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"
               >
-                <Gauge className="h-4 w-4" />
+                <GaugeIcon className="h-4 w-4" />
                 {pastedCount > 1 ? `Analyze ${pastedCount} posts` : "Analyze"}
               </Button>
               <Button
@@ -601,7 +601,7 @@ export default function CoachPage() {
                 disabled={inAppCount === 0}
                 className="gap-1.5"
               >
-                <Sparkles className="h-4 w-4" /> Grade my {inAppCount} in-app{" "}
+                <SparkleIcon className="h-4 w-4" /> Grade my {inAppCount} in-app{" "}
                 {inAppCount === 1 ? "post" : "posts"}
               </Button>
             </div>
@@ -638,7 +638,7 @@ export default function CoachPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 rounded-xl border border-success/30 bg-success/5 p-4">
                   <p className="flex items-center gap-1.5 text-sm font-semibold text-success">
-                    <CheckCircle2 className="h-4 w-4" /> What's working
+                    <CheckCircleIcon className="h-4 w-4" /> What's working
                   </p>
                   {report.strengths.length ? (
                     <ul className="space-y-1.5 text-sm leading-relaxed text-foreground/90">
@@ -654,7 +654,7 @@ export default function CoachPage() {
                 </div>
                 <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
                   <p className="flex items-center gap-1.5 text-sm font-semibold text-primary">
-                    <Wrench className="h-4 w-4" /> Fix these next
+                    <WrenchIcon className="h-4 w-4" /> Fix these next
                   </p>
                   <ol className="space-y-1.5 text-sm leading-relaxed text-foreground/90">
                     {report.fixes.map((f, i) => (
@@ -667,7 +667,7 @@ export default function CoachPage() {
                   {report.fixes.length > 0 && (
                     <Button asChild size="sm" className="mt-1 gap-1.5">
                       <Link to={draftWithContextUrl(fixesCtx(report))}>
-                        <PenLine className="h-3.5 w-3.5" /> Revise in Write
+                        <PencilLineIcon className="h-3.5 w-3.5" /> Revise in Write
                       </Link>
                     </Button>
                   )}
@@ -714,10 +714,10 @@ export default function CoachPage() {
           <Card className="border-border/60 shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="flex items-center gap-1.5 font-serif text-lg">
-                <HistoryIcon className="h-4 w-4 text-muted-foreground" /> Your progress
+                <ClockCounterClockwiseIcon className="h-4 w-4 text-muted-foreground" /> Your progress
               </CardTitle>
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
-                <TrendingUp className="h-3.5 w-3.5" /> Best {best}
+                <TrendUpIcon className="h-3.5 w-3.5" /> Best {best}
               </span>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -769,7 +769,7 @@ export default function CoachPage() {
       <LongPiece />
 
       <p className="flex items-center justify-center gap-1.5 pt-2 text-xs text-muted-foreground">
-        <BookOpen className="h-3.5 w-3.5" /> Everything here is saved to your
+        <BookOpenIcon className="h-3.5 w-3.5" /> Everything here is saved to your
         account and synced across your devices.
       </p>
     </div>

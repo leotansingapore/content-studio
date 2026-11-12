@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpen, Loader2, Settings2, TrendingUp } from "lucide-react";
+import { ArrowRightIcon, BookOpenIcon, CircleNotchIcon, SlidersHorizontalIcon, TrendUpIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,7 +55,7 @@ function IndustryPicker() {
           </SelectContent>
         </Select>
         <Button onClick={save} disabled={!value || saving}>
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {saving ? <CircleNotchIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
           Save
         </Button>
       </CardContent>
@@ -106,7 +106,7 @@ export default function HubHomePage() {
         {access === "admin" && (
           <Button asChild variant="outline" size="sm">
             <Link to="/hub/admin">
-              <Settings2 className="mr-2 h-4 w-4" /> Open admin
+              <SlidersHorizontalIcon className="mr-2 h-4 w-4" /> Open admin
             </Link>
           </Button>
         )}
@@ -117,17 +117,17 @@ export default function HubHomePage() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-            <TrendingUp className="h-4 w-4" /> Latest drops
+            <TrendUpIcon className="h-4 w-4" /> Latest drops
           </h2>
           <Button asChild variant="ghost" size="sm">
             <Link to="/hub/trends">
-              All trends <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              All trends <ArrowRightIcon className="ml-1 h-3.5 w-3.5" />
             </Link>
           </Button>
         </div>
         {loading ? (
           <div className="flex h-24 items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <CircleNotchIcon className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : trends.length === 0 ? (
           <Card>
@@ -148,11 +148,11 @@ export default function HubHomePage() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-            <BookOpen className="h-4 w-4" /> Guides
+            <BookOpenIcon className="h-4 w-4" /> Guides
           </h2>
           <Button asChild variant="ghost" size="sm">
             <Link to="/hub/guides">
-              All guides <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              All guides <ArrowRightIcon className="ml-1 h-3.5 w-3.5" />
             </Link>
           </Button>
         </div>

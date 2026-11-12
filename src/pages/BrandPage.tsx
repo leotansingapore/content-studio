@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Check, Copy, ImagePlus, Plus, Trash2, X } from "lucide-react";
+import { CheckIcon, CopyIcon, ImageSquareIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -131,13 +131,13 @@ function PaletteRows({ brand, setBrand }: { brand: CarouselBrand; setBrand: (pat
           <Input value={c.name} maxLength={MAX_PALETTE_NAME} aria-label={`Colour ${i + 2}: name`} onChange={(e) => set(i, { name: e.target.value })} className="h-9 w-32 min-w-0 [@media(pointer:coarse)]:h-11" />
           <span className="font-mono text-xs text-muted-foreground">{c.hex}</span>
           <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label={`Remove ${c.name || `colour ${i + 2}`}`} onClick={() => setBrand({ palette: palette.filter((_, j) => j !== i) })}>
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </Button>
         </div>
       ))}
       {palette.length < MAX_PALETTE ? (
         <Button variant="outline" size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11" onClick={add}>
-          <Plus className="h-3.5 w-3.5" /> Add a colour
+          <PlusIcon className="h-3.5 w-3.5" /> Add a colour
         </Button>
       ) : (
         <p className="text-xs text-muted-foreground">Up to {MAX_PALETTE} more colours.</p>
@@ -192,7 +192,7 @@ function DmField({
             {link.replace(/^https:\/\//, "")}
           </a>
           <Button type="button" size="sm" variant="ghost" onClick={() => onCopy(link)} aria-label={`Copy your ${label.split(" ")[0]} DM link`} className="h-9 shrink-0 gap-1.5 text-primary [@media(pointer:coarse)]:h-11">
-            <Copy className="h-3.5 w-3.5" /> Copy
+            <CopyIcon className="h-3.5 w-3.5" /> Copy
           </Button>
         </div>
       )}
@@ -251,7 +251,7 @@ function SlotEditor({ labelId, slots, onChange }: { labelId: string; slots: stri
             />
             <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label="Remove this time"
               onClick={() => onChange(slots.filter((_, j) => j !== i))}>
-              <X className="h-4 w-4" />
+              <XIcon className="h-4 w-4" />
             </Button>
           </li>
         ))}
@@ -259,7 +259,7 @@ function SlotEditor({ labelId, slots, onChange }: { labelId: string; slots: stri
       {slots.length < MAX_SLOTS && (
         <Button variant="outline" size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11"
           onClick={() => onChange([...slots, slots.length ? `${(Number(slots[slots.length - 1][0]) + 2) % 7}T${slots[slots.length - 1].slice(2)}` : "1T08:30"])}>
-          <Plus className="h-3.5 w-3.5" /> Add a time
+          <PlusIcon className="h-3.5 w-3.5" /> Add a time
         </Button>
       )}
       <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 text-sm">
@@ -554,7 +554,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
   // fixed, so an edit far down the page still shows it saved
   const savedPill = (
     <span aria-live="polite" className={`pointer-events-none fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold text-success shadow-elegant transition-opacity lg:bottom-6 ${saved ? "opacity-100" : "opacity-0"}`}>
-          <Check className="h-3.5 w-3.5" /> Saved
+          <CheckIcon className="h-3.5 w-3.5" /> Saved
         </span>
   );
 
@@ -596,7 +596,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
             <h2 className="font-serif text-lg font-semibold">You</h2>
             <div className="flex items-center gap-4">
               <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted">
-                {brand.photo ? <img src={brand.photo} alt="Your photo" className="h-full w-full object-cover" /> : <ImagePlus className="h-6 w-6 text-muted-foreground" aria-hidden />}
+                {brand.photo ? <img src={brand.photo} alt="Your photo" className="h-full w-full object-cover" /> : <ImageSquareIcon className="h-6 w-6 text-muted-foreground" aria-hidden />}
               </span>
               <div className="flex flex-wrap gap-2">
                 <label className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm font-semibold hover:border-primary/40 [@media(pointer:coarse)]:h-11">
@@ -605,7 +605,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
                 </label>
                 {brand.photo && (
                   <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground" onClick={() => update({ photo: undefined })}>
-                    <Trash2 className="h-3.5 w-3.5" /> Remove
+                    <TrashIcon className="h-3.5 w-3.5" /> Remove
                   </Button>
                 )}
               </div>
@@ -687,7 +687,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label={`Remove offer ${i + 1}`} onClick={() => update({ offers: offers.filter((_, j) => j !== i) })}>
-                      <X className="h-4 w-4" />
+                      <XIcon className="h-4 w-4" />
                     </Button>
                   </li>
                 ))}
@@ -695,7 +695,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
             )}
             {offers.length < MAX_OFFERS && (
               <Button variant="outline" size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11" onClick={() => update({ offers: [...offers, { name: "", url: "" }] })}>
-                <Plus className="h-3.5 w-3.5" /> Add an offer
+                <PlusIcon className="h-3.5 w-3.5" /> Add an offer
               </Button>
             )}
           </section>
@@ -814,7 +814,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
               </label>
               {brand.logo && (
                 <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground" onClick={() => update({ logo: undefined })}>
-                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                  <TrashIcon className="h-3.5 w-3.5" /> Remove
                 </Button>
               )}
             </fieldset>

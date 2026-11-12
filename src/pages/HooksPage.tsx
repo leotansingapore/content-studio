@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Check, Copy, Loader2, Quote, Sparkles, Trash2, X } from "lucide-react";
+import { CheckIcon, CopyIcon, CircleNotchIcon, QuotesIcon, SparkleIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -167,7 +167,7 @@ function HookDeskView({ userId }: { userId: string }) {
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <Quote className="h-6 w-6 shrink-0 text-primary" aria-hidden /> My hooks
+          <QuotesIcon className="h-6 w-6 shrink-0 text-primary" aria-hidden /> My hooks
         </h1>
       </header>
 
@@ -201,7 +201,7 @@ function HookDeskView({ userId }: { userId: string }) {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={() => void write()} disabled={working || usesLeft("hook-writer") === 0} className="gap-1.5">
-              {working ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {working ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}
               {working ? "Writing..." : `Write ${n} hooks`}
             </Button>
             <PriceChip feature="hook-writer" left={usesLeft("hook-writer")} />
@@ -233,10 +233,10 @@ function HookDeskView({ userId }: { userId: string }) {
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => keep(h.id)} className={`gap-1 ${TOUCH}`}>
-                    <Check className="h-3.5 w-3.5" /> Keep
+                    <CheckIcon className="h-3.5 w-3.5" /> Keep
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => notThis([h.id])} className={`gap-1 text-muted-foreground ${TOUCH}`}>
-                    <X className="h-3.5 w-3.5" /> Not this
+                    <XIcon className="h-3.5 w-3.5" /> Not this
                   </Button>
                 </div>
               </div>
@@ -260,10 +260,10 @@ function HookDeskView({ userId }: { userId: string }) {
                 <li key={s.id} className="flex items-start gap-2 rounded-lg border border-border/60 p-3">
                   <p className="min-w-0 flex-1 whitespace-pre-line text-sm">{s.text}</p>
                   <Button size="icon" variant="ghost" onClick={() => void copy(s)} aria-label={`Copy ${s.text}`} className={`h-8 w-8 shrink-0 ${TOUCH}`}>
-                    {copied === s.id ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied === s.id ? <CheckIcon className="h-3.5 w-3.5 text-success" /> : <CopyIcon className="h-3.5 w-3.5" />}
                   </Button>
                   <Button size="icon" variant="ghost" onClick={() => remove(s)} aria-label={`Remove ${s.text}`} className={`h-8 w-8 shrink-0 text-muted-foreground ${TOUCH}`}>
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <TrashIcon className="h-3.5 w-3.5" />
                   </Button>
                 </li>
               ))}

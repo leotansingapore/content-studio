@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ExternalLink, Loader2 } from "lucide-react";
+import { CaretDownIcon, ArrowSquareOutIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import {
   adlCall,
   campaignLink,
@@ -86,8 +86,8 @@ export default function AdsResults({ userId }: { userId: string }) {
           Ads <span className="font-normal text-muted-foreground">{launches.length}</span>
         </h2>
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {reading && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-label="Reading the numbers" />}
-          <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} aria-hidden />
+          {reading && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" aria-label="Reading the numbers" />}
+          <CaretDownIcon className={cn("h-4 w-4 transition-transform", open && "rotate-180")} aria-hidden />
         </span>
       </button>
       {open && (
@@ -118,7 +118,7 @@ export default function AdsResults({ userId }: { userId: string }) {
                   </p>
                   <p className="flex flex-wrap gap-x-3 text-xs">
                     <a href={campaignLink(l.campaignId)} target="_blank" rel="noreferrer" className={cn("inline-flex items-center gap-1 font-semibold text-primary hover:underline", TOUCH)}>
-                      Open in AdLauncher <ExternalLink className="h-3 w-3" aria-hidden />
+                      Open in AdLauncher <ArrowSquareOutIcon className="h-3 w-3" aria-hidden />
                     </a>
                     {l.designId && (
                       <Link to={links.image({ image: l.designId })} className={cn("inline-flex items-center font-semibold text-primary hover:underline", TOUCH)}>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Loader2, Mail, Sparkles } from "lucide-react";
+import { CheckCircleIcon, CircleNotchIcon, EnvelopeIcon, SparkleIcon } from "@phosphor-icons/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,7 +116,7 @@ export default function JoinPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="flex items-center justify-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Sparkles className="h-5 w-5" />
+            <SparkleIcon className="h-5 w-5" />
           </span>
           <span className="text-base font-bold tracking-tight">Postmosis</span>
         </div>
@@ -124,7 +124,7 @@ export default function JoinPage() {
         {done ? (
           <Card>
             <CardContent className="space-y-4 pt-6 text-center">
-              <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
+              <CheckCircleIcon className="mx-auto h-10 w-10 text-success" />
               <h1 className="font-serif text-2xl font-semibold">You're on Leo's posts board</h1>
               <p className="text-sm text-muted-foreground">
                 {ROLE_NAMES[done.role]}: {ROLE_HELP[done.role].toLowerCase()}, for {done.brands.join(", ")}.
@@ -161,7 +161,7 @@ export default function JoinPage() {
                   </div>
                 </>
               )}
-              {busy ? <Loader2 className="mx-auto h-6 w-6 animate-spin" aria-label="Joining" /> : error && (
+              {busy ? <CircleNotchIcon className="mx-auto h-6 w-6 animate-spin" aria-label="Joining" /> : error && (
                 <>
                   <p className="text-sm" role="alert">{error}</p>
                   <div className="flex justify-center gap-2">
@@ -205,7 +205,7 @@ export default function JoinPage() {
                 )}
                 {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
                 <Button type="submit" size="lg" className="w-full" disabled={busy}>
-                  {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : mode === "email" && <Mail className="mr-1.5 h-4 w-4" />}
+                  {busy ? <CircleNotchIcon className="mr-1.5 h-4 w-4 animate-spin" /> : mode === "email" && <EnvelopeIcon className="mr-1.5 h-4 w-4" />}
                   {mode === "email" ? "Email me a sign-in link" : mode === "code" ? "Sign in and join" : "Sign in and join"}
                 </Button>
               </form>

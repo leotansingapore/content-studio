@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Check, CheckCircle2, ExternalLink, Loader2, X } from "lucide-react";
+import { WarningIcon, CheckIcon, CheckCircleIcon, ArrowSquareOutIcon, CircleNotchIcon, XIcon } from "@phosphor-icons/react";
 import ComplianceChips from "@/components/ComplianceChips";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -274,7 +274,7 @@ export default function RunAsAdSheet(p: {
     if (!status || (status.connected && !ready))
       return (
         <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {status ? "Loading your Pages and ad accounts..." : "Loading..."}
+          <CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden /> {status ? "Loading your Pages and ad accounts..." : "Loading..."}
         </p>
       );
     if (!status.connected)
@@ -364,7 +364,7 @@ export default function RunAsAdSheet(p: {
         <ComplianceChips flags={flags.filter((f) => !dismissed.includes(f.id))} onDismiss={(id) => setDismissed((d) => [...d, id])} />
         {p.masWarn && (
           <p className="flex items-start gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
-            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> These words may promise a result or point to a product. Check them before you run the ad.
+            <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> These words may promise a result or point to a product. Check them before you run the ad.
           </p>
         )}
         {(step === "checked" || step === "problems" || step === "creating") && <CheckResult checked={checked} failure={failure} currency={currency} />}
@@ -376,12 +376,12 @@ export default function RunAsAdSheet(p: {
     <footer className="space-y-1.5 border-t border-border/70 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
       {step === "checked" || step === "creating" ? (
         <Button className="h-11 w-full gap-2" disabled={step === "creating"} onClick={() => void create()}>
-          {step === "creating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+          {step === "creating" ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <CheckIcon className="h-4 w-4" />}
           {step === "creating" ? "Creating in AdLauncher..." : "Create paused"}
         </Button>
       ) : (
         <Button className="h-11 w-full gap-2" disabled={!!problem || step === "checking"} onClick={() => void check()}>
-          {step === "checking" && <Loader2 className="h-4 w-4 animate-spin" />}
+          {step === "checking" && <CircleNotchIcon className="h-4 w-4 animate-spin" />}
           {step === "checking" ? progress : step === "problems" ? "Check again" : "Check"}
         </Button>
       )}
@@ -413,7 +413,7 @@ export default function RunAsAdSheet(p: {
               aria-label="Close"
               className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
             >
-              <X className="h-4 w-4" />
+              <XIcon className="h-4 w-4" />
             </button>
           </div>
         </header>
@@ -487,7 +487,7 @@ function CheckResult({ checked, failure, currency }: { checked: Checked | null; 
       {problems.length > 0 && (
         <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-destructive">
-            <AlertTriangle className="h-4 w-4" aria-hidden /> {problems.length === 1 ? "One thing to fix" : `${problems.length} things to fix`}
+            <WarningIcon className="h-4 w-4" aria-hidden /> {problems.length === 1 ? "One thing to fix" : `${problems.length} things to fix`}
           </p>
           <ul className="space-y-1.5 text-xs">
             {problems.map((x, i) => (
@@ -502,7 +502,7 @@ function CheckResult({ checked, failure, currency }: { checked: Checked | null; 
       {d && (
         <div className="space-y-1.5 rounded-lg border border-border/60 p-3 text-xs">
           <p className="flex items-center gap-1.5 text-sm font-semibold">
-            <CheckCircle2 className="h-4 w-4 text-success" aria-hidden /> AdLauncher would make
+            <CheckCircleIcon className="h-4 w-4 text-success" aria-hidden /> AdLauncher would make
           </p>
           <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1">
             <dt className="text-muted-foreground">Campaign</dt>
@@ -546,7 +546,7 @@ function Done({ created, person, onClose }: { created: CampaignResult; person: b
   return (
     <div className="space-y-4 py-2" role="status">
       <p className="flex items-center gap-2 text-lg font-semibold">
-        <CheckCircle2 className="h-5 w-5 text-success" aria-hidden /> Created, paused in AdLauncher
+        <CheckCircleIcon className="h-5 w-5 text-success" aria-hidden /> Created, paused in AdLauncher
       </p>
       {created.duplicateOf && <p className="text-sm text-muted-foreground">The same ad was made a few minutes ago, so AdLauncher kept that one and made nothing new.</p>}
       <p className="text-sm">{person ? "Switch it on in AdLauncher once the firm has approved it." : "Switch it on in AdLauncher when you're ready."} Its results show under Ads on this page.</p>
@@ -554,7 +554,7 @@ function Done({ created, person, onClose }: { created: CampaignResult; person: b
         {id && (
           <Button asChild className="h-11 gap-2 sm:h-10">
             <a href={campaignLink(id)} target="_blank" rel="noreferrer">
-              Open in AdLauncher <ExternalLink className="h-4 w-4" />
+              Open in AdLauncher <ArrowSquareOutIcon className="h-4 w-4" />
             </a>
           </Button>
         )}

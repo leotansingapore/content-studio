@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AtSign } from "lucide-react";
+import { AtIcon } from "@phosphor-icons/react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ReviewThread from "@/components/team/ReviewThread";
@@ -55,7 +55,7 @@ export default function MentionsCard({ myTeam, userId }: { myTeam: MyTeam; userI
     <Card className="border-primary/40 shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-serif text-xl">
-          <AtSign className="h-5 w-5 text-primary" />
+          <AtIcon className="h-5 w-5 text-primary" />
           Mentioned you
           {unseen.size > 0 && (
             <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">

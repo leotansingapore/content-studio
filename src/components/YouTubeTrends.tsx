@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { PenLine } from "lucide-react";
+import { PencilLineIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TREND_VIDEOS, buildVideoWriteUrl, videoThumb, videoUrl, type TrendVideo } from "@/lib/sgFeeds";
@@ -29,7 +29,7 @@ export default function YouTubeTrends({ videos = TREND_VIDEOS }: { videos?: Tren
               </p>
               <Button asChild size="sm" variant="outline" className="mt-auto gap-1.5">
                 <Link to={buildVideoWriteUrl(v)}>
-                  <PenLine className="h-3.5 w-3.5" /> Write about this
+                  <PencilLineIcon className="h-3.5 w-3.5" /> Write about this
                 </Link>
               </Button>
             </CardContent>

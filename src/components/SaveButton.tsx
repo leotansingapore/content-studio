@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { Bookmark, BookmarkCheck, ChevronDown, Plus } from "lucide-react";
+import { BookmarkSimpleIcon, CaretDownIcon, PlusIcon } from "@phosphor-icons/react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToastAction } from "@/components/ui/toast";
@@ -69,7 +69,7 @@ export function NewBoard({ userId, count, onCreated, className }: { userId: stri
     return (
       <div className={cn("space-y-1", className)}>
         <Button type="button" variant="ghost" size="sm" disabled={full} onClick={() => setEditing(true)} className="h-9 gap-1.5 px-2 text-xs">
-          <Plus className="h-3.5 w-3.5" /> New board
+          <PlusIcon className="h-3.5 w-3.5" /> New board
         </Button>
         {full && <p className="px-2 text-[11px] text-muted-foreground">{SAVE_COPY.boardCap}</p>}
       </div>
@@ -219,7 +219,7 @@ export default function SaveButton({
   if (!saved) {
     return (
       <Button type="button" variant="outline" size={size} onClick={save} className={cn("gap-1.5", className)}>
-        <Bookmark className="h-4 w-4" /> Save
+        <BookmarkSimpleIcon className="h-4 w-4" /> Save
       </Button>
     );
   }
@@ -233,7 +233,7 @@ export default function SaveButton({
         onClick={() => removeWithUndo(saved.key, onChange)}
         className="flex-1 gap-1.5 rounded-r-none border-primary/50 text-primary"
       >
-        <BookmarkCheck className="h-4 w-4" /> Saved
+        <BookmarkSimpleIcon className="h-4 w-4" weight="fill" /> Saved
       </Button>
       <Button
         ref={chevron}
@@ -247,7 +247,7 @@ export default function SaveButton({
         onKeyDown={closeOnEscape}
         className="-ml-px rounded-l-none border-primary/50 px-2 text-primary"
       >
-        <ChevronDown className="h-4 w-4" />
+        <CaretDownIcon className="h-4 w-4" />
       </Button>
       {open &&
         createPortal(

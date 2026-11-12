@@ -7,7 +7,7 @@
 import { useEffect, useReducer, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ImageOff, Loader2, X } from "lucide-react";
+import { ImageBrokenIcon, CircleNotchIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,7 +64,7 @@ export function PictureTile({ userId, pictureKey, source = "", name, className =
   const why = state === "failed" ? PICTURE_FAILED : "Not on this device";
   return (
     <span className={`${box} flex flex-col items-center justify-center gap-1 p-1 text-center text-[10px] leading-tight text-muted-foreground`} role="img" aria-label={why}>
-      <ImageOff className="h-4 w-4 shrink-0" aria-hidden />
+      <ImageBrokenIcon className="h-4 w-4 shrink-0" aria-hidden />
       {words && why}
     </span>
   );
@@ -219,7 +219,7 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
         className="flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-background shadow-elegant sm:max-w-lg sm:rounded-2xl">
         <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
           <h2 id="product-editor-title" className="truncate font-serif text-lg font-semibold">{existing ? existing.name : service ? "Add a service" : "Add a product"}</h2>
-          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Close" onClick={close}><X className="h-4 w-4" /></Button>
+          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Close" onClick={close}><XIcon className="h-4 w-4" /></Button>
         </div>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
           <div className="space-y-1.5">
@@ -265,7 +265,7 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" className={`h-9 ${TOUCH}`} aria-expanded={picking} onClick={() => setPicking(!picking)}>Add from Media</Button>
                 <label className={`inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent ${TOUCH}`}>
-                  {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Upload
+                  {busy && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />} Upload
                   <input type="file" accept="image/*" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void upload(f); }} />
                 </label>
               </div>

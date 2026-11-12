@@ -4,35 +4,35 @@
 // one job share a tab (`group`): the tab shows a small arrow and lists them (the picker). Filters stay on the pages.
 // Phones get a bottom bar of four plus More. Adding a page = adding it to one tab here; no address ever changes.
 import {
-  BarChart3,
-  Bell,
-  BookMarked,
-  CalendarClock,
-  Command,
-  FolderOpen,
-  Home,
-  Link2,
-  ListChecks,
-  Megaphone,
-  MessageSquare,
-  MessageSquarePlus,
-  MousePointerClick,
-  Plug,
-  Share2,
-  SlidersHorizontal,
-  Zap,
-  Settings,
-  Sparkles,
-  Star,
-  Wand2,
-  Languages,
-  Tag,
-  UserCheck,
-  GraduationCap,
-  BookOpen,
-  CircleHelp,
-  type LucideIcon,
-} from "lucide-react";
+  ChartBarIcon,
+  BellIcon,
+  BookBookmarkIcon,
+  CalendarDotsIcon,
+  CommandIcon,
+  FolderOpenIcon,
+  HouseIcon,
+  LinkIcon,
+  ListChecksIcon,
+  MegaphoneIcon,
+  ChatIcon,
+  ChatTextIcon,
+  CursorClickIcon,
+  PlugIcon,
+  ShareNetworkIcon,
+  SlidersHorizontalIcon,
+  LightningIcon,
+  GearIcon,
+  SparkleIcon,
+  StarIcon,
+  MagicWandIcon,
+  TranslateIcon,
+  TagIcon,
+  UserCheckIcon,
+  GraduationCapIcon,
+  BookOpenIcon,
+  QuestionIcon,
+  type Icon,
+} from "@phosphor-icons/react";
 import { ownerShown, reelsShown } from "@/lib/reelsBoard";
 import { LEO_EMAILS, leoOnly } from "@/lib/leoOnly";
 import { marketShown } from "@/lib/market";
@@ -60,7 +60,7 @@ export type NavPage = {
   /** Browser tab title when it should differ from the label. */
   title?: string;
   /** Its tile icon on an index page (Settings); falls back to the section's. */
-  icon?: LucideIcon;
+  icon?: Icon;
   /** The tab this page sits under; pages after it share it until the next one. */
   group?: string;
   /** No section tabs on this page. */
@@ -76,7 +76,7 @@ export type NavPage = {
 export type NavSection = {
   id: string;
   label: string;
-  icon: LucideIcon;
+  icon: Icon;
   /** Where the sidebar item lands on the first visit. */
   to: string;
   pages: NavPage[];
@@ -98,19 +98,19 @@ export const SECTIONS: NavSection[] = [
   {
     id: "home",
     label: "Home",
-    icon: Home,
+    icon: HouseIcon,
     to: "/home",
     pages: [
       // the agent's chats are in the sidebar and North star in the account menu
       { to: "/home", label: "Overview", title: "Home", bare: true },
-      { to: "/agent", label: "Agent", icon: MessageSquare, owners: LEO_EMAILS, bare: true },
-      { to: "/north-star", label: "North star", icon: Star, owners: LEO_EMAILS, bare: true },
+      { to: "/agent", label: "Agent", icon: ChatIcon, owners: LEO_EMAILS, bare: true },
+      { to: "/north-star", label: "North star", icon: StarIcon, owners: LEO_EMAILS, bare: true },
     ],
   },
   {
     id: "write",
     label: "Create",
-    icon: Wand2,
+    icon: MagicWandIcon,
     to: "/studio",
     was: "Studio",
     pages: [
@@ -145,7 +145,7 @@ export const SECTIONS: NavSection[] = [
   {
     id: "library",
     label: "Library",
-    icon: FolderOpen,
+    icon: FolderOpenIcon,
     to: "/library",
     was: "Studio",
     pages: [
@@ -161,7 +161,7 @@ export const SECTIONS: NavSection[] = [
   {
     id: "plan",
     label: "Plan",
-    icon: CalendarClock,
+    icon: CalendarDotsIcon,
     to: "/calendar",
     was: "Strategy",
     // Leo's opens on his campaigns, everyone else's on the calendar
@@ -180,7 +180,7 @@ export const SECTIONS: NavSection[] = [
   {
     id: "insights",
     label: "Insights",
-    icon: BarChart3,
+    icon: ChartBarIcon,
     to: "/analytics",
     pages: [
       { to: "/analytics", label: "Results", title: "Analytics", group: "Results", was: "Analytics numbers" },
@@ -209,7 +209,7 @@ export const SECTIONS: NavSection[] = [
   {
     id: "playbook",
     label: "Brand",
-    icon: BookMarked,
+    icon: BookBookmarkIcon,
     to: "/playbook",
     foot: true,
     pages: [
@@ -234,31 +234,31 @@ export const SECTIONS: NavSection[] = [
     // An index of tiles under the account menu; each page leads back to it. `group` names a tile group here, not tabs.
     id: "settings",
     label: "Settings",
-    icon: Settings,
+    icon: GearIcon,
     to: "/settings",
     foot: true,
     index: true,
     pages: [
       { to: "/settings", label: "Settings", end: true, bare: true },
-      { to: "/notifications", label: "Notifications", icon: Bell, group: "You", hint: "Phone alerts and the Monday results email." },
-      { to: "/settings/post-choices", label: "Post choices", icon: SlidersHorizontal, hint: "Who appears, your name, captions and text style on new posts." },
-      { to: "/accounts", label: "Social accounts", icon: Share2, show: socialConnectShown, group: "Connections", hint: "The Instagram and TikTok accounts the studio posts to." },
-      { to: "/bio", label: "Link in bio", icon: Link2, hint: "One page of your links for your profile." },
-      { to: "/links", label: "Tracked links", icon: MousePointerClick, hint: "Short links that count who clicks." },
-      { to: "/connect", label: "Connect Claude", icon: Plug, hint: "Use the studio from a chat with Claude." },
-      { to: "/adlauncher", label: "AdLauncher", icon: Megaphone, owners: LEO_EMAILS, hint: "Launch ads you make here, paused, in AdLauncher." },
-      { to: "/reels/team", label: "Reviewers", icon: UserCheck, show: ownerShown, group: "Your team", hint: "Who approves posts on your posts board." },
+      { to: "/notifications", label: "Notifications", icon: BellIcon, group: "You", hint: "Phone alerts and the Monday results email." },
+      { to: "/settings/post-choices", label: "Post choices", icon: SlidersHorizontalIcon, hint: "Who appears, your name, captions and text style on new posts." },
+      { to: "/accounts", label: "Social accounts", icon: ShareNetworkIcon, show: socialConnectShown, group: "Connections", hint: "The Instagram and TikTok accounts the studio posts to." },
+      { to: "/bio", label: "Link in bio", icon: LinkIcon, hint: "One page of your links for your profile." },
+      { to: "/links", label: "Tracked links", icon: CursorClickIcon, hint: "Short links that count who clicks." },
+      { to: "/connect", label: "Connect Claude", icon: PlugIcon, hint: "Use the studio from a chat with Claude." },
+      { to: "/adlauncher", label: "AdLauncher", icon: MegaphoneIcon, owners: LEO_EMAILS, hint: "Launch ads you make here, paused, in AdLauncher." },
+      { to: "/reels/team", label: "Reviewers", icon: UserCheckIcon, show: ownerShown, group: "Your team", hint: "Who approves posts on your posts board." },
       // named as its page is, and as Fastlane's tile; Activity sits with it, so Your team is never a heading over a log
-      { to: "/automations", label: "What runs without you", icon: Zap, owners: LEO_EMAILS, group: "The agent", hint: "What the agent does alone, and today's limits." },
-      { to: "/activity", label: "Activity", icon: ListChecks, owners: LEO_EMAILS, hint: "Everything that ran, and who ran it." },
-      { to: "/skills", label: "Skills", icon: Command, owners: LEO_EMAILS, hint: "Slash commands the agent runs for you." },
+      { to: "/automations", label: "What runs without you", icon: LightningIcon, owners: LEO_EMAILS, group: "The agent", hint: "What the agent does alone, and today's limits." },
+      { to: "/activity", label: "Activity", icon: ListChecksIcon, owners: LEO_EMAILS, hint: "Everything that ran, and who ran it." },
+      { to: "/skills", label: "Skills", icon: CommandIcon, owners: LEO_EMAILS, hint: "Slash commands the agent runs for you." },
       // help is not a place to go every day: it sits here, and in the account menu
       // a new sign-in's first screen: no "back to Settings" over it, it has its own ways on
-      { to: "/welcome", label: "Getting started", icon: Sparkles, group: "Help", bare: true, was: "Learn onboarding", hint: "The first steps, ticked off as you do them." },
-      { to: "/academy", label: "Academy", icon: GraduationCap, was: "Learn lessons course", hint: "Short lessons on posting that gets clients." },
-      { to: "/create-guide", label: "How to post", icon: BookOpen, was: "Learn guide", hint: "One post from idea to scheduled, step by step." },
-      { to: "/tutorial", label: "How it works", title: "How the studio works", icon: CircleHelp, was: "Learn tutorial", hint: "A walk through every part of the studio." },
-      { to: "/feedback", label: "Feedback", icon: MessageSquarePlus, was: "Requests roadmap changelog", hint: "Ask for a feature, see the roadmap and what's new." },
+      { to: "/welcome", label: "Getting started", icon: SparkleIcon, group: "Help", bare: true, was: "Learn onboarding", hint: "The first steps, ticked off as you do them." },
+      { to: "/academy", label: "Academy", icon: GraduationCapIcon, was: "Learn lessons course", hint: "Short lessons on posting that gets clients." },
+      { to: "/create-guide", label: "How to post", icon: BookOpenIcon, was: "Learn guide", hint: "One post from idea to scheduled, step by step." },
+      { to: "/tutorial", label: "How it works", title: "How the studio works", icon: QuestionIcon, was: "Learn tutorial", hint: "A walk through every part of the studio." },
+      { to: "/feedback", label: "Feedback", icon: ChatTextIcon, was: "Requests roadmap changelog", hint: "Ask for a feature, see the roadmap and what's new." },
     ],
   },
 ];
@@ -268,9 +268,9 @@ export const SECTIONS: NavSection[] = [
  * Post labels and Language beside Post choices). They are places on a page, not pages: no route, no tab title, and
  * the open page under them is still their page.
  */
-export const SETTINGS_ANCHORS: { page: string; hash: string; label: string; icon: LucideIcon; hint: string; owners?: string[] }[] = [
-  { page: "/settings/post-choices", hash: "labels", label: "Post labels", icon: Tag, hint: "The AI and ad labels that go out with a post." },
-  { page: "/settings/post-choices", hash: "language", label: "Language", icon: Languages, owners: LEO_EMAILS, hint: "The language your posts are written in." },
+export const SETTINGS_ANCHORS: { page: string; hash: string; label: string; icon: Icon; hint: string; owners?: string[] }[] = [
+  { page: "/settings/post-choices", hash: "labels", label: "Post labels", icon: TagIcon, hint: "The AI and ad labels that go out with a post." },
+  { page: "/settings/post-choices", hash: "language", label: "Language", icon: TranslateIcon, owners: LEO_EMAILS, hint: "The language your posts are written in." },
 ];
 
 /** A Settings group's tiles for this sign-in: its pages, each followed by its sections' tiles. */
@@ -354,7 +354,7 @@ export function sectionTabs(pathname: string, email: string): SectionTabs {
 // Phone bottom bar: four places and More. Home, Create, Library and Plan; the agent's sign-ins have their chats where
 // Library is, and find Library in More.
 const isChat = (p: string) => p === "/agent" || p.startsWith("/agent/");
-export const mobileTabs = (email: string): { to: string; label: string; icon: LucideIcon; active: (pathname: string) => boolean }[] => {
+export const mobileTabs = (email: string): { to: string; label: string; icon: Icon; active: (pathname: string) => boolean }[] => {
   const chats = visiblePages(section("home").pages, email).some((p) => p.to === "/agent");
   const tab = (id: string) => {
     const s = section(id);
@@ -362,10 +362,10 @@ export const mobileTabs = (email: string): { to: string; label: string; icon: Lu
     const to = visiblePages(s.pages, email)[0]?.to ?? s.to;
     return { to, label: s.label, icon: s.icon, active: (p: string) => sectionFor(p)?.id === id && !(chats && isChat(p)) };
   };
-  return [tab("home"), tab("write"), chats ? { to: "/agent?panel=chats", label: "Chats", icon: MessageSquare, active: isChat } : tab("library"), tab("plan")];
+  return [tab("home"), tab("write"), chats ? { to: "/agent?panel=chats", label: "Chats", icon: ChatIcon, active: isChat } : tab("library"), tab("plan")];
 };
 
-export type MoreTile = { to: string; label: string; icon: LucideIcon; sectionId: string };
+export type MoreTile = { to: string; label: string; icon: Icon; sectionId: string };
 
 /** The phone More sheet: one tile per section the bottom bar does not reach, opening the first page this sign-in sees. */
 export function moreSheet(email: string): MoreTile[] {

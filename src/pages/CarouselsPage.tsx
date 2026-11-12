@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Heart, Layers, LayoutGrid, Loader2, MessageCircle, Search, SlidersHorizontal, Sparkles, UserCheck, X, Grid3x3 } from "lucide-react";
+import { BookmarkSimpleIcon, CaretLeftIcon, CaretRightIcon, HeartIcon, StackIcon, SquaresFourIcon, CircleNotchIcon, ChatCircleIcon, MagnifyingGlassIcon, SlidersHorizontalIcon, SparkleIcon, UserCheckIcon, XIcon, GridNineIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -205,7 +205,7 @@ export default function CarouselsPage() {
         <h1 className="font-serif text-2xl font-semibold">Carousel library</h1>
         <label className="relative block">
           <span className="sr-only">Search carousels, topics and creators</span>
-          <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <MagnifyingGlassIcon aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search carousels, topics and @creators" className="h-11 pl-9 text-base" />
         </label>
       </div>
@@ -262,7 +262,7 @@ export default function CarouselsPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button variant={panel ? "secondary" : "outline"} size="sm" className="gap-1.5" onClick={() => setPanel(!panel)} aria-expanded={panel}>
-              <SlidersHorizontal className="h-3.5 w-3.5" /> Filters{activeCount(f) ? ` (${activeCount(f)})` : ""}
+              <SlidersHorizontalIcon className="h-3.5 w-3.5" /> Filters{activeCount(f) ? ` (${activeCount(f)})` : ""}
             </Button>
             <Button
               variant="outline"
@@ -277,7 +277,7 @@ export default function CarouselsPage() {
             </Button>
             {f.creator && f.view !== "tracked" && (
               <FilterChip active onClick={() => set("creator", null)}>
-                @{f.creator} <X aria-label="Clear creator" className="h-3 w-3" />
+                @{f.creator} <XIcon aria-label="Clear creator" className="h-3 w-3" />
               </FilterChip>
             )}
           </div>
@@ -293,7 +293,7 @@ export default function CarouselsPage() {
                 {SORTS.map((s) => (
                   <SelectItem key={s.value} value={s.value}>
                     {s.value === "brand" ? (
-                      <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> {s.label}</span>
+                      <span className="inline-flex items-center gap-1"><SparkleIcon className="h-3 w-3" /> {s.label}</span>
                     ) : (
                       s.label
                     )}
@@ -303,10 +303,10 @@ export default function CarouselsPage() {
             </Select>
             <div className="flex rounded-md border border-border/60" role="group" aria-label="Card size">
               <Button variant={size === "large" ? "secondary" : "ghost"} size="sm" className="h-9 px-2.5" aria-pressed={size === "large"} aria-label="Large cards" onClick={() => set("size", "large")}>
-                <LayoutGrid className="h-4 w-4" />
+                <SquaresFourIcon className="h-4 w-4" />
               </Button>
               <Button variant={size === "compact" ? "secondary" : "ghost"} size="sm" className="h-9 px-2.5" aria-pressed={size === "compact"} aria-label="Compact cards" onClick={() => set("size", null)}>
-                <Grid3x3 className="h-4 w-4" />
+                <GridNineIcon className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -320,7 +320,7 @@ export default function CarouselsPage() {
             <span key={s.id} className="inline-flex items-center rounded-full border border-border/60 bg-background text-xs">
               <Link to={`/carousels?${s.query}`} className={cn("px-3 py-1.5", s.query === thisSearch ? "text-primary" : "text-foreground hover:text-primary")}>{s.name}</Link>
               <button type="button" className="px-2 py-1.5 text-muted-foreground hover:text-foreground" aria-label={`Remove saved search ${s.name}`} onClick={() => setShelf(removeSearch(shelf, s.id))}>
-                <X className="h-3 w-3" />
+                <XIcon className="h-3 w-3" />
               </button>
             </span>
           ))}
@@ -336,7 +336,7 @@ export default function CarouselsPage() {
       {f.sort === "brand" && f.view !== "saved" && <FitLine fit={fit} />}
 
       {data.error ? (
-        <EmptyState icon={Layers} title="The library didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
+        <EmptyState icon={StackIcon} title="The library didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
           {data.error}
         </EmptyState>
       ) : data.loading && data.rows.length === 0 ? (
@@ -353,7 +353,7 @@ export default function CarouselsPage() {
           {hasMore && (
             <div className="flex justify-center">
               <Button variant="outline" onClick={() => showMore()} disabled={data.loading} className="gap-1.5">
-                {data.loading && <Loader2 className="h-4 w-4 animate-spin" />} Show more
+                {data.loading && <CircleNotchIcon className="h-4 w-4 animate-spin" />} Show more
               </Button>
             </div>
           )}
@@ -375,7 +375,7 @@ function FitLine({ fit }: { fit: { state: string; answer?: FitAnswer; note?: str
   if (fit.state === "ranking")
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-        <Loader2 className="h-4 w-4 animate-spin" /> Ranking the library for your brand. This takes a few seconds.
+        <CircleNotchIcon className="h-4 w-4 animate-spin" /> Ranking the library for your brand. This takes a few seconds.
       </p>
     );
   if (fit.state === "needs-audience")
@@ -392,10 +392,10 @@ function FitLine({ fit }: { fit: { state: string; answer?: FitAnswer; note?: str
 
 function Empty({ f, shelf }: { f: Filters; shelf: Shelf }) {
   if (f.view === "saved")
-    return <EmptyState icon={Bookmark} title={f.folder ? "Nothing in this folder yet" : "Nothing saved yet"}>Tap the bookmark on any carousel to keep it here.</EmptyState>;
+    return <EmptyState icon={BookmarkSimpleIcon} title={f.folder ? "Nothing in this folder yet" : "Nothing saved yet"}>Tap the bookmark on any carousel to keep it here.</EmptyState>;
   if (f.view === "tracked" && !shelf.tracked.length)
-    return <EmptyState icon={UserCheck} title="No creators tracked yet">Open a carousel and choose Track to see that creator's outliers here.</EmptyState>;
-  return <EmptyState icon={Search} title="No carousels match">Clear a filter or try other words.</EmptyState>;
+    return <EmptyState icon={UserCheckIcon} title="No creators tracked yet">Open a carousel and choose Track to see that creator's outliers here.</EmptyState>;
+  return <EmptyState icon={MagnifyingGlassIcon} title="No carousels match">Clear a filter or try other words.</EmptyState>;
 }
 
 function FilterPanel({ f, set, reset }: { f: Filters; set: (name: string, value: string | null) => void; reset: () => void }) {
@@ -490,20 +490,20 @@ export function CarouselCardView({ c, back, saved, onSave, replace }: { c: Carou
           aria-label={saved ? `Remove ${c.title} from Saved` : `Save ${c.title}`}
           className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 text-white backdrop-blur-sm hover:bg-black/70"
         >
-          {saved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+          <BookmarkSimpleIcon className="h-4 w-4" weight={saved ? "fill" : "regular"} />
         </button>
         {c.slides > 1 && (
           <>
             <button type="button" aria-label="Previous slide" onClick={(e) => flip(e, -1)} className={cn("absolute left-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white group-hover:flex group-focus-within:flex [@media(pointer:coarse)]:flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11", n === 0 && "invisible")}>
-              <ChevronLeft className="h-4 w-4" />
+              <CaretLeftIcon className="h-4 w-4" />
             </button>
             <button type="button" aria-label="Next slide" onClick={(e) => flip(e, 1)} className="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white group-hover:flex group-focus-within:flex [@media(pointer:coarse)]:flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-              <ChevronRight className="h-4 w-4" />
+              <CaretRightIcon className="h-4 w-4" />
             </button>
           </>
         )}
         <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">
-          <Layers className="h-3 w-3" /> {n + 1}/{c.slides}
+          <StackIcon className="h-3 w-3" /> {n + 1}/{c.slides}
         </span>
       </div>
       <div className="space-y-1 pt-2">
@@ -517,8 +517,8 @@ export function CarouselCardView({ c, back, saved, onSave, replace }: { c: Carou
         </p>
         <p className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-1"><Heart className="h-3 w-3" aria-hidden /> {compact(c.likes)}<span className="sr-only"> likes</span></span>
-            <span className="inline-flex items-center gap-1"><MessageCircle className="h-3 w-3" aria-hidden /> {compact(c.comments)}<span className="sr-only"> comments</span></span>
+            <span className="inline-flex items-center gap-1"><HeartIcon className="h-3 w-3" aria-hidden /> {compact(c.likes)}<span className="sr-only"> likes</span></span>
+            <span className="inline-flex items-center gap-1"><ChatCircleIcon className="h-3 w-3" aria-hidden /> {compact(c.comments)}<span className="sr-only"> comments</span></span>
           </span>
           {c.topic && <span className="truncate rounded-full border border-border/60 px-2 py-px text-[10px]">{c.topic}</span>}
         </p>

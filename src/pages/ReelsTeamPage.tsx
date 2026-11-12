@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, Link2, Loader2, MessageCircle } from "lucide-react";
+import { CopyIcon, LinkIcon, CircleNotchIcon, ChatCircleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -39,11 +39,11 @@ function ShareLink({ url, role, brands, onDone }: { url: string; role: Role; bra
       </p>
       <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={() => navigator.clipboard.writeText(url).then(() => toast({ title: "Link copied" }), () => toast({ title: "Copy failed", variant: "destructive" }))}>
-          <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy link
+          <CopyIcon className="mr-1.5 h-3.5 w-3.5" /> Copy link
         </Button>
         <Button size="sm" variant="outline" asChild>
           <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
-            <MessageCircle className="mr-1.5 h-3.5 w-3.5" /> Send on WhatsApp
+            <ChatCircleIcon className="mr-1.5 h-3.5 w-3.5" /> Send on WhatsApp
           </a>
         </Button>
         <Button size="sm" variant="ghost" onClick={onDone}>Done</Button>
@@ -136,7 +136,7 @@ export default function ReelsTeamPage() {
       {members && (
         <>
           <section className="space-y-3 rounded-2xl border border-border/60 bg-card p-4 shadow-card">
-            <h2 className="flex items-center gap-2 text-base font-semibold"><Link2 className="h-4 w-4" /> Invite link</h2>
+            <h2 className="flex items-center gap-2 text-base font-semibold"><LinkIcon className="h-4 w-4" /> Invite link</h2>
             {shared ? (
               <ShareLink {...shared} onDone={() => setShared(null)} />
             ) : (
@@ -160,7 +160,7 @@ export default function ReelsTeamPage() {
                   <p className="text-xs font-semibold text-warning">An approver link works for one person, and their approvals post to Instagram.</p>
                 )}
                 <Button type="submit" disabled={busy || picked.length === 0}>
-                  {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />} Create link
+                  {busy && <CircleNotchIcon className="mr-1.5 h-4 w-4 animate-spin" />} Create link
                 </Button>
                 {picked.length === 0 && <p className="text-xs text-muted-foreground">Pick at least one brand.</p>}
               </form>

@@ -5,7 +5,7 @@
 
 import { useEffect, useReducer, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Check, Globe, Loader2, Sparkles } from "lucide-react";
+import { CheckIcon, GlobeIcon, CircleNotchIcon, SparkleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -82,7 +82,7 @@ export default function WebsiteSection({ userId, brand, setBrand }: { userId: st
             const step = Math.min(Math.floor((Date.now() - reading.startedAt) / 2500), STEPS.length - 1);
             return (
               <li key={s} className={`flex items-center gap-2 text-sm ${i > step ? "text-muted-foreground" : ""}`}>
-                {i < step ? <Check className="h-4 w-4 text-success" /> : i === step ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="h-4 w-4" />}
+                {i < step ? <CheckIcon className="h-4 w-4 text-success" /> : i === step ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <span className="h-4 w-4" />}
                 {s}
               </li>
             );
@@ -94,7 +94,7 @@ export default function WebsiteSection({ userId, brand, setBrand }: { userId: st
           <div className="flex gap-2">
             <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="acme.sg" inputMode="url" autoCapitalize="none" autoCorrect="off" aria-label="Your website" className="min-w-0" />
             <Button type="submit" className={`shrink-0 gap-1.5 ${TOUCH}`} disabled={!address.trim() || left === 0}>
-              <Globe className="h-4 w-4" /> {saved && hostOf(address) === saved ? "Read it again" : "Read it"}
+              <GlobeIcon className="h-4 w-4" /> {saved && hostOf(address) === saved ? "Read it again" : "Read it"}
             </Button>
           </div>
           <p><PriceChip feature="brand-dna" left={left} /></p>
@@ -162,7 +162,7 @@ function Card({ userId, row, pick }: { userId: string; row: Row; pick?: Pick }) 
     <li className="space-y-2 rounded-xl border border-border/60 p-3">
       <p className="flex items-center gap-1.5 text-sm font-semibold">
         {title}
-        {pick && <Check className="h-3.5 w-3.5 text-success" aria-label="Checked" />}
+        {pick && <CheckIcon className="h-3.5 w-3.5 text-success" aria-label="Checked" />}
       </p>
       <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={title}>
         {(["keep", "use"] as const).map((p) => (
@@ -215,7 +215,7 @@ function Competitors({ userId, waiting }: { userId: string; waiting: Waiting }) 
       <p className="text-sm font-semibold">Competitors</p>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <Button variant="outline" size="sm" className={`h-9 gap-1.5 ${TOUCH}`} onClick={suggest} disabled={busy || left === 0}>
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <SparkleIcon className="h-3.5 w-3.5" />}
           {busy ? "Suggesting..." : "Suggest competitors"}
         </Button>
         {!busy && <PriceChip feature="competitor-suggest" left={left} />}

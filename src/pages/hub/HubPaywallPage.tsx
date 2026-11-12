@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Crown, Loader2, Sparkles, TrendingUp, Video } from "lucide-react";
+import { CrownIcon, CircleNotchIcon, SparkleIcon, TrendUpIcon, VideoCameraIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,17 +10,17 @@ import { supabase } from "@/lib/supabase";
 
 const PERKS = [
   {
-    icon: TrendingUp,
+    icon: TrendUpIcon,
     title: "Trend drops every 5 hours",
     desc: "A scout researches what's popping in your niche around the clock and turns it into concrete angles you can film this week.",
   },
   {
-    icon: Video,
+    icon: VideoCameraIcon,
     title: "Editing & videography guides",
     desc: "The exact editing workflows, shooting setups, and post checklists used on real client content.",
   },
   {
-    icon: Sparkles,
+    icon: SparkleIcon,
     title: "Tips for YOUR industry",
     desc: "Members pick their industry and see hooks, formats, and content plays tailored to it, not generic advice.",
   },
@@ -74,7 +74,7 @@ export default function HubPaywallPage() {
     <div className="mx-auto max-w-3xl space-y-6 px-1 py-4">
       <div className="space-y-2 text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
-          <Crown className="h-3.5 w-3.5" /> Members Hub
+          <CrownIcon className="h-3.5 w-3.5" /> Members Hub
         </div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           Fresh trends, real guides, angles made for you
@@ -109,7 +109,7 @@ export default function HubPaywallPage() {
           </div>
           <div className="flex w-full max-w-sm flex-col gap-2 sm:flex-row">
             <Button className="flex-1" onClick={subscribe} disabled={subLoading}>
-              {subLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {subLoading ? <CircleNotchIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
               Subscribe
             </Button>
             <Button
@@ -118,7 +118,7 @@ export default function HubPaywallPage() {
               onClick={claim}
               disabled={claimLoading}
             >
-              {claimLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {claimLoading ? <CircleNotchIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
               I'm a client
             </Button>
           </div>

@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2 } from "lucide-react";
+import { CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -120,10 +120,10 @@ export default function SlideshowBatchCard({ userId, base, hasMedia, onOpen }: {
                       {r.state === "making" && job ? ` · ${stepText(job)}` : r.state === "waiting" ? " · Waiting" : r.state === "skipped" ? " · Skipped" : r.state === "failed" ? ` · ${r.error}` : r.note ? ` · ${r.note}` : ""}
                     </span>
                   </span>
-                  {r.state === "making" && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />}
+                  {r.state === "making" && <CircleNotchIcon className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />}
                   {r.state === "done" && r.showId && (
                     <Button size="sm" variant="ghost" className="shrink-0" onClick={() => onOpen(r.showId!)}>
-                      <Check className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden /> Open
+                      <CheckIcon className="mr-1 h-3.5 w-3.5 text-primary" aria-hidden /> Open
                     </Button>
                   )}
                 </li>

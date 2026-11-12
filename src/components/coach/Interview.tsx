@@ -3,7 +3,7 @@
 // LongPiece, which owns Make 5 posts and the results. Logic: src/lib/interview.ts.
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Mic, RotateCcw, Sparkles, Square } from "lucide-react";
+import { CheckIcon, MicrophoneIcon, ArrowCounterClockwiseIcon, SparkleIcon, SquareIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -144,10 +144,10 @@ export default function Interview(p: {
     return (
       <div className="flex flex-wrap items-center gap-3" role="status" data-testid="interview-done">
         <p className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium text-success">
-          <Check className="h-4 w-4 shrink-0" /> Done. Your {plural(p.postsBelow || 5, "post is", "posts are")} below.
+          <CheckIcon className="h-4 w-4 shrink-0" /> Done. Your {plural(p.postsBelow || 5, "post is", "posts are")} below.
         </p>
         <Button variant="outline" onClick={begin} className="h-11 gap-1.5 sm:h-10">
-          <RotateCcw className="h-4 w-4" /> Start a new interview
+          <ArrowCounterClockwiseIcon className="h-4 w-4" /> Start a new interview
         </Button>
       </div>
     );
@@ -189,7 +189,7 @@ export default function Interview(p: {
             disabled={short || p.busy || p.left === 0}
             className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10"
           >
-            <Sparkles className="h-4 w-4" /> Make 5 posts
+            <SparkleIcon className="h-4 w-4" /> Make 5 posts
           </Button>
           {!p.busy && <PriceChip feature="repurpose-long" left={p.left} />}
         </div>
@@ -258,11 +258,11 @@ export default function Interview(p: {
           <Button type="button" variant="outline" onClick={dictation.toggle} disabled={checking} aria-pressed={dictation.listening} className="h-11 gap-1.5 sm:h-10">
             {dictation.listening ? (
               <>
-                <Square className="h-4 w-4" /> Stop
+                <SquareIcon className="h-4 w-4" /> Stop
               </>
             ) : (
               <>
-                <Mic className="h-4 w-4" /> Speak
+                <MicrophoneIcon className="h-4 w-4" /> Speak
               </>
             )}
           </Button>

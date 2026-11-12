@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Check, Copy, ExternalLink, IdCard, Minus } from "lucide-react";
+import { WarningIcon, CheckIcon, CopyIcon, ArrowSquareOutIcon, IdentificationCardIcon, MinusIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -90,7 +90,7 @@ export default function ProfileScore({
         <div className="flex flex-wrap items-start gap-2 rounded-lg border border-border/60 bg-background p-2">
           <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-xs text-foreground">{text}</p>
           <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-8 [@media(pointer:coarse)]:h-11" onClick={() => void copy(text)}>
-            <Copy className="h-3.5 w-3.5" /> Copy
+            <CopyIcon className="h-3.5 w-3.5" /> Copy
           </Button>
         </div>
       );
@@ -104,7 +104,7 @@ export default function ProfileScore({
               {pinLinks.map((p) => (
                 <li key={p.id}>
                   <a href={p.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 font-medium text-primary hover:underline sm:min-h-0 [@media(pointer:coarse)]:min-h-11">
-                    <ExternalLink className="h-3 w-3 shrink-0" /> {firstLine(p.caption, 60) || "Open post"}
+                    <ArrowSquareOutIcon className="h-3 w-3 shrink-0" /> {firstLine(p.caption, 60) || "Open post"}
                   </a>
                 </li>
               ))}
@@ -126,7 +126,7 @@ export default function ProfileScore({
   return (
     <div className="space-y-2.5 rounded-xl border border-border/60 p-3.5" aria-live="polite">
       <div className="flex flex-wrap items-center gap-2">
-        <IdCard className="h-4 w-4 text-primary" />
+        <IdentificationCardIcon className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Profile score</h3>
         {result && (
           <span
@@ -142,7 +142,7 @@ export default function ProfileScore({
       {!result && (
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11 ${running ? "disabled:opacity-100" : ""}`} onClick={() => void run()} disabled={running || left === 0}>
-            {running ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <IdCard className="h-3.5 w-3.5" />}
+            {running ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <IdentificationCardIcon className="h-3.5 w-3.5" />}
             {running ? "Scoring..." : "Score my profile"}
           </Button>
           <span className="text-[11px] text-muted-foreground">Uses 1 of your {DAILY_LIMITS["profile-score"]} a day.</span>
@@ -161,11 +161,11 @@ export default function ProfileScore({
             <li key={i.id} className="space-y-1">
               <p className="flex items-center gap-1.5 text-xs">
                 {i.state === "full" ? (
-                  <Check className="h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
+                  <CheckIcon className="h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
                 ) : i.state === "unknown" ? (
-                  <Minus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                  <MinusIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
                 ) : (
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-warning" aria-hidden />
+                  <WarningIcon className="h-3.5 w-3.5 shrink-0 text-warning" aria-hidden />
                 )}
                 <span className="font-semibold">{LABEL[i.id]}</span>
                 <span className="tabular-nums text-muted-foreground">{i.state === "unknown" ? "not checked" : `${i.earned}/${i.points}`}</span>
@@ -174,7 +174,7 @@ export default function ProfileScore({
             </li>
           ))}
           <li className="flex items-start gap-1.5 text-xs">
-            <Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <MinusIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
             <span>
               <span className="font-semibold">Photo</span> <span className="text-muted-foreground">not scored: check your face fills most of the frame, eyes visible, taken in the last two years.</span>
             </span>

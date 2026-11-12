@@ -25,7 +25,7 @@ import { useZernioOutbox } from "@/lib/useZernioOutbox";
 import { readTeamPostsHere, readTeamReviews } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
-import { ChevronLeft, ChevronRight, ChevronUp, CircleHelp, LayoutGrid, LogOut, MessageSquarePlus, Monitor, Moon, Plus, RefreshCw, Search, Settings, Sparkles, Star, Sun, X } from "lucide-react";
+import { CaretLeftIcon, CaretRightIcon, CaretUpIcon, QuestionIcon, SquaresFourIcon, SignOutIcon, ChatTextIcon, MonitorIcon, MoonIcon, PlusIcon, ArrowsClockwiseIcon, MagnifyingGlassIcon, GearIcon, SparkleIcon, StarIcon, SunIcon, XIcon } from "@phosphor-icons/react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import SectionTabs from "@/components/SectionTabs";
 import { links } from "@/lib/links";
@@ -67,7 +67,7 @@ const ActivityRecorder = lazy(() => import("@/components/ActivityRecorder"));
 function Logo() {
   return (
     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
-      <Sparkles className="h-4 w-4" />
+      <SparkleIcon className="h-4 w-4" />
     </span>
   );
 }
@@ -202,9 +202,9 @@ function FootLink({ s, to, active, folded }: { s: NavSection; to: string; active
 
 /** The account card at the foot: who is signed in, with Settings and Sign out in its menu. */
 const THEMES = [
-  ["light", Sun, "Light"],
-  ["dark", Moon, "Dark"],
-  ["system", Monitor, "System"],
+  ["light", SunIcon, "Light"],
+  ["dark", MoonIcon, "Dark"],
+  ["system", MonitorIcon, "System"],
 ] as const;
 
 /** Light, Dark or System (the device's setting), the picked one pressed. A tap keeps the account menu open. */
@@ -279,20 +279,20 @@ function AccountMenu({
         >
           {northStar && (
             <Link role="menuitem" to="/north-star" className={item}>
-              <Star className="h-4 w-4 text-muted-foreground" /> North star
+              <StarIcon className="h-4 w-4 text-muted-foreground" /> North star
             </Link>
           )}
           <Link role="menuitem" to={settingsTo} className={item}>
-            <Settings className="h-4 w-4 text-muted-foreground" /> Settings
+            <GearIcon className="h-4 w-4 text-muted-foreground" /> Settings
           </Link>
           <Link role="menuitem" to="/welcome" className={item}>
-            <CircleHelp className="h-4 w-4 text-muted-foreground" /> Help
+            <QuestionIcon className="h-4 w-4 text-muted-foreground" /> Help
           </Link>
           <div className="px-1 py-1">
             <ThemeSwitch theme={theme} onTheme={onTheme} />
           </div>
           <button role="menuitem" type="button" onClick={onSignOut} className={item}>
-            <LogOut className="h-4 w-4 text-muted-foreground" /> Sign out
+            <SignOutIcon className="h-4 w-4 text-muted-foreground" /> Sign out
           </button>
         </div>
       )}
@@ -326,7 +326,7 @@ function AccountMenu({
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={email}>
             {email || "Account"}
           </span>
-          <ChevronUp className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "" : "rotate-180"}`} />
+          <CaretUpIcon className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "" : "rotate-180"}`} />
         </button>
       )}
     </div>
@@ -707,7 +707,7 @@ export default function StudioLayout() {
                 data-tip={leo ? "Ask the agent" : "New post"}
                 className="grid h-9 w-10 place-items-center rounded-[10px] border border-primary/40 bg-primary/10 text-primary transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:h-11"
               >
-                {leo ? <MessageSquarePlus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {leo ? <ChatTextIcon className="h-4 w-4" /> : <PlusIcon className="h-4 w-4" />}
               </Link>
               <button
                 type="button"
@@ -719,7 +719,7 @@ export default function StudioLayout() {
                 className={railItem(false, true)}
               >
                 <span className="flex shrink-0">
-                  <Search className="h-4 w-4" />
+                  <MagnifyingGlassIcon className="h-4 w-4" />
                 </span>
               </button>
             </div>
@@ -731,11 +731,11 @@ export default function StudioLayout() {
               >
                 {leo ? (
                   <Link to={links.agent()}>
-                    <MessageSquarePlus className="h-4 w-4" /> Ask the agent
+                    <ChatTextIcon className="h-4 w-4" /> Ask the agent
                   </Link>
                 ) : (
                   <Link to={newPostHref(uid)}>
-                    <Plus className="h-4 w-4" /> New post
+                    <PlusIcon className="h-4 w-4" /> New post
                   </Link>
                 )}
               </Button>
@@ -746,7 +746,7 @@ export default function StudioLayout() {
                 aria-keyshortcuts="Meta+K Control+K"
                 className="flex h-9 w-full items-center gap-2 rounded-[10px] border border-border/70 bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground [@media(pointer:coarse)]:h-11"
               >
-                <Search className="h-4 w-4 shrink-0" />
+                <MagnifyingGlassIcon className="h-4 w-4 shrink-0" />
                 <span className="flex-1 text-left">Jump to...</span>
                 <kbd className="rounded border border-border/70 px-1.5 font-sans text-[10px] font-semibold">{jumpShortcut()}</kbd>
               </button>
@@ -772,7 +772,7 @@ export default function StudioLayout() {
                   className={railItem(false, true)}
                 >
                   <span className="relative flex shrink-0">
-                    <RefreshCw className="h-4 w-4" />
+                    <ArrowsClockwiseIcon className="h-4 w-4" />
                     <Dot className="bg-primary" />
                   </span>
                 </button>
@@ -828,7 +828,7 @@ export default function StudioLayout() {
           title={`${folded ? "Expand" : "Collapse"} sidebar  ${foldShortcut()}`}
           className="absolute right-1 top-1/2 z-10 grid h-10 w-4 -translate-y-1/2 place-items-center rounded-full bg-card text-muted-foreground ring-1 ring-inset ring-border transition-colors before:absolute before:-inset-x-2 before:-inset-y-2 before:content-[''] hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {folded ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+          {folded ? <CaretRightIcon className="h-3 w-3" /> : <CaretLeftIcon className="h-3 w-3" />}
         </button>
       </aside>
       {tip && (
@@ -856,7 +856,7 @@ export default function StudioLayout() {
               aria-haspopup="dialog"
               className="h-11 w-11 p-0 text-muted-foreground"
             >
-              <Search className="h-5 w-5" />
+              <MagnifyingGlassIcon className="h-5 w-5" />
             </Button>
             <ProfileSwitcher compact />
           </div>
@@ -884,7 +884,7 @@ export default function StudioLayout() {
               aria-label="Close"
               className="h-11 w-11 p-0 text-muted-foreground"
             >
-              <X className="h-4 w-4" />
+              <XIcon className="h-4 w-4" />
             </Button>
           </div>
           {leo && (
@@ -911,7 +911,7 @@ export default function StudioLayout() {
             </p>
             <div className="flex shrink-0 items-center gap-1">
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="h-11 gap-1.5 text-muted-foreground">
-                <LogOut className="h-3.5 w-3.5" /> Sign out
+                <SignOutIcon className="h-3.5 w-3.5" /> Sign out
               </Button>
             </div>
           </div>
@@ -959,7 +959,7 @@ export default function StudioLayout() {
               moreOpen || moreActive ? "text-primary" : "text-muted-foreground"
             }`}
           >
-            <LayoutGrid className="h-5 w-5" />
+            <SquaresFourIcon className="h-5 w-5" />
             More
           </button>
         </div>

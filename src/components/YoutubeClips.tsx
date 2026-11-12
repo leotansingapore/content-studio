@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, PenLine } from "lucide-react";
+import { ArrowSquareOutIcon, CircleNotchIcon, PencilLineIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import PriceChip from "@/components/PriceChip";
@@ -52,7 +52,7 @@ export default function YoutubeClips({ userId, panel }: { userId: string | null;
         <Input type="url" inputMode="url" placeholder="Paste a YouTube link" aria-label="YouTube link" value={url}
           onChange={(e) => setUrl(e.target.value)} disabled={busy} className="h-11 sm:h-10" />
         <Button type="submit" variant="outline" disabled={busy || !userId || !url.trim() || left === 0} className="h-11 shrink-0 sm:h-10">
-          {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> {STEP[job.state]}</> : panel ? "Find moments" : "Find clips"}
+          {busy ? <><CircleNotchIcon className="h-4 w-4 animate-spin" /> {STEP[job.state]}</> : panel ? "Find moments" : "Find clips"}
         </Button>
       </form>
       {leo && !busy && <p><PriceChip price={RUN_PRICE} left={left} /></p>}
@@ -77,10 +77,10 @@ export default function YoutubeClips({ userId, panel }: { userId: string | null;
                 {c.hook && <p className="text-xs">"{c.hook}"</p>}
                 <div className="flex flex-wrap gap-2 pt-0.5">
                   <Button asChild size="sm" variant="outline" className="h-9">
-                    <a href={watchUrl(result.videoId, c.start)} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Watch</a>
+                    <a href={watchUrl(result.videoId, c.start)} target="_blank" rel="noreferrer"><ArrowSquareOutIcon className="h-3.5 w-3.5" /> Watch</a>
                   </Button>
                   <Button asChild size="sm" variant="outline" className="h-9">
-                    <Link to={clipWriteUrl(result, c)}><PenLine className="h-3.5 w-3.5" /> Write a post</Link>
+                    <Link to={clipWriteUrl(result, c)}><PencilLineIcon className="h-3.5 w-3.5" /> Write a post</Link>
                   </Button>
                 </div>
               </li>

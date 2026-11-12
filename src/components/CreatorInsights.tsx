@@ -10,32 +10,32 @@ import { links } from "@/lib/links";
 import { fromTopPost } from "@/lib/remixSource";
 import { buildRemixUrl, topAdvisorId } from "@/lib/topPosts";
 import {
-  TrendingUp,
-  Lightbulb,
-  Info,
-  Wand2,
-  ExternalLink,
-  Heart,
-  MessageCircle,
-  UserSearch,
-} from "lucide-react";
+  TrendUpIcon,
+  LightbulbIcon,
+  InfoIcon,
+  MagicWandIcon,
+  ArrowSquareOutIcon,
+  HeartIcon,
+  ChatCircleIcon,
+  UserFocusIcon,
+} from "@phosphor-icons/react";
 
 const TONE_STYLE: Record<
   CreatorInsightTone,
-  { icon: typeof TrendingUp; card: string; icon_: string }
+  { icon: typeof TrendUpIcon; card: string; icon_: string }
 > = {
   positive: {
-    icon: TrendingUp,
+    icon: TrendUpIcon,
     card: "border-success/30 bg-success/[0.05]",
     icon_: "bg-success/10 text-success",
   },
   tip: {
-    icon: Lightbulb,
+    icon: LightbulbIcon,
     card: "border-primary/20 bg-primary/[0.04]",
     icon_: "bg-primary/10 text-primary",
   },
   neutral: {
-    icon: Info,
+    icon: InfoIcon,
     card: "border-border/60 bg-muted/20",
     icon_: "bg-muted text-muted-foreground",
   },
@@ -70,7 +70,7 @@ export default function CreatorInsights({
             : buildRemixUrl(bestPost, advisor)
         }
       >
-        <Wand2 className="h-3.5 w-3.5" /> Remix their best post in Write
+        <MagicWandIcon className="h-3.5 w-3.5" /> Remix their best post in Write
       </Link>
     </Button>
   );
@@ -94,7 +94,7 @@ export default function CreatorInsights({
         </div>
         <Button asChild variant="outline" size="sm" className="gap-1.5">
           <a href={advisor.platform_url} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="h-3.5 w-3.5" /> Profile
+            <ArrowSquareOutIcon className="h-3.5 w-3.5" /> Profile
           </a>
         </Button>
       </div>
@@ -102,7 +102,7 @@ export default function CreatorInsights({
       <div className="grid grid-cols-2 gap-3">
         <Card className="border-border/60 shadow-card">
           <CardContent className="flex items-center gap-2.5 py-3">
-            <Heart className="h-4 w-4 text-muted-foreground" />
+            <HeartIcon className="h-4 w-4 text-muted-foreground" />
             <div>
               <div className="font-serif text-lg font-semibold text-foreground">
                 {avgLikes.toLocaleString()}
@@ -113,7 +113,7 @@ export default function CreatorInsights({
         </Card>
         <Card className="border-border/60 shadow-card">
           <CardContent className="flex items-center gap-2.5 py-3">
-            <MessageCircle className="h-4 w-4 text-muted-foreground" />
+            <ChatCircleIcon className="h-4 w-4 text-muted-foreground" />
             <div>
               <div className="font-serif text-lg font-semibold text-foreground">
                 {avgComments}
@@ -141,7 +141,7 @@ export default function CreatorInsights({
           <Link
             to={links.plan({ competitor: live ? advisor.handle : advisor.id })}
           >
-            <UserSearch className="h-3.5 w-3.5" /> Use as competitor in my plan
+            <UserFocusIcon className="h-3.5 w-3.5" /> Use as competitor in my plan
           </Link>
         </Button>
       </div>
@@ -238,7 +238,7 @@ function Works({ analysis }: { analysis: CreatorAnalysis }) {
           <RemixButton source={fromTopPost(bestPost, { ...advisor, id: topAdvisorId(advisor.handle) ?? advisor.id })} label={`${advisor.name}'s best post`}>
             <Button asChild size="sm" variant="outline" className="gap-1.5 [@media(pointer:coarse)]:h-11">
               <Link to={buildRemixUrl(bestPost, advisor)}>
-                <Wand2 className="h-3.5 w-3.5" /> Remix their best post
+                <MagicWandIcon className="h-3.5 w-3.5" /> Remix their best post
               </Link>
             </Button>
           </RemixButton>

@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { Check, Copy, Download, Loader2, Share2 } from "lucide-react";
+import { CheckIcon, CopyIcon, DownloadSimpleIcon, CircleNotchIcon, ShareNetworkIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { callFn } from "@/lib/edgeFn";
 import { readPhoneFragment } from "@/lib/phoneLink";
@@ -72,14 +72,14 @@ export default function PhonePage() {
       <h1 className="text-lg font-semibold">Your slides</h1>
       {!got && (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Opening
+          <CircleNotchIcon className="h-4 w-4 animate-spin" /> Opening
         </p>
       )}
       {got && "error" in got && <p className="text-sm text-destructive">{got.error}</p>}
       {got && "urls" in got && (
         <>
           <Button size="lg" className="w-full gap-2" disabled={!files} onClick={() => files && void share(files)}>
-            {files || failed ? <Share2 className="h-5 w-5" /> : <Loader2 className="h-5 w-5 animate-spin" />} Share all {got.urls.length}
+            {files || failed ? <ShareNetworkIcon className="h-5 w-5" /> : <CircleNotchIcon className="h-5 w-5 animate-spin" />} Share all {got.urls.length}
           </Button>
           {note && <p className="text-sm text-destructive">{note}</p>}
           {sent.format === "tiktok" && <p className="text-xs text-muted-foreground">Instagram crops 9:16 slides to 4:5.</p>}
@@ -88,7 +88,7 @@ export default function PhonePage() {
               <div className="flex items-center justify-between gap-2">
                 <h2 id="caption" className="text-sm font-semibold">Caption</h2>
                 <Button size="sm" variant="outline" className="min-h-11 gap-1.5" onClick={() => void copy()}>
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Copied" : "Copy"}
+                  {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />} {copied ? "Copied" : "Copy"}
                 </Button>
               </div>
               <p className="whitespace-pre-wrap break-words text-sm">{sent.caption}</p>
@@ -102,7 +102,7 @@ export default function PhonePage() {
               <li key={u} className="space-y-1">
                 <img src={u} alt={`Slide ${i + 1}`} className="w-full rounded-lg border border-border" />
                 <button type="button" onClick={() => void save(u, i)} className="flex min-h-11 items-center gap-1.5 text-sm text-primary">
-                  <Download className="h-4 w-4" /> Save slide {i + 1}
+                  <DownloadSimpleIcon className="h-4 w-4" /> Save slide {i + 1}
                 </button>
               </li>
             ))}

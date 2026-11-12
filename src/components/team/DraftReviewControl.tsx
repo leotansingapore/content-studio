@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Loader2, Send, ShieldCheck } from "lucide-react";
+import { CircleNotchIcon, PaperPlaneTiltIcon, ShieldCheckIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { ReviewStateBadge, formatWhen } from "@/components/team/shared";
@@ -31,7 +31,7 @@ export default function DraftReviewControl({
           className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
           title="Open Team review"
         >
-          <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+          <ShieldCheckIcon className="h-3.5 w-3.5 shrink-0" />
           <ReviewStateBadge state={state} />
         </Link>
         {latest && (
@@ -49,7 +49,7 @@ export default function DraftReviewControl({
             disabled={busy || reviews.submittingId !== null}
             className="ml-auto h-8 gap-1.5 px-2.5 text-xs"
           >
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            {busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <PaperPlaneTiltIcon className="h-3.5 w-3.5" />}
             {state === "none" ? "Submit for review" : "Resubmit"}
           </Button>
         )}

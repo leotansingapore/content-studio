@@ -3,7 +3,7 @@
 // patterns.ts's job outside React; this only draws it.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2, Sparkles, X } from "lucide-react";
+import { CheckIcon, CircleNotchIcon, SparkleIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import OutlierBadge from "@/components/OutlierBadge";
 import PriceChip from "@/components/PriceChip";
@@ -52,7 +52,7 @@ export function WhatWorkedButton({ a, userId, entry, left, onOpen }: { a: Follow
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <Button variant="outline" size="sm" className="h-10 gap-1.5 [@media(pointer:coarse)]:h-11" disabled={(!ready && !entry) || Boolean(why)} onClick={() => open(userId, a, entry, onOpen)}>
-          <Sparkles className="h-3.5 w-3.5" /> What worked
+          <SparkleIcon className="h-3.5 w-3.5" /> What worked
         </Button>
         {!entry && ready && <PriceChip feature="remix-patterns" left={left} />}
       </div>
@@ -94,7 +94,7 @@ export default function WhatWorked({ a, userId, entry, left, linked, onClose }: 
           {entry && <p className="text-xs text-muted-foreground">From the check on {dayMonth(entry.checkedAt)}</p>}
         </div>
         <Button size="icon" variant="ghost" className="-mr-1 -mt-1 h-10 w-10" aria-label="Close What worked" onClick={onClose}>
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </Button>
       </div>
 
@@ -128,7 +128,7 @@ function Steps({ a, at, n }: { a: FollowedAccount; at: number; n: number }) {
       <ol className="space-y-1.5 text-sm">
         {steps(n).map((s, k) => (
           <li key={s} className={cn("flex items-center gap-2", k > step && "text-muted-foreground")}>
-            {k < step ? <Check className="h-4 w-4 text-success" /> : k === step ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="h-4 w-4" />}
+            {k < step ? <CheckIcon className="h-4 w-4 text-success" /> : k === step ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <span className="h-4 w-4" />}
             {s}
           </li>
         ))}

@@ -9,7 +9,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Copy, Loader2, Send, X } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, CopyIcon, CircleNotchIcon, PaperPlaneTiltIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -799,13 +799,13 @@ export function ScheduleSteps({
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-foreground">Schedule post</p>
         <button type="button" onClick={finish} aria-label="Close" className="-m-2 grid h-11 w-11 place-items-center text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-          <X className="h-3.5 w-3.5" />
+          <XIcon className="h-3.5 w-3.5" />
         </button>
       </div>
 
       {prep ? (
         <div className="flex flex-wrap items-center gap-2" role="status">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+          <CircleNotchIcon className="h-3.5 w-3.5 animate-spin text-primary" />
           <span className="text-foreground">Preparing slides {prep.done}/{prep.total}</span>
           <button
             type="button"
@@ -829,7 +829,7 @@ export function ScheduleSteps({
           <div className="flex flex-wrap gap-2">
             {done.inbox ? (
               <Button size="sm" variant="outline" onClick={copyCaption} className={`h-9 gap-1.5 ${TOUCH}`}>
-                <Copy className="h-3.5 w-3.5" /> Copy caption
+                <CopyIcon className="h-3.5 w-3.5" /> Copy caption
               </Button>
             ) : (
               <Button size="sm" variant="outline" asChild className={`h-9 ${TOUCH}`}>
@@ -840,7 +840,7 @@ export function ScheduleSteps({
           </div>
         </div>
       ) : !step ? (
-        <p className="flex items-center gap-1.5 text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading your accounts...</p>
+        <p className="flex items-center gap-1.5 text-muted-foreground"><CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Loading your accounts...</p>
       ) : (
         <>
           <div className="space-y-1.5">
@@ -866,7 +866,7 @@ export function ScheduleSteps({
                         </label>
                         {!on && list[0] && <span className="text-muted-foreground">{list[0].username ? `@${list[0].username}` : list[0].name}</span>}
                         <button type="button" disabled={!!connecting} onClick={() => void connect(p)} className={`ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline disabled:opacity-60 ${TOUCH}`}>
-                          {connecting === p && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {connecting === p && <CircleNotchIcon className="h-3 w-3 animate-spin" />}
                           {list.length ? "Add another account" : `Connect ${platformName(p)}`}
                         </button>
                       </div>
@@ -1008,7 +1008,7 @@ export function ScheduleSteps({
                     ttMode === "inbox" ? (
                       <p className="text-muted-foreground">{INBOX_HELP}</p>
                     ) : !info ? (
-                      <p className="flex items-center gap-1.5 text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading your TikTok settings...</p>
+                      <p className="flex items-center gap-1.5 text-muted-foreground"><CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Reading your TikTok settings...</p>
                     ) : (
                       <div className="space-y-1.5">
                         <label className="flex flex-wrap items-center gap-2">
@@ -1064,7 +1064,7 @@ export function ScheduleSteps({
                   </Link>
                 ) : (
                   <button type="button" onClick={() => void scoreIt()} disabled={scoring === "busy"} className={`inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline ${TOUCH}`}>
-                    {scoring === "busy" && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {scoring === "busy" && <CircleNotchIcon className="h-3 w-3 animate-spin" />}
                     Score it first
                   </button>
                 )}
@@ -1079,17 +1079,17 @@ export function ScheduleSteps({
                 <Button size="sm" variant="ghost" onClick={onClose} className={`h-9 ${TOUCH}`}>Cancel</Button>
               ) : (
                 <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => go(SCHEDULE_STEPS[n - 1])} className={`h-9 gap-1.5 ${TOUCH}`}>
-                  <ArrowLeft className="h-3.5 w-3.5" /> Back
+                  <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
                 </Button>
               )}
               {reason && !busy && <span className="text-muted-foreground sm:order-none">{reason}</span>}
               {step !== "caption" ? (
                 <Button size="sm" disabled={!!reason} onClick={() => go(SCHEDULE_STEPS[n + 1])} className={`ml-auto h-9 gap-1.5 ${TOUCH}`}>
-                  Next <ArrowRight className="h-3.5 w-3.5" />
+                  Next <ArrowRightIcon className="h-3.5 w-3.5" />
                 </Button>
               ) : (
                 <Button size="sm" disabled={!!reason || !!busy} onClick={() => void send()} className={`ml-auto h-9 gap-1.5 ${TOUCH}`}>
-                  {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  {busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <PaperPlaneTiltIcon className="h-3.5 w-3.5" />}
                   {busyLabel ?? (failed ? "Try again" : goesNow ? (allInbox ? "Send to inbox" : "Post now") : `Schedule for ${whenText}`)}
                 </Button>
               )}

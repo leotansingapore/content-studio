@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Shield } from "lucide-react";
+import { ArrowLeftIcon, ShieldIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { useHub } from "@/components/hub/HubGate";
@@ -24,7 +24,7 @@ export default function HubAdminPage() {
         <p className="text-sm text-muted-foreground">This area is for the hub admin.</p>
         <Button asChild variant="outline" size="sm">
           <Link to="/hub">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to hub
+            <ArrowLeftIcon className="mr-2 h-4 w-4" /> Back to hub
           </Link>
         </Button>
       </div>
@@ -34,7 +34,7 @@ export default function HubAdminPage() {
   return (
     <div className="space-y-4">
       <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-        <Shield className="h-5 w-5" /> Hub admin
+        <ShieldIcon className="h-5 w-5" /> Hub admin
       </h1>
 
       <div className="flex gap-2 border-b border-border">

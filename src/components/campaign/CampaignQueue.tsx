@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Loader2, Slash } from "lucide-react";
+import { WarningIcon, CheckIcon, CaretLeftIcon, CaretRightIcon, CircleNotchIcon, ProhibitIcon } from "@phosphor-icons/react";
 import AllPosts, { slideUrls, useFontsReady } from "@/components/campaign/AllPosts";
 import ComplianceChips from "@/components/ComplianceChips";
 import PostPreview from "@/components/PostPreview";
@@ -114,9 +114,9 @@ function CarouselSlides({ userId, p, all }: { userId: string; p: CampaignPost; a
     <div className="space-y-2">
       <img src={urls[i]} alt={`Slide ${i + 1} of ${urls.length}`} className="mx-auto w-full max-w-[360px] rounded-lg border border-border/60" />
       <div className="flex items-center justify-center gap-2">
-        <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Previous slide" disabled={i === 0} onClick={() => setAt(i - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Previous slide" disabled={i === 0} onClick={() => setAt(i - 1)}><CaretLeftIcon className="h-4 w-4" /></Button>
         <span className="text-xs tabular-nums text-muted-foreground">Carousel | slide {i + 1} of {urls.length}</span>
-        <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Next slide" disabled={i === urls.length - 1} onClick={() => setAt(i + 1)}><ChevronRight className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Next slide" disabled={i === urls.length - 1} onClick={() => setAt(i + 1)}><CaretRightIcon className="h-4 w-4" /></Button>
       </div>
     </div>
   );
@@ -349,7 +349,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         <p className="text-sm tabular-nums" aria-live="polite">{countsText(boardCounts(posts))}</p>
         {nextDraft && (
           <Link to={{ search: toPost(nextDraft.n) }} replace className="inline-flex min-h-11 items-center gap-0.5 text-sm font-medium text-primary hover:underline sm:min-h-0">
-            Next draft: Day {dayOf(c, nextDraft)} <ChevronRight className="h-4 w-4" aria-hidden />
+            Next draft: Day {dayOf(c, nextDraft)} <CaretRightIcon className="h-4 w-4" aria-hidden />
           </Link>
         )}
         {hasVideo && (
@@ -363,7 +363,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
           {jobs.map(({ p, step }) => (
             <li key={p.n}>
               <Link to={{ search: toPost(p.n) }} replace className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 text-xs hover:border-primary/60 sm:min-h-8">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden />
+                <CircleNotchIcon className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden />
                 <span className="font-medium">Day {dayOf(c, p)}</span>
                 <span className="text-muted-foreground">{step}</span>
               </Link>
@@ -401,10 +401,10 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
 
   const square = (p: CampaignPost) => {
     const icon =
-      p.state === "made" ? <Check className="h-4 w-4 text-success" aria-hidden />
-      : p.state === "failed" ? <AlertTriangle className="h-4 w-4 text-warning" aria-hidden />
-      : p.state === "making" ? <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden />
-      : p.state === "skipped" ? <Slash className="h-4 w-4 text-muted-foreground" aria-hidden />
+      p.state === "made" ? <CheckIcon className="h-4 w-4 text-success" aria-hidden />
+      : p.state === "failed" ? <WarningIcon className="h-4 w-4 text-warning" aria-hidden />
+      : p.state === "making" ? <CircleNotchIcon className="h-4 w-4 animate-spin text-primary" aria-hidden />
+      : p.state === "skipped" ? <ProhibitIcon className="h-4 w-4 text-muted-foreground" aria-hidden />
       : null;
     const look =
       p.state === "waiting" ? "border-dashed border-border bg-transparent"
@@ -524,7 +524,7 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
             </div>
           ) : (
             <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              <CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden />
               {(maker === "slideshow" ? showStep(slideshowJob() ?? { state: "writing", done: 0, of: 0 }) : maker === "wall" ? wallStep(wallJob() ?? { state: "writing" }) : tj?.step) || "Making it..."}
             </p>
           )
@@ -565,8 +565,8 @@ export default function CampaignQueue({ userId, campaign: c, angle }: { userId: 
         <div className="flex shrink-0 items-center gap-1">
           <span className="hidden text-xs text-muted-foreground lg:inline">Posts end {shortDay(keyToDate(lastDay))}</span>
           <span className="px-1 text-xs tabular-nums text-muted-foreground">Post {posts.indexOf(cur) + 1} of {posts.length}</span>
-          <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Previous post" aria-keyshortcuts="ArrowLeft" disabled={posts.indexOf(cur) === 0} onClick={() => step(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Next post" aria-keyshortcuts="ArrowRight" disabled={posts.indexOf(cur) === posts.length - 1} onClick={() => step(1)}><ChevronRight className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Previous post" aria-keyshortcuts="ArrowLeft" disabled={posts.indexOf(cur) === 0} onClick={() => step(-1)}><CaretLeftIcon className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Next post" aria-keyshortcuts="ArrowRight" disabled={posts.indexOf(cur) === posts.length - 1} onClick={() => step(1)}><CaretRightIcon className="h-4 w-4" /></Button>
         </div>
       </div>
 

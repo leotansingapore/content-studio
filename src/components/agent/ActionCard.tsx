@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { WarningIcon, CheckIcon, CaretDownIcon, CaretUpIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { canEdit, priceLine, type AgentCard } from "@/lib/agentCards";
@@ -190,7 +190,7 @@ export default function ActionCard({
           <ul className="space-y-1">
             {card.flags.map((f) => (
               <li key={f} className="flex items-start gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
-                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> {f}
+                <WarningIcon className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" /> {f}
               </li>
             ))}
           </ul>
@@ -247,7 +247,7 @@ export default function ActionCard({
               aria-expanded={details}
               className="inline-flex min-h-9 items-center gap-1 text-xs font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
             >
-              {details ? "Hide details" : "Show details"} {details ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              {details ? "Hide details" : "Show details"} {details ? <CaretUpIcon className="h-3.5 w-3.5" /> : <CaretDownIcon className="h-3.5 w-3.5" />}
             </button>
             {details && (
               <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
@@ -304,7 +304,7 @@ export default function ActionCard({
 
         {status === "approved" && (
           <p className="flex items-center gap-1.5 text-sm text-success">
-            <Check className="h-4 w-4" /> Approved by you {hhmm(card.decidedAt)}
+            <CheckIcon className="h-4 w-4" /> Approved by you {hhmm(card.decidedAt)}
           </p>
         )}
         {status === "declined" && <p className="text-sm text-muted-foreground">Nothing was made or charged.</p>}
@@ -330,7 +330,7 @@ export default function ActionCard({
               >
                 {starting ? (
                   <>
-                    <Loader2 className="animate-spin" /> Starting...
+                    <CircleNotchIcon className="animate-spin" /> Starting...
                   </>
                 ) : (
                   <>

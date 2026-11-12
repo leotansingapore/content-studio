@@ -4,7 +4,7 @@ import { useGoneItem, useScrollToItem, useShownCount, useUrlItem, useUrlSearch, 
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { safeExternalUrl } from "@/lib/embed";
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronUp, Copy, ExternalLink, PenLine, Search, Share2 } from "lucide-react";
+import { CaretDownIcon, CaretUpIcon, CopyIcon, ArrowSquareOutIcon, PencilLineIcon, MagnifyingGlassIcon, ShareNetworkIcon } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,7 +62,7 @@ function StoryCard({ s, linked }: { s: NewsStory; linked: boolean }) {
           className="font-serif text-base font-semibold leading-snug text-foreground hover:text-primary"
         >
           {s.title}
-          <ExternalLink className="ml-1 inline h-3.5 w-3.5 align-[-2px] text-muted-foreground" />
+          <ArrowSquareOutIcon className="ml-1 inline h-3.5 w-3.5 align-[-2px] text-muted-foreground" />
         </a>
         <p className="text-xs leading-relaxed text-muted-foreground">{s.gist}</p>
         <p className="rounded-lg bg-primary/[0.06] p-2.5 text-xs leading-relaxed text-foreground/90">
@@ -74,14 +74,14 @@ function StoryCard({ s, linked }: { s: NewsStory; linked: boolean }) {
             <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
               className="inline-flex min-h-9 items-center gap-1 py-1 font-semibold text-primary hover:underline sm:min-h-0">
               {open ? "Hide the client message" : "Read the client message"}
-              {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {open ? <CaretUpIcon className="h-3 w-3" /> : <CaretDownIcon className="h-3 w-3" />}
             </button>
             {open && (
               <div className="mt-1 rounded-lg border border-border/60 p-2.5">
                 <p className="whitespace-pre-line leading-relaxed text-foreground/85">{s.clientMessage}</p>
                 {canShare && (
                   <button type="button" onClick={copy} className="mt-2 inline-flex items-center gap-1 font-semibold text-primary hover:underline">
-                    <Copy className="h-3 w-3" /> Copy this message
+                    <CopyIcon className="h-3 w-3" /> Copy this message
                   </button>
                 )}
               </div>
@@ -91,12 +91,12 @@ function StoryCard({ s, linked }: { s: NewsStory; linked: boolean }) {
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
           <Button asChild size="sm" className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
             <Link to={buildNewsWriteUrl(s)}>
-              <PenLine className="h-3.5 w-3.5" /> Write about this
+              <PencilLineIcon className="h-3.5 w-3.5" /> Write about this
             </Link>
           </Button>
           {message && (
             <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={canShare ? share : copy}>
-              {canShare ? <Share2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {canShare ? <ShareNetworkIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />}
               {canShare ? "Send to a client" : "Copy client message"}
             </Button>
           )}
@@ -139,7 +139,7 @@ export default function IndustryNews() {
   return (
     <div className="space-y-4">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the news (e.g. MediShield, CPF, scams)"
           aria-label="Search industry news" className="pl-9" />
       </div>

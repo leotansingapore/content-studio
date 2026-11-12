@@ -5,7 +5,7 @@
 import { newPostHref } from "@/lib/newPost";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
-import { LibraryBig, Search, X } from "lucide-react";
+import { BooksIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import LibraryCard from "@/components/library/LibraryCard";
 import LibraryViews from "@/components/library/LibraryViews";
 import { thumbSources, useFontsReady } from "@/components/library/LibraryThumb";
@@ -115,7 +115,7 @@ function Library({ userId }: { userId: string }) {
 
           {items.length === 0 ? (
             <EmptyState
-              icon={LibraryBig}
+              icon={BooksIcon}
               title="Nothing made yet"
               actions={
                 <>
@@ -148,7 +148,7 @@ function Library({ userId }: { userId: string }) {
                   ))}
                 </div>
                 <div className="relative max-w-md">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                  <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
                   <Input
                     type="search"
                     value={text}
@@ -223,7 +223,7 @@ function MakingSheet({ open, onClose, children }: { open: boolean; onClose: () =
     >
       <div className="relative p-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
         <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="absolute right-2 top-2 h-11 w-11 p-0 text-muted-foreground">
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </Button>
         {children}
       </div>

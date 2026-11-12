@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Compass, Sparkles, X } from "lucide-react";
+import { CompassIcon, SparkleIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -190,7 +190,7 @@ export default function TourPopover() {
           title="Skip tour"
           className="h-11 w-11 shrink-0 rounded-full p-0 text-muted-foreground"
         >
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </Button>
       </div>
     );
@@ -210,7 +210,7 @@ export default function TourPopover() {
     >
       <p className="flex items-center gap-2 text-sm font-semibold">
         <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-          {who.agent ? <Sparkles className="h-3.5 w-3.5" /> : <Compass className="h-3.5 w-3.5" />}
+          {who.agent ? <SparkleIcon className="h-3.5 w-3.5" /> : <CompassIcon className="h-3.5 w-3.5" />}
         </span>
         {who.agent ? "Agent" : "Tour"} <span className="font-normal text-muted-foreground">{step.page}</span>
       </p>

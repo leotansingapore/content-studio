@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Save, Square, Wand2 } from "lucide-react";
+import { FloppyDiskIcon, SquareIcon, MagicWandIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -255,12 +255,12 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
             variant={draft && !busy ? "outline" : "default"}
             className={`gap-1.5 ${draft && !busy ? "" : "bg-gradient-primary text-primary-foreground"} ${busy ? "disabled:opacity-100" : ""}`}
           >
-            {busy ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-4 w-4" />}
+            {busy ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <MagicWandIcon className="h-4 w-4" />}
             {busy ? "Writing in your voice..." : draft ? "Write it again" : "Draft it"}
           </Button>
           {busy && (
             <Button variant="outline" onClick={() => abort.current?.abort()} className="gap-1.5">
-              <Square className="h-3.5 w-3.5" /> Stop
+              <SquareIcon className="h-3.5 w-3.5" /> Stop
             </Button>
           )}
         </div>
@@ -272,7 +272,7 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
             {!busy && (
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" onClick={save} disabled={!userId} className="gap-1.5">
-                  <Save className="h-3.5 w-3.5" /> {savedId ? "Save changes" : "Save to All posts"}
+                  <FloppyDiskIcon className="h-3.5 w-3.5" /> {savedId ? "Save changes" : "Save to All posts"}
                 </Button>
                 <CopyButton text={draft} label="Copy" what="Draft copied" />
                 {savedId && (

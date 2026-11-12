@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Copy, ExternalLink, Images, Sparkles } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, CopyIcon, ArrowSquareOutIcon, ImagesIcon, SparkleIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -56,13 +56,13 @@ export default function WorkingDetailPage() {
   if (row === undefined) return <div className="h-[60vh] animate-pulse rounded-xl bg-muted" aria-label="Loading the slideshow" />;
   if (row === null && failed)
     return (
-      <EmptyState icon={Images} title="The slideshow didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
+      <EmptyState icon={ImagesIcon} title="The slideshow didn't load" actions={<Button size="sm" onClick={() => setRetry((r) => r + 1)}>Try again</Button>}>
         Check your connection and try again.
       </EmptyState>
     );
   if (row === null)
     return (
-      <EmptyState icon={Images} title="Slideshow not found" actions={<Button asChild variant="outline" size="sm"><Link to="/working">Back to What's working</Link></Button>}>
+      <EmptyState icon={ImagesIcon} title="Slideshow not found" actions={<Button asChild variant="outline" size="sm"><Link to="/working">Back to What's working</Link></Button>}>
         It may have been taken out of the library.
       </EmptyState>
     );
@@ -86,7 +86,7 @@ export default function WorkingDetailPage() {
       <div className="flex items-center justify-between gap-2">
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
           <Link to={back} onClick={goBack}>
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to What's working
+            <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to What's working
           </Link>
         </Button>
         <CopyLinkButton label="Copy link to this slideshow" />
@@ -154,14 +154,14 @@ export default function WorkingDetailPage() {
 
         <section aria-label="Use this format" className="space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
           <Button size="lg" className="w-full gap-2" onClick={() => navigate(`/generate?working=${encodeURIComponent(row.id)}`)}>
-            <Sparkles className="h-4 w-4" /> Make one like this <ArrowRight className="h-4 w-4" />
+            <SparkleIcon className="h-4 w-4" /> Make one like this <ArrowRightIcon className="h-4 w-4" />
           </Button>
           <Button variant="outline" className="w-full gap-2" onClick={copyPrompt}>
-            <Copy className="h-4 w-4" /> Copy a prompt for your agent
+            <CopyIcon className="h-4 w-4" /> Copy a prompt for your agent
           </Button>
           <Button asChild variant="outline" className="w-full gap-2">
             <a href={row.url} target="_blank" rel="noopener noreferrer">
-              View the original on TikTok <ExternalLink className="h-4 w-4" />
+              View the original on TikTok <ArrowSquareOutIcon className="h-4 w-4" />
             </a>
           </Button>
           <p className="text-xs text-muted-foreground">@{row.author} owns this post. Study how it works, then make your own.</p>

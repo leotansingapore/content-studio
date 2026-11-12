@@ -3,7 +3,7 @@ import { links, slug } from "@/lib/links";
 import { useGoneItem, useScrollToItem, useShownCount, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link } from "react-router-dom";
-import { ExternalLink, PenLine, Search } from "lucide-react";
+import { ArrowSquareOutIcon, PencilLineIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,13 +50,13 @@ function AdCard({ ad, linked }: { ad: SwipeAd; linked: boolean }) {
           <RemixButton className="flex-1" source={fromAd(ad)}>
             <Button asChild size="sm" className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
               <Link to={buildAdWriteUrl(ad)}>
-                <PenLine className="h-3.5 w-3.5" /> Write a post like this
+                <PencilLineIcon className="h-3.5 w-3.5" /> Write a post like this
               </Link>
             </Button>
           </RemixButton>
           <Button asChild variant="outline" size="sm" className="gap-1.5">
             <a href={safeExternalUrl(ad.libraryUrl) ?? undefined} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5" /> Ad Library
+              <ArrowSquareOutIcon className="h-3.5 w-3.5" /> Ad Library
             </a>
           </Button>
         </div>
@@ -92,7 +92,7 @@ export default function AdsSwipe() {
   return (
     <div className="space-y-4">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the ads (e.g. Singlife, offer, travel)"
           aria-label="Search ads" className="pl-9" />
       </div>

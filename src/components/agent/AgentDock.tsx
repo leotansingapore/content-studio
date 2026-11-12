@@ -8,7 +8,7 @@
 
 import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ExternalLink, MessageSquare, Plus, X } from "lucide-react";
+import { ArrowSquareOutIcon, ChatIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
 import AgentThread, { useThreads } from "@/components/agent/AgentThread";
 import { feedbackFor, type DockIdentity } from "@/components/agent/dockActions";
 import { resumeAgent, setFeedback, setNavigate } from "@/lib/agentRun";
@@ -82,7 +82,7 @@ export default function AgentDock({ userId, identity }: { userId: string; identi
         // covers no content; from lg it is the pill at the bottom right. The open panel still rises from the bottom.
         className={`${CLOSED} inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full text-sm font-semibold`}
       >
-        <MessageSquare className="h-5 w-5 lg:h-4 lg:w-4" />
+        <ChatIcon className="h-5 w-5 lg:h-4 lg:w-4" />
         <span className="hidden lg:inline">Agent</span>
       </button>
     );
@@ -102,15 +102,15 @@ export default function AgentDock({ userId, identity }: { userId: string; identi
           to={threadId ? links.agent({ thread: threadId }) : links.agent()}
           className="inline-flex h-9 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:bg-accent [@media(pointer:coarse)]:h-11"
         >
-          Open full chat <ExternalLink className="h-3.5 w-3.5" />
+          Open full chat <ArrowSquareOutIcon className="h-3.5 w-3.5" />
         </Link>
         {threadId && (
           <button type="button" onClick={() => setThreadId(null)} aria-label="New chat" title="New chat" className={ICON}>
-            <Plus className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4" />
           </button>
         )}
         <button type="button" onClick={() => setOpen(false)} aria-label="Close" className={ICON}>
-          <X className="h-4 w-4" />
+          <XIcon className="h-4 w-4" />
         </button>
       </header>
       <AgentThread key={threadId ?? "new"} compact userId={userId} threadId={threadId} identity={identity} onThread={setThreadId} />

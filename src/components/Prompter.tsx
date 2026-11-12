@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { X } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { setStage } from "@/lib/board";
 import { links } from "@/lib/links";
@@ -295,7 +295,7 @@ export default function Prompter({ userId, draftId, name, lines, caption, onClos
 
       <div className="relative z-10 flex items-center gap-1 p-2 sm:gap-2 sm:p-3">
         <button type="button" onClick={leave} aria-label="Close" className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 hover:bg-white/10">
-          <X className="h-5 w-5" />
+          <XIcon className="h-5 w-5" />
         </button>
         <div className="ml-auto flex flex-wrap items-center justify-end gap-1 sm:gap-2">
           <div role="group" aria-label="Speed" className="flex gap-1">

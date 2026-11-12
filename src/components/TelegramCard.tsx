@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Unplug } from "lucide-react";
+import { CircleNotchIcon, PlugsIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
@@ -119,7 +119,7 @@ export function OwnBotPanel(p: OwnBotPanelProps) {
           />
           {p.busy === "check" && (
             <p role="status" className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking your bot...
+              <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Checking your bot...
             </p>
           )}
           {p.error && <p role="alert" className="text-sm text-destructive">{p.error}</p>}
@@ -394,7 +394,7 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
                   </Button>
                 )}
                 <Button size="sm" variant="ghost" className="h-11 gap-1.5 text-muted-foreground hover:text-destructive sm:h-9" disabled={!!busy} onClick={() => void disconnect(r)}>
-                  <Unplug className="h-3.5 w-3.5" /> {busy === `x${r.id}` ? "Disconnecting..." : "Disconnect"}
+                  <PlugsIcon className="h-3.5 w-3.5" /> {busy === `x${r.id}` ? "Disconnecting..." : "Disconnect"}
                 </Button>
               </li>
             );
@@ -429,7 +429,7 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
           <p>{state.linked ?? WAITING_HELP}</p>
           {state.refused && <p className="text-destructive">{state.refused}</p>}
           <p className="flex items-center gap-1.5 text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Waiting for Telegram...
+            <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Waiting for Telegram...
           </p>
         </div>
       )}
@@ -495,7 +495,7 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
           />
           {botBusy === "check" && (
             <p role="status" className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking your bot...
+              <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Checking your bot...
             </p>
           )}
           {botError && <p role="alert" className="text-sm text-destructive">{botError}</p>}

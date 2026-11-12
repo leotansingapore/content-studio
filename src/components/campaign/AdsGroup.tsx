@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckCircle2, ChevronDown, ChevronUp, Loader2, Pencil, RefreshCw, Shuffle, Undo2, X } from "lucide-react";
+import { CheckCircleIcon, CaretDownIcon, CaretUpIcon, CircleNotchIcon, PencilSimpleIcon, ArrowsClockwiseIcon, ShuffleIcon, ArrowUUpLeftIcon, XIcon } from "@phosphor-icons/react";
 import RunAsAdSheet from "@/components/image/RunAsAdSheet";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -160,25 +160,25 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
           )}
           {v.state === "made" && (
             <Button variant="ghost" className="h-11 w-full gap-1.5 text-muted-foreground sm:h-9" disabled={busy} onClick={() => void redrawAd(userId, c.id, v.ad.n).then(done)}>
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden /> Redraw
+              <ArrowsClockwiseIcon className="h-3.5 w-3.5" aria-hidden /> Redraw
             </Button>
           )}
           {v.state === "making" && (
             <Button className="h-11 w-full gap-1.5 sm:h-9" disabled>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Making
+              <CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden /> Making
             </Button>
           )}
           <div className="flex justify-between gap-1">
             <Button variant="ghost" size="icon" className={ICON} aria-label={`Swap Ad ${v.ad.n}'s layout`} title={v.state === "made" ? "A made ad's layout changes in Edit" : "Swap layout"}
               disabled={v.state === "made" || v.state === "making"} onClick={() => done(swapAdLayout(userId, c.id, v.ad.n))}>
-              <Shuffle className="h-4 w-4" />
+              <ShuffleIcon className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className={ICON} aria-label={`Edit Ad ${v.ad.n}`} title="Edit" disabled={v.state === "making"} onClick={() => edit(v.ad.n)}>
-              <Pencil className="h-4 w-4" />
+              <PencilSimpleIcon className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className={ICON} aria-label={v.state === "skipped" ? `Bring back Ad ${v.ad.n}` : `Skip Ad ${v.ad.n}`}
               title={v.state === "skipped" ? "Bring back" : "Skip"} disabled={v.state === "making"} onClick={() => done(skipAd(userId, c.id, v.ad.n))}>
-              {v.state === "skipped" ? <Undo2 className="h-4 w-4" /> : <X className="h-4 w-4" />}
+              {v.state === "skipped" ? <ArrowUUpLeftIcon className="h-4 w-4" /> : <XIcon className="h-4 w-4" />}
             </Button>
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function AdsGroup({ userId, campaign: c }: { userId: string; camp
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="h-11 gap-1.5 sm:h-10" aria-expanded={open} aria-controls="ads-grid" onClick={() => setAds(open ? "" : "all")}>
-            {open ? <>Hide ads <ChevronUp className="h-4 w-4" /></> : <>Show all {views.length} ads <ChevronDown className="h-4 w-4" /></>}
+            {open ? <>Hide ads <CaretUpIcon className="h-4 w-4" /></> : <>Show all {views.length} ads <CaretDownIcon className="h-4 w-4" /></>}
           </Button>
           {k.made > 0 && ads !== "send" && (
             <Button className="h-11 sm:h-10" onClick={() => setAds("send")}>Send the ads to AdLauncher</Button>
@@ -314,7 +314,7 @@ function SendPanel({ userId, campaign: c, views, drafts, onClose, onEdit, previe
       <h3 id="send-h" className="text-sm font-semibold">Send the ads to AdLauncher</h3>
       {k.done ? (
         <div role="status" className="space-y-1 rounded-lg border border-success/40 bg-success/10 p-3">
-          <p className="flex items-center gap-2 font-semibold"><CheckCircle2 className="h-5 w-5 shrink-0 text-success" aria-hidden /> {k.of === 1 ? "Your ad is" : `All ${k.of} ads are`} paused in AdLauncher</p>
+          <p className="flex items-center gap-2 font-semibold"><CheckCircleIcon className="h-5 w-5 shrink-0 text-success" aria-hidden /> {k.of === 1 ? "Your ad is" : `All ${k.of} ads are`} paused in AdLauncher</p>
           <p className="text-sm text-muted-foreground">Nothing spends until you switch {k.of === 1 ? "it" : "them"} on there.{drafts > 0 ? ` ${drafts} ${drafts === 1 ? "draft is" : "drafts are"} still to make.` : ""}</p>
         </div>
       ) : (

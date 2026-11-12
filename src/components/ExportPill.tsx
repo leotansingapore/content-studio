@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Download, X } from "lucide-react";
+import { DownloadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { clearExportJob, exportJob, exportQueue, onExportJob, type ExportJob } from "@/lib/videoMedia";
 
 // A video export keeps running while you use other pages; this says how far it
@@ -27,13 +27,13 @@ export default function ExportPill() {
       )}
       {job.state === "done" && job.url && (
         <a href={job.url} download={`${job.name}-edited.${job.ext}`} className="flex items-center gap-1.5 text-primary">
-          <Download className="h-3.5 w-3.5" /> {job.name} is ready
+          <DownloadSimpleIcon className="h-3.5 w-3.5" /> {job.name} is ready
         </a>
       )}
       {job.state === "failed" && <Link to={job.from ?? "/edit"} className="text-destructive">Export failed: open the editor</Link>}
       {job.state !== "running" && (
         <button type="button" onClick={clearExportJob} aria-label="Dismiss" className="rounded-full p-0.5 text-muted-foreground hover:text-foreground">
-          <X className="h-3.5 w-3.5" />
+          <XIcon className="h-3.5 w-3.5" />
         </button>
       )}
     </div>

@@ -3,7 +3,7 @@
 // preview-link edge function; the token in the URL is the only credential.
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, Loader2, Send } from "lucide-react";
+import { WarningIcon, CheckCircleIcon, CircleNotchIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,7 +127,7 @@ export default function PreviewReviewPage() {
 
         {state === "loading" ? (
           <div role="status" className="flex items-center gap-2 py-12 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading the post…
+            <CircleNotchIcon className="h-4 w-4 animate-spin" /> Loading the post…
           </div>
         ) : state === "gone" ? (
           <section className="space-y-2 rounded-xl border border-border/70 bg-card p-5 shadow-card">
@@ -163,7 +163,7 @@ export default function PreviewReviewPage() {
                 role="status"
                 className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-foreground"
               >
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 {post.sender_name} has shared a newer version of this post. Ask them for the new link before approving.
               </p>
             )}
@@ -237,12 +237,12 @@ export default function PreviewReviewPage() {
                   </label>
                 </div>
                 <Button type="submit" disabled={sending} className="h-11 w-full gap-1.5 sm:h-10 sm:w-auto">
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {sending ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <PaperPlaneTiltIcon className="h-4 w-4" />}
                   Send comment
                 </Button>
                 {sent && (
                   <p role="status" className="flex items-center gap-1.5 text-sm text-success">
-                    <CheckCircle2 className="h-4 w-4" /> Sent. {post.sender_name} sees it in Postmosis.
+                    <CheckCircleIcon className="h-4 w-4" /> Sent. {post.sender_name} sees it in Postmosis.
                   </p>
                 )}
                 {sendError && (

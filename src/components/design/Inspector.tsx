@@ -2,7 +2,7 @@
 // controls, then its layout and the slide's layers. Controls follow Volume's panels.
 
 import { useState, type ReactNode } from "react";
-import { Eye, EyeOff, GripVertical, Lock, Plus, Trash2, X } from "lucide-react";
+import { EyeIcon, EyeSlashIcon, DotsSixVerticalIcon, LockIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Textarea } from "@/components/ui/textarea";
 import ImagePicker, { pictureTag } from "@/components/design/ImagePicker";
@@ -382,7 +382,7 @@ function FadePanel({ l, set }: { l: GradientLayer; set: (p: Partial<GradientLaye
             <ColorField value={s.color} onChange={(color) => stop(i, { color })} />
             {l.stops.length > 2 && (
               <button type="button" aria-label="Remove stop" onClick={() => set({ stops: l.stops.filter((_, j) => j !== i) })} className="text-muted-foreground hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
+                <XIcon className="h-3.5 w-3.5" />
               </button>
             )}
           </span>
@@ -396,7 +396,7 @@ function FadePanel({ l, set }: { l: GradientLayer; set: (p: Partial<GradientLaye
       ))}
       {l.stops.length < 8 && (
         <button type="button" className="flex items-center gap-1 text-xs text-primary hover:underline" onClick={() => set({ stops: [...l.stops, { at: 100, color: "#000000", opacity: 1 }] })}>
-          <Plus className="h-3.5 w-3.5" /> Add stop
+          <PlusIcon className="h-3.5 w-3.5" /> Add stop
         </button>
       )}
     </Section>
@@ -451,16 +451,16 @@ function Layers({ slide, selected, onSelect, onLayer, onRemove, onMove }: Pick<I
             }}
             className={`flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs ${selected === l.id ? "bg-muted" : "hover:bg-muted/60"}`}
           >
-            <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground" aria-hidden />
+            <DotsSixVerticalIcon className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground" aria-hidden />
             <button type="button" onClick={() => onSelect(l.id)} className="min-w-0 flex-1 truncate text-left [@media(pointer:coarse)]:min-h-11">
               {l.name}
             </button>
-            {l.locked && <Lock className="h-3 w-3 text-muted-foreground" aria-label="Locked" />}
+            {l.locked && <LockIcon className="h-3 w-3 text-muted-foreground" aria-label="Locked" />}
             <button type="button" aria-label={l.hidden ? `Show ${l.name}` : `Hide ${l.name}`} onClick={() => onLayer(l.id, { hidden: !l.hidden })} className="p-1 text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center">
-              {l.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {l.hidden ? <EyeSlashIcon className="h-3.5 w-3.5" /> : <EyeIcon className="h-3.5 w-3.5" />}
             </button>
             <button type="button" aria-label={`Delete ${l.name}`} onClick={() => onRemove(l.id)} className="p-1 text-muted-foreground hover:text-destructive [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center">
-              <Trash2 className="h-3.5 w-3.5" />
+              <TrashIcon className="h-3.5 w-3.5" />
             </button>
           </li>
         ))}

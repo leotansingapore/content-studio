@@ -10,13 +10,13 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft,
-  ArrowRight,
-  Sparkles,
-  Linkedin,
-  Instagram,
-  Facebook,
-} from "lucide-react";
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  SparkleIcon,
+  LinkedinLogoIcon,
+  InstagramLogoIcon,
+  FacebookLogoIcon,
+} from "@phosphor-icons/react";
 import inspirationData from "@/data/inspiration.json";
 import { FORMAT_OPTIONS, type InspirationEntry } from "@/components/Inspiration";
 import RemixButton from "@/components/remix/RemixButton";
@@ -27,11 +27,11 @@ const ENTRIES = inspirationData as InspirationEntry[];
 
 const PLATFORM_META: Record<
   InspirationEntry["platform"],
-  { label: string; Icon: typeof Linkedin }
+  { label: string; Icon: typeof LinkedinLogoIcon }
 > = {
-  linkedin: { label: "LinkedIn", Icon: Linkedin },
-  instagram: { label: "Instagram", Icon: Instagram },
-  facebook: { label: "Facebook", Icon: Facebook },
+  linkedin: { label: "LinkedIn", Icon: LinkedinLogoIcon },
+  instagram: { label: "Instagram", Icon: InstagramLogoIcon },
+  facebook: { label: "Facebook", Icon: FacebookLogoIcon },
 };
 
 export default function InspirationDetailPage() {
@@ -65,7 +65,7 @@ export default function InspirationDetailPage() {
         <CardContent>
           <Button asChild variant="outline" className="gap-1.5">
             <Link to="/inspiration">
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to all inspiration
+              <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to all inspiration
             </Link>
           </Button>
         </CardContent>
@@ -86,7 +86,7 @@ export default function InspirationDetailPage() {
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
           {/* Back to the list as it was filtered when this was opened from it. */}
           <Link to={(state as { back?: string } | null)?.back ?? "/inspiration"}>
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to all inspiration
+            <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to all inspiration
           </Link>
         </Button>
         <CopyLinkButton label="Copy link to this example" />
@@ -155,9 +155,9 @@ export default function InspirationDetailPage() {
                 onClick={handleUseAsVibe}
                 className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto"
               >
-                <Sparkles className="h-4 w-4" />
+                <SparkleIcon className="h-4 w-4" />
                 Use as vibe
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRightIcon className="h-4 w-4" />
               </Button>
             </RemixButton>
           </div>

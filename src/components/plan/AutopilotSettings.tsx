@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { X } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -60,7 +60,7 @@ export default function AutopilotSettings({
         <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
           <h2 id="autopilot-settings-title" className="font-serif text-lg font-semibold">Autopilot</h2>
           <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Close" onClick={onClose}>
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </Button>
         </div>
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4">

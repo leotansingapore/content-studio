@@ -3,7 +3,7 @@
 // writes. Copying a comment notes whose post it was, so you can see who you
 // commented on this week and spread it around.
 import { useMemo, useState } from "react";
-import { MessageSquarePlus, Plus, X } from "lucide-react";
+import { ChatTextIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,7 @@ export default function Comments({ userId }: { userId: string }) {
       <Card className="border-border/60 shadow-card">
         <CardContent className="space-y-3 p-4 sm:p-5">
           <h2 id="comments-title" className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-            <MessageSquarePlus className="h-4 w-4 text-primary" /> Comment on someone's post
+            <ChatTextIcon className="h-4 w-4 text-primary" /> Comment on someone's post
             <InfoTip label="About comments">One post gets two comments of different kinds. Two or more get one each.</InfoTip>
           </h2>
           <ol className="space-y-3">
@@ -79,7 +79,7 @@ export default function Comments({ userId }: { userId: string }) {
                         aria-label={`Remove post ${i + 1}`}
                         className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                       >
-                        <X className="h-4 w-4" />
+                        <XIcon className="h-4 w-4" />
                       </button>
                     )}
                   </div>
@@ -109,7 +109,7 @@ export default function Comments({ userId }: { userId: string }) {
             {!busy && <PriceChip feature="engage-comments" left={left} />}
             {slots.length < MAX_POSTS && (
               <Button variant="outline" onClick={() => edit({ posts: [...slots, { name: "", text: "" }] })} disabled={busy} className="h-11 gap-1.5 sm:h-10">
-                <Plus className="h-4 w-4" /> Add another post
+                <PlusIcon className="h-4 w-4" /> Add another post
               </Button>
             )}
           </div>
@@ -156,7 +156,7 @@ export default function Comments({ userId }: { userId: string }) {
                     aria-label={`Remove ${e.name || "this entry"}`}
                     className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                   >
-                    <X className="h-4 w-4" />
+                    <XIcon className="h-4 w-4" />
                   </button>
                 </li>
               ))}

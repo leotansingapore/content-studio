@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Shuffle } from "lucide-react";
+import { ShuffleIcon } from "@phosphor-icons/react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { dayMonth, rememberSource, remixedKeys, seedNote, type RemixSource } from "@/lib/remixSource";
 import { withParam } from "@/lib/urlState";
@@ -75,7 +75,7 @@ export default function RemixButton({
     <span className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-1", className)}>
       {/* never narrower than its own label, so the Remixed tag wraps under it instead of sitting on it (a min-w-0 slot) */}
       <Button type="button" variant={variant} size={size} onClick={open} disabled={opening} aria-label={label && `${text}: ${label}`} className={cn("gap-1.5", className, "min-w-fit")}>
-        <Shuffle className="h-3.5 w-3.5" />
+        <ShuffleIcon className="h-3.5 w-3.5" />
         {opening && !up ? "Opening..." : text}
       </Button>
       {remixed && <span className="whitespace-nowrap text-[11px] text-muted-foreground">Remixed {dayMonth(remixed)}</span>}

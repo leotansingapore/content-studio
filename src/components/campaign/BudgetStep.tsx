@@ -4,7 +4,7 @@
 // Ads only has no Format and pace step, so its length is here. The wizard page draws the header, Back and Confirm.
 
 import { useMemo, useState, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { ROW, dot, rowOn } from "@/components/campaign/WhoStep";
 import { WeeksStepper } from "@/components/campaign/PaceStep";
@@ -81,7 +81,7 @@ export default function BudgetStep({ budget, onBudget, website, weeks, onWeeks }
                 {countryName(c)}
                 <button type="button" aria-label={`Remove ${countryName(c)}`} onClick={() => set({ countries: budget.countries.filter((x) => x !== c) })}
                   className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-                  <X className="h-3.5 w-3.5" aria-hidden />
+                  <XIcon className="h-3.5 w-3.5" aria-hidden />
                 </button>
               </li>
             ))}

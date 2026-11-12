@@ -97,25 +97,24 @@ import {
 import { TeamPostChip, TeamPostPanel } from "@/components/TeamPostReview";
 import { TEAM_TO_REVIEW, postsToReview } from "@/lib/needsYou";
 import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  CalendarClock,
-  CalendarDays,
-  CalendarRange,
-  List,
-  CheckCircle2,
-  Clapperboard,
-  Coins,
-  Hand,
-  Loader2,
-  PenLine,
-  Repeat as RepeatIcon,
-  StickyNote,
-  Undo2,
-  X,
-  SlidersHorizontal,
-} from "lucide-react";
+  CaretDownIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  CalendarDotsIcon,
+  CalendarBlankIcon,
+  ListIcon,
+  CheckCircleIcon,
+  FilmSlateIcon,
+  CoinsIcon,
+  HandIcon,
+  CircleNotchIcon,
+  PencilLineIcon,
+  RepeatIcon,
+  NoteIcon,
+  ArrowUUpLeftIcon,
+  XIcon,
+  SlidersHorizontalIcon,
+} from "@phosphor-icons/react";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -928,14 +927,14 @@ export default function CalendarPage() {
     if (r.kind === "inbox")
       return (
         <Button size="sm" variant="outline" onClick={() => markPosted(r.draft.id)} className={rowButton}>
-          <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
+          <CheckCircleIcon className="h-3.5 w-3.5" /> Mark posted
         </Button>
       );
     if (r.kind === "failed")
       return (
         <>
           <Button size="sm" variant="outline" disabled={!!rowBusy} onClick={() => void retryRow(r.draft)} className={`gap-1.5 ${rowButton}`}>
-            {rowBusy === r.draft.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Retry
+            {rowBusy === r.draft.id && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />} Retry
           </Button>
           <Button size="sm" variant="ghost" onClick={() => openRow(r.draft.id)} className={rowButton}>
             Open
@@ -1062,7 +1061,7 @@ export default function CalendarPage() {
               aria-label="Close"
               className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
             >
-              <X className="h-4 w-4" />
+              <XIcon className="h-4 w-4" />
             </button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1093,7 +1092,7 @@ export default function CalendarPage() {
             aria-label="Close"
             className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
         {d.zernio?.postId && userId && (updating(box, d) ? autoChip(d) : <ZernioStatus userId={userId} draft={d} onDrafts={setDrafts} />)}
@@ -1110,12 +1109,12 @@ export default function CalendarPage() {
               title={reviews.blockReason(d) ?? undefined}
               className="h-9 gap-1 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
             >
-              <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
+              <CheckCircleIcon className="h-3.5 w-3.5" /> Mark posted
             </Button>
           )}
           {posted && (
             <Button size="sm" variant="ghost" onClick={() => unpost(d)} className="h-9 gap-1 px-3 text-xs text-muted-foreground sm:h-8 [@media(pointer:coarse)]:h-11">
-              <Undo2 className="h-3.5 w-3.5" /> Mark unposted
+              <ArrowUUpLeftIcon className="h-3.5 w-3.5" /> Mark unposted
             </Button>
           )}
           {!posted && d.scheduledFor && !d.zernio?.postId && socialConnectShown() && (
@@ -1244,9 +1243,9 @@ export default function CalendarPage() {
       ) : (
         <>
           {r.posted || r.auto ? (
-            <Clapperboard className="mr-0.5 inline h-2.5 w-2.5 align-[-1px]" aria-label="Reel" />
+            <FilmSlateIcon className="mr-0.5 inline h-2.5 w-2.5 align-[-1px]" aria-label="Reel" />
           ) : (
-            <Hand className="mr-0.5 inline h-2.5 w-2.5 align-[-1px]" aria-label="Reel, post it by hand" />
+            <HandIcon className="mr-0.5 inline h-2.5 w-2.5 align-[-1px]" aria-label="Reel, post it by hand" />
           )}
           {r.title}
         </>
@@ -1327,7 +1326,7 @@ export default function CalendarPage() {
         k.kind === "holiday" ? "text-destructive" : "text-muted-foreground"
       }`}
     >
-      {k.kind === "money" && <Coins className="mr-0.5 inline h-2.5 w-2.5 align-[-1px]" aria-hidden />}
+      {k.kind === "money" && <CoinsIcon className="mr-0.5 inline h-2.5 w-2.5 align-[-1px]" aria-hidden />}
       {sgDateLabel(k)}
     </p>
   );
@@ -1486,7 +1485,7 @@ export default function CalendarPage() {
             aria-label="Close day"
             className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
         <div className="space-y-1.5">
@@ -1504,7 +1503,7 @@ export default function CalendarPage() {
           {key >= todayKey && (
             <Button asChild size="sm" className="h-9 gap-1.5 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
               <Link to={`/generate?day=${key}`}>
-                <PenLine className="h-3.5 w-3.5" /> Write a post for this day
+                <PencilLineIcon className="h-3.5 w-3.5" /> Write a post for this day
               </Link>
             </Button>
           )}
@@ -1517,7 +1516,7 @@ export default function CalendarPage() {
             }}
             className="h-9 gap-1.5 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
           >
-            <StickyNote className="h-3.5 w-3.5" /> Add note
+            <NoteIcon className="h-3.5 w-3.5" /> Add note
           </Button>
         </div>
       </div>
@@ -1633,7 +1632,7 @@ export default function CalendarPage() {
             title={reviews.blockReason(e) ?? undefined}
             className="h-9 shrink-0 gap-1.5 px-2.5 text-xs text-success hover:text-success sm:h-8 [@media(pointer:coarse)]:h-11"
           >
-            <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
+            <CheckCircleIcon className="h-3.5 w-3.5" /> Mark posted
           </Button>
         )}
       </div>
@@ -1663,7 +1662,7 @@ export default function CalendarPage() {
     showDay(view === "week" ? addDays(anchor, delta * 7) : localDateKey(new Date(d.getFullYear(), d.getMonth() + delta, 1)));
   };
 
-  const viewButton = (v: View, label: string, Icon: typeof List) => (
+  const viewButton = (v: View, label: string, Icon: typeof ListIcon) => (
     <button
       type="button"
       onClick={() => setView(v)}
@@ -1691,9 +1690,9 @@ export default function CalendarPage() {
       {/* View, filters, navigation */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg border border-border/70 bg-muted/30 p-0.5">
-          {viewButton("month", "Month", CalendarDays)}
-          {viewButton("week", "Week", CalendarRange)}
-          {viewButton("upcoming", "Upcoming", List)}
+          {viewButton("month", "Month", CalendarDotsIcon)}
+          {viewButton("week", "Week", CalendarBlankIcon)}
+          {viewButton("upcoming", "Upcoming", ListIcon)}
         </div>
         {/* phones: the filters fold behind one button, so the first week is on the first screen */}
         <button
@@ -1705,7 +1704,7 @@ export default function CalendarPage() {
             filtersOpen || filtersOn > 0 ? "border-primary/40 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"
           }`}
         >
-          <SlidersHorizontal className="h-3.5 w-3.5" /> Filter{filtersOn > 0 ? ` (${filtersOn})` : ""}
+          <SlidersHorizontalIcon className="h-3.5 w-3.5" /> Filter{filtersOn > 0 ? ` (${filtersOn})` : ""}
         </button>
         <div id="calendar-filters" className={`${filtersOpen ? "flex basis-full flex-wrap" : "hidden"} gap-2 sm:contents`}>
         <div className="flex gap-2">
@@ -1739,7 +1738,7 @@ export default function CalendarPage() {
           onClick={() => openNote(null)}
           className="hidden h-9 items-center gap-1.5 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:inline-flex sm:h-8 [@media(pointer:coarse)]:h-11"
         >
-          <StickyNote className="h-3.5 w-3.5" /> Add note
+          <NoteIcon className="h-3.5 w-3.5" /> Add note
         </button>
         {slots.length > 0 && (
           <button
@@ -1762,7 +1761,7 @@ export default function CalendarPage() {
               className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
               aria-label={view === "week" ? "Previous week" : "Previous month"}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <CaretLeftIcon className="h-4 w-4" />
             </button>
             <span className="min-w-[8.5rem] flex-1 text-center text-sm font-semibold text-foreground sm:flex-none">{navLabel}</span>
             <button
@@ -1771,7 +1770,7 @@ export default function CalendarPage() {
               className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
               aria-label={view === "week" ? "Next week" : "Next month"}
             >
-              <ChevronRight className="h-4 w-4" />
+              <CaretRightIcon className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -1824,7 +1823,7 @@ export default function CalendarPage() {
               to={r.href}
               className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
             >
-              <Hand className="h-4 w-4 shrink-0 text-warning" aria-hidden />
+              <HandIcon className="h-4 w-4 shrink-0 text-warning" aria-hidden />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-foreground">Post by hand: {r.title}</span>
                 <span className="block text-xs text-muted-foreground">
@@ -1847,7 +1846,7 @@ export default function CalendarPage() {
       {status === "all" && (
         <section aria-label="This week" className="space-y-1.5 rounded-xl border border-border/70 bg-card px-3 py-2.5 shadow-card">
           <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-foreground">
-            <CalendarRange className="h-4 w-4 text-muted-foreground" aria-hidden />
+            <CalendarBlankIcon className="h-4 w-4 text-muted-foreground" aria-hidden />
             <span className="font-semibold">This week:</span>
             <span>{glance.going ? `${glance.going} going out` : "nothing going out"}</span>
             {glance.posted > 0 && <span className="text-muted-foreground">· {glance.posted} posted</span>}
@@ -1947,7 +1946,7 @@ export default function CalendarPage() {
                   className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-card px-4 text-sm font-semibold text-foreground shadow-card xl:hidden"
                 >
                   Unscheduled drafts ({unscheduled.length})
-                  <ChevronDown className={`h-4 w-4 transition-transform ${panelOpen ? "rotate-180" : ""}`} />
+                  <CaretDownIcon className={`h-4 w-4 transition-transform ${panelOpen ? "rotate-180" : ""}`} />
                 </button>
                 <div
                   className={`${panelOpen || fillOpen ? "mt-2" : "hidden"} space-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card xl:mt-0 xl:block`}
@@ -1964,7 +1963,7 @@ export default function CalendarPage() {
                       onClick={() => update({ fill: "1" }, { push: true })}
                       className="h-9 w-full gap-1.5 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
                     >
-                      <CalendarClock className="h-3.5 w-3.5" /> Fill {fill.placed.length} open slot{fill.placed.length === 1 ? "" : "s"}
+                      <CalendarDotsIcon className="h-3.5 w-3.5" /> Fill {fill.placed.length} open slot{fill.placed.length === 1 ? "" : "s"}
                     </Button>
                   )}
                   {fillOpen && fill && fillPreview(fill)}
@@ -2035,11 +2034,11 @@ export default function CalendarPage() {
                   className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-card px-4 text-sm font-semibold text-foreground shadow-card xl:hidden"
                 >
                   Waiting for review ({visibleWaiting.length})
-                  <ChevronDown className={`h-4 w-4 transition-transform ${waitOpen ? "rotate-180" : ""}`} />
+                  <CaretDownIcon className={`h-4 w-4 transition-transform ${waitOpen ? "rotate-180" : ""}`} />
                 </button>
                 <div className={`${waitOpen ? "mt-2" : "hidden"} space-y-3 rounded-xl border border-border/70 bg-card p-3 shadow-card xl:mt-0 xl:block`}>
                   <p className="hidden items-center gap-1 text-sm font-semibold text-foreground xl:flex">
-                    <Clapperboard className="h-4 w-4 text-brand" aria-hidden />
+                    <FilmSlateIcon className="h-4 w-4 text-brand" aria-hidden />
                     Waiting for review ({visibleWaiting.length})
                     <InfoTip label="About posts waiting on the posts board">Approve a post on the posts board to give it a date.</InfoTip>
                   </p>
@@ -2093,7 +2092,7 @@ export default function CalendarPage() {
                   aria-label="Close note"
                   className="-mr-1 grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                 >
-                  <X className="h-4 w-4" />
+                  <XIcon className="h-4 w-4" />
                 </button>
               </div>
               <form
@@ -2169,7 +2168,7 @@ export default function CalendarPage() {
           {overdue.length > 0 && (
             <section id="overdue" aria-label="Overdue posts" className="scroll-mt-4 space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                <CalendarClock className="h-4 w-4 text-warning" />
+                <CalendarDotsIcon className="h-4 w-4 text-warning" />
                 {dueHeading(overdue.length, overdue.length)}
               </p>
               {overdue.map((d) => postRow(d, d.scheduledFor!.slice(0, 10)))}
@@ -2448,7 +2447,7 @@ export default function CalendarPage() {
 
       {/* phones: Add note's own quiet place, under the calendar it writes on (each day's panel has one too) */}
       <button type="button" data-add-note-phone onClick={() => openNote(null)} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground sm:hidden">
-        <StickyNote className="h-4 w-4" /> Add note
+        <NoteIcon className="h-4 w-4" /> Add note
       </button>
       <ChannelPostDrawer
         item={openFeed}

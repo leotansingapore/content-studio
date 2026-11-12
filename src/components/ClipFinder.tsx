@@ -9,7 +9,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Download, Scissors } from "lucide-react";
+import { DownloadSimpleIcon, ScissorsIcon } from "@phosphor-icons/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,7 +142,7 @@ export default function ClipFinder({ userId, project, words, settings, duration 
         <Input value={about} onChange={(e) => setAbout(e.target.value)} maxLength={200} disabled={busy}
           placeholder="What should the clip be about? (optional)" aria-label="What should the clip be about?" className="h-11 sm:h-9 sm:max-w-sm" />
         <Button type="submit" variant="outline" size="sm" disabled={busy || short} className={`h-11 shrink-0 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
-          {busy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Scissors className="h-3.5 w-3.5" />}
+          {busy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <ScissorsIcon className="h-3.5 w-3.5" />}
           {busy ? "Finding clips..." : <>Find clips<PriceChip feature="video-clips" opts={{ passes }} uses={passes} left={usesLeft}
             fallback={usesLeft !== null && <span className={`font-normal ${short ? "text-destructive" : "opacity-80"}`}>{usesLeft === 0 ? "none left today" : passes > 1 ? `${passes} uses, ${usesLeft} left` : `${usesLeft} left`}</span>} /></>}
         </Button>
@@ -215,7 +215,7 @@ export default function ClipFinder({ userId, project, words, settings, duration 
                   </p>
                 )}
                 <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => void exportEvery()} disabled={job?.state === "running" || !!queue?.running}>
-                  <Download className="h-3.5 w-3.5" /> Export all {list.length}
+                  <DownloadSimpleIcon className="h-3.5 w-3.5" /> Export all {list.length}
                 </Button>
               </>
             )}

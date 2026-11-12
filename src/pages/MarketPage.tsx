@@ -4,7 +4,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, PenLine, Plus, Sparkles, X } from "lucide-react";
+import { ArrowSquareOutIcon, CircleNotchIcon, PencilLineIcon, PlusIcon, SparkleIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -125,7 +125,7 @@ function SetupForm({ uid, state, onSaved }: { uid: string; state: MarketState; o
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" onClick={suggest} disabled={suggesting || suggestLeft === 0} className="gap-1.5">
-            {suggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {suggesting ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}
             {suggesting ? "Suggesting..." : "Suggest topics and questions"}
           </Button>
           {!suggesting && <PriceChip feature="market-suggest" left={suggestLeft} />}
@@ -185,7 +185,7 @@ function ListField(props: {
           <li key={v} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
             <span className="min-w-0 break-words">{v}</span>
             <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label={`Remove ${v}`} onClick={() => props.onRemove(v)}>
-              <X className="h-4 w-4" />
+              <XIcon className="h-4 w-4" />
             </Button>
           </li>
         ))}
@@ -193,7 +193,7 @@ function ListField(props: {
       {!props.full && (
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); props.onAdd(); }}>
           <Input value={props.draft} onChange={(e) => props.setDraft(e.target.value)} placeholder={props.placeholder} maxLength={160} aria-label={props.title} />
-          <Button type="submit" variant="outline" size="icon" className="h-10 w-10 shrink-0" aria-label="Add" disabled={tooShort}><Plus className="h-4 w-4" /></Button>
+          <Button type="submit" variant="outline" size="icon" className="h-10 w-10 shrink-0" aria-label="Add" disabled={tooShort}><PlusIcon className="h-4 w-4" /></Button>
         </form>
       )}
     </section>
@@ -302,7 +302,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="button" onClick={() => void runMarketCheck(uid)} disabled={running || !!nextDay} className="gap-1.5">
-          {running && <Loader2 className="h-4 w-4 animate-spin" />}
+          {running && <CircleNotchIcon className="h-4 w-4 animate-spin" />}
           {running ? `Checking... ${Math.round((Date.now() - job!.startedAt) / 1000)}s` : "Check my market"}
         </Button>
         {/* the price only: the real limit is one check a week, which the note beside it says */}
@@ -403,7 +403,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
               {posts.map((x) => (
                 <Card key={x.id} link={links.market({ post: x.id })} linked={x === linked} label={`@${x.handle}'s post`} tag={x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"} written={state.written.includes(postKey(x))}
                   source={marketSource(followed, x)} writeUrl={postWriteUrl(x)} writeLabel="Write your take" onWrite={() => wrote(postKey(x))} onDismiss={() => dismiss(postKey(x))}>
-                  <a href={x.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 py-1.5 font-medium hover:underline">@{x.handle}<ExternalLink className="h-3.5 w-3.5" /></a>
+                  <a href={x.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 py-1.5 font-medium hover:underline">@{x.handle}<ArrowSquareOutIcon className="h-3.5 w-3.5" /></a>
                   <p className="line-clamp-3 text-sm text-muted-foreground">{x.caption}</p>
                 </Card>
               ))}
@@ -447,7 +447,7 @@ function Card(props: {
   const box = useScrollToItem<HTMLLIElement>(!!props.linked);
   const write = props.writeUrl && (
     <Button asChild size="sm" className="gap-1.5">
-      <Link to={props.writeUrl} onClick={props.onWrite} aria-label={`${props.written ? "Write another" : props.writeLabel}: ${props.label}`}><PenLine className="h-3.5 w-3.5" />{props.written ? "Write another" : props.writeLabel}</Link>
+      <Link to={props.writeUrl} onClick={props.onWrite} aria-label={`${props.written ? "Write another" : props.writeLabel}: ${props.label}`}><PencilLineIcon className="h-3.5 w-3.5" />{props.written ? "Write another" : props.writeLabel}</Link>
     </Button>
   );
   return (
