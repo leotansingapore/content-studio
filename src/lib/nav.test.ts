@@ -89,7 +89,8 @@ describe("nav", () => {
     expect(sectionFor("/reels")?.id).toBe("library");
     expect(sectionFor("/reels/team")?.id).toBe("settings");
     expect(sectionFor("/people")?.id).toBe("write");
-    expect(sectionFor("/competitors/c1")?.id).toBe("insights");
+    expect(sectionFor("/competitors/c1")?.id).toBe("playbook");
+    expect(sectionFor("/media")?.id).toBe("playbook");
     expect(pageFor("/make/slideshow")?.page.to).toBe("/make");
     expect(pageFor("/campaigns/new")?.page.to).toBe("/campaigns");
     expect(pageFor("/agent/t1")?.page.to).toBe("/agent");
@@ -111,10 +112,10 @@ describe("nav", () => {
   it("shows owner-only pages to Leo's sign-ins only", () => {
     expect(pages("home", ANYONE)).toEqual(["/home"]);
     expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/hooks", "/carousel", "/slideshow", "/design", "/design/campaigns", "/design/libraries", "/edit", "/make/hook-demo", "/clone"]);
-    expect(pages("library", ANYONE)).toEqual(["/library", "/drafts", "/board", "/grid", "/media", "/team"]);
+    expect(pages("library", ANYONE)).toEqual(["/library", "/drafts", "/board", "/grid", "/team"]);
     expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan", "/launch", "/linkedin"]);
     expect(pages("insights", ANYONE)).toEqual(["/analytics", "/coach", "/swipe", "/carousels", "/working", "/trends", "/inspiration", "/following", "/profiles", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage"]);
-    expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads"]);
+    expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads", "/media"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect", "/welcome", "/academy", "/create-guide", "/tutorial", "/feedback"]);
     // the gates are the ones each page had before: these and no others are Leo's
     const leoOnly = SECTIONS.flatMap((s) => s.pages.filter((p) => p.owners).map((p) => p.to)).sort();
@@ -177,9 +178,10 @@ describe("nav", () => {
     });
 
     it("names a tab after its page when it holds one, and after the job when it holds several", () => {
-      // Library: four ways to look at what you made, uploads, and approvals
+      // Library: four ways to look at what you made, and approvals
       const lib = sectionTabs("/drafts/", ANYONE);
-      expect(labels(lib.tabs)).toEqual(["My work", "Media", "Leader approvals"]);
+      // Media moved to Brand (Fastlane's Photos and videos)
+      expect(labels(lib.tabs)).toEqual(["My work", "Leader approvals"]);
       expect(lib.tabs.find((t) => t.active)?.to).toBe("/library");
       expect(labels(lib.picker)).toEqual(["Everything", "All posts", "Board", "Grid"]);
       expect(sectionTabs("/media", ANYONE).picker).toEqual([]);
@@ -192,16 +194,18 @@ describe("nav", () => {
       expect(labels(ins.tabs)).toEqual(["Results", "Coach", "Find posts", "Creators", "Recruit"]);
       expect(ins.tabs.map((t) => t.to)).toEqual(["/analytics", "/coach", "/swipe", "/following", "/recruit"]);
       expect(labels(ins.picker)).toEqual(["Top posts", "Carousels", "What's working", "Trends", "Inspiration", "Saved"]);
-      expect(labels(sectionTabs("/research", LEO).picker)).toEqual(["Following", "Creators to follow", "Research", "Competitors"]);
+      expect(labels(sectionTabs("/research", LEO).picker)).toEqual(["Following", "Creators to follow", "Research"]);
       expect(labels(sectionTabs("/recruit/engage", ANYONE).picker)).toEqual(["Recruit kit", "Conversations", "Reply agent", "Reply drafts"]);
       // Brand: Fastlane's tabs. Profile holds what sets it (Voice, Brand kit, Audiences, Positioning) in its picker
-      expect(labels(sectionTabs("/voice", LEO).tabs)).toEqual(["Profile", "Products", "Demo videos"]);
-      expect(sectionTabs("/voice", LEO).tabs.map((t) => t.to)).toEqual(["/playbook", "/brand/products", "/brand/demo-videos"]);
+      expect(labels(sectionTabs("/voice", LEO).tabs)).toEqual(["Profile", "Products", "Competitors", "Demo videos", "Media"]);
+      expect(sectionTabs("/voice", LEO).tabs.map((t) => t.to)).toEqual(["/playbook", "/brand/products", "/competitors", "/brand/demo-videos", "/media"]);
       expect(labels(sectionTabs("/audiences", LEO).picker)).toEqual(["Profile", "Voice", "Brand kit", "Audiences", "Positioning"]);
       expect(sectionTabs("/brand/products", LEO).tabs.find((t) => t.active)?.label).toBe("Products");
       expect(sectionTabs("/brand/products", LEO).picker).toEqual([]);
-      // everyone else: one tab, and every page they can open in its picker
-      expect(labels(sectionTabs("/voice", ANYONE).tabs)).toEqual(["Profile"]);
+      // everyone else: Profile, with every page they can open in its picker, and Media
+      expect(labels(sectionTabs("/voice", ANYONE).tabs)).toEqual(["Profile", "Media"]);
+      expect(labels(sectionTabs("/media", ANYONE).tabs)).toEqual(["Profile", "Media"]);
+      expect(sectionTabs("/media", ANYONE).picker).toEqual([]);
       expect(labels(sectionTabs("/brand", ANYONE).picker)).toEqual(["Profile", "Voice", "Brand kit", "Positioning"]);
       // a page of Positioning's own tabs keeps the row, its picker ticking Positioning
       expect(sectionTabs("/fads/positioning", ANYONE).tabs.find((t) => t.active)?.label).toBe("Profile");

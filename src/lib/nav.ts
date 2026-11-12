@@ -154,7 +154,6 @@ export const SECTIONS: NavSection[] = [
       { to: "/drafts", label: "All posts", was: "My posts drafts history" },
       { to: "/board", label: "Board" },
       { to: "/grid", label: "Grid", title: "Instagram grid" },
-      { to: "/media", label: "Media", group: "Media", was: "Photos and videos uploads" },
       { to: "/reels", label: "Posts board", end: true, show: reelsShown, group: "Approvals" },
       { to: "/team", label: "Leader approvals" },
     ],
@@ -198,7 +197,6 @@ export const SECTIONS: NavSection[] = [
       { to: "/following", label: "Following", group: "Creators", was: "Radar" },
       { to: "/profiles", label: "Creators to follow", show: () => adviserBrand(), was: "Radar creator list" },
       { to: "/research", label: "Research", owners: LEO_EMAILS, was: "Radar" },
-      { to: "/competitors", label: "Competitors", owners: LEO_EMAILS },
       // the recruit kit: one page with its own parts (/recruit/:tab). A tab on an adviser brand only (Leo 11 Nov); any
       // brand still opens it by address and from Jump to
       { to: "/recruit", label: "Recruit kit", end: true, group: "Recruit", was: "Brand Brain Grow", inTabs: adviser },
@@ -224,7 +222,12 @@ export const SECTIONS: NavSection[] = [
       { to: "/fads", label: "Positioning", subTabs: true, show: () => adviserBrand(), was: "F.A.D.S. fads differentiation" },
       // sections of the brand kit drawn alone (BrandPage `part`); /brand#products and #demo-videos move here
       { to: "/brand/products", label: "Products", owners: LEO_EMAILS, group: "Products", was: "Brand kit sell services" },
+      // who the brand is up against (moved back from Insights, 12 Nov); their ads stay in Insights > Find posts
+      { to: "/competitors", label: "Competitors", owners: LEO_EMAILS, group: "Competitors", was: "Insights Radar rivals" },
       { to: "/brand/demo-videos", label: "Demo videos", owners: LEO_EMAILS, group: "Demo videos", was: "Brand kit clips" },
+      // Fastlane's Photos and videos: the logo, product photos, past posts and footage the makers draw from. Named Media,
+      // as every "Saved to Media" and "Add from Media" in the app names it (moved from Library, 12 Nov)
+      { to: "/media", label: "Media", group: "Media", was: "Photos and videos uploads Library pictures" },
     ],
   },
   {
