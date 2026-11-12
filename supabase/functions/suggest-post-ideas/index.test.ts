@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // The handler writes ideas for the profession the app sent, and today's adviser prompt without one. OpenAI and the
 // database are faked; nothing here reaches a network.
@@ -16,14 +16,16 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({
   }),
 }));
 
-beforeAll(async () => {
+// at collection, not in a beforeAll: the first import transforms the function's whole graph, which ran past the 10 s
+// hook timeout under load (12 Nov, even alone), and collection has no timeout
+{
   const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k" };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (hub.handler = fn), env: { get: (k: string) => env[k] } });
   // OpenAI is down: the handler gives up after its attempts, having shown us each prompt
   vi.stubGlobal("fetch", async (_u: string, init?: RequestInit) => (hub.systems.push(JSON.parse(String(init?.body)).messages[0].content), new Response("down", { status: 503 })));
   vi.spyOn(console, "error").mockImplementation(() => {});
   await import("./index.ts");
-});
+}
 
 const ask = async (body: Record<string, unknown>) => {
   hub.systems.length = 0;
