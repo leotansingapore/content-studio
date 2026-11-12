@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CheckIcon, CopyIcon, ImageSquareIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
+import { CheckIcon, CaretDownIcon, CopyIcon, ImageSquareIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
 import { ProductCard } from "@/components/ScriptContextCards";
 import ProfessionField from "@/components/ProfessionField";
+import { shrinkImage } from "@/components/brand/shrinkImage";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
@@ -69,37 +70,6 @@ import NotFoundPage from "@/pages/NotFoundPage";
 import { loadDrafts } from "@/lib/draftHistory";
 import { platformName, SOCIAL_PLATFORMS, socialConnectShown, socialStatus } from "@/lib/socialConnect";
 import { isAdviser } from "@/lib/profession";
-
-/** Reads an image file into a small data URL: a centred square for the photo, a fitted box for the logo. */
-async function shrinkImage(file: File, kind: "photo" | "logo"): Promise<string> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = () => reject(new Error("That file isn't an image this browser can read."));
-      i.src = url;
-    });
-    const c = document.createElement("canvas");
-    const g = c.getContext("2d");
-    if (!g) throw new Error("This browser can't resize images.");
-    if (kind === "photo") {
-      const side = Math.min(img.naturalWidth, img.naturalHeight);
-      c.width = c.height = 256;
-      g.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 256, 256);
-      return c.toDataURL("image/jpeg", 0.85);
-    }
-    const scale = Math.min(1, 400 / Math.max(img.naturalWidth, img.naturalHeight));
-    c.width = Math.max(1, Math.round(img.naturalWidth * scale));
-    c.height = Math.max(1, Math.round(img.naturalHeight * scale));
-    g.drawImage(img, 0, 0, c.width, c.height);
-    // WebP keeps the transparency at a fraction of PNG's size; browsers without it hand back PNG
-    const webp = c.toDataURL("image/webp", 0.9);
-    return webp.startsWith("data:image/webp") ? webp : c.toDataURL("image/png");
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
 
 /** An extra colour's name: its preset's when it is one, else "Colour 2" to "Colour 4". */
 const colourName = (hex: string, i: number) => BRAND_PRESETS.find((p) => p.color === hex)?.name ?? `Colour ${i + 2}`;
@@ -406,6 +376,21 @@ export function PostingTimes({ brand, update, userId }: { brand: CarouselBrand; 
   );
 }
 
+/** A row that folds the script product card away until it is opened, as Profile's rows open in place. */
+function ScriptDetails({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <details id="script-product" open={open || undefined} className="group scroll-mt-20 overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
+      <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-3 px-4 py-3 text-sm hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
+        <span className="font-medium">Details for scripts</span>
+        <span className="hidden text-muted-foreground sm:inline">The problem, how it works, proof and the call to action</span>
+        <CaretDownIcon className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+      </summary>
+      {/* the card keeps its own heading and switch; its frame is this row's */}
+      <div className="border-t border-border/60 [&>section]:rounded-none [&>section]:border-0 [&>section]:shadow-none">{children}</div>
+    </details>
+  );
+}
+
 /** The Brand tabs this page draws alone, with their page titles (the nav's labels). */
 const PARTS = { products: "Products", "demo-videos": "Demo videos" } as const;
 export type BrandPart = keyof typeof PARTS;
@@ -563,15 +548,16 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
     if (!leo) return <NotFoundPage notOnAccount />;
     return (
       <div className="space-y-6">
-        {/* the section's own card heading is the title a reader sees; this one names the page for screen readers */}
-        <h1 className="sr-only">{PARTS[part]}</h1>
+        {/* titled as Profile and Competitors are, so every Brand tab reads the same way (law 16) */}
+        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">{PARTS[part]}</h1>
         {savedPill}
         {/* the section waits for the account, so nothing typed before it loads is dropped */}
         {ready && userId && (part === "products" ? (
           <>
             <ProductsSection userId={userId} brand={brand} setBrand={setKit} />
-            {/* #script-product: where the Profile's Proof row lands (the card has no id of its own) */}
-            <div id="script-product" className="scroll-mt-20"><ProductCard userId={userId} /></div>
+            {/* #script-product: the script desk's longer product card, folded under one row until it is wanted (it is
+                Leo's alone, and Fastlane has no twin); its address opens it */}
+            <ScriptDetails open={hash === "#script-product"}><ProductCard userId={userId} /></ScriptDetails>
           </>
         ) : (
           <DemoVideosSection userId={userId} brand={brand} setBrand={setKit} />

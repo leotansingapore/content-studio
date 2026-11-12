@@ -4,10 +4,9 @@
 // labelling run outside React (src/lib/adLibrary.ts, src/lib/competitorAds.ts); this only draws their state.
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ArrowSquareOutIcon, FunnelIcon, ImageBrokenIcon, CircleNotchIcon, PencilLineIcon, PlayIcon, ArrowsClockwiseIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { FunnelIcon, ImageBrokenIcon, CircleNotchIcon, PencilLineIcon, PlayIcon, ArrowsClockwiseIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import AdDetailDrawer, { LoadingAdDrawer, useLinkedAd } from "@/components/AdDetailDrawer";
 import PriceChip from "@/components/PriceChip";
-import SaveButton from "@/components/SaveButton";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -22,7 +21,6 @@ import {
 import { buildAdWriteUrl } from "@/lib/adsSwipe";
 import { checkingAnyAds, isCheckingAds, onCompetitorAds, onCompetitorAdsChanged, runDueAds } from "@/lib/competitorAds";
 import { loadCompetitors, onCompetitorsChanged } from "@/lib/competitors";
-import { safeExternalUrl } from "@/lib/embed";
 import { links, slug } from "@/lib/links";
 import { reasonText } from "@/lib/prices";
 import { fromAd } from "@/lib/remixSource";
@@ -44,7 +42,7 @@ const quoted = (words: string[]) => words.map((w) => `"${w}"`).join(", ");
 
 function Pick({ label, value, onChange, options }: { label: string; value: string; onChange(v: string): void; options: [string, string][] }) {
   return (
-    <label className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+    <label className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-xs [@media(pointer:coarse)]:h-11">
       <span className="font-semibold text-muted-foreground">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} className="h-full max-w-[9rem] bg-transparent font-medium text-foreground outline-none">
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -150,11 +148,17 @@ export default function AdLibrary({ userId }: { userId: string }) {
             <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search anything: a word, a hook, a brand, a feeling" aria-label="Search ads"
               className="pl-9 [@media(pointer:coarse)]:h-11" />
           </div>
-          <Button variant={showFilters || filtersOn ? "default" : "outline"} onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters}
+          {/* Filters lights while on, as a quiet control does; Remix stays the one filled action on the screen */}
+          <Button variant={showFilters || filtersOn ? "secondary" : "outline"} onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters}
             className={`shrink-0 gap-1.5 ${TOUCH}`}>
             <FunnelIcon className="h-3.5 w-3.5" /> Filters
-            {filtersOn > 0 && <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">{filtersOn}</span>}
+            {filtersOn > 0 && <span className="ml-0.5 rounded-full bg-primary/15 px-1.5 text-[10px] font-bold text-primary">{filtersOn}</span>}
           </Button>
+          {all.length > 0 && (
+            <span className="hidden sm:inline-flex">
+              <Pick label="Sort" value={sort} onChange={(v) => setSort(v as LibrarySort)} options={[["relevant", "Most relevant"], ["longest", "Longest running"], ["newest", "Newest"]]} />
+            </span>
+          )}
         </div>
 
         {hooks.length > 0 && (
@@ -203,7 +207,10 @@ export default function AdLibrary({ userId }: { userId: string }) {
         {all.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <p className="mr-auto text-xs text-muted-foreground" aria-live="polite">{countLine(cards, running)}</p>
-            <Pick label="Sort" value={sort} onChange={(v) => setSort(v as LibrarySort)} options={[["relevant", "Most relevant"], ["longest", "Longest running"], ["newest", "Newest"]]} />
+            {/* a phone has no room beside the search: sort sits with the count there */}
+            <span className="sm:hidden">
+              <Pick label="Sort" value={sort} onChange={(v) => setSort(v as LibrarySort)} options={[["relevant", "Most relevant"], ["longest", "Longest running"], ["newest", "Newest"]]} />
+            </span>
           </div>
         )}
         {sorting > 0 && (
@@ -307,9 +314,11 @@ function Card({ ad, onOpen }: { ad: LibraryAd; onOpen(): void }) {
   const source = fromAd(like);
   const pic = Boolean(ad.image) && !broken;
   const hook = hookName(ad.hook);
+  // Fastlane's Radar card: the picture with its tags, Remix over it, then whose ad and what it says. Save and Open on
+  // Meta are in the drawer the card opens, so the grid shows one action per ad (law 1).
   return (
-    <article className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
-      <button type="button" onClick={onOpen} className="group flex flex-col text-left">
+    <article className="relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
+      <button type="button" onClick={onOpen} className="group flex flex-col text-left" aria-label={`${titleOf(ad) || "Untitled ad"}, ${ad.advertiser}`}>
         <span className="relative block aspect-[4/5] w-full bg-muted">
           {pic ? (
             <img src={ad.image!} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
@@ -330,35 +339,29 @@ function Card({ ad, onOpen }: { ad: LibraryAd; onOpen(): void }) {
                 <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" /> Running
               </span>
             )}
+            {ad.fresh && <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">New</span>}
           </span>
         </span>
-        <span className="block space-y-1 px-3 pt-3">
+        <span className="block space-y-1 px-3 pb-3 pt-2.5">
           <span className="block truncate text-[11px] font-medium text-muted-foreground">{ad.advertiser}</span>
           <span className="line-clamp-2 text-xs font-semibold text-foreground group-hover:underline">{titleOf(ad) || "Untitled ad"}</span>
-          <span className="block text-[11px] text-muted-foreground">{metaLine(ad)}</span>
+          <span className="block text-[11px] text-muted-foreground">
+            {metaLine(ad)}
+            {ad.proven && <> | <span className="font-medium text-foreground">Proven</span></>}
+            {hook && <> | {hook}</>}
+          </span>
+          {ad.scope === "space" && ad.fit === null && <span className="block text-[11px] text-muted-foreground">Not checked against your space</span>}
         </span>
       </button>
-      <div className="flex flex-1 flex-col gap-1.5 px-3 pb-3 pt-1.5">
-        {(ad.proven || hook || ad.fresh) && (
-          <p className="flex flex-wrap gap-1 text-[10px] font-semibold">
-            {ad.fresh && <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">New</span>}
-            {ad.proven && <span className="rounded-full bg-warning/15 px-2 py-0.5 text-foreground">Proven ad</span>}
-            {hook && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">{hook}</span>}
-          </p>
-        )}
-        {ad.scope === "space" && ad.fit === null && <p className="text-[11px] text-muted-foreground">Not checked against your space</p>}
-        <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
-          <RemixButton source={source} label={`${ad.advertiser}'s ad`}>
-            <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
-              <Link to={buildAdWriteUrl(like)}><PencilLineIcon className="h-3.5 w-3.5" /> Write a post like this</Link>
+      {/* over the bottom of the picture: a box the picture's shape, so the pill lands on it whatever the card's width */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-[4/5] items-end justify-center pb-3">
+        <span className="pointer-events-auto rounded-full bg-background/90 p-0.5 shadow-sm backdrop-blur">
+          <RemixButton source={source} label={`${ad.advertiser}'s ad`} variant="ghost" className="h-8 rounded-full px-3 [@media(pointer:coarse)]:h-11">
+            <Button asChild size="sm" variant="ghost" className="h-8 gap-1.5 rounded-full px-3 [@media(pointer:coarse)]:h-11">
+              <Link to={buildAdWriteUrl(like)}><PencilLineIcon className="h-3.5 w-3.5" /> Write like this</Link>
             </Button>
           </RemixButton>
-          <SaveButton source={source} />
-          {/* with its words, each of the three actions took its own line in a 5-column card */}
-          <Button asChild size="sm" variant="ghost" className="ml-auto h-9 w-9 px-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
-            <a href={safeExternalUrl(ad.libraryUrl) ?? undefined} target="_blank" rel="noopener noreferrer" aria-label="Open on Meta" title="Open on Meta"><ArrowSquareOutIcon className="h-3.5 w-3.5" /></a>
-          </Button>
-        </div>
+        </span>
       </div>
     </article>
   );

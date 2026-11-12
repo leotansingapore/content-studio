@@ -281,6 +281,16 @@ export default function SwipeFilePage() {
     };
   }, [title]);
 
+  // the Posts tab's sort: beside Filters from sm up, with the count on a phone
+  const sortPick = (
+    <FilterSelect
+      label="Sort"
+      value={sort}
+      onChange={(v) => setSort(v as SortKey)}
+      options={SORTS.filter((s) => hasPlaybook || s.value !== "for-you").map((s) => ({ value: s.value, label: s.label }))}
+    />
+  );
+
   return (
     <div className="space-y-5">
       <header className="space-y-1.5">
@@ -297,7 +307,8 @@ export default function SwipeFilePage() {
         ref={tabsRef}
         role="tablist"
         aria-label="Swipe file"
-        className={`flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto ${leo ? "scrollbar-none relative max-w-full overflow-x-auto" : ""}`}
+        // underline tabs, as Ideas draws them: the section's own tab row above is the only row of pills (law 16)
+        className={`flex w-full border-b border-border/60 ${leo ? "scrollbar-none relative max-w-full overflow-x-auto" : ""}`}
       >
         {tabs.map((t) => (
           <button
@@ -307,9 +318,9 @@ export default function SwipeFilePage() {
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             // Leo's six tabs: on a phone each takes its own width and the bar scrolls; the counts wait for sm, so no label wraps
-            className={`rounded-md py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 [@media(pointer:coarse)]:min-h-11 ${
-              leo ? "flex-auto shrink-0 whitespace-nowrap px-3" : "flex-1 px-4"
-            } ${tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            className={`-mb-px min-h-10 border-b-2 text-sm font-medium transition-colors sm:flex-none [@media(pointer:coarse)]:min-h-11 ${
+              leo ? "shrink-0 whitespace-nowrap px-3" : "flex-1 px-3 sm:px-4"
+            } ${tab === t.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {t.label} {t.n !== null && <span className={`text-xs text-muted-foreground ${leo ? "hidden sm:inline" : ""}`}>{t.n}</span>}
           </button>
@@ -357,106 +368,60 @@ export default function SwipeFilePage() {
         </>
       ) : (
         <>
-          {working.posts >= 5 && (
-            <Card className="border-border/60 shadow-card">
-              <CardContent className="space-y-3 py-4">
-                <div className="flex items-center gap-1.5">
-                  <h2 className="text-sm font-semibold text-foreground">Formats working now</h2>
-                  <InfoTip label="About formats working now">
-                    Last {working.days} days. 1.0x is the creator's usual engagement.
-                  </InfoTip>
-                  <span className="ml-auto text-xs text-muted-foreground">{working.posts} posts</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {working.formats.map((f) => (
-                    <button
-                      key={f.value}
-                      type="button"
-                      onClick={() => setFormat(format === f.value ? "all" : f.value)}
-                      aria-pressed={format === f.value}
-                      className={`flex min-w-0 flex-col items-start rounded-lg border px-3 py-2 text-left transition-colors ${
-                        format === f.value
-                          ? "border-primary/60 bg-primary/10"
-                          : "border-border/60 bg-background hover:border-primary/40"
-                      }`}
-                    >
-                      <span className="truncate text-[11px] font-medium text-muted-foreground">
-                    {FORMAT_CHIPS.find((c) => c.value === f.value)?.label ?? f.label}
-                  </span>
-                      <span className="text-lg font-semibold leading-tight text-foreground">{f.ratio.toFixed(1)}x</span>
-                      <span className="text-[11px] text-muted-foreground">{f.posts} posts</span>
-                    </button>
-                  ))}
-                </div>
-                {[
-                  { name: "Topics", items: working.topics, value: topic, set: setTopic },
-                  { name: "Angles", items: working.angles, value: angle, set: setAngle },
-                ].map(
-                  (row) =>
-                    row.items.length > 0 && (
-                      <div key={row.name} className="scrollbar-none flex items-center gap-1.5 overflow-x-auto">
-                        <span className="w-14 shrink-0 text-xs font-semibold text-muted-foreground">{row.name}</span>
-                        {row.items.map((t) => (
-                          <Chip
-                            key={t.label}
-                            active={row.value === t.label}
-                            onClick={() => row.set(row.value === t.label ? "all" : t.label)}
-                            count={t.posts}
-                          >
-                            {t.label}
-                          </Chip>
-                        ))}
-                      </div>
-                    ),
+          {/* Radar's order: search with Filters and Sort, then the chips, the count and the grid. What "Formats working
+              now" showed rides on the format chips (each one's lift over the creator's usual), and its topic and angle
+              rows open with Filters, beside the Topic and Angle pickers they narrow the same way (laws 1, 12). */}
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <div className="relative min-w-0 flex-1">
+                <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search ideas, captions, creators (e.g. CPF, objection, retirement)"
+                  aria-label="Search top posts"
+                  className="pl-9 [@media(pointer:coarse)]:h-11"
+                />
+              </div>
+              <Button
+                variant={showFilters || activeFilters > 0 ? "secondary" : "outline"}
+                onClick={() => setShowFilters((v) => !v)}
+                aria-expanded={showFilters}
+                className="shrink-0 gap-1.5 [@media(pointer:coarse)]:h-11"
+              >
+                <FunnelIcon className="h-3.5 w-3.5" />
+                Filters
+                {activeFilters > 0 && (
+                  <span className="ml-0.5 rounded-full bg-primary/15 px-1.5 text-[10px] font-bold text-primary">{activeFilters}</span>
                 )}
-              </CardContent>
-            </Card>
-          )}
+              </Button>
+              <span className="hidden sm:inline-flex">{sortPick}</span>
+            </div>
 
-          {/* Filter bar: the same shape as Inspiration and Creators. Search and
-              format stay out; who / topic / angle / audience fold behind Filters
-              so the posts start above the fold on a phone. */}
-          <Card className="border-border/60 shadow-card">
-            <CardContent className="space-y-3 pt-5">
-              <div className="flex gap-2">
-                <div className="relative min-w-0 flex-1">
-                  <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search ideas, captions, creators (e.g. CPF, objection, retirement)"
-                    aria-label="Search top posts"
-                    className="pl-9 [@media(pointer:coarse)]:h-11"
-                  />
-                </div>
-                <Button
-                  variant={showFilters || activeFilters > 0 ? "default" : "outline"}
-                  onClick={() => setShowFilters((v) => !v)}
-                  aria-expanded={showFilters}
-                  className="shrink-0 gap-1.5 [@media(pointer:coarse)]:h-11"
-                >
-                  <FunnelIcon className="h-3.5 w-3.5" />
-                  Filters
-                  {activeFilters > 0 && (
-                    <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">{activeFilters}</span>
-                  )}
-                </Button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-1.5">
-                {FORMAT_CHIPS.map((f) => (
-                  <Chip key={f.value} active={format === f.value} onClick={() => setFormat(f.value)}>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {FORMAT_CHIPS.map((f) => {
+                const lift = working.posts >= 5 ? working.formats.find((w) => w.value === f.value) : undefined;
+                return (
+                  <Chip key={f.value} active={format === f.value} onClick={() => setFormat(format === f.value && f.value !== "all" ? "all" : f.value)}>
                     {f.label}
+                    {lift && <span className="tabular-nums text-muted-foreground">{lift.ratio.toFixed(1)}x</span>}
                   </Chip>
-                ))}
-                <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
-                <Chip active={savedOnly} onClick={() => setSavedOnly(!savedOnly)} count={savedSet.size > 0 ? savedSet.size : undefined}>
-                  <BookmarkSimpleIcon className="h-3 w-3" /> Saved
-                </Chip>
-              </div>
+                );
+              })}
+              {working.posts >= 5 && (
+                <InfoTip label="About the format numbers">
+                  Last {working.days} days: how each format does against its creator's usual engagement (1.0x).
+                </InfoTip>
+              )}
+              <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
+              <Chip active={savedOnly} onClick={() => setSavedOnly(!savedOnly)} count={savedSet.size > 0 ? savedSet.size : undefined}>
+                <BookmarkSimpleIcon className="h-3 w-3" /> Saved
+              </Chip>
+            </div>
 
-              {showFilters && (
-                <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+            {showFilters && (
+              <div className="space-y-3 border-t border-border/60 pt-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <FilterSelect label="From" value={kind} onChange={setKind} options={KIND_OPTIONS} />
                   <FilterSelect
                     label="Topic"
@@ -477,21 +442,37 @@ export default function SwipeFilePage() {
                     options={[{ value: "all", label: "All" }, ...AUDIENCES.map((a) => ({ value: a, label: a }))]}
                   />
                 </div>
-              )}
-
-              <div className="flex flex-wrap items-center gap-2">
-                <FilterSelect
-                  label="Sort"
-                  value={sort}
-                  onChange={(v) => setSort(v as SortKey)}
-                  options={SORTS.filter((s) => hasPlaybook || s.value !== "for-you").map((s) => ({ value: s.value, label: s.label }))}
-                />
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {filtered.length} of {TOTAL_TOP_POSTS} posts
-                </span>
+                {working.posts >= 5 && [
+                  { name: "Topics", items: working.topics, value: topic, set: setTopic },
+                  { name: "Angles", items: working.angles, value: angle, set: setAngle },
+                ].map(
+                  (row) =>
+                    row.items.length > 0 && (
+                      <div key={row.name} className="scrollbar-none flex items-center gap-1.5 overflow-x-auto">
+                        <span className="w-24 shrink-0 text-xs font-semibold text-muted-foreground">{row.name} working</span>
+                        {row.items.map((t) => (
+                          <Chip
+                            key={t.label}
+                            active={row.value === t.label}
+                            onClick={() => row.set(row.value === t.label ? "all" : t.label)}
+                            count={t.posts}
+                          >
+                            {t.label}
+                          </Chip>
+                        ))}
+                      </div>
+                    ),
+                )}
               </div>
-            </CardContent>
-          </Card>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-auto text-xs text-muted-foreground">
+                {filtered.length} of {TOTAL_TOP_POSTS} posts
+              </span>
+              <span className="sm:hidden">{sortPick}</span>
+            </div>
+          </div>
 
           {filtered.length === 0 ? (
             <Card className="border-border/60 shadow-card">

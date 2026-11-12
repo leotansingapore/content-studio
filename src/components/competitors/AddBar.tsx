@@ -51,7 +51,8 @@ export default function AddBar({ userId, count, busy, onAdded }: { userId: strin
             disabled={full}
           />
         </div>
-        <Button type="submit" className="h-11 shrink-0 sm:h-10" disabled={full || !text.trim()}>Add</Button>
+        {/* filled once there is something to add; until then Suggest (or the list) is what the page is for */}
+        <Button type="submit" variant={text.trim() ? "default" : "outline"} className="h-11 shrink-0 sm:h-10" disabled={full || !text.trim()}>Add</Button>
         <span className="hidden shrink-0 text-xs tabular-nums text-muted-foreground sm:inline">{count} of {MAX_COMPETITORS}</span>
       </div>
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">

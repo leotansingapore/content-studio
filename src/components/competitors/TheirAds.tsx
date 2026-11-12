@@ -5,10 +5,9 @@
 // ad's drawer (find-ad-detail) and marks its card.
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CaretRightIcon, ArrowSquareOutIcon, ImageBrokenIcon, CircleNotchIcon, PencilLineIcon, PlayIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, ImageBrokenIcon, CircleNotchIcon, PencilLineIcon, PlayIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import AdDetailDrawer, { LoadingAdDrawer, useLinkedAd } from "@/components/AdDetailDrawer";
 import PriceChip from "@/components/PriceChip";
-import SaveButton from "@/components/SaveButton";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -17,7 +16,7 @@ import { titleOf, toDetailAd } from "@/lib/adDetail";
 import { competitorLibraryAd, loadAdLabels } from "@/lib/adLibrary";
 import { buildAdWriteUrl } from "@/lib/adsSwipe";
 import {
-  type CompetitorAd, type CompetitorAdsState, adsCheckFailure, adsCountryOf, adsStopped, adsTally, canReadAds, checkingAnyAds, dueAds, isCheckingAds, libraryUrl,
+  type CompetitorAd, type CompetitorAdsState, adsCheckFailure, adsCountryOf, adsStopped, adsTally, canReadAds, checkingAnyAds, dueAds, isCheckingAds,
   onCompetitorAds, platformNames, runAdsCheck, runDueAds, runLabel, runningLine, toAdLike,
 } from "@/lib/competitorAds";
 import { type Competitor, updateCompetitor } from "@/lib/competitors";
@@ -232,10 +231,10 @@ function AdCard({ ad, c, fresh, linked, onOpen }: { ad: CompetitorAd; c: Competi
   const pic = Boolean(ad.image) && !broken;
   const line = [runLabel(ad), platformNames(ad.platforms)].filter(Boolean).join(" | ");
   const title = titleOf(ad);
+  // the Radar card (AdLibrary): Remix over the picture is the one action; Save and Open on Meta are in the drawer
   return (
-    <article ref={ref} className={`flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-card ${linked ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`}>
-      {/* the picture and the words open the ad's drawer (find-ad-detail); the buttons below keep their own jobs */}
-      <button type="button" onClick={onOpen} className="group flex flex-col text-left">
+    <article ref={ref} className={`relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-card ${linked ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`}>
+      <button type="button" onClick={onOpen} className="group flex flex-col text-left" aria-label={`${title || "Untitled ad"}, ${c.name}`}>
         <span className="relative block aspect-[4/5] w-full bg-muted">
           {pic ? (
             <img src={ad.image!} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
@@ -254,7 +253,7 @@ function AdCard({ ad, c, fresh, linked, onOpen }: { ad: CompetitorAd; c: Competi
             {fresh && <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">New</span>}
           </span>
         </span>
-        <span className="block space-y-1.5 px-3 pt-3">
+        <span className="block space-y-1.5 px-3 pb-3 pt-2.5">
           <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium">
             <Avatar c={c} /> <span className="truncate">{c.name}</span>
           </span>
@@ -263,18 +262,14 @@ function AdCard({ ad, c, fresh, linked, onOpen }: { ad: CompetitorAd; c: Competi
           {line && <span className="block text-[11px] text-muted-foreground">{line}</span>}
         </span>
       </button>
-      <div className="flex flex-1 flex-col px-3 pb-3">
-        <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1.5">
-          <RemixButton source={source} label={`${c.name}'s ad`}>
-            <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
-              <Link to={buildAdWriteUrl(like)}><PencilLineIcon className="h-3.5 w-3.5" /> Write a post like this</Link>
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-[4/5] items-end justify-center pb-3">
+        <span className="pointer-events-auto rounded-full bg-background/90 p-0.5 shadow-sm backdrop-blur">
+          <RemixButton source={source} label={`${c.name}'s ad`} variant="ghost" className="h-8 rounded-full px-3 [@media(pointer:coarse)]:h-11">
+            <Button asChild size="sm" variant="ghost" className="h-8 gap-1.5 rounded-full px-3 [@media(pointer:coarse)]:h-11">
+              <Link to={buildAdWriteUrl(like)}><PencilLineIcon className="h-3.5 w-3.5" /> Write like this</Link>
             </Button>
           </RemixButton>
-          <SaveButton source={source} />
-          <Button asChild size="sm" variant="ghost" className={`h-9 gap-1.5 px-2 ${TOUCH}`}>
-            <a href={libraryUrl(ad.id)} target="_blank" rel="noopener noreferrer"><ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open on Meta</a>
-          </Button>
-        </div>
+        </span>
       </div>
     </article>
   );

@@ -59,4 +59,23 @@ describe("brandOverview", () => {
     // the website reads as its address, without the https:// in front
     expect(row({ ...i, kit: { ...DEFAULT_BRAND, website: "https://acme.sg/about" } }, "website").value).toBe("acme.sg/about");
   });
+
+  it("edits the basics in place and links the rest: products, audiences, voice and what is on file open their own pages", () => {
+    const edits = (o: Partial<OverviewInput>) => Object.fromEntries(brandOverview({ ...empty, ...o }).flatMap((g) => g.rows).map((r) => [r.id, r.edit ?? null]));
+    expect(edits({})).toEqual({
+      name: "name", does: "does", sells: null, edge: "edge", who: "who", topics: "topics", logo: "logo", colours: "colours", voice: null, avoid: "avoid", signoff: "signoff",
+    });
+    const p = { id: "pd-a", name: "Tracker", what: "", forWho: "", price: "$9", pictures: [], sources: [], use: true, from: "you" as const, addedAt: "" };
+    const leo = edits({ leo: true, products: [p] });
+    expect(leo).toMatchObject({ website: null, sells: null, price: "price", who: null, proof: "proof", competitors: null, demos: null, media: null });
+    // no product yet: the price row adds one on Products instead
+    expect(edits({ leo: true }).price).toBeNull();
+    // a site's kit sets the colours and logo: they are shown, not edited
+    expect(edits({ kitLocked: true })).toMatchObject({ logo: null, colours: null });
+  });
+
+  it("shows the logo itself as the logo row's value", () => {
+    expect(row({ ...empty, kit: { ...DEFAULT_BRAND, logo: "data:image/png;base64,x" } }, "logo").image).toBe("data:image/png;base64,x");
+    expect(row(empty, "logo").image).toBeUndefined();
+  });
 });

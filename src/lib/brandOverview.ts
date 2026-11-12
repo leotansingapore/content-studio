@@ -1,13 +1,17 @@
 // What the AI knows about the open brand, in one list (/playbook): Fastlane's Brand > Profile groups (identity,
 // offer, personas, proof, look, tone and voice) plus what the brand keeps on file. Each row reads a store another
-// page owns and links to the place that edits it; nothing is saved here. Rows from Leo-only pages (website,
-// products, audiences, proof, competitors, demo videos, Media types) appear only when `leo` is set.
+// page owns. A row with `edit` opens in place on Profile and saves to that same store (ProfileRows.tsx); the others
+// link to the page that edits them. Nothing is saved here. Rows from Leo-only pages (website, products, audiences,
+// proof, competitors, demo videos, Media types) appear only when `leo` is set.
 
 import type { Audience } from "@/lib/audiences";
 import type { CarouselBrand } from "@/lib/carousel";
 import type { Positioning } from "@/lib/positioning";
 import type { Product } from "@/lib/products";
 import type { VoiceProfile } from "@/lib/voiceProfile";
+
+/** The rows Profile edits in place, each against the store its page saves to. */
+export type ProfileEdit = "name" | "does" | "price" | "edge" | "who" | "topics" | "proof" | "logo" | "colours" | "avoid" | "signoff";
 
 export interface OverviewRow {
   id: string;
@@ -24,6 +28,10 @@ export interface OverviewRow {
   add: string;
   /** A count of things kept (products, competitors): shown, never counted as a gap when 0 is fine. */
   optional?: boolean;
+  /** Edited in place on Profile; without it the row links to `to`. */
+  edit?: ProfileEdit;
+  /** A picture that stands for the value (the logo). */
+  image?: string;
 }
 
 export interface OverviewGroup {
@@ -45,6 +53,8 @@ export interface OverviewInput {
   competitors?: { name: string }[];
   demos?: number;
   media?: number;
+  /** The brand's colours and logo come from its site's kit: they are read here, never edited. */
+  kitLocked?: boolean;
 }
 
 const STAGE: Record<string, string> = {
@@ -73,8 +83,8 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       id: "identity",
       title: "Identity",
       rows: [
-        { id: "name", label: "Name", value: t(kit?.name) || t(i.marketName), to: "/brand#you", add: "Add your name" },
-        { id: "does", label: "What you do", value: t(pos?.oneLiner) || t(kit?.profession) || t(kit?.role), to: pos?.oneLiner ? "/plan" : "/brand#you", add: "Say what you do" },
+        { id: "name", label: "Name", value: t(kit?.name) || t(i.marketName), to: "/brand#you", add: "Add your name", edit: "name" },
+        { id: "does", label: "What you do", value: t(pos?.oneLiner) || t(kit?.profession) || t(kit?.role), to: pos?.oneLiner ? "/plan" : "/brand#you", add: "Say what you do", edit: "does" },
         ...(i.leo ? [{ id: "website", label: "Website", value: t(kit?.website).replace(/^https?:\/\//, ""), to: "/brand#website", add: "Add your website" }] : []),
       ],
     },
@@ -85,8 +95,8 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
         i.leo
           ? { id: "sells", label: "What you sell", value: "", chips: products.length ? products.map((p) => p.name) : offers, to: "/brand/products", add: "Add what you sell" }
           : { id: "sells", label: "What you sell", value: "", chips: offers, to: "/brand#offers", add: "Add an offer" },
-        ...(i.leo ? [{ id: "price", label: "Price point", value: t(main?.price), to: main ? `/brand/products?product=${main.id}` : "/brand/products", add: "Add a price" }] : []),
-        { id: "edge", label: "Why they choose you", value: t(pos?.edge), to: "/plan", add: "Say why you" },
+        ...(i.leo ? [{ id: "price", label: "Price point", value: t(main?.price), to: main ? `/brand/products?product=${main.id}` : "/brand/products", add: "Add a price", ...(main ? { edit: "price" as const } : {}) }] : []),
+        { id: "edge", label: "Why they choose you", value: t(pos?.edge), to: "/plan", add: "Say why you", edit: "edge" },
       ],
     },
     {
@@ -95,24 +105,24 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       rows: [
         i.leo
           ? { id: "who", label: "Who buys", value: "", chips: audiences.length ? audiences.map((a) => a.name) : who, to: "/audiences", add: "Add an audience" }
-          : { id: "who", label: "Who buys", value: "", chips: who, to: "/plan", add: "Say who you serve" },
-        { id: "topics", label: "Topics", value: "", chips: pos?.topics ?? [], to: "/plan", add: "Add your topics" },
+          : { id: "who", label: "Who buys", value: "", chips: who, to: "/plan", add: "Say who you serve", edit: "who" },
+        { id: "topics", label: "Topics", value: "", chips: pos?.topics ?? [], to: "/plan", add: "Add your topics", edit: "topics" },
       ],
     },
     ...(i.leo
       ? [{
         id: "proof",
         title: "Proof",
-        rows: [{ id: "proof", label: "Real words and numbers", value: t(i.proof), to: "/brand/products#script-product", add: "Add proof" }],
+        rows: [{ id: "proof", label: "Real words and numbers", value: t(i.proof), to: "/brand/products#script-product", add: "Add proof", edit: "proof" as const }],
       }]
       : []),
     {
       id: "look",
       title: "Look",
       rows: [
-        { id: "logo", label: "Logo", value: kit?.logo ? "On file" : "", to: "/brand#logo", add: "Add a logo" },
+        { id: "logo", label: "Logo", value: kit?.logo ? "On file" : "", to: "/brand#logo", add: "Add a logo", ...(kit?.logo ? { image: kit.logo } : {}), ...(i.kitLocked ? {} : { edit: "logo" as const }) },
         // a kit never saved still draws navy: that is our default, not something the brand told us
-        { id: "colours", label: "Colours", value: "", swatches: kit ? [kit.color, ...(kit.palette ?? []).map((c) => c.hex)] : [], to: "/brand#colour", add: "Pick a colour" },
+        { id: "colours", label: "Colours", value: "", swatches: kit ? [kit.color, ...(kit.palette ?? []).map((c) => c.hex)] : [], to: "/brand#colour", add: "Pick a colour", ...(i.kitLocked ? {} : { edit: "colours" as const }) },
       ],
     },
     {
@@ -120,8 +130,8 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       title: "Tone and voice",
       rows: [
         { id: "voice", label: "How you sound", value: t(i.voice?.voiceSummary) || count(posts, "past post"), to: "/voice", add: "Paste past posts" },
-        { id: "avoid", label: "Words you never use", value: t(kit?.avoidWords).replace(/\s*\n+\s*/g, ", "), to: "/brand#avoid-words", add: "Add words to avoid", optional: true },
-        { id: "signoff", label: "Sign-off", value: t(kit?.signOff), to: "/brand#sign-off", add: "Add a sign-off", optional: true },
+        { id: "avoid", label: "Words you never use", value: t(kit?.avoidWords).replace(/\s*\n+\s*/g, ", "), to: "/brand#avoid-words", add: "Add words to avoid", optional: true, edit: "avoid" },
+        { id: "signoff", label: "Sign-off", value: t(kit?.signOff), to: "/brand#sign-off", add: "Add a sign-off", optional: true, edit: "signoff" },
       ],
     },
   ];

@@ -347,12 +347,12 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /media | folder | a folder name, or none (photos with no folder) | all | replace | /media?folder=none |
 | /media | item | a picture's key: scrolled to and marked; Copy link on every picture. the picture list lives on the device that added it, so the link opens there; anywhere else it says "That picture is not on this device" | none | set by links | /media?item=cimg-mh2k9x01ab |
 | /academy | lesson | a lesson's YouTube id: opens and plays it | none | push | /academy?lesson=0Q1AQAxpdGg |
-| /playbook | #section | identity, offer, personas, proof, look, tone, on-file: a group of "What the AI knows" (proof and on-file on Leo's sign-ins only); each row links to the page that edits it | top | (anchor) | /playbook#look |
+| /playbook | #section | identity, offer, personas, proof, look, tone, on-file: a group of Profile's rows (proof and on-file on Leo's sign-ins only); the basics edit in place (?edit=), the rest link to the page that edits them | top | (anchor) | /playbook#look |
+| /playbook | edit | a row id (name, does, price, edge, who, topics, proof, logo, colours, avoid, signoff): that row open in place for editing; only rows that edit in place open | none | push | /playbook?edit=signoff |
 | /brand | #section | you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
 | /create-guide | #step | idea, draft, carousel, reel, reverse-engineer, compliance, schedule | top | (anchor) | /create-guide#reel |
 | /tutorial | #section | why, voice, guided-flow, after, tabs, design, campaigns, claude-design, rules, rhythm, first-action | top | (anchor) | /tutorial#tabs |
 | /voice | (none) | the past posts are typed text, kept for this tab until Save; Leo's sections and learnings are under "Faces, voices and brand" below | | | /voice |
-| /playbook | (none) | a summary page with no state of its own | | | /playbook |
 | /slideshow | s | a slideshow id: that slideshow in the editor; an unknown id shows the start card. Leo's sign-ins only (src/lib/leoOnly.ts) | none (the start card) | push | /slideshow?s=ssmh2k9x01ab |
 | /slideshow | slide | the open slide, 1-based, with s; out of range reads as 1 | 1 | replace | /slideshow?s=ssmh2k9x01ab&slide=4 |
 | /slideshow | panel | text, overlay: the editor's Text or Overlay tab, with s | slide (the Slide tab) | replace | /slideshow?s=ssmh2k9x01ab&panel=text |
@@ -437,7 +437,7 @@ find-ad-detail.md, find-save-anywhere.md, find-ai-tagging.md). Both pages are Le
 
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|
-| /competitors | view | Leo only. ads (Their ads), posts (Their posts), list (Who you watch) | ads once a competitor exists, else list | replace | /competitors?view=posts |
+| /competitors | view | Leo only. list (Who you watch), ads (Their ads), posts (Their posts) | list; Their ads when the address names an ad, a pill (c) or running, since links.competitors leaves view=ads out | replace | /competitors?view=posts |
 | /competitors | edit | Leo only. with view=list: a competitor id, its editor open, with Copy link | none | push | /competitors?view=list&edit=c-lq3k9z |
 | /competitors | c | Leo only. ads and posts views: a competitor id, its pill | all | replace | /competitors?c=c-lq3k9z |
 | /competitors | running | Leo only. ads view: only (running now) | off | replace | /competitors?running=only |

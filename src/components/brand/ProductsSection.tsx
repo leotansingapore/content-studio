@@ -97,11 +97,8 @@ export default function ProductsSection({ userId, brand }: { userId: string; bra
   const noun = kind === "service" ? "services" : "products";
 
   return (
-    <section id="products" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="products">
-      <div className="flex items-center gap-1">
-        <h2 className="font-serif text-lg font-semibold">Products and services</h2>
-        <InfoTip label="About products and services">Remixes put your real offer in posts. The first picture is used first.</InfoTip>
-      </div>
+    // Fastlane's Products tab: what you sell (the switch and why it matters), then the list under its count and Add
+    <section id="products" className="scroll-mt-20 space-y-6" data-testid="products">
       {waiting ? (
         <Review userId={userId} list={list.items} waiting={waiting} onAdd={() => openEditor("new")} />
       ) : scanning ? (
@@ -118,8 +115,8 @@ export default function ProductsSection({ userId, brand }: { userId: string; bra
         </ol>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span id="products-kind" className="text-sm font-medium">What you sell</span>
+          <div className="space-y-2">
+            <h2 id="products-kind" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">What you sell</h2>
             <div role="radiogroup" aria-labelledby="products-kind" className="flex gap-1.5">
               {([["products", "Products"], ["service", "A service"]] as const).map(([k, label]) => (
                 <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => setKind(k)}
@@ -128,29 +125,31 @@ export default function ProductsSection({ userId, brand }: { userId: string; bra
                 </button>
               ))}
             </div>
-            {list.items.length > 0 && <span className="ml-auto text-xs font-semibold text-muted-foreground">{list.items.length} of {MAX_PRODUCTS} {noun}</span>}
+            <p className="text-xs text-muted-foreground">Remixes put your real {kind === "service" ? "service" : "product"} in posts. The first picture is used first.</p>
           </div>
-          {list.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing here yet.</p>
-          ) : (
-            <ul className="divide-y divide-border/60">
-              {list.items.map((p) => <Item key={p.id} userId={userId} p={p} onEdit={() => openEditor(p.id)} />)}
-            </ul>
-          )}
-          <div className="space-y-2 border-t border-border/60 pt-3">
-            {website ? (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <Button className={TOUCH} onClick={() => scan()} disabled={left === 0}>Find them on my website</Button>
-                <Button variant="outline" className={TOUCH} onClick={() => openEditor("new")} disabled={full}>Add one</Button>
-              </div>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{noun}</h2>
+              <span className="text-xs tabular-nums text-muted-foreground">{list.items.length} of {MAX_PRODUCTS}</span>
+              <Button variant="outline" size="sm" className={`ml-auto h-9 ${TOUCH}`} onClick={() => openEditor("new")} disabled={full}>Add {kind === "service" ? "a service" : "a product"}</Button>
+            </div>
+            {list.items.length === 0 ? (
+              <p className="rounded-xl border border-border/60 bg-card px-4 py-6 text-center text-sm text-muted-foreground">Nothing here yet.</p>
             ) : (
-              <>
-                <Button className={TOUCH} onClick={() => openEditor("new")} disabled={full}>Add one</Button>
-                <form onSubmit={scan} className="flex flex-wrap gap-2">
-                  <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="acme.sg" inputMode="url" autoCapitalize="none" autoCorrect="off" aria-label="Your website" className="min-w-[10rem] flex-1" />
-                  <Button type="submit" variant="outline" className={`shrink-0 ${TOUCH}`} disabled={!address.trim() || left === 0}>Find them on my website</Button>
-                </form>
-              </>
+              <ul className="divide-y divide-border/60 rounded-xl border border-border/60 bg-card px-4 shadow-card">
+                {list.items.map((p) => <Item key={p.id} userId={userId} p={p} onEdit={() => openEditor(p.id)} />)}
+              </ul>
+            )}
+          </div>
+          {/* reading the site is the next step only while the list is empty: then it is the one filled button */}
+          <div className="space-y-2">
+            {website ? (
+              <Button variant={list.items.length ? "outline" : "default"} className={TOUCH} onClick={() => scan()} disabled={left === 0}>Find them on my website</Button>
+            ) : (
+              <form onSubmit={scan} className="flex flex-wrap gap-2">
+                <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="acme.sg" inputMode="url" autoCapitalize="none" autoCorrect="off" aria-label="Your website" className="min-w-[10rem] flex-1" />
+                <Button type="submit" variant="outline" className={`shrink-0 ${TOUCH}`} disabled={!address.trim() || left === 0}>Find them on my website</Button>
+              </form>
             )}
             <p><PriceChip feature="brand-products" left={left} /></p>
             {why && <p className="text-xs text-destructive">{why}</p>}
@@ -172,7 +171,7 @@ function Item({ userId, p, onEdit }: { userId: string; p: Product; onEdit: () =>
     saveProducts(userId, { ...now, items: now.items.map((x) => (x.id === p.id ? { ...x, use } : x)) });
   };
   return (
-    <li className="flex gap-3 py-3 first:pt-0 last:pb-0">
+    <li className="flex gap-3 py-3.5">
       {p.pictures[0] ? <PictureTile userId={userId} pictureKey={p.pictures[0]} source={p.sources[0]} name={p.name} /> : <Blank />}
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-2">
@@ -189,12 +188,13 @@ function Item({ userId, p, onEdit }: { userId: string; p: Product; onEdit: () =>
         {(p.what || p.forWho) && <p className="line-clamp-2 text-xs text-muted-foreground">{[p.what, p.forWho && `For ${p.forWho.replace(/^for\s+/i, "")}`].filter(Boolean).join(" ")}</p>}
         {p.namedProduct && <NamedChip />}
         {failed && <p className="text-xs text-muted-foreground">{PICTURE_FAILED}</p>}
-        <div className="flex flex-wrap gap-1.5 pt-1">
+        {/* quiet at rest: the list is the content, the actions are what you do with one (law 7) */}
+        <div className="-ml-2.5 flex flex-wrap gap-0.5 pt-0.5">
           <Button size="sm" variant="ghost" className={`h-9 px-2.5 ${TOUCH}`} onClick={onEdit}>Edit</Button>
-          <Button size="sm" variant="outline" className={`h-9 ${TOUCH}`} asChild>
+          <Button size="sm" variant="ghost" className={`h-9 px-2.5 text-muted-foreground ${TOUCH}`} asChild>
             <Link to={links.generate({ pillar: "topic", detail: productLabel(p), ctx: productBrief(p) })}>Write a post about it</Link>
           </Button>
-          <Button size="sm" variant="outline" className={`h-9 ${TOUCH}`} asChild>
+          <Button size="sm" variant="ghost" className={`h-9 px-2.5 text-muted-foreground ${TOUCH}`} asChild>
             <Link to={links.edit({ panel: ["ai"], kind: "template", template: VIDEO_TEMPLATE, product: p.id })}>Use in a video</Link>
           </Button>
         </div>
