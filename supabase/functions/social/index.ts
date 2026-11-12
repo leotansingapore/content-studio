@@ -8,13 +8,14 @@
 // Secrets: ZERNIO_API_KEY, SOCIAL_CONNECT_USERS (user ids separated by commas, or *),
 // ZERNIO_MAX_ACCOUNTS (team cap, 2 when unset), ZERNIO_MAX_PER_USER (the cap for NORTH_STAR_USERS; every other
 // owner holds CUSTOMER_ACCOUNT_CAP, 3). Off, with no Zernio call, unless the key is set and
-// the caller is listed (the bare status probe then answers 200 {enabled:false}, anything else 404).
+// the caller is listed or holds a Postmosis subscription with access (the bare status probe then answers 200 {enabled:false}, anything else 404).
 // Removing a brand is the exception: it disconnects for any owner, and with no key it is refused
 // while the brand has a Zernio profile.
 // Deploy WITH JWT verification:
 //   supabase functions deploy social --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
+import { hasAccess } from "../_shared/subscription.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
 import { automationErrorReply, isAutomationWrite, parseAutomationRequest, runAutomation } from "./automations.ts";
@@ -48,7 +49,13 @@ Deno.serve(async (req) => {
     return data ? json({ code: "unavailable", error: "Social accounts aren't available right now." }, 503) : json({ disconnected: 0 });
   }
   // a brand being removed takes its accounts with it even for an adviser since taken off the list
-  if (!key || (!removing && !isAllowed(Deno.env.get("SOCIAL_CONNECT_USERS"), uid))) {
+  // A Postmosis subscriber whose subscription gives access (docs/postmosis-billing.md) may connect without being
+  // listed, at the customer cap like anyone else. Asked only when the list says no; a failed read lets nobody in.
+  const subscriber = async () => {
+    const { data } = await admin.from("cs_subscriptions").select("status, past_due_since").eq("user_id", uid).maybeSingle();
+    return !!data && hasAccess(data, Date.now());
+  };
+  if (!key || (!removing && !isAllowed(Deno.env.get("SOCIAL_CONNECT_USERS"), uid) && !(await subscriber()))) {
     const off = offReply(body);
     return json(off.body, off.status);
   }

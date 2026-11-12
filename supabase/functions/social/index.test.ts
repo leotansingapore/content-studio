@@ -9,18 +9,21 @@ const THEIRS = "0123456789abcdef01234569";
 
 const db = vi.hoisted(() => {
   // every adviser's first brand is "me": the other adviser's row comes first
-  const rows = [
+  const all = [
     { owner_id: "0f8fad5b-d9cb-469f-a165-70867728950e", profile_id: "me", zernio_profile_id: "0123456789abcdef01234569" },
     { owner_id: "6d80f027-3395-480c-86a1-8827d3d6cce3", profile_id: "me", zernio_profile_id: "0123456789abcdef01234561" },
   ];
   const spent: string[] = [];
   const state = { readFails: false };
+  // cs_subscriptions: who came in through Postmosis checkout
+  const subs: { user_id: string; status: string; past_due_since?: string | null }[] = [];
   const admin = {
     auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
     rpc: async (_fn: string, a: Record<string, unknown>) => (spent.push(String(a.p_feature)), { data: 1, error: null }),
-    from: () => ({
+    from: (table: string) => ({
       select: () => {
         const where: [string, unknown][] = [];
+        const rows = table === "cs_subscriptions" ? subs : all;
         const q = {
           data: rows,
           error: null,
@@ -33,7 +36,7 @@ const db = vi.hoisted(() => {
       upsert: async () => ({ error: null }),
     }),
   };
-  return { admin, spent, state, handler: null as null | ((r: Request) => Promise<Response>) };
+  return { admin, spent, state, subs, handler: null as null | ((r: Request) => Promise<Response>) };
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: () => db.admin }));
 
@@ -72,6 +75,7 @@ beforeEach(() => {
   sent.length = 0;
   db.spent.length = 0;
   db.state.readFails = false;
+  db.subs.length = 0;
   Object.assign(env, { ZERNIO_API_KEY: "sk_test", SOCIAL_CONNECT_USERS: UID });
   delete env.NORTH_STAR_USERS;
   delete env.ZERNIO_MAX_PER_USER;
@@ -90,6 +94,38 @@ describe("the social function", () => {
     expect(await probe.json()).toEqual({ enabled: false });
     expect(zernio).toEqual([]);
     expect(db.spent).toEqual([]);
+  });
+
+  it("lets a Postmosis subscriber with access connect without being listed, and nobody whose subscription has lapsed", async () => {
+    db.subs.push({ user_id: UID_B, status: "trialing" });
+    expect(await (await call(UID_B, { action: "status" })).json()).toEqual({ enabled: true });
+    expect((await call(UID_B, { action: "status", profileId: "me" })).status).toBe(200);
+    // their own Zernio profile, like any listed adviser
+    expect(zernio).toContain(`/api/v1/accounts?profileId=${THEIRS}&includeOverLimit=true`);
+    for (const lapsed of [{ status: "canceled" }, { status: "unpaid" }, { status: "past_due", past_due_since: "2026-01-01T00:00:00Z" }]) {
+      db.subs.length = 0;
+      db.subs.push({ user_id: UID_B, ...lapsed });
+      expect(await (await call(UID_B, { action: "status" })).json(), lapsed.status).toEqual({ enabled: false });
+      expect((await call(UID_B, { action: "connect", profileId: "me", platform: "instagram" })).status, lapsed.status).toBe(404);
+    }
+    // someone else's subscription opens nothing for this caller, and a failed read lets nobody in
+    db.subs.length = 0;
+    db.subs.push({ user_id: UID, status: "active" });
+    expect(await (await call(UID_B, { action: "status" })).json()).toEqual({ enabled: false });
+    db.subs.push({ user_id: UID_B, status: "active" });
+    db.state.readFails = true;
+    expect(await (await call(UID_B, { action: "status" })).json()).toEqual({ enabled: false });
+  });
+
+  it("holds a subscriber to the customer cap of 3 accounts", async () => {
+    db.subs.push({ user_id: UID_B, status: "active" });
+    env.NORTH_STAR_USERS = UID;
+    env.ZERNIO_MAX_ACCOUNTS = "10";
+    env.ZERNIO_MAX_PER_USER = "10";
+    accounts[""] = accounts[THEIRS] = ["a", "b", "c"].map((n) => ({ _id: `0123456789abcdef012345${n}0`, platform: "instagram", profileId: THEIRS }));
+    const res = await call(UID_B, { action: "connect", profileId: "me", platform: "tiktok" });
+    expect(res.status).toBe(409);
+    expect((await res.json()).code).toBe("account_cap");
   });
 
   it("reads the caller's own Zernio profile for their \"me\", never another adviser's", async () => {
