@@ -34,6 +34,14 @@ vi.mock("@/lib/supabase", () => ({
   supabase: {
     auth: { getUser: async () => ({ data: { user: { id: "u1" } } }), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) },
     functions: { invoke: () => Promise.reject(new Error("offline")) },
+    // a table read (Analytics' audit and pulled numbers) answers "offline": any chain of calls, then no data
+    from: () => {
+      const chain: unknown = new Proxy(() => chain, {
+        get: (_t, k) => (k === "then" ? (ok: (v: unknown) => void) => ok({ data: null, error: { message: "offline" } }) : () => chain),
+        apply: () => chain,
+      });
+      return chain;
+    },
   },
 }));
 // Home asks the posts board who you are after the diagnosis is read: never the network here
@@ -337,5 +345,17 @@ describe("Create guide", () => {
     device(COACH);
     const coach = draw(createElement(AnalyticsPage), "/analytics");
     expect(coach.indexOf("Analyze a creator")).toBeGreaterThan(coach.indexOf("Your accounts"));
+  });
+
+  it("leads Analytics with the results once posts have numbers, and with the accounts until then", async () => {
+    const posted = { id: "d1", draft: "A post", platform: "linkedin", createdAt: "2026-10-20T01:00:00Z", status: "posted", metrics: { impressions: 1200, reactions: 40, comments: 3, shares: 1 } };
+    device(COACH, { "content-studio-drafts-u1": [posted] });
+    const results = await loaded(AnalyticsPage, "/analytics");
+    expect(results.indexOf("Avg engagement rate")).toBeGreaterThan(-1);
+    expect(results.indexOf("Avg engagement rate")).toBeLessThan(results.indexOf("Your accounts"));
+    device(COACH);
+    const none = await loaded(AnalyticsPage, "/analytics");
+    expect(none).not.toContain("Avg engagement rate");
+    expect(none.indexOf("Your accounts")).toBeLessThan(none.indexOf("Go to All posts"));
   });
 });

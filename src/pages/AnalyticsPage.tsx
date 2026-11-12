@@ -779,6 +779,708 @@ export default function AnalyticsPage() {
   const adviser = adviserBrand(userId);
   const fresh = connectedCount(accounts) === 0;
 
+
+  // Fastlane's Analytics is the results: how posts do over time, split by platform, format and account. Once there
+  // are numbers they lead; the audit, the accounts and adding numbers by hand follow them. Before there are any,
+  // those are the way to get some, so they lead instead (law 9).
+  const resultsFirst = hasData || !!real;
+  const setup = (
+    <>
+          {userId && <AccountAudit accounts={accounts} profession={professionFor(userId)} onSaveAccount={saveAccount} zernioFollowers={zernioFollowers} />}
+
+          {/* A new sign-in is asked for a handle once, above: the audit saves it to Your accounts. The other two boxes
+              that take a handle stay folded until there is one (never unmounted, so nothing typed in them is lost). */}
+          {adviser && (
+            <details open={!fresh} className="group">
+              <summary className={fresh ? FOLD : "hidden"}>
+                <CaretRightIcon className="h-4 w-4 transition-transform group-open:rotate-90" /> Look up another creator
+              </summary>
+              <CreatorLookup />
+            </details>
+          )}
+
+          <details open={!fresh} className="group">
+          <summary className={fresh ? FOLD : "hidden"}>
+            <CaretRightIcon className="h-4 w-4 transition-transform group-open:rotate-90" /> Add LinkedIn or Facebook by hand
+          </summary>
+          {/* Your accounts — register a handle per platform. */}
+          <Card className="border-border/60 shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2 font-serif text-lg">
+                <span className="flex items-center gap-2">
+                  <PlugIcon className="h-4 w-4 text-primary" /> Your accounts
+                </span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {connectedCount(accounts)}/{SOCIAL_PLATFORMS.length} connected
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Instagram and TikTok are audited automatically above. LinkedIn and
+                Facebook don't allow that, so add those numbers by hand below.
+              </p>
+              <div className="space-y-2">
+                {SOCIAL_PLATFORMS.map((p) => {
+                  const Icon = ACCOUNT_ICON[p.key];
+                  const acct = accounts[p.key];
+                  const url = acct ? accountUrl(p.key, acct.handle) : null;
+                  return (
+                    <div
+                      key={p.key}
+                      className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/20 p-2"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground shadow-sm">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-medium text-foreground">
+                            {p.label}
+                          </p>
+                          {acct && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-success">
+                              <CheckIcon className="h-2.5 w-2.5" /> Connected
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          // Remount when the audit section adds or removes a handle.
+                          key={acct?.handle ?? ""}
+                          defaultValue={acct?.handle ?? ""}
+                          placeholder={p.placeholder}
+                          onBlur={(e) => saveAccount(p.key, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") e.currentTarget.blur();
+                          }}
+                          aria-label={`Your ${p.label} handle`}
+                          className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground [@media(pointer:coarse)]:min-h-11"
+                        />
+                      </div>
+                      {url && (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Open ${p.label} profile`}
+                          className="shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-primary [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+                        >
+                          <ArrowSquareOutIcon className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+          </details>
+
+          {userId && socialConnectShown() && (
+            leoOn ? (
+              <div id="real-numbers" className="scroll-mt-20">
+                <RealNumbers userId={userId} audited={auditedHandles(accounts)} onChange={bumpMetrics} onFollowers={setZernioFollowers} />
+              </div>
+            ) : (
+              <RealNumbers userId={userId} audited={auditedHandles(accounts)} onChange={bumpMetrics} onFollowers={setZernioFollowers} />
+            )
+          )}
+
+          {/* Bulk metrics entry — add real numbers for every posted post in one place */}
+          {postedDrafts.length > 0 && (
+            <Card id="add-your-numbers" className="scroll-mt-4 border-border/60 shadow-card">
+              <CardHeader>
+                <CardTitle className="font-serif text-lg">Add your numbers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Follower counts, for how far each post travelled past them. */}
+                {followerPlatforms.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-3 border-b border-border/50 pb-3">
+                  {followerPlatforms.map((p) => (
+                    <label key={p} className="w-36 space-y-1">
+                      <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+                        {PLATFORM_LABEL[p]} followers
+                      </span>
+                      <MetricInput
+                        value={followerEdits[p] ?? (typedFollowers[p] !== undefined ? String(typedFollowers[p]) : "")}
+                        onChange={(v) => setFollowerEdits((e) => ({ ...e, [p]: v }))}
+                        onSave={() => saveFollowers(p)}
+                        placeholder={auditFollowers[p] !== undefined ? String(auditFollowers[p]) : "0"}
+                        label={`${PLATFORM_LABEL[p]} followers`}
+                      />
+                      {typedFollowers[p] === undefined && auditFollowers[p] !== undefined && (
+                        <span className="block text-[10px] text-muted-foreground">From your account audit</span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+                )}
+                {/* One row per post: a table from sm up, stacked on phones (title, then the four numbers). */}
+                <div className="hidden grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] gap-x-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
+                  <span>Post</span>
+                  {METRIC_FIELDS.map(([f, label]) => (
+                    <span key={f}>{label}</span>
+                  ))}
+                </div>
+                {postedDrafts.map((d) => {
+                  // pulled on Your real numbers (its Zernio post's, else a linked live post's): shown in place of the typed ones, which stay stored
+                  const real = d.zernio?.numbers ?? d.live?.numbers;
+                  const shown = real ? realMetrics(real) : null;
+                  return (
+                  <div
+                    key={d.id}
+                    className="grid grid-cols-2 gap-2 border-t border-border/50 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] sm:items-center sm:py-1.5"
+                  >
+                    <div className="col-span-2 min-w-0 sm:col-span-1">
+                      <p className="truncate text-sm font-medium text-foreground sm:text-xs">
+                        {d.hook || d.draft.slice(0, 50) || "Untitled"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground sm:text-[10px]">
+                        {PLATFORM_LABEL[d.platform] ?? d.platform}
+                        {real && <span className="font-medium text-success">, real numbers{extraLine(real) ? `: ${extraLine(real)}` : ""}</span>}
+                        <span aria-live="polite">
+                          {savedId === d.id && (
+                            <span className="ml-2 inline-flex items-center gap-1 font-medium text-success">
+                              <CheckIcon className="h-3 w-3" /> Saved
+                            </span>
+                          )}
+                        </span>
+                      </p>
+                    </div>
+                    {METRIC_FIELDS.map(([f, label]) =>
+                      shown ? (
+                        <div key={f} className="space-y-1 sm:space-y-0">
+                          <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">{label}</span>
+                          <span className="flex h-9 items-center justify-end rounded-md bg-muted/40 px-2 text-xs tabular-nums text-foreground sm:h-8">
+                            {shown[f].toLocaleString()}
+                          </span>
+                        </div>
+                      ) : (
+                      <label key={f} className="space-y-1 sm:space-y-0">
+                        <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">
+                          {label}
+                        </span>
+                        <MetricInput
+                          value={editValue(d, f)}
+                          onChange={(v) => setEdit(d.id, f, v)}
+                          onSave={() => saveRow(d.id)}
+                          placeholder="0"
+                          label={`${f} for ${d.hook || "this post"}`}
+                        />
+                      </label>
+                      ),
+                    )}
+                  </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+    </>
+  );
+  const results = (
+    <>
+          {(hasData || showMix || !!real) && (
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
+                {([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
+                  <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
+                    className={`h-9 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <CopyLinkButton label="Copy link to this view" />
+            </div>
+          )}
+          {hasData && (
+            <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat
+                icon={ChartBarIcon}
+                value={String(cmp ? cmp.current.posts : tracked.length)}
+                label="Posts tracked"
+                tint="bg-muted text-foreground"
+                delta={cmp?.change.posts}
+              />
+              <Stat
+                icon={EyeIcon}
+                value={(cmp ? cmp.current.impressions : totals.totalImpressions).toLocaleString()}
+                label="Impressions tracked"
+                tint="bg-primary/10 text-primary"
+                delta={cmp?.change.impressions}
+              />
+              <Stat
+                icon={HeartIcon}
+                value={(cmp ? cmp.current.engagements : totals.totalEngagement).toLocaleString()}
+                label="Total engagement"
+                tint="bg-brand/10 text-brand"
+                delta={cmp?.change.engagements}
+              />
+              <Stat
+                icon={TrendUpIcon}
+                value={`${cmp ? cmp.current.rate : totals.avgEngagementRate}%`}
+                label="Avg engagement rate"
+                tint="bg-success/10 text-success"
+                delta={cmp?.change.rate}
+              />
+            </section>
+          )}
+          {real && (
+            <>
+              {real.accounts.length > 0 && (
+                <Card className="border-border/60 shadow-card">
+                  <CardHeader>
+                    <CardTitle className="font-serif text-lg">By account</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* a table from sm up; on phones the account, then its four numbers */}
+                    <div className="hidden grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] gap-x-2 pb-1.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
+                      <span className="text-left">Account</span>
+                      <span>Followers</span>
+                      <span>Posts</span>
+                      <span>Views</span>
+                      <span>Eng. rate</span>
+                    </div>
+                    {real.accounts.map((a) => (
+                      <div key={a.id} className="grid grid-cols-4 gap-2 border-t border-border/50 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] sm:items-center sm:py-2">
+                        <div className="col-span-4 min-w-0 sm:col-span-1">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {platformName(a.platform)}
+                            {a.username ? `: ${a.username}` : ""}
+                          </p>
+                          {needsReconnect(a) && (
+                            <Link to={`/accounts#${a.platform}`} className="inline-flex items-center text-xs font-medium text-destructive hover:underline [@media(pointer:coarse)]:min-h-11">
+                              Needs reconnecting
+                            </Link>
+                          )}
+                        </div>
+                        {(
+                          [
+                            ["Followers", a.followers === null ? "-" : countText(a.followers)],
+                            ["Posts", countText(a.posts)],
+                            ["Views", countText(a.views)],
+                            ["Eng. rate", a.rate === null ? "-" : `${a.rate}%`],
+                          ] as const
+                        ).map(([label, value]) => (
+                          <div key={label} className="min-w-0 sm:text-right">
+                            <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">{label}</span>
+                            <span className="text-sm tabular-nums text-foreground">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card className="min-w-0 border-border/60 shadow-card">
+                  <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+                    <CardTitle className="font-serif text-lg">{viewsParam === "total" ? "Running total of views" : "Views by day posted"}</CardTitle>
+                    <div className="flex gap-1.5" role="group" aria-label="Views">
+                      {([["day", "By day"], ["total", "Running total"]] as const).map(([v, label]) => (
+                        <button key={v} type="button" onClick={() => setViewsParam(v)} aria-pressed={viewsParam === v}
+                          className={`h-8 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${viewsParam === v ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {real.viewed ? (
+                      viewsParam === "total" ? (
+                        <TrendChart points={real.running} dots={false} format={countText} measure="views so far" title="Views added up by the day posts went out" width={400} height={160} />
+                      ) : (
+                        <TrendChart points={real.points} dots={false} format={countText} measure="views" title="Views by the day posts went out" width={400} height={160} />
+                      )
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{real.none}</p>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="min-w-0 border-border/60 shadow-card">
+                  <CardHeader>
+                    <CardTitle className="font-serif text-lg">Most viewed</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {real.top.length ? (
+                      <ul className="space-y-2">
+                        {real.top.map((p) => {
+                          const lines = (
+                            <>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-foreground">{p.text.split("\n").find((l) => l.trim()) || "A post"}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {[platformName(p.platform), p.publishedAt && new Date(p.publishedAt).toLocaleDateString("en-SG", { day: "numeric", month: "short" })].filter(Boolean).join(", ")}
+                                </p>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <div className="font-serif text-lg font-semibold text-foreground">{countText(postViews(p))}</div>
+                                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">views</div>
+                              </div>
+                            </>
+                          );
+                          const row = "flex min-h-11 items-center gap-3 rounded-lg border border-border/60 px-3 py-2";
+                          return (
+                            <li key={p.id}>
+                              {p.url ? (
+                                <a href={p.url} target="_blank" rel="noopener noreferrer" className={`${row} transition-colors hover:border-primary/40`}>
+                                  {lines}
+                                </a>
+                              ) : (
+                                <div className={row}>{lines}</div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{real.none}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+              {table.length > 0 && (
+                <Card className="min-w-0 border-border/60 shadow-card">
+                  <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+                    <CardTitle className="font-serif text-lg">Posts</CardTitle>
+                    <Button variant="outline" size="sm" onClick={() => download(postsTableCsv(table), "content-studio-real-posts")} className="h-9 gap-1.5">
+                      <DownloadSimpleIcon className="h-3.5 w-3.5" /> Export CSV
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="max-h-[32rem] overflow-auto">
+                      <table className="w-full min-w-[40rem] text-sm">
+                        <thead className="sticky top-0 bg-card">
+                          <tr>
+                            {POST_COLUMNS.map((c) => (
+                              <th key={c} scope="col" aria-sort={c === sortBy ? (sortAsc ? "ascending" : "descending") : undefined} className={`pb-1.5 ${c === "post" ? "text-left" : "text-right"}`}>
+                                <button type="button" onClick={() => sortOn(c)}
+                                  className={`inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] hover:text-foreground ${c === sortBy ? "text-foreground" : "text-muted-foreground"}`}>
+                                  {POST_COLUMN_LABEL[c]}
+                                  {c === sortBy && (sortAsc ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />)}
+                                </button>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {table.map((p) => (
+                            <tr key={p.id} className="border-t border-border/50">
+                              <td className="py-2 pr-3">
+                                {p.url ? (
+                                  <a href={p.url} target="_blank" rel="noopener noreferrer" className="block max-w-[10rem] truncate sm:max-w-[18rem] font-medium text-foreground hover:text-primary hover:underline">
+                                    {postTitle(p)}
+                                  </a>
+                                ) : (
+                                  <span className="block max-w-[10rem] truncate sm:max-w-[18rem] font-medium text-foreground">{postTitle(p)}</span>
+                                )}
+                                <span className="block text-[11px] text-muted-foreground">{platformName(p.platform)}</span>
+                              </td>
+                              <td className="whitespace-nowrap py-2 pl-2 text-right text-muted-foreground">
+                                {p.publishedAt ? new Date(p.publishedAt).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "-"}
+                              </td>
+                              {[postViews(p), p.numbers.likes, p.numbers.comments, p.numbers.shares, p.numbers.saves].map((v, i) => (
+                                <td key={i} className="py-2 pl-2 text-right tabular-nums text-foreground">{countText(v)}</td>
+                              ))}
+                              <td className="py-2 pl-2 text-right tabular-nums text-foreground">{postRate(p) === null ? "-" : `${postRate(p)}%`}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+          {showMix && userId && (
+            <LabelMixCard userId={userId} rows={mix.rows} posts={mix.posts} unlabelled={mix.unlabelled} onLabelsChange={setLabels} />
+          )}
+
+          {userId && <WhatWins userId={userId} drafts={drafts} />}
+
+          {hasData ? (
+            <>
+
+              {/* Insights */}
+              <section className="space-y-3">
+                <h2 className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+                  What's working, what's not {allTime}
+                </h2>
+                <div className="space-y-2.5">
+                  {insights.map((insight, i) => {
+                    const style = INSIGHT_STYLE[insight.tone];
+                    const Icon = style.icon;
+                    return (
+                      <Card key={i} className={`shadow-card ${style.card}`}>
+                        <CardContent className="flex items-start gap-3 py-4">
+                          <span
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${style.icon_}`}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground">
+                              {insight.title}
+                            </p>
+                            <p className="mt-0.5 text-sm text-muted-foreground">
+                              {insight.body}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Trend */}
+              <Card className="border-border/60 shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-serif text-lg">
+                    Engagement rate over time {allTime}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TrendChart points={trendPoints} />
+                </CardContent>
+              </Card>
+
+              {/* Breakdown by dimension */}
+              <Card className="border-border/60 shadow-card">
+                <CardHeader className="space-y-2.5">
+                  <CardTitle className="flex items-center gap-2 font-serif text-lg">
+                    Engagement rate by {DIMENSION_TABS.find((t) => t.id === dimension)?.label.toLowerCase()} {allTime}
+                  </CardTitle>
+                  <div className="flex gap-1.5">
+                    {DIMENSION_TABS.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setDimension(t.id)}
+                        aria-pressed={dimension === t.id}
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                          dimension === t.id
+                            ? "border-primary/60 bg-primary/10 text-primary"
+                            : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <RankBars
+                    rows={breakdownRows}
+                    minSample={MIN_GROUP_SAMPLE}
+                    emptyLabel={
+                      dimension === "hookFormula"
+                        ? "Shows once posts written from a formula hook in Write have numbers."
+                        : undefined
+                    }
+                  />
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                {/* Length correlation */}
+                <Card className="border-border/60 shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 font-serif text-lg">
+                      <RulerIcon className="h-4 w-4 text-muted-foreground" /> Length vs
+                      engagement {allTime}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RankBars
+                      rows={lengthRows}
+                      minSample={MIN_GROUP_SAMPLE}
+                      emptyLabel="Add impressions on a few posted posts to see this."
+                    />
+                  </CardContent>
+                </Card>
+
+                {tagRows.length > 0 && (
+                  <Card className="border-border/60 shadow-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 font-serif text-lg">
+                        <HashIcon className="h-4 w-4 text-muted-foreground" /> Hashtags {allTime}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <RankBars rows={tagRows} minSample={MIN_GROUP_SAMPLE} />
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {placedAll >= 3 && (
+                <Card className="border-border/60 shadow-card">
+                  <CardHeader className="space-y-2.5">
+                    <CardTitle className="flex items-center gap-1.5 font-serif text-lg">
+                      <CalendarDotsIcon className="mr-0.5 h-4 w-4 text-muted-foreground" /> Best time to post
+                      <InfoTip label="About best time to post">From the scheduled time, or else when you marked it posted.</InfoTip>
+                      {allTime && <span className="ml-1.5 flex">{allTime}</span>}
+                    </CardTitle>
+                    {timePlatforms.length > 1 && (
+                      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Best time for">
+                        {[null, ...timePlatforms].map((k) => (
+                          <button key={k ?? "all"} type="button" onClick={() => setTimePlatform(k)} aria-pressed={timePlatform === k}
+                            className={`h-9 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:h-11 ${timePlatform === k ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
+                            {k ? PLATFORM_LABEL[k] : "All platforms"}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {timePlatform && !timePool.own && (
+                      <p className="text-xs text-muted-foreground">
+                        Fewer than {MIN_PLATFORM_POSTS} {PLATFORM_LABEL[timePlatform]} posts with numbers, so this shows all platforms.
+                      </p>
+                    )}
+                    {timeGrid.hasTimes ? (
+                      <>
+                        <div className="hidden md:block">
+                          <TimeHeatmap rows={timeGrid.hours} columns={HOUR_HEADS} columnNames={HOUR_NAMES} summary={bestTime} />
+                        </div>
+                        <div className="md:hidden">
+                          <TimeHeatmap rows={timeGrid.dayparts} columns={DAYPART_NAMES} columnNames={DAYPART_NAMES.map((n) => n.toLowerCase())} showValues summary={bestTime} />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs text-muted-foreground">
+                          {timeGrid.timed ? `Only ${timeGrid.timed} of ${timeGrid.placed}` : `None of your ${timeGrid.placed}`} posts have a posting time, so this shows days only.
+                        </p>
+                        <TimeHeatmap rows={timeGrid.days.map((c) => [c])} columns={[""]} showValues summary={bestTime} />
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Top posts */}
+              <section className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="mr-auto font-serif text-lg font-semibold text-foreground">
+                    Top posts
+                  </h2>
+                  <select value={rankBy} onChange={(e) => setRankBy(e.target.value as RankMetric)} aria-label="Rank top posts by"
+                    className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                    <option value="engagementTotal">By engagements</option>
+                    <option value="engagementRate">By engagement rate</option>
+                    <option value="impressions">By impressions</option>
+                    <option value="reactions">By reactions</option>
+                    <option value="comments">By comments</option>
+                    <option value="shares">By shares</option>
+                    <option value="reachMultiple">By reach past followers</option>
+                    <option value="commentRatio">By comments per like</option>
+                  </select>
+                  <Button variant="outline" size="sm" onClick={exportCsv} className="h-9 gap-1.5">
+                    <DownloadSimpleIcon className="h-3.5 w-3.5" /> Export CSV
+                  </Button>
+                </div>
+                {leoOn && <WinnerCard userId={userId} drafts={drafts} />}
+                {graded && gradeAt !== graded.id && !ranked.some((d) => d.id === graded.id) && gradePanel(graded, true)}
+                <div className="space-y-2">
+                  {ranked.length === 0 && (
+                    <p className="rounded-xl border border-dashed border-border/70 p-4 text-center text-sm text-muted-foreground">
+                      {rankBy === "reachMultiple" && !followerPlatforms.some((p) => followers[p])
+                        ? <>Add your follower count under <NumbersLink /> to see reach.</>
+                        : `No posts with ${rankBy === "commentRatio" ? "likes" : "numbers"} ${period ? `in the last ${period} days` : "yet"}.`}
+                    </p>
+                  )}
+                  {ranked.map((d) => {
+                    const text = (
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {d.hook || d.draft.slice(0, 60)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {[
+                            PLATFORM_LABEL[d.platform] ?? d.platform,
+                            d.impressions ? `${d.impressions.toLocaleString()} impressions` : null,
+                            d.impressions && rankBy !== "engagementRate" ? `${d.engagementRate}% engagement` : null,
+                            rankBy !== "reachMultiple" && reachMultiple(d, followers) !== null ? `${reachMultiple(d, followers)}x followers` : null,
+                            rankBy !== "commentRatio" && commentRatio(d) !== null ? `${commentRatio(d)} comments per like` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      </div>
+                    );
+                    const number = (
+                      <div className="shrink-0 text-right">
+                        <div className="font-serif text-lg font-semibold text-foreground">
+                          {rankValue(d, rankBy, followers)}
+                        </div>
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          {RANK_UNIT[rankBy]}
+                        </div>
+                      </div>
+                    );
+                    const to = `/generate?draft=${encodeURIComponent(d.id)}`;
+                    if (!leoOn)
+                      return (
+                        <Link
+                          key={d.id}
+                          to={to}
+                          className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card transition-colors hover:border-primary/40"
+                        >
+                          {text}
+                          {number}
+                        </Link>
+                      );
+                    // Leo: the link stretches over the whole row, and the grade chip and Remix sit on top of it as their own
+                    // tab stops, left of the number (under the text on a phone)
+                    const title = d.hook || d.draft.slice(0, 60);
+                    return (
+                      <Fragment key={d.id}>
+                        <div className="relative flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card transition-colors hover:border-primary/40 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring">
+                          <Link to={to} className="flex min-w-0 flex-1 outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']">
+                            {text}
+                          </Link>
+                          <div className="relative z-10 order-last flex basis-full items-center gap-2 sm:order-none sm:basis-auto">
+                            <GradeChip grade={grades!.get(d.id)!} open={gradeHere(d.id, false)} title={title} onToggle={() => toggleGrade(d.id, false)} />
+                            <RemixButton source={fromDraft(d)} label={title}>
+                              {null}
+                            </RemixButton>
+                          </div>
+                          {number}
+                        </div>
+                        {graded?.id === d.id && gradeAt !== d.id && gradePanel(d, false)}
+                      </Fragment>
+                    );
+                  })}
+                </div>
+              </section>
+            </>
+          ) : (
+            <Card className="border-border/60 shadow-card">
+              <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <ChartBarIcon className="h-5 w-5" />
+                </span>
+                <p className="max-w-sm text-sm text-muted-foreground">
+                  {postedCount > 0
+                    ? <>Fill in a posted post's numbers under <NumbersLink /> to see what's working.</>
+                    : "Once you publish and mark posts as posted, add their real numbers to track what lands."}
+                </p>
+                {postedCount === 0 && (
+                  // quiet: the account audit above holds the page's one filled button
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link to="/drafts">
+                      Go to All posts <ArrowRightIcon className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+    </>
+  );
   return (
     <div className="space-y-6">
       <header>
@@ -792,696 +1494,7 @@ export default function AnalyticsPage() {
       {/* an adviser's page opens on the recruitment tracker (shown once a recruit kit exists); any other brand opens on its own posts and finds both below */}
       {adviser && <RecruitNumbers />}
 
-      {userId && <AccountAudit accounts={accounts} profession={professionFor(userId)} onSaveAccount={saveAccount} zernioFollowers={zernioFollowers} />}
-
-      {/* A new sign-in is asked for a handle once, above: the audit saves it to Your accounts. The other two boxes
-          that take a handle stay folded until there is one (never unmounted, so nothing typed in them is lost). */}
-      {adviser && (
-        <details open={!fresh} className="group">
-          <summary className={fresh ? FOLD : "hidden"}>
-            <CaretRightIcon className="h-4 w-4 transition-transform group-open:rotate-90" /> Look up another creator
-          </summary>
-          <CreatorLookup />
-        </details>
-      )}
-
-      <details open={!fresh} className="group">
-      <summary className={fresh ? FOLD : "hidden"}>
-        <CaretRightIcon className="h-4 w-4 transition-transform group-open:rotate-90" /> Add LinkedIn or Facebook by hand
-      </summary>
-      {/* Your accounts — register a handle per platform. */}
-      <Card className="border-border/60 shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between gap-2 font-serif text-lg">
-            <span className="flex items-center gap-2">
-              <PlugIcon className="h-4 w-4 text-primary" /> Your accounts
-            </span>
-            <span className="text-xs font-normal text-muted-foreground">
-              {connectedCount(accounts)}/{SOCIAL_PLATFORMS.length} connected
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Instagram and TikTok are audited automatically above. LinkedIn and
-            Facebook don't allow that, so add those numbers by hand below.
-          </p>
-          <div className="space-y-2">
-            {SOCIAL_PLATFORMS.map((p) => {
-              const Icon = ACCOUNT_ICON[p.key];
-              const acct = accounts[p.key];
-              const url = acct ? accountUrl(p.key, acct.handle) : null;
-              return (
-                <div
-                  key={p.key}
-                  className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/20 p-2"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground shadow-sm">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-medium text-foreground">
-                        {p.label}
-                      </p>
-                      {acct && (
-                        <span className="inline-flex items-center gap-0.5 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-success">
-                          <CheckIcon className="h-2.5 w-2.5" /> Connected
-                        </span>
-                      )}
-                    </div>
-                    <input
-                      // Remount when the audit section adds or removes a handle.
-                      key={acct?.handle ?? ""}
-                      defaultValue={acct?.handle ?? ""}
-                      placeholder={p.placeholder}
-                      onBlur={(e) => saveAccount(p.key, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
-                      }}
-                      aria-label={`Your ${p.label} handle`}
-                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground [@media(pointer:coarse)]:min-h-11"
-                    />
-                  </div>
-                  {url && (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`Open ${p.label} profile`}
-                      className="shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-primary [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
-                    >
-                      <ArrowSquareOutIcon className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-      </details>
-
-      {userId && socialConnectShown() && (
-        leoOn ? (
-          <div id="real-numbers" className="scroll-mt-20">
-            <RealNumbers userId={userId} audited={auditedHandles(accounts)} onChange={bumpMetrics} onFollowers={setZernioFollowers} />
-          </div>
-        ) : (
-          <RealNumbers userId={userId} audited={auditedHandles(accounts)} onChange={bumpMetrics} onFollowers={setZernioFollowers} />
-        )
-      )}
-
-      {/* Bulk metrics entry — add real numbers for every posted post in one place */}
-      {postedDrafts.length > 0 && (
-        <Card id="add-your-numbers" className="scroll-mt-4 border-border/60 shadow-card">
-          <CardHeader>
-            <CardTitle className="font-serif text-lg">Add your numbers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Follower counts, for how far each post travelled past them. */}
-            {followerPlatforms.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-3 border-b border-border/50 pb-3">
-              {followerPlatforms.map((p) => (
-                <label key={p} className="w-36 space-y-1">
-                  <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-                    {PLATFORM_LABEL[p]} followers
-                  </span>
-                  <MetricInput
-                    value={followerEdits[p] ?? (typedFollowers[p] !== undefined ? String(typedFollowers[p]) : "")}
-                    onChange={(v) => setFollowerEdits((e) => ({ ...e, [p]: v }))}
-                    onSave={() => saveFollowers(p)}
-                    placeholder={auditFollowers[p] !== undefined ? String(auditFollowers[p]) : "0"}
-                    label={`${PLATFORM_LABEL[p]} followers`}
-                  />
-                  {typedFollowers[p] === undefined && auditFollowers[p] !== undefined && (
-                    <span className="block text-[10px] text-muted-foreground">From your account audit</span>
-                  )}
-                </label>
-              ))}
-            </div>
-            )}
-            {/* One row per post: a table from sm up, stacked on phones (title, then the four numbers). */}
-            <div className="hidden grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] gap-x-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
-              <span>Post</span>
-              {METRIC_FIELDS.map(([f, label]) => (
-                <span key={f}>{label}</span>
-              ))}
-            </div>
-            {postedDrafts.map((d) => {
-              // pulled on Your real numbers (its Zernio post's, else a linked live post's): shown in place of the typed ones, which stay stored
-              const real = d.zernio?.numbers ?? d.live?.numbers;
-              const shown = real ? realMetrics(real) : null;
-              return (
-              <div
-                key={d.id}
-                className="grid grid-cols-2 gap-2 border-t border-border/50 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] sm:items-center sm:py-1.5"
-              >
-                <div className="col-span-2 min-w-0 sm:col-span-1">
-                  <p className="truncate text-sm font-medium text-foreground sm:text-xs">
-                    {d.hook || d.draft.slice(0, 50) || "Untitled"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground sm:text-[10px]">
-                    {PLATFORM_LABEL[d.platform] ?? d.platform}
-                    {real && <span className="font-medium text-success">, real numbers{extraLine(real) ? `: ${extraLine(real)}` : ""}</span>}
-                    <span aria-live="polite">
-                      {savedId === d.id && (
-                        <span className="ml-2 inline-flex items-center gap-1 font-medium text-success">
-                          <CheckIcon className="h-3 w-3" /> Saved
-                        </span>
-                      )}
-                    </span>
-                  </p>
-                </div>
-                {METRIC_FIELDS.map(([f, label]) =>
-                  shown ? (
-                    <div key={f} className="space-y-1 sm:space-y-0">
-                      <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">{label}</span>
-                      <span className="flex h-9 items-center justify-end rounded-md bg-muted/40 px-2 text-xs tabular-nums text-foreground sm:h-8">
-                        {shown[f].toLocaleString()}
-                      </span>
-                    </div>
-                  ) : (
-                  <label key={f} className="space-y-1 sm:space-y-0">
-                    <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">
-                      {label}
-                    </span>
-                    <MetricInput
-                      value={editValue(d, f)}
-                      onChange={(v) => setEdit(d.id, f, v)}
-                      onSave={() => saveRow(d.id)}
-                      placeholder="0"
-                      label={`${f} for ${d.hook || "this post"}`}
-                    />
-                  </label>
-                  ),
-                )}
-              </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {(hasData || showMix || !!real) && (
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
-            {([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
-              <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
-                className={`h-9 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <CopyLinkButton label="Copy link to this view" />
-        </div>
-      )}
-      {hasData && (
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat
-            icon={ChartBarIcon}
-            value={String(cmp ? cmp.current.posts : tracked.length)}
-            label="Posts tracked"
-            tint="bg-muted text-foreground"
-            delta={cmp?.change.posts}
-          />
-          <Stat
-            icon={EyeIcon}
-            value={(cmp ? cmp.current.impressions : totals.totalImpressions).toLocaleString()}
-            label="Impressions tracked"
-            tint="bg-primary/10 text-primary"
-            delta={cmp?.change.impressions}
-          />
-          <Stat
-            icon={HeartIcon}
-            value={(cmp ? cmp.current.engagements : totals.totalEngagement).toLocaleString()}
-            label="Total engagement"
-            tint="bg-brand/10 text-brand"
-            delta={cmp?.change.engagements}
-          />
-          <Stat
-            icon={TrendUpIcon}
-            value={`${cmp ? cmp.current.rate : totals.avgEngagementRate}%`}
-            label="Avg engagement rate"
-            tint="bg-success/10 text-success"
-            delta={cmp?.change.rate}
-          />
-        </section>
-      )}
-      {real && (
-        <>
-          {real.accounts.length > 0 && (
-            <Card className="border-border/60 shadow-card">
-              <CardHeader>
-                <CardTitle className="font-serif text-lg">By account</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* a table from sm up; on phones the account, then its four numbers */}
-                <div className="hidden grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] gap-x-2 pb-1.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
-                  <span className="text-left">Account</span>
-                  <span>Followers</span>
-                  <span>Posts</span>
-                  <span>Views</span>
-                  <span>Eng. rate</span>
-                </div>
-                {real.accounts.map((a) => (
-                  <div key={a.id} className="grid grid-cols-4 gap-2 border-t border-border/50 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] sm:items-center sm:py-2">
-                    <div className="col-span-4 min-w-0 sm:col-span-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {platformName(a.platform)}
-                        {a.username ? `: ${a.username}` : ""}
-                      </p>
-                      {needsReconnect(a) && (
-                        <Link to={`/accounts#${a.platform}`} className="inline-flex items-center text-xs font-medium text-destructive hover:underline [@media(pointer:coarse)]:min-h-11">
-                          Needs reconnecting
-                        </Link>
-                      )}
-                    </div>
-                    {(
-                      [
-                        ["Followers", a.followers === null ? "-" : countText(a.followers)],
-                        ["Posts", countText(a.posts)],
-                        ["Views", countText(a.views)],
-                        ["Eng. rate", a.rate === null ? "-" : `${a.rate}%`],
-                      ] as const
-                    ).map(([label, value]) => (
-                      <div key={label} className="min-w-0 sm:text-right">
-                        <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">{label}</span>
-                        <span className="text-sm tabular-nums text-foreground">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="min-w-0 border-border/60 shadow-card">
-              <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-                <CardTitle className="font-serif text-lg">{viewsParam === "total" ? "Running total of views" : "Views by day posted"}</CardTitle>
-                <div className="flex gap-1.5" role="group" aria-label="Views">
-                  {([["day", "By day"], ["total", "Running total"]] as const).map(([v, label]) => (
-                    <button key={v} type="button" onClick={() => setViewsParam(v)} aria-pressed={viewsParam === v}
-                      className={`h-8 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${viewsParam === v ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {real.viewed ? (
-                  viewsParam === "total" ? (
-                    <TrendChart points={real.running} dots={false} format={countText} measure="views so far" title="Views added up by the day posts went out" width={400} height={160} />
-                  ) : (
-                    <TrendChart points={real.points} dots={false} format={countText} measure="views" title="Views by the day posts went out" width={400} height={160} />
-                  )
-                ) : (
-                  <p className="text-sm text-muted-foreground">{real.none}</p>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="min-w-0 border-border/60 shadow-card">
-              <CardHeader>
-                <CardTitle className="font-serif text-lg">Most viewed</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {real.top.length ? (
-                  <ul className="space-y-2">
-                    {real.top.map((p) => {
-                      const lines = (
-                        <>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-foreground">{p.text.split("\n").find((l) => l.trim()) || "A post"}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {[platformName(p.platform), p.publishedAt && new Date(p.publishedAt).toLocaleDateString("en-SG", { day: "numeric", month: "short" })].filter(Boolean).join(", ")}
-                            </p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <div className="font-serif text-lg font-semibold text-foreground">{countText(postViews(p))}</div>
-                            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">views</div>
-                          </div>
-                        </>
-                      );
-                      const row = "flex min-h-11 items-center gap-3 rounded-lg border border-border/60 px-3 py-2";
-                      return (
-                        <li key={p.id}>
-                          {p.url ? (
-                            <a href={p.url} target="_blank" rel="noopener noreferrer" className={`${row} transition-colors hover:border-primary/40`}>
-                              {lines}
-                            </a>
-                          ) : (
-                            <div className={row}>{lines}</div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">{real.none}</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          {table.length > 0 && (
-            <Card className="min-w-0 border-border/60 shadow-card">
-              <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-                <CardTitle className="font-serif text-lg">Posts</CardTitle>
-                <Button variant="outline" size="sm" onClick={() => download(postsTableCsv(table), "content-studio-real-posts")} className="h-9 gap-1.5">
-                  <DownloadSimpleIcon className="h-3.5 w-3.5" /> Export CSV
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="max-h-[32rem] overflow-auto">
-                  <table className="w-full min-w-[40rem] text-sm">
-                    <thead className="sticky top-0 bg-card">
-                      <tr>
-                        {POST_COLUMNS.map((c) => (
-                          <th key={c} scope="col" aria-sort={c === sortBy ? (sortAsc ? "ascending" : "descending") : undefined} className={`pb-1.5 ${c === "post" ? "text-left" : "text-right"}`}>
-                            <button type="button" onClick={() => sortOn(c)}
-                              className={`inline-flex min-h-9 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] hover:text-foreground ${c === sortBy ? "text-foreground" : "text-muted-foreground"}`}>
-                              {POST_COLUMN_LABEL[c]}
-                              {c === sortBy && (sortAsc ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />)}
-                            </button>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {table.map((p) => (
-                        <tr key={p.id} className="border-t border-border/50">
-                          <td className="py-2 pr-3">
-                            {p.url ? (
-                              <a href={p.url} target="_blank" rel="noopener noreferrer" className="block max-w-[10rem] truncate sm:max-w-[18rem] font-medium text-foreground hover:text-primary hover:underline">
-                                {postTitle(p)}
-                              </a>
-                            ) : (
-                              <span className="block max-w-[10rem] truncate sm:max-w-[18rem] font-medium text-foreground">{postTitle(p)}</span>
-                            )}
-                            <span className="block text-[11px] text-muted-foreground">{platformName(p.platform)}</span>
-                          </td>
-                          <td className="whitespace-nowrap py-2 pl-2 text-right text-muted-foreground">
-                            {p.publishedAt ? new Date(p.publishedAt).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" }) : "-"}
-                          </td>
-                          {[postViews(p), p.numbers.likes, p.numbers.comments, p.numbers.shares, p.numbers.saves].map((v, i) => (
-                            <td key={i} className="py-2 pl-2 text-right tabular-nums text-foreground">{countText(v)}</td>
-                          ))}
-                          <td className="py-2 pl-2 text-right tabular-nums text-foreground">{postRate(p) === null ? "-" : `${postRate(p)}%`}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
-      {showMix && userId && (
-        <LabelMixCard userId={userId} rows={mix.rows} posts={mix.posts} unlabelled={mix.unlabelled} onLabelsChange={setLabels} />
-      )}
-
-      {userId && <WhatWins userId={userId} drafts={drafts} />}
-
-      {hasData ? (
-        <>
-
-          {/* Insights */}
-          <section className="space-y-3">
-            <h2 className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-              What's working, what's not {allTime}
-            </h2>
-            <div className="space-y-2.5">
-              {insights.map((insight, i) => {
-                const style = INSIGHT_STYLE[insight.tone];
-                const Icon = style.icon;
-                return (
-                  <Card key={i} className={`shadow-card ${style.card}`}>
-                    <CardContent className="flex items-start gap-3 py-4">
-                      <span
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${style.icon_}`}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground">
-                          {insight.title}
-                        </p>
-                        <p className="mt-0.5 text-sm text-muted-foreground">
-                          {insight.body}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Trend */}
-          <Card className="border-border/60 shadow-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-serif text-lg">
-                Engagement rate over time {allTime}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TrendChart points={trendPoints} />
-            </CardContent>
-          </Card>
-
-          {/* Breakdown by dimension */}
-          <Card className="border-border/60 shadow-card">
-            <CardHeader className="space-y-2.5">
-              <CardTitle className="flex items-center gap-2 font-serif text-lg">
-                Engagement rate by {DIMENSION_TABS.find((t) => t.id === dimension)?.label.toLowerCase()} {allTime}
-              </CardTitle>
-              <div className="flex gap-1.5">
-                {DIMENSION_TABS.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setDimension(t.id)}
-                    aria-pressed={dimension === t.id}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                      dimension === t.id
-                        ? "border-primary/60 bg-primary/10 text-primary"
-                        : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <RankBars
-                rows={breakdownRows}
-                minSample={MIN_GROUP_SAMPLE}
-                emptyLabel={
-                  dimension === "hookFormula"
-                    ? "Shows once posts written from a formula hook in Write have numbers."
-                    : undefined
-                }
-              />
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            {/* Length correlation */}
-            <Card className="border-border/60 shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-serif text-lg">
-                  <RulerIcon className="h-4 w-4 text-muted-foreground" /> Length vs
-                  engagement {allTime}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RankBars
-                  rows={lengthRows}
-                  minSample={MIN_GROUP_SAMPLE}
-                  emptyLabel="Add impressions on a few posted posts to see this."
-                />
-              </CardContent>
-            </Card>
-
-            {tagRows.length > 0 && (
-              <Card className="border-border/60 shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 font-serif text-lg">
-                    <HashIcon className="h-4 w-4 text-muted-foreground" /> Hashtags {allTime}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <RankBars rows={tagRows} minSample={MIN_GROUP_SAMPLE} />
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {placedAll >= 3 && (
-            <Card className="border-border/60 shadow-card">
-              <CardHeader className="space-y-2.5">
-                <CardTitle className="flex items-center gap-1.5 font-serif text-lg">
-                  <CalendarDotsIcon className="mr-0.5 h-4 w-4 text-muted-foreground" /> Best time to post
-                  <InfoTip label="About best time to post">From the scheduled time, or else when you marked it posted.</InfoTip>
-                  {allTime && <span className="ml-1.5 flex">{allTime}</span>}
-                </CardTitle>
-                {timePlatforms.length > 1 && (
-                  <div className="flex flex-wrap gap-1.5" role="group" aria-label="Best time for">
-                    {[null, ...timePlatforms].map((k) => (
-                      <button key={k ?? "all"} type="button" onClick={() => setTimePlatform(k)} aria-pressed={timePlatform === k}
-                        className={`h-9 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:h-11 ${timePlatform === k ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
-                        {k ? PLATFORM_LABEL[k] : "All platforms"}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {timePlatform && !timePool.own && (
-                  <p className="text-xs text-muted-foreground">
-                    Fewer than {MIN_PLATFORM_POSTS} {PLATFORM_LABEL[timePlatform]} posts with numbers, so this shows all platforms.
-                  </p>
-                )}
-                {timeGrid.hasTimes ? (
-                  <>
-                    <div className="hidden md:block">
-                      <TimeHeatmap rows={timeGrid.hours} columns={HOUR_HEADS} columnNames={HOUR_NAMES} summary={bestTime} />
-                    </div>
-                    <div className="md:hidden">
-                      <TimeHeatmap rows={timeGrid.dayparts} columns={DAYPART_NAMES} columnNames={DAYPART_NAMES.map((n) => n.toLowerCase())} showValues summary={bestTime} />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs text-muted-foreground">
-                      {timeGrid.timed ? `Only ${timeGrid.timed} of ${timeGrid.placed}` : `None of your ${timeGrid.placed}`} posts have a posting time, so this shows days only.
-                    </p>
-                    <TimeHeatmap rows={timeGrid.days.map((c) => [c])} columns={[""]} showValues summary={bestTime} />
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Top posts */}
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="mr-auto font-serif text-lg font-semibold text-foreground">
-                Top posts
-              </h2>
-              <select value={rankBy} onChange={(e) => setRankBy(e.target.value as RankMetric)} aria-label="Rank top posts by"
-                className="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                <option value="engagementTotal">By engagements</option>
-                <option value="engagementRate">By engagement rate</option>
-                <option value="impressions">By impressions</option>
-                <option value="reactions">By reactions</option>
-                <option value="comments">By comments</option>
-                <option value="shares">By shares</option>
-                <option value="reachMultiple">By reach past followers</option>
-                <option value="commentRatio">By comments per like</option>
-              </select>
-              <Button variant="outline" size="sm" onClick={exportCsv} className="h-9 gap-1.5">
-                <DownloadSimpleIcon className="h-3.5 w-3.5" /> Export CSV
-              </Button>
-            </div>
-            {leoOn && <WinnerCard userId={userId} drafts={drafts} />}
-            {graded && gradeAt !== graded.id && !ranked.some((d) => d.id === graded.id) && gradePanel(graded, true)}
-            <div className="space-y-2">
-              {ranked.length === 0 && (
-                <p className="rounded-xl border border-dashed border-border/70 p-4 text-center text-sm text-muted-foreground">
-                  {rankBy === "reachMultiple" && !followerPlatforms.some((p) => followers[p])
-                    ? <>Add your follower count under <NumbersLink /> to see reach.</>
-                    : `No posts with ${rankBy === "commentRatio" ? "likes" : "numbers"} ${period ? `in the last ${period} days` : "yet"}.`}
-                </p>
-              )}
-              {ranked.map((d) => {
-                const text = (
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {d.hook || d.draft.slice(0, 60)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {[
-                        PLATFORM_LABEL[d.platform] ?? d.platform,
-                        d.impressions ? `${d.impressions.toLocaleString()} impressions` : null,
-                        d.impressions && rankBy !== "engagementRate" ? `${d.engagementRate}% engagement` : null,
-                        rankBy !== "reachMultiple" && reachMultiple(d, followers) !== null ? `${reachMultiple(d, followers)}x followers` : null,
-                        rankBy !== "commentRatio" && commentRatio(d) !== null ? `${commentRatio(d)} comments per like` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-                );
-                const number = (
-                  <div className="shrink-0 text-right">
-                    <div className="font-serif text-lg font-semibold text-foreground">
-                      {rankValue(d, rankBy, followers)}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      {RANK_UNIT[rankBy]}
-                    </div>
-                  </div>
-                );
-                const to = `/generate?draft=${encodeURIComponent(d.id)}`;
-                if (!leoOn)
-                  return (
-                    <Link
-                      key={d.id}
-                      to={to}
-                      className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card transition-colors hover:border-primary/40"
-                    >
-                      {text}
-                      {number}
-                    </Link>
-                  );
-                // Leo: the link stretches over the whole row, and the grade chip and Remix sit on top of it as their own
-                // tab stops, left of the number (under the text on a phone)
-                const title = d.hook || d.draft.slice(0, 60);
-                return (
-                  <Fragment key={d.id}>
-                    <div className="relative flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card transition-colors hover:border-primary/40 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring">
-                      <Link to={to} className="flex min-w-0 flex-1 outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']">
-                        {text}
-                      </Link>
-                      <div className="relative z-10 order-last flex basis-full items-center gap-2 sm:order-none sm:basis-auto">
-                        <GradeChip grade={grades!.get(d.id)!} open={gradeHere(d.id, false)} title={title} onToggle={() => toggleGrade(d.id, false)} />
-                        <RemixButton source={fromDraft(d)} label={title}>
-                          {null}
-                        </RemixButton>
-                      </div>
-                      {number}
-                    </div>
-                    {graded?.id === d.id && gradeAt !== d.id && gradePanel(d, false)}
-                  </Fragment>
-                );
-              })}
-            </div>
-          </section>
-        </>
-      ) : (
-        <Card className="border-border/60 shadow-card">
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <ChartBarIcon className="h-5 w-5" />
-            </span>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              {postedCount > 0
-                ? <>Fill in a posted post's numbers under <NumbersLink /> to see what's working.</>
-                : "Once you publish and mark posts as posted, add their real numbers to track what lands."}
-            </p>
-            {postedCount === 0 && (
-              // quiet: the account audit above holds the page's one filled button
-              <Button asChild size="sm" variant="outline" className="gap-1.5">
-                <Link to="/drafts">
-                  Go to All posts <ArrowRightIcon className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {resultsFirst ? <>{results}{setup}</> : <>{setup}{results}</>}
 
       {userId && <ScoreCheck userId={userId} drafts={drafts} />}
       {!adviser && <RecruitNumbers />}
