@@ -42,6 +42,7 @@ Zernio accepts any account, post or automation id on the team, whichever profile
 - M6, orphans keep billing. Removing a brand profile in the app disconnects its accounts through `social` first; if that fails (any error, "Not enabled." too), the brand stays. The removal goes through for an adviser taken off `SOCIAL_CONNECT_USERS`; with `ZERNIO_API_KEY` unset it is refused (503) while the brand has a row, and a brand with no row is let go. A weekly sweep (`social-sweep`, below) clears any `cs_<uuid>_<pid>` profile with no row (a deleted user).
 - M7, the key. Mint it with `disabledResourceGroups` covering every group the function does not call (ads, phone numbers, WhatsApp, commerce, blogs and the rest), which also stops it managing keys. Server platform allowlist: instagram, facebook, tiktok, linkedin, youtube, threads. Never X, which bills per call. `SOCIAL_CONNECT_USERS='*'` only after the daily recount sweep ships.
 - Automation DMs are free up to 10,000 sent a month, then metered.
+- Postmosis billing (`docs/postmosis-billing.md`). An account whose `cs_subscriptions` row gives access may connect without being in `SOCIAL_CONNECT_USERS`, at the same customer cap of 3 and under the same team cap. An account whose row has lapsed is treated as off, listed or not, except that removing a brand still disconnects its accounts. An account with no row is judged by `SOCIAL_CONNECT_USERS` alone, as before. A lapsed customer's connected accounts keep billing at Zernio until they are removed.
 
 ## Secrets (edge, academy project)
 

@@ -102,6 +102,13 @@
   three columns from lg (the shell gives it the whole panel). No address ever changes when a page moves: when adding
   a page, add it to a tab there, give it a one or two word `label` a stranger understands and its old names in `was`
   (Jump to searches them), and keep `src/lib/nav.test.ts` green; do not add a section or a sixth tab.
+- Postmosis billing (`docs/postmosis-billing.md`): `postmosis-start` and `postmosis-webhook` are deployed WITHOUT
+  JWT verification and hold the service key, `postmosis-portal` with it. All three are off until
+  `POSTMOSIS_CHECKOUT_ON` and the three Stripe secrets are set. Paying never signs anyone in, and a checkout is
+  attached to an existing account only when that subscription made the account or its Stripe customer is already
+  on the account's row; anything else is held in `cs_held_checkouts`. An account with no `cs_subscriptions` row is
+  never gated. The access rule is one file, `supabase/functions/_shared/subscription.ts`, imported by the app too;
+  the server refuses a lapsed customer in `social` and in `consumeUsage` (`_shared/usageCaps.ts`).
 - Theme: the studio is dark by default (Fastlane's look; Leo's default), Light, Dark or System (follows the device,
   live) per device from the account menu or the phone More sheet (`src/lib/theme.ts`, `cs-theme`). `index.html`
   darkens before first paint; public pages (/roadmap, /auth, /review, /l, /join, /t, /phone) stay light, and `theme.test.ts` keeps index.html's list equal to
