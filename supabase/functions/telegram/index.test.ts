@@ -22,6 +22,8 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
       getUser: async (jwt: string) => ({ data: { user: jwt === "leo" ? { id: "6d80f027-3395-480c-86a1-8827d3d6cce3", email: "leo@example.com" } : jwt === "other" ? { id: "7e57c0de-0000-4000-8000-0000000000d2" } : null } }),
     },
     from: (t: string) => {
+      // the billing check before a counted use (usageCaps): these accounts have no subscription row
+      if (t === "cs_subscriptions") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) };
       h.reads.push(t);
       const mine: unknown[][] = [];
       const note = (f: unknown[]) => (h.filters.push(f), mine.push(f));

@@ -108,6 +108,11 @@ describe("the social function", () => {
       expect(await (await call(UID_B, { action: "status" })).json(), lapsed.status).toEqual({ enabled: false });
       expect((await call(UID_B, { action: "connect", profileId: "me", platform: "instagram" })).status, lapsed.status).toBe(404);
     }
+    // a lapsed subscription is off even for someone on the list, but they can still remove a brand (its accounts go)
+    db.subs.push({ user_id: UID, status: "canceled" });
+    expect(await (await call(UID, { action: "status" })).json()).toEqual({ enabled: false });
+    expect((await call(UID, { action: "status", profileId: "me" })).status).toBe(404);
+    expect((await call(UID, { action: "disconnect", profileId: "me", all: true })).status).toBe(200);
     // someone else's subscription opens nothing for this caller, and a failed read lets nobody in
     db.subs.length = 0;
     db.subs.push({ user_id: UID, status: "active" });

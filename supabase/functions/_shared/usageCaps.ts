@@ -2,6 +2,8 @@
 // 009). Call consumeUsage before the paid call; it counts the use and says
 // whether it's allowed. No Deno or npm imports, so vitest can test it.
 
+import { lapsed, readSubscription } from "./subscription.ts";
+
 export const DAILY_LIMITS = {
   "reel-clone": 20,
   // Another concept of a cloned reel, written from the cached post (clone-reel).
@@ -274,9 +276,21 @@ export interface RpcClient {
 
 export type UsageResult =
   | { allowed: true; used: number; limit: number }
-  | { allowed: false; limit: number; reason: "limit" | "unavailable" };
+  | { allowed: false; limit: number; reason: "limit" | "unavailable" | "lapsed" };
 
 export async function consumeUsage(
+  admin: RpcClient,
+  userId: string,
+  feature: UsageFeature,
+): Promise<UsageResult> {
+  // Postmosis billing (docs/postmosis-billing.md): the app's paywall is only a screen, so a customer whose
+  // subscription has lapsed is refused here, before a use is counted. No row, or a failed read, refuses nobody.
+  if (lapsed(await readSubscription(admin, userId), Date.now())) return { allowed: false, limit: DAILY_LIMITS[feature], reason: "lapsed" };
+  return countUsage(admin, userId, feature);
+}
+
+/** consumeUsage without the billing check, for the one thing a lapsed customer must still do: remove a brand's accounts. */
+export async function countUsage(
   admin: RpcClient,
   userId: string,
   feature: UsageFeature,
@@ -342,6 +356,9 @@ export function usageRefusal(result: Extract<UsageResult, { allowed: false }>): 
   status: number;
   body: { error: string; code: string };
 } {
+  if (result.reason === "lapsed") {
+    return { status: 402, body: { code: "subscription_lapsed", error: "Your subscription isn't active. Open the studio to sort out billing, then try again." } };
+  }
   return result.reason === "limit"
     ? {
         status: 429,

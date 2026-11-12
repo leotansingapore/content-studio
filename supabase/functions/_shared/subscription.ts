@@ -42,3 +42,20 @@ export function daysLeft(iso: string | null | undefined, now: number): number | 
   const t = iso ? Date.parse(iso) : NaN;
   return Number.isFinite(t) ? Math.max(0, Math.ceil((t - now) / DAY)) : null;
 }
+
+/**
+ * The server's read of one account's row, for functions holding the service key. Null for no row AND for any
+ * failure (the table not there yet, a client without from()): an account is refused only on a row that says so.
+ */
+export async function readSubscription(admin: unknown, userId: string): Promise<SubRow | null> {
+  try {
+    // deno-lint-ignore no-explicit-any
+    const { data } = await (admin as any).from("cs_subscriptions").select("status, past_due_since").eq("user_id", userId).maybeSingle();
+    return data && typeof data.status === "string" ? (data as SubRow) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A customer whose subscription has stopped giving access. Never true for an account with no row. */
+export const lapsed = (row: SubRow | null, now: number): boolean => !!row && !hasAccess(row, now);

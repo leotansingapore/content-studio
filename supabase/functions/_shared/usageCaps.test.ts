@@ -41,6 +41,31 @@ describe("consumeUsage", () => {
   });
 });
 
+describe("a lapsed Postmosis subscription", () => {
+  // a service client that also answers the cs_subscriptions read
+  const withRow = (row: unknown, fails = false) => {
+    const admin = client({ data: 1, error: null }) as RpcClient & { calls: unknown[]; from: unknown };
+    admin.from = () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => (fails ? Promise.reject(new Error("down")) : { data: row, error: row === undefined ? { message: "no table" } : null }) }) }) });
+    return admin;
+  };
+
+  it("is refused before a use is counted, in words that say why", async () => {
+    for (const row of [{ status: "canceled" }, { status: "unpaid" }, { status: "past_due", past_due_since: "2026-01-01T00:00:00Z" }]) {
+      const admin = withRow(row);
+      const result = await consumeUsage(admin, "u1", "carousel");
+      expect(result, row.status).toMatchObject({ allowed: false, reason: "lapsed" });
+      expect(admin.calls).toEqual([]);
+      expect(usageRefusal(result as Extract<typeof result, { allowed: false }>)).toMatchObject({ status: 402, body: { code: "subscription_lapsed" } });
+    }
+  });
+
+  it("refuses nobody else: no row, a subscription with access, a failed read, or a client that can't read", async () => {
+    for (const admin of [withRow(null), withRow({ status: "active" }), withRow({ status: "trialing" }), withRow({ status: "comp" }), withRow(undefined), withRow(null, true), client({ data: 1, error: null })]) {
+      expect(await consumeUsage(admin, "u1", "carousel")).toMatchObject({ allowed: true });
+    }
+  });
+});
+
 describe("giving a use back", () => {
   // cs_ai_usage with one row at `count`; `update` answers each conditional update
   const table = (count: number, update: () => { data: unknown; error: unknown } | Error) => {

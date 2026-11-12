@@ -15,8 +15,8 @@
 //   supabase functions deploy social --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
-import { hasAccess } from "../_shared/subscription.ts";
-import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { lapsed, readSubscription } from "../_shared/subscription.ts";
+import { consumeUsage, countUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
 import { automationErrorReply, isAutomationWrite, parseAutomationRequest, runAutomation } from "./automations.ts";
 import { connect, disconnect, errorReply, isAllowed, offReply, ownerCapOf, parseRequest, removalOf, status, teamCapOf, type Caller } from "./logic.ts";
@@ -49,13 +49,12 @@ Deno.serve(async (req) => {
     return data ? json({ code: "unavailable", error: "Social accounts aren't available right now." }, 503) : json({ disconnected: 0 });
   }
   // a brand being removed takes its accounts with it even for an adviser since taken off the list
-  // A Postmosis subscriber whose subscription gives access (docs/postmosis-billing.md) may connect without being
-  // listed, at the customer cap like anyone else. Asked only when the list says no; a failed read lets nobody in.
-  const subscriber = async () => {
-    const { data } = await admin.from("cs_subscriptions").select("status, past_due_since").eq("user_id", uid).maybeSingle();
-    return !!data && hasAccess(data, Date.now());
-  };
-  if (!key || (!removing && !isAllowed(Deno.env.get("SOCIAL_CONNECT_USERS"), uid) && !(await subscriber()))) {
+  // Postmosis billing (docs/postmosis-billing.md): a subscriber whose subscription gives access may connect without
+  // being listed, at the customer cap like anyone else; one whose subscription has lapsed is off, listed or not. No
+  // row, or a failed read, changes nothing for anyone.
+  const sub = key && !removing ? await readSubscription(admin, uid) : null;
+  const allowed = !lapsed(sub, Date.now()) && (isAllowed(Deno.env.get("SOCIAL_CONNECT_USERS"), uid) || !!sub);
+  if (!key || (!removing && !allowed)) {
     const off = offReply(body);
     return json(off.body, off.status);
   }
@@ -83,7 +82,7 @@ Deno.serve(async (req) => {
   // the daily cap this action counts against
   const feature = q.action === "presign" ? "social-presign" : q.action === "schedule" || q.action === "retry" || q.action === "move" ? "social-schedule"
     : q.action === "connect" ? "social-connect" : isAutomationWrite(q.action) ? "social-automation-write" : "social-read";
-  const usage = await consumeUsage(admin, uid, feature);
+  const usage = removing ? await countUsage(admin, uid, feature) : await consumeUsage(admin, uid, feature);
   if (!usage.allowed) {
     const refusal = usageRefusal(usage);
     return json(refusal.body, refusal.status);
