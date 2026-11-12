@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { loadPositioning } from "@/lib/positioning";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { brandOverview, completeness } from "@/lib/brandOverview";
@@ -14,23 +13,17 @@ import { loadCompetitors } from "@/lib/competitors";
 import { demoVideos } from "@/lib/demoVideos";
 import { loadMedia } from "@/lib/mediaLibrary";
 import { useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
-import { useScrollToHash } from "@/lib/urlState";
+import { useScrollToHash, useUrlItem } from "@/lib/urlState";
+import { activeProfile } from "@/lib/profiles";
+import { KIT_FEEDS, cachedKit } from "@/lib/brandKitFeed";
+import { ProfileGroups } from "@/components/brand/ProfileRows";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
 import { adviserBrand } from "@/lib/profession";
 import type { ThemeOutlet } from "@/lib/theme";
 import { ThemeSwitch } from "@/pages/StudioLayout";
 import inspirationData from "@/data/inspiration.json";
 import advisorsData from "@/data/advisors.json";
-import {
-  TargetIcon,
-  LightbulbIcon,
-  UsersIcon,
-  CheckCircleIcon,
-  CaretRightIcon,
-  ArrowRightIcon,
-  BookmarkSimpleIcon,
-  PaletteIcon,
-} from "@phosphor-icons/react";
+import { TargetIcon, LightbulbIcon, UsersIcon, CheckCircleIcon, ArrowRightIcon, BookmarkSimpleIcon } from "@phosphor-icons/react";
 
 type Insp = { id: string; hook: string; topic: string };
 type Adv = { id: string; name: string; handle: string };
@@ -81,6 +74,14 @@ export default function PlaybookPage() {
   const uid = user?.id ?? null;
   useEffect(() => setSaved(loadSaved(uid)), [uid]);
   const isLeo = !!leo && !!uid;
+  // ig-kit: a profile tied to a board brand whose site publishes a kit takes its colours and logo from there (BrandPage)
+  const board = uid ? activeProfile(uid)?.boardBrand : undefined;
+  // ?edit=<row id>: the row open in place; a save redraws the rows, which read the stores each time
+  const [editing, openRow, closeRow] = useUrlItem("edit");
+  const [, redraw] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    if (editing) document.querySelector(`[data-profile-row="${CSS.escape(editing)}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [editing]);
   // /playbook#look lands on that group once the sign-in is known (docs/deep-links.md)
   useScrollToHash(!!uid);
   const groups = brandOverview({
@@ -97,12 +98,12 @@ export default function PlaybookPage() {
         competitors: loadCompetitors(uid).list,
         demos: demoVideos(uid).length,
         media: loadMedia(uid, { videos: true }).length,
+        kitLocked: !!(board && KIT_FEEDS[board] && cachedKit(board)),
       }
       : {}),
   });
   const done = completeness(groups);
   const next = done.missing[0];
-  const name = groups[0].rows[0].value;
   const savedInsp = saved.inspiration
     .map((id) => INSP.find((e) => e.id === id))
     .filter(Boolean) as Insp[];
@@ -118,85 +119,51 @@ export default function PlaybookPage() {
         </h1>
       </header>
 
-      {/* What the AI knows: one row per fact, each opening the place that edits it */}
-      {uid && <section aria-labelledby="known-title" className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <h2 id="known-title" className="font-serif text-lg font-semibold">
-              What the AI knows about {name || "your brand"}
-            </h2>
-            {next && (
-              <Button asChild size="sm" className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 [@media(pointer:coarse)]:h-11">
-                <Link to={next.to}>
-                  Next: {next.add} <ArrowRightIcon className="h-4 w-4" />
+      {/* What the AI knows, as Fastlane's Profile: a line on why it matters with how much is on file, then one card of rows
+          per group. The basics open in place (ProfileRows.tsx); the rest open their own page. */}
+      {uid && (
+        <>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-border/60 bg-card px-4 py-3 text-sm">
+            <span className="flex min-w-0 items-start gap-2.5 text-muted-foreground">
+              <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              The AI reads these before it makes anything. Change one here.
+            </span>
+            <span className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="tabular-nums text-muted-foreground" data-testid="known-count">
+                {done.missing.length ? `${done.set} of ${done.total} on file` : (
+                  <span className="inline-flex items-center gap-1 font-medium text-success">
+                    <CheckCircleIcon className="h-3.5 w-3.5" aria-hidden /> All {done.total} on file
+                  </span>
+                )}
+              </span>
+              {next && (next.edit ? (
+                <button type="button" onClick={() => openRow(next.id)} className="inline-flex items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+                  Next: {next.add} <ArrowRightIcon className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              ) : (
+                <Link to={next.to} className="inline-flex items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+                  Next: {next.add} <ArrowRightIcon className="h-3.5 w-3.5" aria-hidden />
                 </Link>
-              </Button>
-            )}
+              ))}
+            </span>
           </div>
-          <div className="flex items-center gap-3">
-            <div
-              role="progressbar"
-              aria-label="Brand facts on file"
-              aria-valuemin={0}
-              aria-valuemax={done.total}
-              aria-valuenow={done.set}
-              className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
-            >
-              <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${(done.set / Math.max(1, done.total)) * 100}%` }} />
+          <ProfileGroups groups={groups} uid={uid} openId={editing} onOpen={openRow} onClose={closeRow} onSaved={redraw} />
+        </>
+      )}
+
+      {/* Appearance (Jilian, 12 Nov): the theme switch, as Profile's last group in the same row shape */}
+      {look && (
+        <section id="appearance" aria-labelledby="appearance-title" className="scroll-mt-20 space-y-2">
+          <h2 id="appearance-title" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Appearance</h2>
+          <div className="rounded-xl border border-border/60 bg-card px-4 py-3.5 shadow-card sm:flex sm:items-start sm:gap-4">
+            <span className="block text-xs text-muted-foreground sm:w-40 sm:shrink-0 sm:pt-2 sm:text-sm">Theme</span>
+            <div className="mt-2 max-w-sm flex-1 space-y-2 sm:mt-0">
+              <ThemeSwitch theme={look.theme} onTheme={look.onTheme} />
+              <p className="text-xs text-muted-foreground">Light, Dark, or System to follow this device.</p>
             </div>
-            <p className="shrink-0 text-xs tabular-nums text-muted-foreground" data-testid="known-count">
-              {done.missing.length ? `${done.set} of ${done.total} on file` : (
-                <span className="inline-flex items-center gap-1 font-medium text-success">
-                  <CheckCircleIcon className="h-3.5 w-3.5" /> All {done.total} on file
-                </span>
-              )}
-            </p>
           </div>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {groups.map((g) => (
-            <Card key={g.id} id={g.id} className="min-w-0 scroll-mt-20 border-border/60 shadow-card">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{g.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 pb-3">
-                <ul>
-                  {g.rows.map((r) => (
-                    <li key={r.id}>
-                      <Link
-                        to={r.to}
-                        className="group flex min-h-11 items-start gap-3 rounded-md px-3 py-2 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <span className="w-28 shrink-0 pt-0.5 text-xs text-muted-foreground sm:w-36">{r.label}</span>
-                        <span className="min-w-0 flex-1 text-sm">
-                          {r.swatches?.length ? (
-                            <span className="flex flex-wrap gap-1.5 pt-0.5">
-                              {r.swatches.map((hex, k) => (
-                                <span key={k} title={hex} className="h-5 w-5 rounded-full border border-border/60" style={{ backgroundColor: hex }} />
-                              ))}
-                            </span>
-                          ) : r.chips?.length ? (
-                            <span className="flex flex-wrap gap-1.5">
-                              {r.chips.map((c) => (
-                                <span key={c} className="max-w-full truncate rounded-md border border-border/60 bg-background px-2 py-0.5 text-xs text-foreground">{c}</span>
-                              ))}
-                            </span>
-                          ) : r.value ? (
-                            <span className="line-clamp-2 break-words text-foreground">{r.value}</span>
-                          ) : (
-                            <span className="font-medium text-primary group-hover:underline">{r.add}</span>
-                          )}
-                        </span>
-                        <CaretRightIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>}
+        </section>
+      )}
 
       {/* Saved: Inspiration and Creators are an adviser brand's libraries; another brand sees only what it saved before */}
       {(adviserBrand(user?.id) || savedInsp.length + savedAdv.length > 0) && <div className="grid gap-4 md:grid-cols-2">
@@ -256,25 +223,6 @@ export default function PlaybookPage() {
         </SectionCard>
       </div>}
 
-      {look && (
-        <SectionCard icon={PaletteIcon} title="Appearance">
-          <p className="mb-3 text-sm text-muted-foreground">Light, Dark, or System to follow this device.</p>
-          <div className="max-w-sm">
-            <ThemeSwitch theme={look.theme} onTheme={look.onTheme} />
-          </div>
-        </SectionCard>
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        <Button asChild variant={next ? "outline" : "default"} className={next ? "gap-1.5" : "gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"}>
-          <Link to="/generate">
-            Write a post <ArrowRightIcon className="h-4 w-4" />
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="gap-1.5">
-          <Link to="/coach">Check my content in Coach</Link>
-        </Button>
-      </div>
     </div>
   );
 }
