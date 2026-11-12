@@ -1,7 +1,7 @@
 // The open section's tabs as one row at the top of every page (docs/nav-overhaul.md). A tab that holds several pages
 // carries a small arrow when it is open: pressing it lists them (the picker), so there is never a second row. The
 // shell renders it once, above the page. Routes stay intact (deep links, query params keep working).
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { CheckIcon, CaretDownIcon, CaretLeftIcon } from "@phosphor-icons/react";
@@ -70,10 +70,12 @@ function Picker({ tab, pages }: { tab: Tab; pages: Tab[] }) {
         <CaretDownIcon aria-hidden className={`h-4 w-4 text-muted-foreground transition-transform ${at ? "rotate-180" : ""}`} />
       </button>
       {at && createPortal(
-        <div ref={list} data-nav style={at} className="fixed z-40 w-60 rounded-xl border border-border bg-popover p-1 shadow-lg">
+        // a long list (Studio's Create holds every maker) scrolls inside itself, under its kind headings
+        <div ref={list} data-nav style={{ ...at, maxHeight: `calc(100vh - ${at.top + 16}px)` }} className="fixed z-40 w-60 overflow-y-auto overscroll-contain rounded-xl border border-border bg-popover p-1 shadow-lg">
           {pages.map((p) => (
+            <Fragment key={p.to}>
+            {p.head && <p className="px-2.5 pb-1 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground first:pt-1">{p.head}</p>}
             <Link
-              key={p.to}
               to={p.to}
               aria-current={p.active ? "page" : undefined}
               onClick={() => setAt(null)}
@@ -85,6 +87,7 @@ function Picker({ tab, pages }: { tab: Tab; pages: Tab[] }) {
               </span>
               {p.active && <CheckIcon aria-hidden className="h-4 w-4 shrink-0 text-primary" />}
             </Link>
+            </Fragment>
           ))}
         </div>,
         document.body,
