@@ -297,7 +297,8 @@ export default function SwipeFilePage() {
         ref={tabsRef}
         role="tablist"
         aria-label="Swipe file"
-        className={`flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto ${leo ? "scrollbar-none relative max-w-full overflow-x-auto" : ""}`}
+        // underline tabs, as Ideas draws them: the section's own tab row above is the only row of pills (law 16)
+        className={`flex w-full border-b border-border/60 ${leo ? "scrollbar-none relative max-w-full overflow-x-auto" : ""}`}
       >
         {tabs.map((t) => (
           <button
@@ -307,9 +308,9 @@ export default function SwipeFilePage() {
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             // Leo's six tabs: on a phone each takes its own width and the bar scrolls; the counts wait for sm, so no label wraps
-            className={`rounded-md py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 [@media(pointer:coarse)]:min-h-11 ${
-              leo ? "flex-auto shrink-0 whitespace-nowrap px-3" : "flex-1 px-4"
-            } ${tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            className={`-mb-px min-h-10 border-b-2 text-sm font-medium transition-colors sm:flex-none [@media(pointer:coarse)]:min-h-11 ${
+              leo ? "shrink-0 whitespace-nowrap px-3" : "flex-1 px-3 sm:px-4"
+            } ${tab === t.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {t.label} {t.n !== null && <span className={`text-xs text-muted-foreground ${leo ? "hidden sm:inline" : ""}`}>{t.n}</span>}
           </button>
