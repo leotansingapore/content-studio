@@ -1,6 +1,20 @@
 import { NEW_POST } from "@/lib/newPost";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { BrandSetup } from "@/components/onboarding/BrandSetup";
+import { OnboardingCanvas } from "@/components/onboarding/parts";
+import { cloudSyncPulled } from "@/lib/cloudSync";
+import { draftsRaw } from "@/lib/draftHistory";
+import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
+import { isFoldKey } from "@/lib/navFold";
+import { flowKey, keptSaved, keptStep, shouldSetUp } from "@/lib/onboardingFlow";
+import { loadPositioning } from "@/lib/positioning";
+import { activeProfileId, DEFAULT_PROFILE_ID, loadProfiles } from "@/lib/profiles";
+import { clearConnectReturn, readRedirect, storedUserId } from "@/lib/socialConnect";
+import { checkoutSite } from "@/lib/subscription";
+import { withParam } from "@/lib/urlState";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { Button } from "@/components/ui/button";
 import ProfessionField from "@/components/ProfessionField";
 import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
@@ -29,7 +43,101 @@ export async function onboardThenGo(
   navigate(to);
 }
 
+function setUpFor(): { uid: string; kept: string | null } | null {
+  const uid = storedUserId();
+  if (!uid) return null;
+  try {
+    const kept = localStorage.getItem(flowKey(uid));
+    const drafts: unknown = JSON.parse(draftsRaw(uid) ?? "[]");
+    const facts = {
+      savedKept: keptSaved(kept),
+      synced: cloudSyncPulled(),
+      onMe: activeProfileId(uid) === DEFAULT_PROFILE_ID,
+      onboarded: localStorage.getItem(`content-studio-onboarded-${uid}`) === "1",
+      hasProfession: !!loadBrand(uid)?.profession?.trim(),
+      used:
+        (Array.isArray(drafts) && drafts.length > 0) ||
+        isVoiceProfileUsable(loadVoiceProfile(uid)) ||
+        !!loadPositioning(uid)?.oneLiner?.trim() ||
+        loadBrand(uid) !== null ||
+        loadProfiles(uid).length > 1,
+      kept: !!kept,
+    };
+    return shouldSetUp(facts) ? { uid, kept } : null;
+  } catch {
+    return null;
+  }
+}
+
+const jumpKey = (e: KeyboardEvent) => (e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "k";
+
+function FirstRun({ uid, kept }: { uid: string; kept: string | null }) {
+  const leo = useLeoOnly();
+  const [prefill, setPrefill] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
+  const [settled, setSettled] = useState(() => !!params.get("step") || (keptStep(kept) ?? "site") === "site");
+
+  useEffect(() => {
+    if (settled) return;
+    setParams((p) => withParam(p, "step", keptStep(kept), "site"), { replace: true });
+    setSettled(true);
+  }, []);
+
+  useEffect(() => {
+    const hold = (e: KeyboardEvent) => {
+      if (jumpKey(e) || isFoldKey(e)) e.stopImmediatePropagation();
+    };
+    window.addEventListener("keydown", hold, true);
+    return () => window.removeEventListener("keydown", hold, true);
+  }, []);
+
+  useEffect(() => {
+    document.title = "Set up your brand - Postmosis";
+    let alive = true;
+    checkoutSite()
+      .then((site) => alive && setPrefill(site))
+      .catch(() => undefined);
+    const before = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const root = document.getElementById("root");
+    root?.setAttribute("inert", "");
+    return () => {
+      alive = false;
+      document.body.style.overflow = before;
+      root?.removeAttribute("inert");
+    };
+  }, []);
+
+  const persist = useCallback(
+    (value: string | null) => {
+      try {
+        if (value !== null) localStorage.setItem(flowKey(uid), value);
+        else if (localStorage.getItem(flowKey(uid)) !== null) localStorage.removeItem(flowKey(uid));
+      } catch {
+        return;
+      }
+    },
+    [uid],
+  );
+
+  const body = (
+    <div id="onboard-scroll" className="fixed inset-0 z-[75] overflow-y-auto overscroll-contain bg-background">
+      {settled ? <BrandSetup mode="first" uid={uid} leo={leo} kept={kept} persist={persist} prefill={prefill} /> : <OnboardingCanvas progress={null}>{null}</OnboardingCanvas>}
+    </div>
+  );
+  return typeof document === "undefined" ? body : createPortal(body, document.body);
+}
+
 export default function WelcomePage() {
+  const [setUp] = useState(setUpFor);
+  const [fromConnect] = useState(() => typeof window !== "undefined" && !!readRedirect(new URLSearchParams(window.location.search)));
+  useEffect(() => {
+    if (fromConnect) clearConnectReturn();
+  }, [fromConnect]);
+  return setUp ? <FirstRun uid={setUp.uid} kept={setUp.kept} /> : <GettingStarted />;
+}
+
+function GettingStarted() {
   const navigate = useNavigate();
   const tour = useTourUser();
   const [userId, setUserId] = useState<string | null>(null);

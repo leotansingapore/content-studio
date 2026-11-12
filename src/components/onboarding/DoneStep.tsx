@@ -2,7 +2,8 @@ import { CheckIcon } from "@phosphor-icons/react";
 import { Actions, PrimaryPill, QuietPill } from "@/components/onboarding/parts";
 import { readableInk } from "@/lib/onboardingFlow";
 
-export function DoneStep({ name, logo, colours, line, titleId }: { name: string; logo: string | null; colours: string[]; line: string; titleId: string }) {
+export function DoneStep({ id, name, logo, colours, line, titleId }: { id: string; name: string; logo: string | null; colours: string[]; line: string; titleId: string }) {
+  const open = (path: string) => window.location.assign(`${path}?profile=${encodeURIComponent(id)}`);
   const main = colours[0] ?? "#1E3A8A";
   return (
     <div className="flex w-full max-w-[520px] flex-1 flex-col items-center justify-center gap-9 pb-[8vh] text-center">
@@ -42,8 +43,8 @@ export function DoneStep({ name, logo, colours, line, titleId }: { name: string;
         <p className="max-w-[26rem] text-[15px] text-muted-foreground sm:text-base">It has its own posts, plan, calendar and links, kept apart from your other brands.</p>
       </div>
       <Actions className="sm:justify-center">
-        <QuietPill onClick={() => window.location.assign("/calendar")}>Open its calendar</QuietPill>
-        <PrimaryPill onClick={() => window.location.assign("/generate")}>Write its first post</PrimaryPill>
+        <QuietPill onClick={() => open("/calendar")}>Open its calendar</QuietPill>
+        <PrimaryPill onClick={() => open("/generate")}>Write its first post</PrimaryPill>
       </Actions>
     </div>
   );

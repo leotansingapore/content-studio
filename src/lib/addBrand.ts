@@ -1,13 +1,13 @@
 // Add a brand (/brands/new): what a site read gives back, and the half-done form kept for the tab so
 // leaving the page or reloading does not throw away the read and the cards already checked.
-import { DEFAULT_BRAND, MAX_PALETTE, normalizeHandle, saveBrand, type CarouselBrand } from "@/lib/carousel";
+import { DEFAULT_BRAND, loadBrand, MAX_PALETTE, normalizeHandle, saveBrand, type CarouselBrand } from "@/lib/carousel";
 import type { SlideFont } from "@/lib/carouselLayout";
 import type { PostLang } from "@/lib/links";
-import { EMPTY_POSITIONING, saveGoal, savePositioning, type GoalKind, type PlanAudience, type PlanPlatform } from "@/lib/positioning";
+import { EMPTY_POSITIONING, loadPositioning, saveGoal, savePositioning, type GoalKind, type PlanAudience, type PlanPlatform } from "@/lib/positioning";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
-import { saveSocialAccounts, type SocialAccounts, type SocialPlatform } from "@/lib/socialAccounts";
+import { loadSocialAccounts, saveSocialAccounts, type SocialAccounts, type SocialPlatform } from "@/lib/socialAccounts";
 import { addFact } from "@/lib/voiceMemory";
-import { saveVoiceProfile } from "@/lib/voiceProfile";
+import { loadVoiceProfile, saveVoiceProfile } from "@/lib/voiceProfile";
 
 export interface BrandDna {
   url: string;
@@ -149,10 +149,65 @@ export const PROFESSION_NEEDED = "Pick what you do first, so the AI writes this 
  */
 export interface BrandExtras {
   platform?: PlanPlatform;
+  networks?: readonly string[];
   cadence?: number;
   goal?: { text: string; kind: GoalKind };
   palette?: string[];
   slideFont?: SlideFont;
+}
+
+export function fillBrand(
+  uid: string,
+  title: string,
+  brand: BrandDna | null,
+  profession: string,
+  postLang: PostLang | null,
+  facts: string[] = [],
+  extras: BrandExtras = {},
+): { ok: true } | { ok: false; error: string } {
+  if (!profession.trim()) return { ok: false, error: PROFESSION_NEEDED };
+  const kit = loadBrand(uid);
+  if (!brand) {
+    saveBrand(uid, { ...(kit ?? DEFAULT_BRAND), name: title, profession });
+    return { ok: true };
+  }
+  const ig = brand.handles.instagram?.replace(/^@/, "") ?? "";
+  const palette = (extras.palette ?? []).slice(0, MAX_PALETTE).map((hex, i) => ({ name: `Colour ${i + 2}`, hex }));
+  const made = newBrandKit(brand, title);
+  saveBrand(uid, {
+    ...(kit ?? {}),
+    ...made,
+    handle: made.handle || kit?.handle || "",
+    ...(postLang ? { postLang } : {}),
+    ...(palette.length ? { palette } : {}),
+    ...(extras.slideFont ? { slideFont: extras.slideFont } : {}),
+    profession,
+  });
+  const before = loadPositioning(uid);
+  const kept = (next: string, old: string | undefined) => (next.trim() ? next : old ?? "");
+  savePositioning(uid, {
+    ...EMPTY_POSITIONING,
+    ...(before ?? {}),
+    oneLiner: kept(brand.oneLiner, before?.oneLiner),
+    audience: brand.audience,
+    audienceDetail: kept(brand.audienceDetail, before?.audienceDetail),
+    topics: brand.topics.length ? brand.topics : before?.topics ?? [],
+    edge: kept(brand.edge, before?.edge),
+    platform: extras.platform ?? (extras.networks?.length ? before?.platform ?? EMPTY_POSITIONING.platform : ig ? "instagram" : EMPTY_POSITIONING.platform),
+    ...(extras.cadence ? { cadence: extras.cadence } : {}),
+    updatedAt: new Date().toISOString(),
+  });
+  if (extras.goal) saveGoal(uid, extras.goal.text, extras.goal.kind);
+  const now = new Date().toISOString();
+  const accounts: SocialAccounts = {};
+  for (const n of NETWORKS) {
+    const h = brand.handles[n.key]?.trim();
+    if (h) accounts[n.key] = { handle: profileAddress(n.base, h), connectedAt: now };
+  }
+  saveSocialAccounts(uid, { ...loadSocialAccounts(uid), ...accounts });
+  if (brand.voice) saveVoiceProfile(uid, { posts: loadVoiceProfile(uid)?.posts ?? [], voiceSummary: brand.voice, updatedAt: now });
+  for (const f of facts) addFact(uid, f);
+  return { ok: true };
 }
 
 export function createBrand(
@@ -166,42 +221,7 @@ export function createBrand(
 ): { ok: true; id: string } | { ok: false; error: string } {
   if (!profession.trim()) return { ok: false, error: PROFESSION_NEEDED };
   const p = addProfile(uid, title);
-  // the stores below key on the open brand, so it opens first
   setActiveProfile(uid, p.id);
-  if (!brand) {
-    // its name on the kit too, as a site read's is (newBrandKit), so carousels and the bio page aren't left blank
-    saveBrand(uid, { ...DEFAULT_BRAND, name: title, profession });
-    return { ok: true, id: p.id };
-  }
-  const ig = brand.handles.instagram?.replace(/^@/, "") ?? "";
-  const palette = (extras.palette ?? []).slice(0, MAX_PALETTE).map((hex, i) => ({ name: `Colour ${i + 2}`, hex }));
-  saveBrand(uid, {
-    ...newBrandKit(brand, title),
-    ...(postLang ? { postLang } : {}),
-    ...(palette.length ? { palette } : {}),
-    ...(extras.slideFont ? { slideFont: extras.slideFont } : {}),
-    profession,
-  });
-  savePositioning(uid, {
-    ...EMPTY_POSITIONING,
-    oneLiner: brand.oneLiner,
-    audience: brand.audience,
-    audienceDetail: brand.audienceDetail,
-    topics: brand.topics,
-    edge: brand.edge,
-    platform: extras.platform ?? (ig ? "instagram" : EMPTY_POSITIONING.platform),
-    ...(extras.cadence ? { cadence: extras.cadence } : {}),
-    updatedAt: new Date().toISOString(),
-  });
-  if (extras.goal) saveGoal(uid, extras.goal.text, extras.goal.kind);
-  const now = new Date().toISOString();
-  const accounts: SocialAccounts = {};
-  for (const n of NETWORKS) {
-    const h = brand.handles[n.key]?.trim();
-    if (h) accounts[n.key] = { handle: profileAddress(n.base, h), connectedAt: now };
-  }
-  saveSocialAccounts(uid, accounts);
-  if (brand.voice) saveVoiceProfile(uid, { posts: [], voiceSummary: brand.voice, updatedAt: now });
-  for (const f of facts) addFact(uid, f);
+  fillBrand(uid, title, brand, profession, postLang, facts, extras);
   return { ok: true, id: p.id };
 }

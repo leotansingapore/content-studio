@@ -7,6 +7,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const as = vi.hoisted(() => ({ user: null as null | undefined | { id: string; email: string } }));
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user }));
+const signedIn = vi.hoisted(() => ({ uid: null as string | null }));
+vi.mock("@/lib/socialConnect", async (actual) => ({ ...(await actual<typeof import("@/lib/socialConnect")>()), storedUserId: () => signedIn.uid }));
+const cloud = vi.hoisted(() => ({ pulled: true }));
+vi.mock("@/lib/cloudSync", async (actual) => ({ ...(await actual<typeof import("@/lib/cloudSync")>()), cloudSyncPulled: () => cloud.pulled }));
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
@@ -18,6 +22,65 @@ const html = () => renderToStaticMarkup(createElement(MemoryRouter, { initialEnt
 
 afterEach(() => {
   as.user = null;
+  signedIn.uid = null;
+  cloud.pulled = true;
+  vi.unstubAllGlobals();
+});
+
+const storage = (rows: Record<string, string>) => {
+  const m = new Map(Object.entries(rows));
+  const store = {
+    get length() {
+      return m.size;
+    },
+    key: (i: number) => [...m.keys()][i] ?? null,
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
+    clear: () => m.clear(),
+  };
+  vi.stubGlobal("localStorage", store);
+  vi.stubGlobal("window", { localStorage: store, history: { state: null }, location: { pathname: "/welcome", search: "", hash: "" } });
+};
+
+describe("/welcome for a new account", () => {
+  it("opens the brand set-up on the account's own brand, in place of today's page", () => {
+    signedIn.uid = "u1";
+    storage({});
+    const out = html();
+    expect(out).toContain("set up your brand");
+    expect(out).toContain("Skip set-up for now");
+    expect(out).not.toContain("Write my first post");
+  });
+
+  it("picks up a set-up left half done, even once a profession is saved", () => {
+    signedIn.uid = "u1";
+    storage({ "content-studio-onboarding-u1": JSON.stringify({ v: 1, address: "acme.sg", profession: "Coach" }), "content-studio-carousel-brand-u1": JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }) });
+    expect(html()).toContain("set up your brand");
+  });
+
+  it("keeps today's page for an account already in use, and before the cloud has answered", async () => {
+    signedIn.uid = "u1";
+    storage({ "content-studio-drafts-u1": JSON.stringify([{ id: "d1", content: "A post", createdAt: "2026-11-01T00:00:00.000Z" }]) });
+    await expect(html()).toMatchFileSnapshot("./__pins__/welcome-page-everyone.html");
+    storage({ "content-studio-positioning-u1": JSON.stringify({ oneLiner: "I help nurses retire early." }) });
+    await expect(html()).toMatchFileSnapshot("./__pins__/welcome-page-everyone.html");
+    storage({ "content-studio-carousel-brand-u1": JSON.stringify({ color: "#0F766E", name: "Mei Tan Advisory", handle: "@meitan" }) });
+    await expect(html()).toMatchFileSnapshot("./__pins__/welcome-page-everyone.html");
+    cloud.pulled = false;
+    storage({});
+    await expect(html()).toMatchFileSnapshot("./__pins__/welcome-page-everyone.html");
+  });
+
+  it("keeps today's page for an onboarded account, a brand with a profession, or another brand open", async () => {
+    signedIn.uid = "u1";
+    storage({ "content-studio-onboarded-u1": "1" });
+    await expect(html()).toMatchFileSnapshot("./__pins__/welcome-page-everyone.html");
+    storage({ "content-studio-carousel-brand-u1": JSON.stringify({ color: "#1E3A8A", name: "", handle: "", profession: "Coach" }) });
+    await expect(html()).toMatchFileSnapshot("./__pins__/welcome-page-everyone.html");
+    storage({ "cs-active-profile-u1": "p123", "content-studio-profiles-u1": JSON.stringify([{ id: "me", name: "Me", createdAt: "" }, { id: "p123", name: "Acme", createdAt: "2026-11-01T00:00:00.000Z" }]) });
+    await expect(html()).toMatchFileSnapshot("./__pins__/welcome-page-everyone.html");
+  });
 });
 
 describe("/welcome for everyone else", () => {

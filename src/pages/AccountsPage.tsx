@@ -6,7 +6,7 @@
 // card (#telegram, TelegramCard.tsx), which connects through the Content Studio bot rather than Zernio.
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowClockwiseIcon, PlugsIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -17,6 +17,7 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import { useScrollToHash } from "@/lib/urlState";
 import { activeProfile, DEFAULT_PROFILE_ID } from "@/lib/profiles";
 import { loadDrafts } from "@/lib/draftHistory";
+import { isOnboarded } from "@/lib/onboarding";
 import { heldOn } from "@/lib/zernioOutbox";
 import { ZERNIO_IG_BRANDS } from "@/lib/reelsBoard";
 import {
@@ -38,6 +39,7 @@ import {
   saveSocialDefault,
   SOCIAL_PLATFORMS,
   socialStatus,
+  storedUserId,
   ZERNIO_PRICE_LINE,
   type AccountView,
   type SocialDefaults,
@@ -95,6 +97,7 @@ function AccountRow({ a, busy, grouped, extra, connect, disconnect }: {
 
 export default function AccountsPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [userId, setUserId] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "off" | "ready" | "error">("loading");
@@ -132,6 +135,14 @@ export default function AccountsPage() {
   useEffect(() => {
     // Zernio sends the browser back here with ?connected= (and ?error= when it didn't work)
     const result = readRedirect(params);
+    const returnTo = result ? readConnectReturn() : null;
+    if (result && returnTo?.startsWith("/welcome")) {
+      if (!isOnboarded(storedUserId())) {
+        navigate(`/welcome?${params.toString()}`, { replace: true });
+        return;
+      }
+      clearConnectReturn();
+    }
     if (result) {
       setBack(result);
       setIgBack(result.ok && params.get("connected") === "instagram");

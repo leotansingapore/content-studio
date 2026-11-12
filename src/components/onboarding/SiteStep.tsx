@@ -3,6 +3,8 @@ import { GlobeIcon } from "@phosphor-icons/react";
 import { Actions, PrimaryPill, QuietPill, StepTitle } from "@/components/onboarding/parts";
 
 export function SiteStep({
+  title,
+  onSkip,
   address,
   error,
   blocked,
@@ -12,6 +14,8 @@ export function SiteStep({
   onRead,
   onNoSite,
 }: {
+  title?: string;
+  onSkip?: () => void;
   address: string;
   error: string;
   blocked: boolean;
@@ -33,7 +37,7 @@ export function SiteStep({
     >
       <div className="flex flex-col items-center gap-6">
         <StepTitle
-          title="Start with your website"
+          title={title ?? "Start with your website"}
           lead={appLink ? "We'll read the App Store listing, the app's own site and reviews of apps like it. Nothing is posted." : "Paste your website and we'll pick up your logo, colours and how you sound, usually in under a minute. Nothing is posted."}
         />
         <div className="w-full space-y-1.5">
@@ -68,12 +72,19 @@ export function SiteStep({
           {below}
         </div>
       </div>
-      <Actions>
-        <QuietPill onClick={onNoSite}>I don't have a website</QuietPill>
-        <PrimaryPill type="submit" disabled={!address.trim() || blocked}>
-          {appLink ? "Read the app" : "Read my website"}
-        </PrimaryPill>
-      </Actions>
+      <div className="flex flex-col gap-4">
+        <Actions>
+          <QuietPill onClick={onNoSite}>I don't have a website</QuietPill>
+          <PrimaryPill type="submit" disabled={!address.trim() || blocked}>
+            {appLink ? "Read the app" : "Read my website"}
+          </PrimaryPill>
+        </Actions>
+        {onSkip && (
+          <button type="button" onClick={onSkip} className="mx-auto text-sm font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline [@media(pointer:coarse)]:min-h-11">
+            Skip set-up for now
+          </button>
+        )}
+      </div>
     </form>
   );
 }

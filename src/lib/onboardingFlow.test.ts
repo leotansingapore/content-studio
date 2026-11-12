@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  APP_SECTIONS, colourGap, confirmLabel, distinctColours, firstOpenQuestion, hexOf, hostOf, isSerif, keptAnswers, nextLine, nextSection, progressOf, QUESTIONS, readableInk,
-  scoreOf, shownStep, SITE_SECTIONS, slideFontFor, webAddress, type Section,
+  APP_SECTIONS, colourGap, confirmLabel, distinctColours, firstOpenQuestion, flowKey, foundNetworks, hexOf, hostOf, isSerif, keptAnswers, keptNetworks, keptSaved, keptStep, mainPlatform, nextLine,
+  nextSection, progressOf, QUESTIONS, readableInk, scoreOf, shouldSetUp, shownStep, SITE_SECTIONS, slideFontFor, webAddress, type Section,
 } from "./onboardingFlow";
 import { blankPixels, dominantColours } from "./logoImage";
 
@@ -25,12 +25,23 @@ describe("the website box", () => {
 
 describe("progress and the brand set up score", () => {
   it("fills the bar a quarter per step, then the last quarter section by section", () => {
-    expect(progressOf("site", 0, 4)).toBe(25);
-    expect(progressOf("work", 0, 4)).toBe(50);
+    expect(progressOf("site", 0, 4)).toBe(20);
+    expect(progressOf("work", 0, 4)).toBe(40);
+    expect(progressOf("networks", 0, 4)).toBe(60);
     expect(progressOf("review", 0, 4)).toBe(75);
     expect(progressOf("review", 2, 4)).toBe(88);
     expect(progressOf("review", 4, 4)).toBe(100);
     expect(progressOf("review", 9, 4)).toBe(100);
+  });
+
+  it("leaves room for connecting and finishing when it sets up a new account's own brand", () => {
+    expect(progressOf("site", 0, 4, "first")).toBe(12);
+    expect(progressOf("networks", 0, 4, "first")).toBe(38);
+    expect(progressOf("review", 0, 4, "first")).toBe(50);
+    expect(progressOf("review", 4, 4, "first")).toBe(80);
+    expect(progressOf("connect", 4, 4, "first")).toBe(88);
+    expect(progressOf("finish", 4, 4, "first")).toBe(100);
+    expect(confirmLabel("social", true, "Acme", false, "first")).toBe("Save my brand");
   });
 
   it("scores confirmed sections out of 100 and names the next one with its reach", () => {
@@ -100,18 +111,18 @@ describe("the site's fonts as a slide look", () => {
 });
 
 describe("the questions while it reads", () => {
-  it("asks four, each with its own answers", () => {
-    expect(QUESTIONS.map((q) => q.key)).toEqual(["platform", "cadence", "goal", "audience"]);
+  it("asks three, each with its own answers, now that where you post has its own step", () => {
+    expect(QUESTIONS.map((q) => q.key)).toEqual(["cadence", "goal", "audience"]);
     for (const q of QUESTIONS) expect(q.options.length).toBeGreaterThanOrEqual(4);
   });
 
   it("keeps only answers it offered, and starts at the first one not given", () => {
-    expect(keptAnswers({ platform: "linkedin", cadence: 3, goal: "time", audience: "parent" })).toEqual({ platform: "linkedin", cadence: 3, goal: "time", audience: "parent" });
-    expect(keptAnswers({ platform: "myspace", cadence: "3", goal: 7, audience: null, extra: 1 })).toEqual({});
+    expect(keptAnswers({ platform: "linkedin", cadence: 3, goal: "time", audience: "parent" })).toEqual({ cadence: 3, goal: "time", audience: "parent" });
+    expect(keptAnswers({ cadence: "3", goal: 7, audience: null, extra: 1 })).toEqual({});
     expect(keptAnswers(null)).toEqual({});
     expect(firstOpenQuestion({})).toBe(0);
-    expect(firstOpenQuestion({ platform: "instagram" })).toBe(1);
-    expect(firstOpenQuestion({ platform: "instagram", cadence: 1, goal: "clients", audience: "general" })).toBe(QUESTIONS.length);
+    expect(firstOpenQuestion({ cadence: 3 })).toBe(1);
+    expect(firstOpenQuestion({ cadence: 1, goal: "clients", audience: "general" })).toBe(QUESTIONS.length);
   });
 });
 
@@ -156,5 +167,70 @@ describe("logo pixels", () => {
     expect(blankPixels(pixels([[10, 20, 30, 255]], 400))).toBe(true);
     expect(blankPixels(pixels([...Array(300).fill([0, 0, 0, 0]), ...Array(100).fill([0, 0, 0, 255])] as [number, number, number, number][]))).toBe(false);
     expect(blankPixels(pixels([...Array(200).fill([37, 99, 235, 255]), ...Array(200).fill([255, 255, 255, 255])] as [number, number, number, number][]))).toBe(false);
+  });
+});
+
+describe("where you post", () => {
+  it("keeps the networks it offers, once each, in the order they were picked", () => {
+    expect(keptNetworks(["tiktok", "x", "instagram", "tiktok", 3, "threads"])).toEqual(["tiktok", "instagram", "threads"]);
+    expect(keptNetworks("instagram")).toEqual([]);
+  });
+
+  it("ticks the networks whose handles the read found, never X", () => {
+    expect(foundNetworks({ instagram: "acme", facebook: " ", linkedin: "company/acme", x: "acme" } as Record<string, string>)).toEqual(["instagram", "linkedin"]);
+  });
+
+  it("plans for the first picked network a plan can hold", () => {
+    expect(mainPlatform(["youtube", "linkedin", "instagram"])).toBe("linkedin");
+    expect(mainPlatform(["threads", "youtube"])).toBeUndefined();
+    expect(mainPlatform([])).toBeUndefined();
+  });
+
+  it("plans for the network the person put first, when they picked it and a plan can hold it", () => {
+    expect(mainPlatform(["instagram", "linkedin"], "linkedin")).toBe("linkedin");
+    expect(mainPlatform(["instagram", "linkedin"], "tiktok")).toBe("instagram");
+    expect(mainPlatform(["youtube", "facebook"], "youtube")).toBe("facebook");
+    expect(mainPlatform(["instagram"], null)).toBe("instagram");
+  });
+});
+
+describe("who /welcome sets up", () => {
+  const fresh = { savedKept: false, synced: true, onMe: true, onboarded: false, hasProfession: false, used: false, kept: false };
+
+  it("runs for a new account on its own brand, or one that left a set-up half done", () => {
+    expect(shouldSetUp(fresh)).toBe(true);
+    expect(shouldSetUp({ ...fresh, hasProfession: true, used: true, kept: true })).toBe(true);
+  });
+
+  it("leaves every established account on the page it had", () => {
+    expect(shouldSetUp({ ...fresh, hasProfession: true })).toBe(false);
+    expect(shouldSetUp({ ...fresh, used: true })).toBe(false);
+    expect(shouldSetUp({ ...fresh, onboarded: true, kept: true })).toBe(false);
+    expect(shouldSetUp({ ...fresh, onMe: false })).toBe(false);
+  });
+
+  it("waits for the first cloud pull, so a device that hasn't heard from the cloud never overwrites it", () => {
+    expect(shouldSetUp({ ...fresh, synced: false })).toBe(false);
+    expect(shouldSetUp({ ...fresh, synced: false, kept: true })).toBe(false);
+  });
+
+  it("lets a saved set-up finish its connect and finish steps without waiting for the cloud or the open brand", () => {
+    expect(shouldSetUp({ ...fresh, savedKept: true, kept: true, synced: false, onMe: false, hasProfession: true, used: true })).toBe(true);
+    expect(shouldSetUp({ ...fresh, savedKept: true, kept: true, onboarded: true })).toBe(false);
+    expect(keptSaved(JSON.stringify({ saved: true }))).toBe(true);
+    expect(keptSaved(JSON.stringify({ saved: "yes" }))).toBe(false);
+    expect(keptSaved("{bad")).toBe(false);
+    expect(keptSaved(null)).toBe(false);
+  });
+
+  it("resumes on the step it was left on", () => {
+    expect(keptStep(JSON.stringify({ step: "networks" }))).toBe("networks");
+    expect(keptStep(JSON.stringify({ step: "nowhere" }))).toBeNull();
+    expect(keptStep("{bad")).toBeNull();
+    expect(keptStep(null)).toBeNull();
+  });
+
+  it("keeps the set-up under a synced key for the account", () => {
+    expect(flowKey("u1")).toBe("content-studio-onboarding-u1");
   });
 });

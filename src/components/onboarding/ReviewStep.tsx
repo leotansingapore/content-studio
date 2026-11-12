@@ -6,7 +6,7 @@ import { MAX_PAINS, proofLines, type AppRead } from "@/lib/appStore";
 import type { SlideFont } from "@/lib/carouselLayout";
 import type { PostLang } from "@/lib/links";
 import { LOGO_FILE_ERROR, LOGO_TYPES, logoFromFile } from "@/lib/logoImage";
-import { colourGap, confirmLabel, hexOf, nextLine, readableInk, scoreOf, sectionTitle, type Section } from "@/lib/onboardingFlow";
+import { colourGap, confirmLabel, hexOf, nextLine, readableInk, scoreOf, sectionTitle, type Mode, type Section } from "@/lib/onboardingFlow";
 import type { PlanAudience } from "@/lib/positioning";
 import { LANG_NAMES } from "@/lib/translate";
 
@@ -246,6 +246,7 @@ function LogoField({ logo, name, colour, found, onLogo }: { logo: string | null;
 
 export interface ReviewProps {
   titleId: string;
+  mode?: Mode;
   manual: boolean;
   host: string;
   leo: boolean;
@@ -562,7 +563,7 @@ export function ReviewStep(p: ReviewProps) {
             {s === current && (
               <div className="flex flex-col items-stretch gap-2 sm:items-end">
                 <PrimaryPill disabled={last(s) ? !sections.every(valid) : !ok} onClick={() => (last(s) ? p.onCreate() : p.onConfirm(s))} className="w-full sm:w-auto">
-                  {confirmLabel(s, last(s), dna.name, leo)}
+                  {confirmLabel(s, last(s), dna.name, leo, p.mode)}
                 </PrimaryPill>
                 {last(s) && ok && !sections.every(valid) && <p className="text-sm font-medium text-destructive">Fill in the parts marked Required first.</p>}
                 {last(s) && p.createNote}
@@ -574,7 +575,7 @@ export function ReviewStep(p: ReviewProps) {
       {allDone && (
         <div className="flex flex-col items-stretch gap-2 sm:items-end">
           <PrimaryPill disabled={!sections.every(valid)} onClick={p.onCreate} className="w-full sm:w-auto">
-            Create {dna.name.trim() || "brand"}
+            {p.mode === "first" ? "Save my brand" : `Create ${dna.name.trim() || "brand"}`}
           </PrimaryPill>
           {!sections.every(valid) && <p className="text-sm font-medium text-destructive">Fill in the parts marked Required first.</p>}
           {p.createNote}

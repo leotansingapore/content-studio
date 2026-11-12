@@ -142,6 +142,7 @@ export interface CloudSync {
   /** Send what's pending once, then stop. Anything unsent stays saved on the device. */
   stop(): Promise<void>;
   outOfRoom(): boolean;
+  pulled(): boolean;
 }
 
 function readJson<T>(storage: SyncStorage, key: string, fallback: T): T {
@@ -550,6 +551,7 @@ export function createCloudSync(
     refreshMerged,
     syncedAt: (key) => meta[key] ?? null,
     outOfRoom: () => full,
+    pulled: () => pulled,
     noteWrite,
     retryNow: () => {
       if (pulled) {
@@ -679,6 +681,8 @@ export function refreshCloudKeys(keys: string[]): Promise<void> {
 export const cloudSyncedAt = (key: string): string | null => active?.syncedAt(key) ?? null;
 
 export const cloudSyncOutOfRoom = (): boolean => active?.outOfRoom() ?? false;
+
+export const cloudSyncPulled = (): boolean => active?.pulled() ?? false;
 
 /** Send pending changes (briefly) and detach sync from the signed-out user. */
 export function stopCloudSync(): Promise<void> {

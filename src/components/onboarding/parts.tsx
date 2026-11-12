@@ -17,7 +17,7 @@ export function OnboardingCanvas({ progress, onBack, backLabel = "Back", childre
                 <CaretLeftIcon size={22} weight="bold" />
               </button>
             ) : (
-              <span className="h-9 w-9 shrink-0" aria-hidden="true" />
+              <span className="-ml-1 h-9 w-9 shrink-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-hidden="true" />
             )}
             {progress === null ? (
               <div className="h-3.5 w-full" aria-hidden="true" />

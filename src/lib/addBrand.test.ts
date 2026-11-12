@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { blankDna, createBrand, keptBrand, keptBrandKey, NETWORKS, newBrandKit, parseTopics, PROFESSION_NEEDED, profileAddress, readBody, shownTopics, type BrandDna } from "./addBrand";
-import { loadBrand } from "./carousel";
-import { loadPositioning } from "./positioning";
+import { blankDna, createBrand, fillBrand, keptBrand, keptBrandKey, NETWORKS, newBrandKit, parseTopics, PROFESSION_NEEDED, profileAddress, readBody, shownTopics, type BrandDna } from "./addBrand";
+import { loadBrand, saveBrand } from "./carousel";
+import { EMPTY_POSITIONING, loadPositioning, saveGoal, savePositioning } from "./positioning";
+import { loadSocialAccounts, saveSocialAccounts } from "./socialAccounts";
+import { loadVoiceProfile, saveVoiceProfile } from "./voiceProfile";
 import { loadFacts } from "./voiceMemory";
 import { activeProfileId, loadProfiles } from "./profiles";
 
@@ -169,6 +171,41 @@ describe("creating a brand (Add a brand)", () => {
     expect(loadBrand(UID)?.slideFont).toBeUndefined();
     expect(loadPositioning(UID)).toMatchObject({ platform: "instagram", cadence: 3 });
     expect(loadPositioning(UID)?.goal).toBeUndefined();
+  });
+
+  it("fills the open brand in place for a new account, keeping what it already had", () => {
+    saveBrand(UID, { color: "#1E3A8A", name: "Me", handle: "", photo: "data:image/jpeg;base64,AAAA" });
+    saveGoal(UID, "Get more enquiries from people I can help", "clients");
+    saveSocialAccounts(UID, { linkedin: { handle: "https://www.linkedin.com/in/mei", connectedAt: "2026-11-01T00:00:00.000Z" } });
+    saveVoiceProfile(UID, { posts: ["An old post of mine."], voiceSummary: "", updatedAt: "2026-11-01T00:00:00.000Z" });
+    const filled = fillBrand(UID, "Acme Advisory", dna, "Coach", null, [], { platform: "instagram", cadence: 5 });
+    expect(filled).toEqual({ ok: true });
+    expect(loadProfiles(UID).map((p) => p.id)).toEqual(["me"]);
+    expect(activeProfileId(UID)).toBe("me");
+    expect(loadBrand(UID)).toMatchObject({ name: "Acme Advisory", profession: "Coach", color: "#0F766E", photo: "data:image/jpeg;base64,AAAA", instagram: "acme.sg" });
+    expect(loadPositioning(UID)).toMatchObject({ oneLiner: "We help young families plan their CPF.", platform: "instagram", cadence: 5, goalKind: "clients" });
+    expect(Object.keys(loadSocialAccounts(UID)).sort()).toEqual(["instagram", "linkedin"]);
+    expect(loadVoiceProfile(UID)).toMatchObject({ posts: ["An old post of mine."], voiceSummary: "Warm and plain." });
+    expect(fillBrand(UID, "Acme", dna, "  ", null)).toEqual({ ok: false, error: PROFESSION_NEEDED });
+  });
+
+  it("keeps the open brand's own words where the read came back empty", () => {
+    saveBrand(UID, { color: "#1E3A8A", name: "Me", handle: "@mei.plans" });
+    savePositioning(UID, { ...EMPTY_POSITIONING, oneLiner: "I help nurses retire early.", audienceDetail: "Nurses in their 40s", topics: ["CPF"], edge: "Ex-nurse", updatedAt: "2026-11-01T00:00:00.000Z" });
+    const bare = { ...dna, handles: {}, oneLiner: "", audienceDetail: " ", topics: [], edge: "" };
+    expect(fillBrand(UID, "Mei Plans", bare, "Coach", null)).toEqual({ ok: true });
+    expect(loadBrand(UID)).toMatchObject({ name: "Mei Plans", handle: "@mei.plans" });
+    expect(loadPositioning(UID)).toMatchObject({ oneLiner: "I help nurses retire early.", audienceDetail: "Nurses in their 40s", topics: ["CPF"], edge: "Ex-nurse", audience: "parent" });
+  });
+
+  it("never plans for Instagram when the person picked only networks a plan can't hold", () => {
+    expect(fillBrand(UID, "Acme", dna, "Coach", null, [], { networks: ["youtube"] })).toEqual({ ok: true });
+    expect(loadPositioning(UID)?.platform).toBe("linkedin");
+    savePositioning(UID, { ...EMPTY_POSITIONING, platform: "tiktok", updatedAt: "2026-11-01T00:00:00.000Z" });
+    expect(fillBrand(UID, "Acme", dna, "Coach", null, [], { networks: ["threads"] })).toEqual({ ok: true });
+    expect(loadPositioning(UID)?.platform).toBe("tiktok");
+    expect(fillBrand(UID, "Acme", dna, "Coach", null, [], {})).toEqual({ ok: true });
+    expect(loadPositioning(UID)?.platform).toBe("instagram");
   });
 
   it("puts an App Store read's facts on the new brand only", () => {
