@@ -87,7 +87,7 @@ export default function Auth() {
     const problem = await verifySignInCode(sentTo || String(form.get("email") ?? email).trim(), String(form.get("code") ?? ""));
     setLoading(false);
     if (problem) return toast({ title: "Couldn't sign in", description: problem, variant: "destructive" });
-    navigate(from, { replace: true });
+    navigate(paid ? "/welcome" : from, { replace: true });
   };
 
   useEffect(() => {
@@ -153,13 +153,54 @@ export default function Auth() {
             </span>
           </div>
           <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight">
-            Sign in to your studio
+            {paid ? "Check your email" : "Sign in to your studio"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Use the email your account is under.
+            {paid ? (
+              <>
+                Your payment went through. {sentTo ? <>We sent a sign-in link to <span className="font-semibold text-foreground [overflow-wrap:anywhere]">{sentTo}</span>.</> : "We're sending your sign-in link now."}
+              </>
+            ) : (
+              "Use the email your account is under."
+            )}
           </p>
         </div>
 
+        {paid ? (
+          <Card>
+            <CardContent className="space-y-5 pt-6">
+              <div className="flex items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  {sentTo ? <EnvelopeIcon className="h-5 w-5" /> : <CircleNotchIcon className="h-5 w-5 animate-spin" />}
+                </span>
+                <p className="text-sm text-muted-foreground">
+                  Open the link in this browser to set up your brand. It takes about two minutes, and nothing is posted until you say so.
+                </p>
+              </div>
+              <form onSubmit={handleEmail} className="space-y-3" key="paid">
+                <div className="space-y-1.5">
+                  <Label htmlFor="code">Or type the code from the email</Label>
+                  <Input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9 ]{6,12}" placeholder="123456" disabled={!sentTo} />
+                </div>
+                <Button type="submit" disabled={loading || !sentTo} size="lg" className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95">
+                  {loading ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}
+                  Sign in and set up
+                </Button>
+              </form>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="text-muted-foreground">Nothing yet? Check spam or promotions.</span>
+                <button
+                  type="button"
+                  disabled={wait > 0 || loading || !(sentTo || email)}
+                  onClick={() => void sendLink(sentTo || email, linkTarget())}
+                  className="min-h-11 font-semibold tabular-nums text-primary disabled:font-normal disabled:text-muted-foreground"
+                >
+                  {wait > 0 ? `Send it again in ${wait}s` : "Send it again"}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
         <Card>
           <CardHeader>
             <CardTitle className="font-serif text-xl">Sign in</CardTitle>
@@ -250,6 +291,7 @@ export default function Auth() {
             </p>
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );
