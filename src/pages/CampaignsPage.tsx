@@ -2,26 +2,35 @@
 // holds the ones with posts to review (or still being written), RUNNING the rest, DONE folds away. Each row shows
 // its writing progress from the drafting job (src/lib/campaignJob.ts), which this visit resumes for any campaign
 // with posts still to write. NO OPEN CAMPAIGN lists the saved audiences without one, each starting the wizard on
-// step 2. GOAL sits under the H1 (?goal=change opens it); ?show=done unfolds DONE. Everyone else gets the 404 page.
+// step 2. GOAL sits under the H1 (?goal=change opens it); ?show=done unfolds DONE. Each row shows its first made post's
+// picture as the Library draws it (coverKeys in src/lib/campaignBoard.ts), or none before anything is made. Everyone
+// else gets the 404 page.
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Plus } from "lucide-react";
 import GoalLine from "@/components/GoalLine";
+import LibraryThumb, { readThumbSources, useFontsReady } from "@/components/library/LibraryThumb";
 import { NoAudience } from "@/components/campaign/WhoStep";
 import { Button } from "@/components/ui/button";
 import { loadAudiences, onAudiencesChanged } from "@/lib/audiences";
 import { adCounts, adsMade, adViews, countsLine } from "@/lib/campaignAds";
+import { coverKeys } from "@/lib/campaignBoard";
 import { draftingOf, onCampaignJob, PAUSED_LINE, startDrafting, type Drafting } from "@/lib/campaignJob";
 import { campaignStatus, loadCampaigns, onCampaignsChanged, type Campaign, type CampaignStatus } from "@/lib/campaigns";
+import { loadCarousels } from "@/lib/carousel";
+import { loadDrafts } from "@/lib/draftHistory";
 import { localDateKey } from "@/lib/dueDates";
+import { buildLibrary, type LibraryItem } from "@/lib/library";
 import { LABEL_CHIP } from "@/lib/labels";
 import { imageWrite, loadImages, onImagesChanged } from "@/lib/images";
 import { links } from "@/lib/links";
 import { isPositioningUsable, loadPositioning } from "@/lib/positioning";
+import { loadSlideshows } from "@/lib/slideshow";
 import { platformName } from "@/lib/socialConnect";
 import { useUrlFlag } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { loadProjects } from "@/lib/videoProjects";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
@@ -90,11 +99,37 @@ function Campaigns({ userId }: { userId: string }) {
   ].join(" | ");
   const free = audiences.filter((a) => !open.some((c) => c.audience === a.id));
 
+  // each row's picture: the Library's own item for its first made post (or ad), read only once something is made
+  const designs = loadImages(userId);
+  const candidates = list.map((c) => coverKeys(c, adViews(c, designs, null).flatMap((v) => (v.state === "made" && v.design ? [v.design] : []))));
+  const want = candidates.flat().join();
+  const library = useMemo(() => {
+    if (!want) return null;
+    const stores = { drafts: loadDrafts(userId), carousels: loadCarousels(userId), slideshows: loadSlideshows(userId), projects: loadProjects(userId), media: [], images: loadImages(userId) };
+    return { items: new Map(buildLibrary({ ...stores, jobs: [], now: new Date(0) }).map((it) => [it.key, it])), stores };
+  }, [userId, want]);
+  const covers = new Map<string, LibraryItem>();
+  list.forEach((c, i) => {
+    const it = candidates[i].map((k) => library?.items.get(k)).find(Boolean);
+    if (it) covers.set(c.id, it);
+  });
+  const fontsReady = useFontsReady([...covers.values()].some((it) => it.thumb?.kind === "show"));
+  const sources = useMemo(() => (library ? readThumbSources(userId, library.stores, fontsReady) : null), [userId, library, fontsReady]);
+
   const row = (c: Campaign) => {
     const s = STATUS[status(c)];
     const p = progressOf(userId, c, draftingOf(c.id));
+    const cover = covers.get(c.id);
     return (
       <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border/60 bg-card p-4 shadow-card">
+        {cover && sources && (
+          <Link to={links.campaign(c.id)} tabIndex={-1} aria-hidden className={`relative block w-12 shrink-0 overflow-hidden rounded-md border border-border/60 bg-muted ${cover.format === "video" ? "aspect-[9/16]" : "aspect-[4/5]"}`}>
+            {/* the Library card's picture at its own size, shrunk: a title tile cut to 48 px read as broken words */}
+            <span className="absolute left-0 top-0 block h-[333.33%] w-[333.33%] origin-top-left scale-[0.3]">
+              <LibraryThumb item={cover} sources={sources} seen />
+            </span>
+          </Link>
+        )}
         <div className="min-w-0 flex-1 basis-56">
           <Link to={links.campaign(c.id)} className="break-words font-medium hover:underline">{c.name}</Link>
           <p className="mt-0.5 break-words text-xs text-muted-foreground">

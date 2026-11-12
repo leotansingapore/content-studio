@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  AD_COUNT, adBits, adLayoutFor, adLayouts, addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignFormats, campaignsKey,
+  AD_COUNT, adBits, adLayoutFor, adLayouts, addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignLine, dayOf, campaignFormats, campaignsKey,
   campaignStatus, type CampaignFormat, type CampaignPost, deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
   planAds, planCampaign, type PostState, REMIX_MAKE, replanCampaign, runningAdSources, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
 } from "./campaigns";
@@ -42,6 +42,42 @@ const campaign = (o: Partial<Campaign> = {}, count = 12): Campaign => ({
 const withVideos = (states: Partial<Record<number, PostState>> = {}) =>
   campaign({ posts: Array.from({ length: 12 }, (_, i) => post(i + 1, { format: (i + 1) % 3 === 0 ? "ai-video" : i % 2 ? "carousel" : "text-post", state: states[i + 1] ?? "ready" })) });
 const draft = (o: Partial<DraftEntry> = {}): DraftEntry => ({ id: "d", createdAt: "", hook: "", draft: "", pillar: "", pillarDetail: "", audience: "", format: "text-post", platform: "linkedin", ctaType: "", ...o });
+
+describe("a made post's line back to its campaign", () => {
+  it("names the campaign and the day and links the post on its page; nothing once the campaign or the post is gone", () => {
+    expect(saveCampaigns(UID, [campaign()])).toBeNull();
+    const link = { id: "cmp_c1_4", campaign: { id: "c1", post: 4, day: 4 } };
+    expect(campaignLine(UID, link)).toEqual({ text: "Young families | November | Day 4", day: 4, href: "/campaigns/c1?post=4#queue" });
+    // read again when the stored list changes: a rename shows, a post dropped by a shorter campaign or a deleted campaign shows nothing
+    expect(saveCampaigns(UID, [campaign({ name: "Renamed" })])).toBeNull();
+    expect(campaignLine(UID, link)?.text).toBe("Renamed | Day 4");
+    expect(saveCampaigns(UID, [campaign({}, 3)])).toBeNull();
+    expect(campaignLine(UID, link)).toBeNull();
+    expect(deleteCampaign(UID, "c1")).not.toBeNull();
+    expect(campaignLine(UID, { id: "cmp_c1_1", campaign: { id: "c1", post: 1, day: 1 } })).toBeNull();
+    expect(campaignLine("someone-else", link)).toBeNull();
+  });
+
+  it("reads a campaign post made before drafts kept the link from its id, with its day off the campaign", () => {
+    // post 4 falls on 6 Nov here: its day is read from the campaign, not from its number
+    expect(saveCampaigns(UID, [campaign({ posts: [post(1), post(4, { day: "2026-11-06" })] })])).toBeNull();
+    expect(campaignLine(UID, { id: "cmp_c1_4" })).toEqual({ text: "Young families | November | Day 6", day: 6, href: "/campaigns/c1?post=4#queue" });
+    // a post the campaign no longer has, a campaign that isn't here, and any other draft: nothing
+    expect(campaignLine(UID, { id: "cmp_c1_9" })).toBeNull();
+    expect(campaignLine(UID, { id: "cmp_c-gone_1" })).toBeNull();
+    for (const id of ["d-lq3k9z", "video-p1", "cmp_c1", "xcmp_c1_4", "cmp_c1_4_x"]) expect(campaignLine(UID, { id })).toBeNull();
+    // a kept link wins over the id
+    expect(campaignLine(UID, { id: "cmp_c1_4", campaign: { id: "c1", post: 1, day: 1 } })?.href).toBe("/campaigns/c1?post=1#queue");
+    expect(deleteCampaign(UID, "c1")).not.toBeNull();
+    expect(campaignLine(UID, { id: "cmp_c1_4" })).toBeNull();
+  });
+
+  it("counts a post's day from the campaign's start day", () => {
+    expect(dayOf({ startDay: "2026-11-01" }, { day: "2026-11-01" })).toBe(1);
+    expect(dayOf({ startDay: "2026-11-01" }, { day: "2026-11-23" })).toBe(23);
+    expect(dayOf({ startDay: "2026-10-26" }, { day: "2026-11-02" })).toBe(8);
+  });
+});
 
 describe("the store", () => {
   it("saves and loads per brand, and says it changed", () => {

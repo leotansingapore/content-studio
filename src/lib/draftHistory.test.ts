@@ -162,6 +162,17 @@ describe("upsertDraft", () => {
     expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited in Write", media: "https://drive.example.com/reel.mp4", labels: ["format:carousel"] });
   });
 
+  it("keeps a campaign post's link to its campaign when Write saves an edit, and an old post with none reads as before", () => {
+    saveDrafts(UID, [post({ id: "cmp_c-1_3", campaign: { id: "c-1", post: 3, day: 5 } }), post({ id: "old" })]);
+    upsertDraft(UID, post({ id: "cmp_c-1_3", hook: "Edited in Write" }));
+    upsertDraft(UID, post({ id: "old", hook: "Edited too" }));
+    const edited = loadDrafts(UID).find((d) => d.id === "cmp_c-1_3")!;
+    const old = loadDrafts(UID).find((d) => d.id === "old")!;
+    expect(edited).toMatchObject({ hook: "Edited in Write", campaign: { id: "c-1", post: 3, day: 5 } });
+    expect(old.hook).toBe("Edited too");
+    expect("campaign" in old).toBe(false);
+  });
+
   it("editing a post when All posts is full loses no other post", () => {
     const full = Array.from({ length: MAX_DRAFTS }, (_, i) => post({ id: `p${i}` }));
     saveDrafts(UID, full);

@@ -82,3 +82,12 @@ export function plannedByDay(campaigns: Pick<Campaign, "id" | "name" | "posts">[
   for (const c of campaigns) for (const p of c.posts) if (toMake(p)) out.set(p.day, [...(out.get(p.day) ?? []), { c: { id: c.id, name: c.name }, p }]);
   return out;
 }
+
+/**
+ * The Library item keys a campaign's row picture can come from, best first: its made posts by number, then its made
+ * ads' designs (an ad posted from /image is its draft's card). Empty when nothing is made: the row shows no picture.
+ */
+export function coverKeys(c: Pick<Campaign, "posts">, madeAds: { id: string; draftId?: string }[] = []): string[] {
+  const posts = [...c.posts].sort((a, b) => a.n - b.n).flatMap((p) => (p.state === "made" && p.draftId ? [`d:${p.draftId}`] : []));
+  return [...posts, ...madeAds.map((g) => (g.draftId ? `d:${g.draftId}` : `g:${g.id}`))];
+}

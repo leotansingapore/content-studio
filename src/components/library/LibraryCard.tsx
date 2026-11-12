@@ -4,6 +4,7 @@
 import { memo, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock, ExternalLink, Loader2 } from "lucide-react";
+import CampaignPostLink from "@/components/campaign/CampaignPostLink";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import LibraryThumb, { useOnScreen, type ThumbSources } from "@/components/library/LibraryThumb";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
           {item.title}
         </p>
         {item.source && <p className="truncate text-xs text-muted-foreground" title={item.source}>{item.source}</p>}
+        {item.key.startsWith("d:") && <CampaignPostLink userId={sources.userId} draft={{ id: item.key.slice(2), campaign: item.campaign }} />}
         <p className={cn("flex items-start gap-1 text-xs", failed ? "text-destructive" : "text-muted-foreground")}>
           {making && (item.waiting ? <Clock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> : <Loader2 className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />)}
           <span className="min-w-0 break-words">{statusLine(item)}</span>

@@ -158,6 +158,7 @@ describe("makePost, free formats", () => {
     expect(d).toMatchObject({
       status: "scheduled", scheduledFor: "2026-11-01T20:00", format: "text-post", platform: "linkedin", pillar: "topic", pillarDetail: "The hospital bill question",
       audience: "parent", ctaType: "open-question", hookFormula: "contrarian", hook: "Most people get post 1 wrong",
+      campaign: { id: "c-1", post: 1, day: 1 },
     });
     expect(d.draft).toBe("Most people get post 1 wrong\n\nFirst point here.\n\nSecond point here.\n\nThird point here.\n\nWhat would you add?");
     expect(the(1)).toMatchObject({ state: "made", draftId: "cmp_c-1_1", made: { kind: "draft", id: "cmp_c-1_1" } });
@@ -216,7 +217,7 @@ describe("makePost, a slideshow", () => {
     expect(r).toMatchObject({ ok: true, toast: "Post 4 is on your calendar for Wed 4 Nov, 8pm, with its slides." });
     expect(startSlideshow.mock.calls[0][1]).toEqual({ source: null, topic: "Three things a ward bill hides", note: "Room type\nTests\nDays", mention: true, size: "9x16", pictures: "mine" });
     expect(loadSlideshows(UID).find((s) => s.id === "ss-made")?.draftId).toBe("cmp_c-1_4");
-    expect(getDraftById(UID, "cmp_c-1_4")).toMatchObject({ status: "scheduled", scheduledFor: "2026-11-04T20:00", format: "carousel", draft: "Made caption. Save this.", pillarDetail: "Busy weeks", audience: "parent" });
+    expect(getDraftById(UID, "cmp_c-1_4")).toMatchObject({ status: "scheduled", scheduledFor: "2026-11-04T20:00", format: "carousel", draft: "Made caption. Save this.", pillarDetail: "Busy weeks", audience: "parent", campaign: { id: "c-1", post: 4, day: 4 } });
     expect(the(4)).toMatchObject({ state: "made", draftId: "cmp_c-1_4", made: { kind: "slideshow", id: "ss-made" } });
   });
 
@@ -307,7 +308,7 @@ describe("makePost, a wall of text", () => {
     seed([post(5, { format: "wall", hook: "Nobody reads your follow-up", brief: "Write it the same day", body: undefined })]);
     startWall.mockImplementationOnce(async (userId: string, ask: { draftId: string }) => {
       // the draft is on the calendar before the wall is written
-      expect(getDraftById(userId, ask.draftId)).toMatchObject({ status: "scheduled", format: "short-video" });
+      expect(getDraftById(userId, ask.draftId)).toMatchObject({ status: "scheduled", format: "short-video", campaign: { id: "c-1", post: 5, day: 5 } });
       fake.wall.set({ id: ++fake.seq, state: "writing", ask });
     });
     const made = act.makePost(UID, "c-1", 5, NOW);

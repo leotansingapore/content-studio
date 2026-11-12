@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardCounts, boardWeeks, countsText, frames, plannedByDay } from "./campaignBoard";
+import { boardCounts, boardWeeks, countsText, coverKeys, frames, plannedByDay } from "./campaignBoard";
 import type { CampaignPost } from "./campaigns";
 
 const post = (n: number, day: string, o: Partial<CampaignPost> = {}): CampaignPost => ({
@@ -75,5 +75,14 @@ describe("the calendar's campaign drafts", () => {
     ]);
     expect([...by.keys()].sort()).toEqual(["2026-11-16", "2026-11-18"]);
     expect(by.get("2026-11-16")?.map((x) => `${x.c.id}:${x.p.n}`)).toEqual(["c1:1", "c2:1"]);
+  });
+});
+
+describe("a campaign row's picture", () => {
+  it("comes from the first made post by number, then a made ad's design, and is nothing when none is made", () => {
+    const posts = [post(3, "d", { state: "made", draftId: "cmp_c1_3" }), post(1, "d"), post(2, "d", { state: "made", draftId: "cmp_c1_2" }), post(4, "d", { state: "making", draftId: "cmp_c1_4" })];
+    expect(coverKeys({ posts })).toEqual(["d:cmp_c1_2", "d:cmp_c1_3"]);
+    expect(coverKeys({ posts: [post(1, "d")] }, [{ id: "img-a" }, { id: "img-b", draftId: "img_post_b" }])).toEqual(["g:img-a", "d:img_post_b"]);
+    expect(coverKeys({ posts: [post(1, "d"), post(2, "d", { state: "skipped" })] })).toEqual([]);
   });
 });

@@ -15,7 +15,7 @@ import { getTrackedPosts, postingTimeOn } from "@/lib/analytics";
 import { loadBrand } from "@/lib/carousel";
 import { freeTimeOn, monFirst, slotTimesFor, type Held } from "@/lib/postingSlots";
 import { EMPTY_POSITIONING, loadPositioning, type PlanPlatform, type Positioning } from "@/lib/positioning";
-import { STATIC_LAYOUT_IDS } from "@/lib/links";
+import { links, STATIC_LAYOUT_IDS } from "@/lib/links";
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
 import { loadProducts, type Products } from "@/lib/products";
 import { scoped } from "@/lib/profiles";
@@ -120,6 +120,37 @@ export function updatePost(userId: string, id: string, n: number, patch: Partial
   if (!c?.posts.some((p) => p.n === n)) return null;
   const next = { ...c, posts: c.posts.map((p) => (p.n === n ? { ...p, ...patch, n } : p)) };
   return saveCampaigns(userId, list.map((x) => (x.id === id ? next : x))) ? null : next;
+}
+
+/** The post's day of the campaign, 1 on its start day ("Day 3"). */
+export const dayOf = (c: Pick<Campaign, "startDay">, p: Pick<CampaignPost, "day">) => Math.round((keyToDate(p.day).getTime() - keyToDate(c.startDay).getTime()) / 86_400_000) + 1;
+
+// the list as last parsed, so a page of campaign posts parses it once (read again whenever the stored text changes)
+let parsed: { key: string; raw: string | null; list: Campaign[] } | null = null;
+
+/**
+ * "<campaign name> | Day 3" and the post's address on its campaign page, for a post a campaign made: from its draft's
+ * `campaign`, else, for a draft made before that was kept, from its id (cmp_<campaign>_<n>, campaignActions draftIdOf)
+ * with the day read off the campaign. Null for any other draft, and once that campaign or that post in it is gone, so
+ * a deleted campaign leaves no dead link.
+ */
+export function campaignLine(userId: string, d: Pick<DraftEntry, "id" | "campaign">): { text: string; day: number; href: string } | null {
+  const old = d.campaign ? null : /^cmp_([^_]+)_(\d+)$/.exec(d.id);
+  const link = d.campaign ?? (old ? { id: old[1], post: Number(old[2]) } : null);
+  if (!link) return null;
+  const key = campaignsKey(userId);
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(key);
+  } catch {
+    // blocked storage: no campaigns to name
+  }
+  if (parsed?.key !== key || parsed.raw !== raw) parsed = { key, raw, list: loadCampaigns(userId) };
+  const c = parsed.list.find((x) => x.id === link.id);
+  const p = c?.posts.find((x) => x.n === link.post);
+  if (!c || !p) return null;
+  const day = d.campaign?.day ?? dayOf(c, p);
+  return { text: `${c.name} | Day ${day}`, day, href: links.campaign(c.id, { post: link.post, section: "queue" }) };
 }
 
 /** Removes a campaign; returns it for the Undo toast (restoreCampaign), or null when it wasn't there. */

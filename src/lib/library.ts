@@ -72,6 +72,8 @@ export interface LibraryItem {
   waiting?: boolean;
   /** A video's file key on this device (deviceFiles.ts), checked once its card is on screen. */
   file?: string;
+  /** The campaign post it was made from (its draft's own). */
+  campaign?: DraftEntry["campaign"];
 }
 
 export interface LibraryJob {
@@ -167,6 +169,7 @@ function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project
         : {}),
     ...(status === "scheduled" && z?.postId && z.status !== "cancelled" ? { autoPost: true } : {}),
     ...(project ? { file: fileKey(project) } : {}),
+    ...(d.campaign ? { campaign: d.campaign } : {}),
   };
 }
 
