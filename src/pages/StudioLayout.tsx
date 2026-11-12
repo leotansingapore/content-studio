@@ -46,13 +46,17 @@ import {
   type NavSection,
 } from "@/lib/nav";
 
-// One sidebar on desktop (docs/nav-overhaul.md): five places to go, one button (New post, or Ask the agent with its
-// chats under it), then Brand, Settings and the account at the foot. The open section's tabs are one row at the top of
-// the page (SectionTabs). Phones get a bottom bar of four and a More sheet. Every page is listed once, in src/lib/nav.ts.
+// One sidebar on desktop, laid out as Fastlane's (docs/nav-overhaul.md): the brand switcher, six places to go, then
+// the agent's chats with a plus (Leo) or New post (everyone else), and one workspace card at the foot whose menu holds
+// Settings, Help, the theme and Sign out. It folds to an icon rail and back from its edge or Cmd/Ctrl+\ (navFold.ts).
+// The open section's tabs are one row at the top of the page (SectionTabs). Phones get Home, Campaigns, Chats or
+// Studio, and More. Every page is listed once, in src/lib/nav.ts.
 const MAIN_SECTIONS = SECTIONS.filter((s) => !s.foot);
+const isChat = (p: string) => p === "/agent" || p.startsWith("/agent/");
 // The agent's chats (Leo only) load in their own chunk, like the agent page.
 const SidebarThreads = lazy(() => import("@/components/agent/SidebarThreads"));
 const AgentMeter = lazy(() => import("@/components/agent/AgentMeter"));
+const CardMeter = lazy(() => import("@/components/agent/AgentMeter").then((m) => ({ default: m.CardMeter })));
 
 // The Remix sheet and its pill (north star, Leo only) read the data drops, so they load in their own chunk. The drops
 // are dozens of files: fetched 2.5 s after the session says Leo, so the page's own chunks go first (Home's agent block
@@ -169,38 +173,6 @@ function SideLink({ s, to, active, count = 0, folded }: { s: NavSection; to: str
   );
 }
 
-function FootLink({ s, to, active, folded }: { s: NavSection; to: string; active: boolean; folded: boolean }) {
-  const isNew = s.id === "settings" && feedbackIsNew();
-  const Icon = s.icon;
-  if (folded)
-    return (
-      <Link to={to} aria-current={active ? "page" : undefined} aria-label={s.label + (isNew ? ", new" : "")} data-tip={s.label} className={railItem(active, true)}>
-        <span className="relative flex shrink-0">
-          <Icon className="h-4 w-4" />
-          {isNew && <Dot className="bg-primary" />}
-        </span>
-      </Link>
-    );
-  return (
-    <Link
-      to={to}
-      aria-current={active ? "page" : undefined}
-      className={`relative flex min-h-9 items-center justify-center rounded-[10px] border px-3 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
-        active ? "border-border bg-accent text-foreground" : "border-border/70 bg-background text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-      }`}
-    >
-      {s.label}
-      {isNew && (
-        <>
-          <span aria-hidden className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
-          <span className="sr-only">, new</span>
-        </>
-      )}
-    </Link>
-  );
-}
-
-/** The account card at the foot: who is signed in, with Settings and Sign out in its menu. */
 const THEMES = [
   ["light", SunIcon, "Light"],
   ["dark", MoonIcon, "Dark"],
@@ -228,8 +200,15 @@ export function ThemeSwitch({ theme, onTheme }: { theme: ThemePick; onTheme: (t:
   );
 }
 
-function AccountMenu({
+/**
+ * The workspace card at the foot, Fastlane's: the open brand, the agent's messages used today (Leo) or who is signed in,
+ * and a menu with Settings, Help, the theme and Sign out. A dot on it, and New on Help, say the feedback board has news.
+ * Folded, it is the brand's square alone, its menu opening beside the rail.
+ */
+function WorkspaceCard({
+  brand,
   email,
+  meter,
   settingsTo,
   northStar,
   active,
@@ -238,14 +217,16 @@ function AccountMenu({
   onSignOut,
   folded = false,
 }: {
-  folded?: boolean;
+  brand: string;
   email: string;
+  meter: boolean;
   settingsTo: string;
   northStar: boolean;
   active: boolean;
   theme: ThemePick;
   onTheme: (t: ThemePick) => void;
   onSignOut: () => void;
+  folded?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -267,6 +248,14 @@ function AccountMenu({
       document.removeEventListener("keydown", esc);
     };
   }, [open]);
+  const news = feedbackIsNew();
+  const name = brand || email || "Account";
+  const label = `${name}, account menu${news ? ", new on the feedback board" : ""}`;
+  const square = (
+    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-primary text-sm font-semibold uppercase text-primary-foreground">
+      {name.charAt(0) || "?"}
+    </span>
+  );
   const item = "flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-sm text-foreground hover:bg-accent [@media(pointer:coarse)]:min-h-11";
   return (
     <div ref={ref} className="relative">
@@ -277,6 +266,7 @@ function AccountMenu({
           onClick={() => setOpen(false)}
           className={`z-40 rounded-xl border border-border bg-popover p-1 shadow-lg ${folded ? "fixed bottom-2.5 left-[var(--nav-w)] w-64" : "absolute inset-x-0 bottom-full mb-2"}`}
         >
+          <p className="truncate px-2.5 py-1.5 text-xs text-muted-foreground" title={email}>{email}</p>
           {northStar && (
             <Link role="menuitem" to="/north-star" className={item}>
               <StarIcon className="h-4 w-4 text-muted-foreground" /> North star
@@ -285,8 +275,9 @@ function AccountMenu({
           <Link role="menuitem" to={settingsTo} className={item}>
             <GearIcon className="h-4 w-4 text-muted-foreground" /> Settings
           </Link>
-          <Link role="menuitem" to="/welcome" className={item}>
+          <Link role="menuitem" to="/settings#help" className={item}>
             <QuestionIcon className="h-4 w-4 text-muted-foreground" /> Help
+            {news && <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">New</span>}
           </Link>
           <div className="px-1 py-1">
             <ThemeSwitch theme={theme} onTheme={onTheme} />
@@ -302,12 +293,13 @@ function AccountMenu({
           type="button"
           aria-haspopup="menu"
           aria-expanded={open}
-          aria-label={`Account, ${email || "signed in"}`}
-          data-tip={open ? undefined : email || "Account"}
+          aria-label={label}
+          data-tip={open ? undefined : name}
           onClick={() => setOpen((o) => !o)}
-          className={`grid h-10 w-10 place-items-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active || open ? "bg-accent" : "hover:bg-accent/60"}`}
+          className={`relative grid h-10 w-10 place-items-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active || open ? "bg-accent" : "hover:bg-accent/60"}`}
         >
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary text-sm font-semibold uppercase text-primary-foreground">{email.charAt(0) || "?"}</span>
+          {square}
+          {news && <Dot className="bg-primary" />}
         </button>
       ) : (
         <button
@@ -315,18 +307,28 @@ function AccountMenu({
           type="button"
           aria-haspopup="menu"
           aria-expanded={open}
+          aria-label={label}
           onClick={() => setOpen((o) => !o)}
-          className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors [@media(pointer:coarse)]:min-h-11 ${
-            active ? "border-border bg-accent" : "border-border/70 bg-background hover:bg-accent/60"
+          className={`relative flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors [@media(pointer:coarse)]:min-h-11 ${
+            active || open ? "border-border bg-accent" : "border-border/70 bg-background hover:bg-accent/60"
           }`}
         >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-primary text-sm font-semibold uppercase text-primary-foreground">
-            {email.charAt(0) || "?"}
+          {square}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium text-foreground" title={name}>{name}</span>
+            {meter ? (
+              <ErrorBoundary>
+                <Suspense fallback={null}>
+                  <CardMeter />
+                </Suspense>
+              </ErrorBoundary>
+            ) : (
+              brand && <span className="block truncate text-[11px] text-muted-foreground">{email}</span>
+            )}
           </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={email}>
-            {email || "Account"}
-          </span>
-          <CaretUpIcon className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "" : "rotate-180"}`} />
+          {/* points the way the menu opens, as Fastlane's card does */}
+          <CaretUpIcon className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+          {news && <span aria-hidden className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />}
         </button>
       )}
     </div>
@@ -645,6 +647,8 @@ export default function StudioLayout() {
     return s && s.id !== "home" ? sectionTo(s) : to;
   };
 
+  // the workspace card names the open brand
+  const brandName = uid ? activeProfile(uid)?.name ?? "" : "";
   const tabs = mobileTabs(email);
   // Getting started is a new sign-in's Home, though its page is filed under Settings > Help
   const barPath = barPathOf(pathname);
@@ -692,20 +696,36 @@ export default function StudioLayout() {
                 <ProfileSwitcher />
               </div>
             )}
+            {!folded && (
+              // Jump to, ours (Fastlane has none): Cmd or Ctrl K anywhere, or this; folded, the rail has its own
+              <button
+                type="button"
+                onClick={() => setJumpOpen(true)}
+                aria-haspopup="dialog"
+                aria-keyshortcuts="Meta+K Control+K"
+                aria-label="Jump to a page"
+                title={`Jump to a page (${jumpShortcut()})`}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+              >
+                <MagnifyingGlassIcon className="h-4 w-4" />
+              </button>
+            )}
           </div>
           {!folded && <ChannelsBlock userId={uid ?? leo?.id} className="px-3 pt-5" />}
           <nav aria-label="Sections" className={`space-y-1 pt-5 ${folded ? "px-2" : "px-3"}`}>
             {MAIN_SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => (
-              <SideLink key={s.id} s={s} to={sectionTo(s)} active={here?.id === s.id} count={s.id === "home" ? homeCount : 0} folded={folded} />
+              // a chat is lit in the chats list, not as Home (Fastlane's)
+              <SideLink key={s.id} s={s} to={sectionTo(s)} active={here?.id === s.id && !(s.id === "home" && isChat(pathname))} count={s.id === "home" ? homeCount : 0} folded={folded} />
             ))}
           </nav>
           {folded ? (
             <div className="space-y-1 px-2 pt-5">
+              {/* folded, the chats list hides: its plus starts a new chat; everyone else's New post stays an outline */}
               <Link
                 to={leo ? links.agent() : newPostHref(uid)}
-                aria-label={leo ? "Ask the agent" : "New post"}
-                data-tip={leo ? "Ask the agent" : "New post"}
-                className="grid h-9 w-10 place-items-center rounded-[10px] border border-primary/40 bg-primary/10 text-primary transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:h-11"
+                aria-label={leo ? "New chat" : "New post"}
+                data-tip={leo ? "New chat" : "New post"}
+                className="grid h-9 w-10 place-items-center rounded-[10px] border border-border/70 text-foreground transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:h-11"
               >
                 {leo ? <ChatTextIcon className="h-4 w-4" /> : <PlusIcon className="h-4 w-4" />}
               </Link>
@@ -724,43 +744,39 @@ export default function StudioLayout() {
               </button>
             </div>
           ) : (
-            <div className="space-y-2 px-3 pt-5">
-              <Button
-                asChild
-                className="h-auto min-h-10 w-full justify-start gap-2 whitespace-normal rounded-[10px] bg-gradient-primary py-2 text-left text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11"
-              >
-                {leo ? (
-                  <Link to={links.agent()}>
-                    <ChatTextIcon className="h-4 w-4" /> Ask the agent
+            leo ? (
+              // the agent's chats, Fastlane's: a header with a plus for a new one, then Today, Yesterday and Earlier
+              <div className="flex min-h-0 flex-1 flex-col px-3 pt-5">
+                <div className="flex items-center justify-between pl-2">
+                  <h2 className="text-xs font-semibold text-muted-foreground">Chats</h2>
+                  <Link
+                    to={links.agent()}
+                    aria-label="New chat"
+                    title="New chat"
+                    className="grid h-8 w-8 place-items-center rounded-[10px] text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+                  >
+                    <PlusIcon className="h-4 w-4" />
                   </Link>
-                ) : (
+                </div>
+                <ErrorBoundary>
+                  <Suspense fallback={null}>
+                    <SidebarThreads userId={leo.id} />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+            ) : (
+              <div className="px-3 pt-5">
+                {/* an outline, so the page's own action stays the one filled button on screen */}
+                <Button asChild variant="outline" className="h-10 w-full justify-start gap-2 rounded-[10px] [@media(pointer:coarse)]:h-11">
                   <Link to={newPostHref(uid)}>
                     <PlusIcon className="h-4 w-4" /> New post
                   </Link>
-                )}
-              </Button>
-              <button
-                type="button"
-                onClick={() => setJumpOpen(true)}
-                aria-haspopup="dialog"
-                aria-keyshortcuts="Meta+K Control+K"
-                className="flex h-9 w-full items-center gap-2 rounded-[10px] border border-border/70 bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground [@media(pointer:coarse)]:h-11"
-              >
-                <MagnifyingGlassIcon className="h-4 w-4 shrink-0" />
-                <span className="flex-1 text-left">Jump to...</span>
-                <kbd className="rounded border border-border/70 px-1.5 font-sans text-[10px] font-semibold">{jumpShortcut()}</kbd>
-              </button>
-            </div>
+                </Button>
+              </div>
+            )
           )}
-          <div className="flex min-h-0 flex-1 flex-col px-3 pt-2">
-            {leo && !folded && (
-              <ErrorBoundary>
-                <Suspense fallback={null}>
-                  <SidebarThreads userId={leo.id} />
-                </Suspense>
-              </ErrorBoundary>
-            )}
-          </div>
+          {/* what is left of the rail's height, so the card sits at the foot */}
+          {(folded || !leo) && <div className="min-h-0 flex-1" />}
           {folded ? (
             <div className="flex shrink-0 flex-col items-center gap-1 border-t border-border/70 px-2 py-3">
               {version.ready && (
@@ -777,15 +793,15 @@ export default function StudioLayout() {
                   </span>
                 </button>
               )}
-              <FootLink s={section("playbook")} to={sectionTo(section("playbook"))} active={here?.id === "playbook"} folded />
-              <FootLink s={section("settings")} to={sectionTo(section("settings"))} active={here?.id === "settings"} folded />
               <div className="pt-1">
-                <AccountMenu
+                <WorkspaceCard
                   folded
+                  brand={brandName}
                   email={email}
+                  meter={!!leo}
                   settingsTo={sectionTo(section("settings"))}
                   northStar={!!leo}
-                  active={pathname === "/north-star"}
+                  active={here?.id === "settings" || pathname === "/north-star"}
                   theme={theme}
                   onTheme={switchTheme}
                   onSignOut={handleSignOut}
@@ -795,22 +811,13 @@ export default function StudioLayout() {
           ) : (
             <div className="shrink-0 space-y-2 border-t border-border/70 p-3">
               {version.ready && <NewVersion onLater={version.later} />}
-              <div className="grid grid-cols-2 gap-2">
-                <FootLink s={section("playbook")} to={sectionTo(section("playbook"))} active={here?.id === "playbook"} folded={false} />
-                <FootLink s={section("settings")} to={sectionTo(section("settings"))} active={here?.id === "settings"} folded={false} />
-              </div>
-              {leo && (
-                <ErrorBoundary>
-                  <Suspense fallback={null}>
-                    <AgentMeter />
-                  </Suspense>
-                </ErrorBoundary>
-              )}
-              <AccountMenu
+              <WorkspaceCard
+                brand={brandName}
                 email={email}
+                meter={!!leo}
                 settingsTo={sectionTo(section("settings"))}
                 northStar={!!leo}
-                active={pathname === "/north-star"}
+                active={here?.id === "settings" || pathname === "/north-star"}
                 theme={theme}
                 onTheme={switchTheme}
                 onSignOut={handleSignOut}
@@ -910,6 +917,12 @@ export default function StudioLayout() {
               {email}
             </p>
             <div className="flex shrink-0 items-center gap-1">
+              {/* Help, as in the workspace card's menu on computers */}
+              <Button asChild variant="ghost" size="sm" className="h-11 gap-1.5 text-muted-foreground">
+                <Link to="/settings#help">
+                  <QuestionIcon className="h-3.5 w-3.5" /> Help
+                </Link>
+              </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="h-11 gap-1.5 text-muted-foreground">
                 <SignOutIcon className="h-3.5 w-3.5" /> Sign out
               </Button>
@@ -925,8 +938,8 @@ export default function StudioLayout() {
         data-bottom-nav
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
-        <div className="grid grid-cols-5">
-          {tabs.map(({ to, label, icon: Icon, active }, i) => (
+        <div className="grid grid-cols-4">
+          {tabs.map(({ to, label, icon: Icon, active }) => (
             <Link
               key={label}
               to={barTo(to)}
@@ -971,7 +984,11 @@ export default function StudioLayout() {
           id="main-content"
           ref={mainRef}
           tabIndex={-1}
-          className="mx-auto max-w-5xl px-4 pb-40 pt-6 focus:shadow-none focus:outline-none sm:px-6 sm:pt-8 lg:px-6 lg:pb-24 xl:px-10"
+          // the agent's chat is Fastlane's three columns: from lg it takes the whole panel, the thread centred in it and
+          // Your work against its right edge (AgentPage)
+          className={`mx-auto max-w-5xl px-4 pb-40 pt-6 focus:shadow-none focus:outline-none sm:px-6 sm:pt-8 ${
+            isChat(pathname) ? "lg:max-w-none lg:p-0" : "lg:px-6 lg:pb-24 xl:px-10"
+          }`}
         >
           <SectionTabs email={email} />
           {/* Lazy route chunks resolve here so the rails/bottom nav never flicker.

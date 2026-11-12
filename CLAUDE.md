@@ -89,18 +89,19 @@
   mirrored cross-device by `src/lib/cloudSync.ts` (prefix-based). New
   persistent features MUST use the `content-studio-` key prefix or they will
   not sync.
-- Nav: every page is listed once, in `src/lib/nav.ts` (SECTIONS). Five places to go and two at the foot (Leo
-  2026-11-11, "everything should be stupidly simple to use"; `docs/nav-overhaul.md` has the map of where each page
-  went): Home, Create, Library, Plan, Insights, then Brand (Fastlane's tabs: Profile, Products, Competitors, Demo
-  videos, Media) and Settings. Desktop has ONE sidebar (StudioLayout) with
-  one button (New post, or Ask the agent). The open section's tabs are one row at the top of every page, rendered once
-  by the shell (`SectionTabs`, from `sectionTabs()`): five at most (`MAX_TABS`), never a second row. Pages that do one
-  job share a `group`: that tab shows an arrow when open and lists them (the picker). `bare` pages (Home, the agent,
-  North star) get no tabs; an `index` section (Settings) lists its pages as tiles at /settings and each page shows a
-  way back. Filters stay on the page itself as chips. Pages must not render SectionTabs themselves. Phones get a
-  bottom bar of four (Home, Create, Library or Chats, Plan) and the More sheet. No address ever changes when a page
-  moves: when adding a page, add it to a tab there, give it a one or two word `label` a stranger understands and its
-  old names in `was` (Jump to searches them), and keep `src/lib/nav.test.ts` green; do not add a section or a sixth tab.
+- Nav: every page is listed once, in `src/lib/nav.ts` (SECTIONS), laid out as Fastlane's (Leo 2026-11-12, "FOLLOW
+  THE USEFASTLANE LAYOUT"; `docs/nav-overhaul.md` is the map): Home, Campaigns, Studio, Brand, Competitor Radar,
+  Analytics. Desktop has ONE sidebar (StudioLayout): those six, then the agent's chats with a plus (Leo) or the one
+  New post button (everyone else), and one workspace card at the foot whose menu holds Settings, Help, the theme and
+  Sign out. The open section's tabs are one row at the top of every page, rendered once by the shell (`SectionTabs`,
+  from `sectionTabs()`): five at most (`MAX_TABS`), never a second row. Pages that do one job share a `group`: that
+  tab shows an arrow when open and lists them (the picker), with `head` headings where one tab holds several kinds.
+  `bare` pages (Home, the agent, North star) get no tabs; an `index` section (Settings) lists its pages as tiles at
+  /settings and each page shows a way back. Filters stay on the page itself as chips. Pages must not render
+  SectionTabs themselves. Phones get Home, Campaigns, Chats (Leo) or Studio, and More. The agent's chat (/agent) is
+  three columns from lg (the shell gives it the whole panel). No address ever changes when a page moves: when adding
+  a page, add it to a tab there, give it a one or two word `label` a stranger understands and its old names in `was`
+  (Jump to searches them), and keep `src/lib/nav.test.ts` green; do not add a section or a sixth tab.
 - Theme: the studio is dark by default (Fastlane's look; Leo's default), Light, Dark or System (follows the device,
   live) per device from the account menu or the phone More sheet (`src/lib/theme.ts`, `cs-theme`). `index.html`
   darkens before first paint; public pages (/roadmap, /auth, /review, /l, /join, /t, /phone) stay light, and `theme.test.ts` keeps index.html's list equal to

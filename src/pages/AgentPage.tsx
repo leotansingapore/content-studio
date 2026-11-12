@@ -1,7 +1,8 @@
 // /agent and /agent/:thread (agent-chat, Leo only; docs/north-star/items/agent-chat.md): the agent's chats. The
-// thread list sits in the sidebar from lg up (SidebarThreads) and behind "Chats" (?panel=chats) on phones; the open
-// chat fills the rest, with its composer pinned at the bottom and "Your work" (WorkPanel) beside it from xl up and
-// behind the "Your work" button (?panel=work) below that. ?m=
+// thread list sits in the sidebar from lg up (SidebarThreads) and behind "Chats" (?panel=chats) on phones. From lg the
+// page is Fastlane's three columns: the sidebar, the open chat centred in the panel with its composer pinned at the
+// bottom, and "Your work" (WorkPanel) against the panel's right edge from xl up, behind the "Your work" button
+// (?panel=work) below that. ?m=
 // rings one message, and ?ask= and ?remix= hand a new chat its words or its post once, then leave the address (so the
 // Remix sheet never opens over the page). A page can also hand over words that send on arrival, with where they came
 // from (navigation state, agentStarters.ts handoff). Everyone else gets the 404.
@@ -124,9 +125,11 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
   const identity = { id: userId, email, name: email.split("@")[0] || null };
 
   return (
-    <div ref={ref} style={height ? { height } : undefined} className="-mb-40 flex min-h-[360px] gap-6 lg:-mb-24">
-      <section className="flex min-w-0 flex-1 flex-col" aria-label="Chat">
-        <header className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/60 pb-3">
+    <div ref={ref} style={height ? { height } : undefined} className="-mb-40 flex min-h-[360px] gap-6 lg:mb-0 lg:gap-0">
+      <section className="flex min-w-0 flex-1 flex-col lg:px-8 lg:pt-6" aria-label="Chat">
+        {/* the thread's own column, centred in the panel as Fastlane's is */}
+        <div className="mx-auto flex min-h-0 w-full flex-1 flex-col lg:max-w-2xl">
+        <header className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/60 pb-3 lg:border-b-0">
           <Button type="button" variant="outline" onClick={() => openPanel("chats")} className="h-11 shrink-0 gap-1.5 lg:hidden">
             <ChatsIcon /> Chats
           </Button>
@@ -174,6 +177,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
           identity={identity}
           onThread={toThread}
         />
+        </div>
       </section>
       <WorkPanel threads={threads} />
       <dialog

@@ -56,7 +56,7 @@ export default function WorkPanel({ threads, sheet, onClose }: { threads: AgentT
   };
   if (hidden && !sheet)
     return (
-      <button type="button" onClick={() => toggle(false)} className="hidden h-9 shrink-0 self-start rounded-lg border border-border/70 px-3 text-sm text-muted-foreground hover:text-foreground xl:block">
+      <button type="button" onClick={() => toggle(false)} className="hidden h-9 shrink-0 self-start rounded-lg border border-border/70 px-3 text-sm text-muted-foreground hover:text-foreground xl:mr-5 xl:mt-6 xl:block">
         Your work
       </button>
     );
@@ -68,7 +68,8 @@ export default function WorkPanel({ threads, sheet, onClose }: { threads: AgentT
     return `${i.type} | ${(t?.msg === i.msg && t.line?.replace(/\.\.\.$/, "")) || "Making"}`;
   };
   return (
-    <aside aria-label="Your work" className={sheet ? "flex h-full flex-col" : "hidden w-64 shrink-0 flex-col border-l border-border/60 pl-5 xl:flex"}>
+    // beside the chat: the panel's own right column, full height, as Fastlane's (the page has no padding there from lg)
+    <aside aria-label="Your work" className={sheet ? "flex h-full flex-col" : "hidden w-72 shrink-0 flex-col border-l border-border/60 px-5 pb-4 pt-6 xl:flex"}>
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-base font-semibold text-foreground">Your work</h2>
         {sheet && onClose && (

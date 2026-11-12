@@ -191,7 +191,9 @@ describe("Campaigns, Ideas and Audiences", () => {
     const other = [...CREATE_ITEMS, ...pageItems("someone@example.com")];
     for (const to of ["/campaigns", "/ideas", "/audiences"]) expect(other.map((i) => i.to)).not.toContain(to);
     // slideshow campaigns (/design/campaigns, 31 Oct) are everyone's; the plan of that name stays Leo's
-    expect(searchJump(other, "campaign").map((i) => i.to)).toEqual(["/design/campaigns"]);
+    // and the sidebar's Campaigns lists its pages after it, never the Leo-only plan
+    expect(searchJump(other, "campaign")[0].to).toBe("/design/campaigns");
+    expect(searchJump(other, "campaign").map((i) => i.to)).not.toContain("/campaigns");
     expect(searchJump(other, "ideas")[0].to).toBe("/inspiration");
   });
 });

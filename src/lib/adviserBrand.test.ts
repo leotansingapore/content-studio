@@ -52,8 +52,8 @@ describe("adviserBrand", () => {
 });
 
 describe("the Singapore personal-finance libraries", () => {
-  // what Radar held: Insights' Inspiration and Creators tabs
-  const radar = () => visiblePages(section("insights").pages, "someone@example.com").filter((p) => !["/analytics", "/coach"].includes(p.to) && !p.to.startsWith("/recruit")).map((p) => `${p.to} ${p.label}`);
+  // Competitor Radar's pages
+  const radar = () => visiblePages(section("find").pages, "someone@example.com").map((p) => `${p.to} ${p.label}`);
   const brandPages = () => visiblePages(section("playbook").pages, "someone@example.com").map((p) => p.to);
   const ideasWeakest: DiagnosisResult = {
     overall: 10, levelLabel: "", areas: [{ id: "ideas", label: "Ideas", score: 10 }], weaknesses: [{ id: "ideas", label: "Ideas", score: 10 }], strengths: [],
@@ -81,7 +81,7 @@ describe("the Singapore personal-finance libraries", () => {
   });
 
   it("name /swipe for its six tabs on Leo's sign-ins: Swipe file on another brand, Top posts on an adviser's", () => {
-    const leo = () => [...section("insights").pages, ...section("write").pages].flatMap((p) => visiblePages([p], "tanjunsing@gmail.com")).filter((p) => ["/swipe", "/clone"].includes(p.to)).map((p) => p.label);
+    const leo = () => [...section("find").pages, ...section("write").pages].flatMap((p) => visiblePages([p], "tanjunsing@gmail.com")).filter((p) => ["/swipe", "/clone"].includes(p.to)).map((p) => p.label);
     brandDevice("u1", "Coach");
     expect(leo()).toEqual(["Swipe file", "Remix a post"]);
     brandDevice("u1", "Financial adviser");
@@ -94,7 +94,7 @@ describe("the Singapore personal-finance libraries", () => {
       brandDevice("u1", "Coach");
       expect(tabs("/analytics", email), email).not.toContain("Recruit");
       // opened by address it sits under Insights, with the other tabs as the way out and no picker of its own
-      expect(sectionFor("/recruit/agent")?.id).toBe("insights");
+      expect(sectionFor("/recruit/agent")?.id).toBe("analytics");
       expect(tabs("/recruit", email).length, email).toBeGreaterThan(1);
       expect(sectionTabs("/recruit", email).picker, email).toEqual([]);
       expect(pageItems(email).map((i) => i.to), email).toEqual(expect.arrayContaining(["/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage"]));

@@ -6,6 +6,7 @@ import { CompassIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { groupedPages, section, settingsTiles, visiblePages } from "@/lib/nav";
 import { supabase } from "@/lib/supabase";
+import { useScrollToHash } from "@/lib/urlState";
 import { startTour } from "@/lib/tour";
 import { useTourUser } from "@/lib/useTourUser";
 
@@ -17,6 +18,8 @@ export default function SettingsPage() {
     // getSession reads the stored session: no Auth round trip under the client lock
     void supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? ""));
   }, []);
+  // the tiles wait for the sign-in (each is gated), so the scroll waits for them
+  useScrollToHash(!!email);
   const settings = section("settings");
   const tiles = settingsTiles(visiblePages(groupedPages(settings.pages.slice(1)), email), email);
   const groups = [...new Set(tiles.map((p) => p.group ?? ""))];
@@ -24,7 +27,8 @@ export default function SettingsPage() {
     <div className="space-y-8">
       <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Settings</h1>
       {groups.map((g) => (
-        <section key={g} aria-label={g} className="space-y-3">
+        // /settings#help (the workspace card's Help) and each group's own id
+        <section key={g} id={g.toLowerCase().replace(/\s+/g, "-")} aria-label={g} className="scroll-mt-20 space-y-3">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{g}</h2>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {tiles

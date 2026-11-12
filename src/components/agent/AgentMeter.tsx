@@ -26,3 +26,19 @@ export default function AgentMeter() {
     </Link>
   );
 }
+
+/** The same count as a thin bar and "n% used", inside the workspace card (no link: the card is a menu button). */
+export function CardMeter() {
+  const left = leftOf(useAgentUsage(), "agent-act");
+  const limit = limitOf("agent-act");
+  if (left === null || !limit) return null;
+  const used = Math.min(100, Math.max(0, Math.round(((limit - left) / limit) * 100)));
+  return (
+    <span className="mt-1 flex items-center gap-2" title={`Agent messages: ${left} left, back at 8am`}>
+      <span aria-hidden className="block h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
+        <span className={`block h-full rounded-full ${left <= 10 ? "bg-destructive" : "bg-primary"}`} style={{ width: `${used}%` }} />
+      </span>
+      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{used}% used</span>
+    </span>
+  );
+}

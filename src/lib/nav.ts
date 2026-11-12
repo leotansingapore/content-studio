@@ -1,15 +1,15 @@
-// The studio's whole navigation in one place. Five places to go and two at the foot (Leo 11 Nov: "everything should be
-// stupidly simple to use"; docs/nav-overhaul.md): Home, Create, Library, Plan, Insights, then Brand and Settings. The
-// open section's tabs sit at the top of the page (SectionTabs, in the shell), five at most and one row. Pages that do
-// one job share a tab (`group`): the tab shows a small arrow and lists them (the picker). Filters stay on the pages.
-// Phones get a bottom bar of four plus More. Adding a page = adding it to one tab here; no address ever changes.
+// The studio's whole navigation in one place, laid out as Fastlane's (Leo 12 Nov: "FOLLOW THE USEFASTLANE LAYOUT";
+// docs/nav-overhaul.md): one sidebar of Home, Campaigns, Studio, Brand, Competitor Radar and Analytics, then the
+// agent's chats (Leo) or New post (everyone else), and the workspace card at the foot, whose menu holds Settings and
+// Help. The open section's tabs sit at the top of the page (SectionTabs, in the shell), five at most and one row.
+// Pages that do one job share a tab (`group`): the tab shows a small arrow and lists them (the picker). Filters stay
+// on the pages. Phones get Home, Campaigns, Chats or Studio, and More. Adding a page = adding it to one tab here; no
+// address ever changes.
 import {
   ChartBarIcon,
   BellIcon,
   BookBookmarkIcon,
-  CalendarDotsIcon,
   CommandIcon,
-  FolderOpenIcon,
   HouseIcon,
   LinkIcon,
   ListChecksIcon,
@@ -25,6 +25,8 @@ import {
   SparkleIcon,
   StarIcon,
   MagicWandIcon,
+  BinocularsIcon,
+  TargetIcon,
   TranslateIcon,
   TagIcon,
   UserCheckIcon,
@@ -67,6 +69,8 @@ export type NavPage = {
   bare?: boolean;
   /** Its deeper addresses (/fads/positioning) are tabs of the page itself, so the row stays over them. */
   subTabs?: boolean;
+  /** A heading over this page and the ones after it in its tab's picker, when one tab holds several kinds (Create). */
+  head?: string;
   /** The line under its name in a picker or on an index tile (Settings), 12 words at most. */
   hint?: string;
   /** What it was called before, and other words people look for it by: Jump to finds it by these. */
@@ -93,7 +97,8 @@ const adviser = () => adviserBrand();
 /** No section shows more tabs than this to any sign-in (nav.test.ts holds it). */
 export const MAX_TABS = 5;
 
-// Section ids are kept from the older navs where a section lives on (plan, write = Create, playbook = Brand).
+// The sidebar's order is Fastlane's (11 Nov frames). Section ids are kept from the older navs where a section lives on
+// (plan = Campaigns, write = Studio, playbook = Brand, find = Competitor Radar).
 export const SECTIONS: NavSection[] = [
   {
     id: "home",
@@ -108,62 +113,11 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: "write",
-    label: "Create",
-    icon: MagicWandIcon,
-    to: "/studio",
-    was: "Studio",
-    pages: [
-      // one screen that answers "what do you want to make?" (StudioPage)
-      { to: "/studio", label: "Start", title: "Create", group: "Start", was: "Studio overview what to make" },
-      { to: "/generate", label: "Post", end: true, title: "Write a post", group: "Write" },
-      { to: "/generate/batch", label: "Weekly batch", was: "Batch" },
-      { to: "/generate/answer", label: "Answer", title: "Answer a question" },
-      { to: "/generate/vsl", label: "Sales script", title: "Write a VSL", was: "VSL video sales letter" },
-      // write hooks in bulk, keep or say Not this (BuilderCult's My hooks, folded in 6 Nov)
-      { to: "/hooks", label: "Hooks", title: "My hooks" },
-      // Scriptwriter: 12 dials, hook ideas and a topic, written on Leo's own Claude Code (script desk)
-      { to: "/script", label: "Script", title: "Scriptwriter", owners: LEO_EMAILS },
-      { to: "/carousel", label: "Carousel", group: "Slides" },
-      { to: "/slideshow", label: "Slideshow" },
-      // the layer editor and its templates (Volume, folded in 31 Oct)
-      { to: "/design", label: "Design", title: "Design slides", end: true },
-      // a new slideshow on a schedule, sent to TikTok, and the pictures it draws from (Volume)
-      { to: "/design/campaigns", label: "Auto slideshows", title: "Slideshow campaigns", was: "Campaigns", hint: "A new slideshow on a schedule." },
-      { to: "/design/libraries", label: "Picture sets", title: "Image libraries", was: "Libraries", hint: "The pictures auto slideshows draw from." },
-      { to: "/image", label: "Image", owners: LEO_EMAILS },
-      { to: "/edit", label: "Video editor", title: "Edit a video", group: "Video", was: "Video" },
-      // a hook that stops the scroll, then the app's demo (BuilderCult's Reaction UGC, folded in 6 Nov)
-      { to: "/make/hook-demo", label: "Hook + demo", title: "Hook plus demo" },
-      { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", was: "Radar remix" },
-      { to: "/people", label: "Faces and voices", owners: LEO_EMAILS, was: "Influencers presenters" },
-      // the whole catalogue (Fastlane's Studio > Create) and a deck of ready drafts to keep or skip (its Blitz)
-      { to: "/make", label: "All formats", title: "Formats", owners: LEO_EMAILS, group: "Formats" },
-      { to: "/blitz", label: "Blitz", owners: LEO_EMAILS, hint: "Swipe through ready drafts." },
-    ],
-  },
-  {
-    id: "library",
-    label: "Library",
-    icon: FolderOpenIcon,
-    to: "/library",
-    was: "Studio",
-    pages: [
-      // one place for what you made, with four ways to look at it
-      { to: "/library", label: "Everything", title: "Library", group: "My work" },
-      { to: "/drafts", label: "All posts", was: "My posts drafts history" },
-      { to: "/board", label: "Board" },
-      { to: "/grid", label: "Grid", title: "Instagram grid" },
-      { to: "/reels", label: "Posts board", end: true, show: reelsShown, group: "Approvals" },
-      { to: "/team", label: "Leader approvals" },
-    ],
-  },
-  {
     id: "plan",
-    label: "Plan",
-    icon: CalendarDotsIcon,
+    label: "Campaigns",
+    icon: TargetIcon,
     to: "/calendar",
-    was: "Strategy",
+    was: "Plan Strategy",
     // Leo's opens on his campaigns, everyone else's on the calendar
     pages: [
       { to: "/campaigns", label: "Campaigns", owners: LEO_EMAILS, group: "Campaigns" },
@@ -175,35 +129,50 @@ export const SECTIONS: NavSection[] = [
       // the formats that win among the brand's Apps like yours references, and this month's progress on them
       { to: "/social-north-star", label: "Social north star", owners: LEO_EMAILS },
       { to: "/ideas", label: "Ideas", owners: LEO_EMAILS, group: "Ideas" },
+      // posts waiting for a yes before they go out, beside the calendar they go out on
+      { to: "/reels", label: "Posts board", end: true, show: reelsShown, group: "Approvals", was: "Library" },
+      { to: "/team", label: "Leader approvals", was: "Library" },
     ],
   },
   {
-    id: "insights",
-    label: "Insights",
-    icon: ChartBarIcon,
-    to: "/analytics",
+    id: "write",
+    label: "Studio",
+    icon: MagicWandIcon,
+    to: "/studio",
+    was: "Create Library",
     pages: [
-      { to: "/analytics", label: "Results", title: "Analytics", group: "Results", was: "Analytics numbers" },
-      { to: "/coach", label: "Coach", group: "Coach", was: "Analytics" },
-      // things to remix. Top posts, Trends and Examples are Singapore personal finance: an adviser brand's only
-      { to: "/swipe", label: "Top posts", anyLabel: "News", leoAnyLabel: "Swipe file", group: "Find posts", was: "Radar ads inspiration" },
-      { to: "/carousels", label: "Carousels", was: "Radar" },
-      { to: "/working", label: "What's working", was: "Radar" },
-      { to: "/trends", label: "Trends", show: () => adviserBrand(), was: "Radar" },
-      { to: "/inspiration", label: "Inspiration", show: () => adviserBrand(), was: "Radar" },
-      { to: "/saved", label: "Saved", owners: LEO_EMAILS, was: "Radar" },
-      { to: "/market", label: "Your market", show: marketShown, was: "Radar" },
-      // who to watch. Research is 100 Instagram creators read by Leo's Mac; Following is 5 accounts, for everyone
-      { to: "/following", label: "Following", group: "Creators", was: "Radar" },
-      { to: "/profiles", label: "Creators to follow", show: () => adviserBrand(), was: "Radar creator list" },
-      { to: "/research", label: "Research", owners: LEO_EMAILS, was: "Radar" },
-      // the recruit kit: one page with its own parts (/recruit/:tab). A tab on an adviser brand only (Leo 11 Nov); any
-      // brand still opens it by address and from Jump to
-      { to: "/recruit", label: "Recruit kit", end: true, group: "Recruit", was: "Brand Brain Grow", inTabs: adviser },
-      { to: "/recruit/conversations", label: "Conversations", was: "Grow", inTabs: adviser },
-      { to: "/recruit/agent", label: "Reply agent", was: "Grow AI agent", inTabs: adviser },
-      { to: "/recruit/engage", label: "Reply drafts", was: "Grow", inTabs: adviser },
-      { to: "/recruit/auto-dm", label: "Auto-DM", show: socialConnectShown, owners: LEO_EMAILS, was: "Grow", inTabs: adviser },
+      // Fastlane's Studio tabs: Overview, Create, Library, Blitz, Influencers. Overview asks "what do you want to make?"
+      { to: "/studio", label: "Overview", title: "Studio", group: "Overview", was: "Create start what to make" },
+      // every maker, Leo's opening on the whole catalogue as Fastlane's Create does, everyone else's on Post
+      { to: "/make", label: "All formats", title: "Formats", owners: LEO_EMAILS, group: "Create" },
+      { to: "/generate", label: "Post", end: true, title: "Write a post", head: "Words" },
+      { to: "/generate/batch", label: "Weekly batch", was: "Batch" },
+      { to: "/generate/answer", label: "Answer", title: "Answer a question" },
+      { to: "/generate/vsl", label: "Sales script", title: "Write a VSL", was: "VSL video sales letter" },
+      // write hooks in bulk, keep or say Not this (BuilderCult's My hooks, folded in 6 Nov)
+      { to: "/hooks", label: "Hooks", title: "My hooks" },
+      // Scriptwriter: 12 dials, hook ideas and a topic, written on Leo's own Claude Code (script desk)
+      { to: "/script", label: "Script", title: "Scriptwriter", owners: LEO_EMAILS },
+      { to: "/carousel", label: "Carousel", head: "Slides and pictures" },
+      { to: "/slideshow", label: "Slideshow" },
+      // the layer editor and its templates (Volume, folded in 31 Oct)
+      { to: "/design", label: "Design", title: "Design slides", end: true },
+      // a new slideshow on a schedule, sent to TikTok, and the pictures it draws from (Volume)
+      { to: "/design/campaigns", label: "Auto slideshows", title: "Slideshow campaigns", was: "Campaigns", hint: "A new slideshow on a schedule." },
+      { to: "/design/libraries", label: "Picture sets", title: "Image libraries", was: "Libraries", hint: "The pictures auto slideshows draw from." },
+      { to: "/image", label: "Image", owners: LEO_EMAILS },
+      { to: "/edit", label: "Video editor", title: "Edit a video", head: "Video", was: "Video" },
+      // a hook that stops the scroll, then the app's demo (BuilderCult's Reaction UGC, folded in 6 Nov)
+      { to: "/make/hook-demo", label: "Hook + demo", title: "Hook plus demo" },
+      { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", was: "Radar remix" },
+      // what you made, with four views switched on the page itself (LibraryViews)
+      { to: "/library", label: "Everything", title: "Library", group: "Library" },
+      { to: "/drafts", label: "All posts", was: "My posts drafts history" },
+      { to: "/board", label: "Board" },
+      { to: "/grid", label: "Grid", title: "Instagram grid" },
+      // a deck of ready drafts to keep or skip (Fastlane's Blitz) and the AI people who appear in videos
+      { to: "/blitz", label: "Blitz", owners: LEO_EMAILS, group: "Blitz", hint: "Swipe through ready drafts." },
+      { to: "/people", label: "Faces and voices", owners: LEO_EMAILS, group: "Influencers", was: "Influencers presenters" },
     ],
   },
   {
@@ -211,7 +180,6 @@ export const SECTIONS: NavSection[] = [
     label: "Brand",
     icon: BookBookmarkIcon,
     to: "/playbook",
-    foot: true,
     pages: [
       // Fastlane's Brand tabs: Profile, Products, Competitors, Demo videos, Photos and videos (Leo 11 Nov). Profile is
       // what the AI knows, each row linking to where it is set: those pages are its picker
@@ -231,7 +199,47 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
-    // An index of tiles under the account menu; each page leads back to it. `group` names a tile group here, not tabs.
+    id: "find",
+    label: "Competitor Radar",
+    icon: BinocularsIcon,
+    to: "/swipe",
+    was: "Radar Insights",
+    pages: [
+      // things to remix. Top posts, Trends and Inspiration are Singapore personal finance: an adviser brand's only
+      { to: "/swipe", label: "Top posts", anyLabel: "News", leoAnyLabel: "Swipe file", group: "Find posts", was: "ads inspiration" },
+      { to: "/carousels", label: "Carousels" },
+      { to: "/working", label: "What's working" },
+      { to: "/trends", label: "Trends", show: () => adviserBrand() },
+      { to: "/inspiration", label: "Inspiration", show: () => adviserBrand() },
+      // who to watch. Research is 100 Instagram creators read by Leo's Mac; Following is 5 accounts, for everyone
+      { to: "/following", label: "Following", group: "Creators" },
+      { to: "/profiles", label: "Creators to follow", show: () => adviserBrand(), was: "creator list" },
+      { to: "/research", label: "Research", owners: LEO_EMAILS },
+      { to: "/saved", label: "Saved", owners: LEO_EMAILS, group: "Saved" },
+      { to: "/market", label: "Your market", show: marketShown, group: "Your market" },
+    ],
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: ChartBarIcon,
+    to: "/analytics",
+    was: "Insights",
+    pages: [
+      { to: "/analytics", label: "Results", title: "Analytics", group: "Results", was: "numbers" },
+      { to: "/coach", label: "Coach", group: "Coach" },
+      // the recruit kit: one page with its own parts (/recruit/:tab). A tab on an adviser brand only (Leo 11 Nov); any
+      // brand still opens it by address and from Jump to
+      { to: "/recruit", label: "Recruit kit", end: true, group: "Recruit", was: "Brand Brain Grow", inTabs: adviser },
+      { to: "/recruit/conversations", label: "Conversations", was: "Grow", inTabs: adviser },
+      { to: "/recruit/agent", label: "Reply agent", was: "Grow AI agent", inTabs: adviser },
+      { to: "/recruit/engage", label: "Reply drafts", was: "Grow", inTabs: adviser },
+      { to: "/recruit/auto-dm", label: "Auto-DM", show: socialConnectShown, owners: LEO_EMAILS, was: "Grow", inTabs: adviser },
+    ],
+  },
+  {
+    // An index of tiles under the workspace card's menu; each page leads back to it. `group` names a tile group here,
+    // not tabs. `foot`: not in the sidebar's list.
     id: "settings",
     label: "Settings",
     icon: GearIcon,
@@ -321,7 +329,7 @@ export const pageTitle = (pathname: string) => {
   return hit ? `${hit.page.title ?? (hit.page.anyLabel && !adviserBrand() ? hit.page.anyLabel : hit.page.label)} - Postmosis` : "Postmosis";
 };
 
-export type Tab = { to: string; label: string; end?: boolean; active: boolean; hint?: string };
+export type Tab = { to: string; label: string; end?: boolean; active: boolean; hint?: string; head?: string };
 export type SectionTabs = { tabs: Tab[]; picker: Tab[]; back?: Tab };
 
 /**
@@ -340,7 +348,7 @@ export function sectionTabs(pathname: string, email: string): SectionTabs {
   if (index) return { tabs: [], picker: [], back: { to: index.to, label: hit.section.label, active: false } };
   const all = groupedPages(hit.section.pages);
   const pages = visiblePages(all, email).filter((p) => !p.inTabs || p.inTabs());
-  const tab = (p: NavPage, label = p.label, active = p.to === hit.page.to): Tab => ({ to: p.to, label, end: p.end, active, hint: p.hint });
+  const tab = (p: NavPage, label = p.label, active = p.to === hit.page.to): Tab => ({ to: p.to, label, end: p.end, active, hint: p.hint, head: p.head });
   const atLeastTwo = (t: Tab[]) => (t.length > 1 ? t : []);
   const open = all.find((p) => p.to === hit.page.to)?.group;
   const of = (g: string | undefined) => pages.filter((p) => p.group === g);
@@ -351,18 +359,18 @@ export function sectionTabs(pathname: string, email: string): SectionTabs {
   return { tabs: tabs.length > 1 || picker.length ? tabs : [], picker };
 }
 
-// Phone bottom bar: four places and More. Home, Create, Library and Plan; the agent's sign-ins have their chats where
-// Library is, and find Library in More.
+// Phone bottom bar, Fastlane's: Home, Campaigns, then the agent's chats for its sign-ins or Studio for everyone else,
+// and More.
 const isChat = (p: string) => p === "/agent" || p.startsWith("/agent/");
 export const mobileTabs = (email: string): { to: string; label: string; icon: Icon; active: (pathname: string) => boolean }[] => {
   const chats = visiblePages(section("home").pages, email).some((p) => p.to === "/agent");
   const tab = (id: string) => {
     const s = section(id);
-    // the first page this sign-in sees, as the sidebar opens (Leo's Plan is Campaigns, everyone else's Calendar)
+    // the first page this sign-in sees, as the sidebar opens (Leo's Campaigns is Campaigns, everyone else's Calendar)
     const to = visiblePages(s.pages, email)[0]?.to ?? s.to;
     return { to, label: s.label, icon: s.icon, active: (p: string) => sectionFor(p)?.id === id && !(chats && isChat(p)) };
   };
-  return [tab("home"), tab("write"), chats ? { to: "/agent?panel=chats", label: "Chats", icon: ChatIcon, active: isChat } : tab("library"), tab("plan")];
+  return [tab("home"), tab("plan"), chats ? { to: "/agent?panel=chats", label: "Chats", icon: ChatIcon, active: isChat } : tab("write")];
 };
 
 export type MoreTile = { to: string; label: string; icon: Icon; sectionId: string };

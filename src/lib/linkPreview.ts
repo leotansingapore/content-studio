@@ -94,7 +94,7 @@ export const PAGES: Record<string, string> = {
   "/settings/post-choices": "Post choices",
   "/adlauncher": "AdLauncher",
   "/settings": "Settings",
-  "/studio": "Create",
+  "/studio": "Studio",
   "/skills": "Skills",
   "/activity": "Activity",
   "/automations": "What runs without you",

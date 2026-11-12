@@ -10,6 +10,8 @@ export interface JumpItem {
   group: string;
   /** Extra words people search with, beyond the label and section. */
   keywords: string;
+  /** Its section's old names: they find it, ranked below its own words. */
+  also?: string;
 }
 
 export const CREATE_ITEMS: JumpItem[] = [
@@ -87,7 +89,9 @@ export function pageItems(email: string): JumpItem[] {
       label: p.title ?? p.label,
       group: s.label,
       // its old names and its old section's too, so "radar", "studio" or "F.A.D.S." still find the page
-      keywords: `${p.label} ${p.was ?? ""} ${s.was ?? ""} ${KEYWORDS[p.to] ?? ""}`.replace(/\s+/g, " ").trim(),
+      keywords: `${p.label} ${p.was ?? ""} ${KEYWORDS[p.to] ?? ""}`.replace(/\s+/g, " ").trim(),
+      // its section's old names find it too, ranked with the section's own name ("radar" lists Radar's pages)
+      ...(s.was ? { also: s.was } : {}),
     })),
   );
 }
@@ -109,7 +113,7 @@ export function searchJump(items: JumpItem[], query: string): JumpItem[] {
     const label = norm(item.label);
     const address = norm(item.to.split("/").pop() ?? "");
     const own = `${label} ${address} ${norm(item.keywords)}`;
-    if (!words.every((w) => `${own} ${norm(item.group)}`.includes(w))) return;
+    if (!words.every((w) => `${own} ${norm(item.group)} ${norm(item.also ?? "")}`.includes(w))) return;
     // a page that says the words itself comes before one that is only in a section named so ("insights" is Results)
     const score = label.startsWith(q) || address.startsWith(q) ? 0 : label.split(" ").some((w) => w.startsWith(words[0])) ? 1 : words.every((w) => own.includes(w)) ? 2 : 3;
     scored.push({ item, score, exact: label === q || address === q ? 0 : 1, len: label.length, i });
