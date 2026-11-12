@@ -228,7 +228,7 @@ export default function OnboardingFlow({ userId, go }: { userId: string; /** Mar
       )}
       {flow.step === "review" && <ReviewStep flow={flow} patch={patch} logo={logo} onRemoveLogo={removeLogo} onConfirm={confirm} onReopen={(s) => change((f) => reopenSection(f, s))} />}
       {flow.step === "connect" && <ConnectStep networks={flow.networks} busy={connecting} error={connectError} onConnect={(n) => void connect(n)} onNext={() => change(afterConnect)} />}
-      {flow.step === "done" && <DoneStep flow={flow} logo={!!logo} onWrite={write} />}
+      {flow.step === "done" && <DoneStep flow={flow} logo={logo} onWrite={write} />}
     </div>
   );
 }

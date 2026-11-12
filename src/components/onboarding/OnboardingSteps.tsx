@@ -1,6 +1,6 @@
 // The screens of the first-run set-up (OnboardingFlow owns the flow, the read and the savers). Each takes the flow and
 // a way to change it; none of them saves anything itself.
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { CheckIcon, CircleNotchIcon, GlobeIcon, PencilSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { PROFESSION_NEEDED, READ_STEPS } from "@/lib/addBrand";
 import { DEFAULT_BRAND } from "@/lib/carousel";
 import { hostOf } from "@/lib/brandRead";
 import {
-  canConfirm, firstTopic, NETWORK_KEYS, noSiteReady, openSection, reviewLine, SECTION_NAMES, SECTIONS, type Draft, type Flow, type Network, type Section,
+  canConfirm, firstTopic, NETWORK_KEYS, openSection, reviewLine, SECTION_NAMES, SECTIONS, WAIT_QUESTIONS, waitQuestion, type Draft, type Flow, type Network, type Section,
 } from "@/lib/onboardingFlow";
 import { CADENCE_OPTIONS, GOAL_KINDS, type GoalKind } from "@/lib/positioning";
 import { PLATFORM_NAME } from "@/lib/socialConnect";
@@ -83,6 +83,7 @@ export function ReadingStep({ flow, tick, goals, onGoal, onCadence, onStop }: {
   onCadence: (n: number) => void;
   onStop: () => void;
 }) {
+  const asking = waitQuestion(flow);
   return (
     <div className="space-y-5">
       <h1 className={H1}>Reading {hostOf(flow.address)}</h1>
@@ -94,32 +95,37 @@ export function ReadingStep({ flow, tick, goals, onGoal, onCadence, onStop }: {
           </li>
         ))}
       </ol>
-      <div className="space-y-2">
-        <h2 className="text-sm font-medium" id="ob-goal">What is posting for?</h2>
-        <div role="group" aria-labelledby="ob-goal" className="flex flex-wrap gap-2">
-          {GOAL_KINDS.map((k) => (
-            <button key={k} type="button" aria-pressed={flow.goalKind === k} onClick={() => onGoal(k)} className={`${chip(flow.goalKind === k)} h-auto py-2 text-left`}>{goals[k]}</button>
-          ))}
+      {/* one question at a time: answering it swaps in the next */}
+      {asking && (
+        <div className="space-y-2" data-testid="ob-wait-question">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-medium" id="ob-ask">{asking === "goal" ? "What is posting for?" : "How often will you post?"}</h2>
+            <span className="shrink-0 text-xs text-muted-foreground">{WAIT_QUESTIONS.indexOf(asking) + 1} of {WAIT_QUESTIONS.length}</span>
+          </div>
+          <div role="group" aria-labelledby="ob-ask" className="flex flex-wrap gap-2">
+            {asking === "goal"
+              ? GOAL_KINDS.map((k) => <button key={k} type="button" onClick={() => onGoal(k)} className={`${chip(false)} h-auto py-2 text-left`}>{goals[k]}</button>)
+              : PACES.map((n) => <button key={n} type="button" onClick={() => onCadence(n)} className={chip(false)}>{n === 7 ? "Every day" : `${n} a week`}</button>)}
+          </div>
         </div>
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-sm font-medium" id="ob-pace">How often will you post?</h2>
-        <div role="group" aria-labelledby="ob-pace" className="flex flex-wrap gap-2">
-          {PACES.map((n) => (
-            <button key={n} type="button" aria-pressed={flow.cadence === n} onClick={() => onCadence(n)} className={chip(flow.cadence === n)}>{n === 7 ? "Every day" : `${n} a week`}</button>
-          ))}
-        </div>
-      </div>
+      )}
       <button type="button" onClick={onStop} className={QUIET}>Fill it in myself</button>
     </div>
   );
 }
 
-const summary = (f: Flow, s: Section, logo: boolean): string => {
+/** A confirmed section in a line. Look is the colour itself and the logo, never a hex code to read. */
+const summary = (f: Flow, s: Section, logo: string): ReactNode => {
   const d = f.draft;
   if (s === "brand") return [d.name.trim(), d.profession.trim()].filter(Boolean).join(", ");
-  if (s === "look") return [d.colour || "Default colour", logo ? "logo" : ""].filter(Boolean).join(", ");
-  return d.topics.trim() || d.voice.trim() || "Not set";
+  if (s === "voice") return d.topics.trim() || d.voice.trim() || "Not set";
+  const colour = d.colour || DEFAULT_BRAND.color;
+  return (
+    <span className="inline-flex items-center gap-2 align-middle">
+      <span role="img" aria-label={`Brand colour ${colour}`} className="h-5 w-5 rounded-full border border-border/60" style={{ backgroundColor: colour }} />
+      {logo && <img src={logo} alt="Logo" className="h-6 w-6 rounded border border-border/60 bg-white object-contain" />}
+    </span>
+  );
 };
 
 export function ReviewStep({ flow, patch, logo, onRemoveLogo, onConfirm, onReopen }: {
@@ -134,14 +140,26 @@ export function ReviewStep({ flow, patch, logo, onRemoveLogo, onConfirm, onReope
   const d = flow.draft;
   const open = openSection(flow);
   const { pct, line } = reviewLine(flow);
+  // Confirm pressed with a required answer missing: only then does its line turn red, and the cursor goes to it
+  const [tried, setTried] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
+  const noName = !d.name.trim();
+  const noJob = !d.profession.trim();
+  const submit = (s: Section) => {
+    if (canConfirm(flow, s)) return onConfirm(s);
+    setTried(true);
+    form.current?.querySelector<HTMLInputElement>(noName ? "#ob-name" : "[data-testid=profession] input")?.focus();
+  };
   const body: Record<Section, ReactNode> = {
     brand: (
       <>
         <label className={LABEL}>
           Name
-          <Input value={d.name} maxLength={40} onChange={(e) => patch({ name: e.target.value })} className={FIELD} />
+          <Input id="ob-name" value={d.name} maxLength={40} onChange={(e) => patch({ name: e.target.value })} aria-invalid={(tried && noName) || undefined} className={`${FIELD} ${tried && noName ? "border-destructive" : ""}`} />
         </label>
-        <ProfessionField value={d.profession} onChange={(v) => patch({ profession: v })} emptyIsAdviser={false} />
+        {tried && noName && <p className="text-sm text-destructive" role="alert">Add a name first.</p>}
+        <ProfessionField value={d.profession} onChange={(v) => patch({ profession: v })} emptyIsAdviser={false} invalid={tried && noJob} hint={noJob && !tried ? <span className="text-xs text-muted-foreground">Required</span> : null} />
+        {tried && noJob && <p className="text-sm text-destructive" role="alert">{PROFESSION_NEEDED}</p>}
         <label className={LABEL}>
           Your one-line pitch
           <Textarea rows={2} value={d.oneLiner} onChange={(e) => patch({ oneLiner: e.target.value })} placeholder="We help ... so they can ..." className="font-normal" />
@@ -150,7 +168,6 @@ export function ReviewStep({ flow, patch, logo, onRemoveLogo, onConfirm, onReope
           Who it's for
           <Input value={d.audienceDetail} onChange={(e) => patch({ audienceDetail: e.target.value })} placeholder="First-time home buyers in their 30s" className={FIELD} />
         </label>
-        {!noSiteReady(flow) && <p className="text-sm text-destructive">{d.name.trim() ? PROFESSION_NEEDED : "Add a name first."}</p>}
       </>
     ),
     look: (
@@ -197,14 +214,14 @@ export function ReviewStep({ flow, patch, logo, onRemoveLogo, onConfirm, onReope
           <section key={s} className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
             <CheckIcon className="h-4 w-4 shrink-0 text-success" />
             <span className="font-semibold">{SECTION_NAMES[s]}</span>
-            <span className="min-w-0 flex-1 truncate text-muted-foreground">{summary(flow, s, !!logo)}</span>
+            <span className="min-w-0 flex-1 truncate text-muted-foreground">{summary(flow, s, logo)}</span>
             <Button variant="ghost" className="min-h-11 min-w-11" onClick={() => onReopen(s)} aria-label={`Change ${SECTION_NAMES[s]}`}><PencilSimpleIcon /></Button>
           </section>
         ) : s === open ? (
-          <form key={s} className="space-y-3 rounded-xl border border-primary/40 bg-card p-4 shadow-card" onSubmit={(e) => { e.preventDefault(); onConfirm(s); }}>
+          <form key={s} ref={form} noValidate className="space-y-3 rounded-xl border border-primary/40 bg-card p-4 shadow-card" onSubmit={(e) => { e.preventDefault(); submit(s); }}>
             <h2 className="text-sm font-semibold">{SECTION_NAMES[s]}</h2>
             {body[s]}
-            <Button type="submit" disabled={!canConfirm(flow, s)} className={MAIN}>Confirm {SECTION_NAMES[s].toLowerCase()}</Button>
+            <Button type="submit" className={MAIN}>Confirm {SECTION_NAMES[s].toLowerCase()}</Button>
           </form>
         ) : (
           <section key={s} className="rounded-xl border border-border/60 p-3 text-sm font-semibold text-muted-foreground">{SECTION_NAMES[s]}</section>
@@ -234,22 +251,22 @@ export function ConnectStep({ networks, busy, error, onConnect, onNext }: { netw
   );
 }
 
-export function DoneStep({ flow, logo, onWrite }: { flow: Flow; logo: boolean; onWrite: () => void }) {
+export function DoneStep({ flow, logo, onWrite }: { flow: Flow; logo: string; onWrite: () => void }) {
   const d = flow.draft;
   const topic = firstTopic(flow);
-  const rows = [
+  const rows: [string, ReactNode][] = [
     ["Brand", summary(flow, "brand", logo)],
     ["Look", summary(flow, "look", logo)],
     ["Voice", d.voice.trim() ? "How you sound is saved" : ""],
     ["Topics", d.topics.trim()],
     ["Posting on", flow.networks.map((n) => PLATFORM_NAME[n]).join(", ")],
     ["First post", topic],
-  ].filter((r) => r[1]);
+  ];
   return (
     <div className="space-y-5">
       <h1 className={H1}>{d.name.trim() || "Your brand"} is set up</h1>
       <ul className="space-y-2 rounded-2xl border border-border/60 bg-card p-4 shadow-card">
-        {rows.map(([k, v]) => (
+        {rows.filter((r) => r[1]).map(([k, v]) => (
           <li key={k} className="flex items-start gap-2 text-sm">
             <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" />
             <span className="shrink-0 font-semibold">{k}</span>

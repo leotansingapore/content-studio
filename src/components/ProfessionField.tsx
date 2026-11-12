@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { ADVISER, MAX_PROFESSION_CHARS, PROFESSION_CHOICES, isAdviser } from "@/lib/profession";
@@ -6,8 +6,9 @@ import { ADVISER, MAX_PROFESSION_CHARS, PROFESSION_CHOICES, isAdviser } from "@/
 /**
  * "What do you do?": a few common answers, or the person's own words. On a brand that exists, nothing set reads as a
  * financial adviser and shows that chip picked; a new brand (`emptyIsAdviser` false) starts with none picked.
+ * `hint` is a short word beside the question ("Required"); `invalid` marks the box after a try without an answer.
  */
-export default function ProfessionField({ value, onChange, emptyIsAdviser = true }: { value: string; onChange: (v: string) => void; emptyIsAdviser?: boolean }) {
+export default function ProfessionField({ value, onChange, emptyIsAdviser = true, hint, invalid }: { value: string; onChange: (v: string) => void; emptyIsAdviser?: boolean; hint?: ReactNode; invalid?: boolean }) {
   const id = useId();
   const picked = (c: string) => (c === ADVISER ? (emptyIsAdviser || value.trim() !== "") && isAdviser(value) : value.trim().toLowerCase() === c.toLowerCase());
   return (
@@ -15,6 +16,7 @@ export default function ProfessionField({ value, onChange, emptyIsAdviser = true
       <div className="flex items-center gap-1">
         <label id={`${id}-q`} htmlFor={`${id}-own`} className="text-sm font-medium">What do you do?</label>
         <InfoTip label="About what you do">The AI writers write your posts for this.</InfoTip>
+        {hint}
       </div>
       <div role="group" aria-labelledby={`${id}-q`} className="flex flex-wrap gap-1.5">
         {PROFESSION_CHOICES.map((c) => (
@@ -29,7 +31,7 @@ export default function ProfessionField({ value, onChange, emptyIsAdviser = true
           </button>
         ))}
       </div>
-      <Input id={`${id}-own`} value={value} maxLength={MAX_PROFESSION_CHARS} placeholder="Or type your own, like photographer" onChange={(e) => onChange(e.target.value)} />
+      <Input id={`${id}-own`} value={value} maxLength={MAX_PROFESSION_CHARS} placeholder="Or type your own, like photographer" aria-invalid={invalid || undefined} className={invalid ? "border-destructive" : undefined} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }

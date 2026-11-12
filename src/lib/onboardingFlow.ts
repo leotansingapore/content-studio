@@ -123,6 +123,32 @@ export const toggleNetwork = (f: Flow, n: Network): Flow => ({ ...f, networks: N
 /** Past the networks: the wait while the read still runs, else straight to the review. */
 export const afterNetworks = (f: Flow): Flow => ({ ...f, step: f.read === "running" ? "reading" : "review" });
 
+// What the brand says it is, read off the shallow answer with no model call. Only the brand's own words count: its
+// name and the pitch up to "help", "for" or "so", because what follows names its customers ("We help coaches ...").
+// shortcut: a keyword table, so most sites get no answer and the question stays open; move this into brand-dna as a
+// Jev pick over the six choices when that function is next changed.
+const CHIP_WORDS: [string, RegExp][] = [
+  ["Financial adviser", /\bfinancial (advis[eo]r|plann|consult)|\binsurance (agent|advis)|\bwealth (advis|manag|plann)/i],
+  ["Real estate agent", /\breal estate\b|\brealtor|\bproperty agent/i],
+  ["Lawyer", /\blawyer|\blaw firm\b|\battorney|\bsolicitor|\blegal (practice|services)/i],
+  ["Coach", /\bcoach(es|ing)?\b/i],
+  ["Consultant", /\bconsult(ant|ants|ancy|ing)\b/i],
+  ["Freelancer", /\bfreelanc/i],
+];
+const TYPED_WORDS: [string, RegExp][] = [
+  ["Software company", /\bsoftware\b|\bsaas\b|\bapp\b|\bplatform\b/i],
+  ["Agency", /\bagency\b/i],
+  ["Photographer", /\bphotograph/i],
+  ["Designer", /\bdesign (studio|agency)\b|\bdesigner\b/i],
+  ["Clinic", /\bclinic\b/i],
+  ["Restaurant", /\brestaurant\b|\bcafe\b|\bbakery\b/i],
+];
+/** One of the six "What do you do?" choices when the brand's own words clearly name it, else a short typed kind, else "". */
+export function guessProfession(dna: Pick<BrandDna, "name" | "oneLiner">): string {
+  const own = `${dna.name} ${dna.oneLiner.split(/\b(?:help\w*|for|so)\b/i)[0]}`;
+  return [...CHIP_WORDS, ...TYPED_WORDS].find(([, re]) => re.test(own))?.[0] ?? "";
+}
+
 /** The read came back: it fills only what is still empty, ticks the networks it found, and ends the wait. */
 export function readDone(f: Flow, dna: BrandDna): Flow {
   if (f.read !== "running") return f;
@@ -136,6 +162,7 @@ export function readDone(f: Flow, dna: BrandDna): Flow {
     draft: {
       ...d,
       name: d.name.trim() ? d.name : dna.name.slice(0, 40),
+      profession: d.profession.trim() ? d.profession : guessProfession(dna),
       oneLiner: d.oneLiner.trim() ? d.oneLiner : dna.oneLiner,
       audience: d.audience !== "general" ? d.audience : dna.audience,
       audienceDetail: d.audienceDetail.trim() ? d.audienceDetail : dna.audienceDetail,
@@ -208,6 +235,10 @@ export function reviewLine(f: Flow): { pct: number; line: string } {
   const gain = Math.round(((f.confirmed.length + 1) / SECTIONS.length) * 100);
   return { pct, line: next ? `${pct}% set up. Confirm ${SECTION_NAMES[next]} to reach ${gain}%.` : "100% set up." };
 }
+
+/** The wait's questions, one at a time: the first not answered yet, or null once both are. */
+export const WAIT_QUESTIONS = ["goal", "pace"] as const;
+export const waitQuestion = (f: Flow): (typeof WAIT_QUESTIONS)[number] | null => (!f.goalKind ? "goal" : !f.cadence ? "pace" : null);
 
 /** The network the plan and the weekly goal are kept under: the first one picked that a plan can be for. */
 export const mainPlatform = (f: Flow, fallback: PlanPlatform): PlanPlatform => (f.networks.find((n) => PLAN_PLATFORMS.includes(n)) as PlanPlatform | undefined) ?? fallback;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { BrandDna } from "@/lib/addBrand";
 import {
   afterNetworks, back, backStep, canConfirm, confirmSection, firstTopic, flowKey, mainPlatform, newFlow, noSite, parseFlow, patchDraft, progress, readDone,
-  readFailed, reopenSection, reviewLine, shouldRun, stopWaiting, submitNoSite, submitSite, toggleNetwork, type Flow,
+  guessProfession, readFailed, reopenSection, waitQuestion, reviewLine, shouldRun, stopWaiting, submitNoSite, submitSite, toggleNetwork, type Flow,
 } from "./onboardingFlow";
 
 const dna: BrandDna = {
@@ -52,6 +52,41 @@ describe("the website path", () => {
     const done = patchDraft(readDone(reading(), dna), { profession: "Bike mechanic" });
     expect(site(back(back(done)), "acme.sg", 5)).toMatchObject({ read: "ok", step: "networks", draft: { name: "Acme" } });
     expect(site(confirmSection(done, "brand", false), "other.sg", 5)).toMatchObject({ read: "running", readAt: 5, confirmed: [], draft: { name: "", profession: "Bike mechanic" } });
+  });
+});
+
+describe("what the brand does, from the read", () => {
+  const says = (oneLiner: string, name = "Acme") => guessProfession({ name, oneLiner });
+  it("picks one of the six choices when the brand's own words name it", () => {
+    expect(says("Career coaching for mid-career engineers.")).toBe("Coach");
+    expect(says("I am a financial adviser helping young families plan.")).toBe("Financial adviser");
+    expect(says("We sell homes in the east.", "Lim Real Estate")).toBe("Real estate agent");
+    expect(says("A boutique law firm for founders.")).toBe("Lawyer");
+    expect(says("Financial consulting for clinics.")).toBe("Financial adviser");
+  });
+  it("never takes the customers it names for the brand itself", () => {
+    // postmosis.com's read, 12 Nov: its customers are every one of the six choices
+    expect(says("We help solo professionals write, design, edit and schedule their week's posts in one place so they can share their work across six networks.", "Postmosis")).toBe("");
+    expect(says("We help coaches and lawyers get clients.")).toBe("");
+    expect(says("Bookkeeping for real estate agents.")).toBe("");
+  });
+  it("types a short kind when no choice fits, and leaves it empty when nothing does", () => {
+    expect(says("Scheduling software for clinics.")).toBe("Software company");
+    expect(says("We fix bikes.")).toBe("");
+  });
+  it("fills the review's answer when the read lands, never over one already typed", () => {
+    const coach = { ...dna, oneLiner: "Career coaching for engineers." };
+    expect(readDone(reading(), coach).draft.profession).toBe("Coach");
+    expect(readDone(patchDraft(reading(), { profession: "Mentor" }), coach).draft.profession).toBe("Mentor");
+    expect(readDone(reading(), dna).draft.profession).toBe("");
+  });
+});
+
+describe("the wait's questions", () => {
+  it("asks one at a time, then none", () => {
+    expect(waitQuestion(newFlow())).toBe("goal");
+    expect(waitQuestion({ ...newFlow(), goalKind: "clients" })).toBe("pace");
+    expect(waitQuestion({ ...newFlow(), goalKind: "clients", cadence: 5 })).toBeNull();
   });
 });
 
