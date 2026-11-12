@@ -10,6 +10,7 @@ import {
   BellIcon,
   BookBookmarkIcon,
   CommandIcon,
+  CreditCardIcon,
   HouseIcon,
   LinkIcon,
   ListChecksIcon,
@@ -39,6 +40,7 @@ import { ownerShown, reelsShown } from "@/lib/reelsBoard";
 import { LEO_EMAILS, leoOnly } from "@/lib/leoOnly";
 import { marketShown } from "@/lib/market";
 import { socialConnectShown } from "@/lib/socialConnect";
+import { billingShown } from "@/lib/subscription";
 import { adviserBrand } from "@/lib/profession";
 
 export type NavPage = {
@@ -250,6 +252,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/settings", label: "Settings", end: true, bare: true },
       { to: "/notifications", label: "Notifications", icon: BellIcon, group: "You", hint: "Phone alerts and the Monday results email." },
       { to: "/settings/post-choices", label: "Post choices", icon: SlidersHorizontalIcon, hint: "Who appears, your name, captions and text style on new posts." },
+      // only for an account that came in through checkout (docs/postmosis-billing.md)
+      { to: "/settings/billing", label: "Billing", icon: CreditCardIcon, show: billingShown, hint: "Your plan, your card and your invoices." },
       { to: "/accounts", label: "Social accounts", icon: ShareNetworkIcon, show: socialConnectShown, group: "Connections", hint: "The Instagram and TikTok accounts the studio posts to." },
       { to: "/bio", label: "Link in bio", icon: LinkIcon, hint: "One page of your links for your profile." },
       { to: "/links", label: "Tracked links", icon: CursorClickIcon, hint: "Short links that count who clicks." },

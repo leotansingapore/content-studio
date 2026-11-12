@@ -28,6 +28,7 @@ import { sgDay } from "@/lib/goals";
 import { CaretLeftIcon, CaretRightIcon, CaretUpIcon, QuestionIcon, SquaresFourIcon, SignOutIcon, ChatTextIcon, MonitorIcon, MoonIcon, PlusIcon, ArrowsClockwiseIcon, MagnifyingGlassIcon, GearIcon, SparkleIcon, StarIcon, SunIcon, XIcon } from "@phosphor-icons/react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import SectionTabs from "@/components/SectionTabs";
+import BillingNote from "@/components/BillingNote";
 import { links } from "@/lib/links";
 import { newPostHref } from "@/lib/newPost";
 import { useNewVersion } from "@/lib/newVersion";
@@ -990,6 +991,7 @@ export default function StudioLayout() {
             isChat(pathname) ? "lg:max-w-none lg:p-0" : "lg:px-6 lg:pb-24 xl:px-10"
           }`}
         >
+          {!isChat(pathname) && <BillingNote />}
           <SectionTabs email={email} />
           {/* Lazy route chunks resolve here so the rails/bottom nav never flicker.
               A crash or a chunk missing after a deploy stays inside this area. */}

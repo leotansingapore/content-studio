@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { cloudSyncOutOfRoom, initCloudSync } from "@/lib/cloudSync";
 import { returnTo } from "@/lib/magicLink";
 import { rememberUser } from "@/lib/profiles";
+import { gateOf, loadSubscription, type SubRow } from "@/lib/subscription";
+import Paywall from "@/components/Paywall";
 import { toast } from "@/hooks/use-toast";
 
 let toldOutOfRoom = false;
@@ -18,6 +20,8 @@ export default function ProtectedRoute({
 }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // this account's Postmosis subscription, if it has one (docs/postmosis-billing.md); null never gates
+  const [sub, setSub] = useState<SubRow | null>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -29,7 +33,8 @@ export default function ProtectedRoute({
       if (data.session) {
         // known before any page draws, so a page can tell a pending brand switch from the brand already open
         rememberUser(data.session.user.id);
-        await initCloudSync(data.session.user.id).catch(() => undefined);
+        const [, row] = await Promise.all([initCloudSync(data.session.user.id).catch(() => undefined), loadSubscription(data.session.user.id)]);
+        if (mounted) setSub(row);
         if (cloudSyncOutOfRoom() && !toldOutOfRoom) {
           toldOutOfRoom = true;
           toast({
@@ -70,6 +75,8 @@ export default function ProtectedRoute({
       />
     );
   }
+
+  if (gateOf(sub, Date.now()) === "paywall") return <Paywall row={sub!} email={session.user.email ?? ""} />;
 
   return <>{children}</>;
 }

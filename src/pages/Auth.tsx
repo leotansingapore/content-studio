@@ -27,7 +27,8 @@ export default function Auth() {
       ? (location.state as { from: string }).from
       : "/";
   const failedLink = (location.state as { linkFailed?: boolean } | null)?.linkFailed === true;
-  const [email, setEmail] = useState("");
+  // /auth?email= comes from /start/done (docs/postmosis-billing.md): the address the account is under
+  const [email, setEmail] = useState(() => new URLSearchParams(location.search).get("email") ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   // An emailed sign-in link first (Leo, 2026-10-16), its code as the fallback, a password for those who have one
@@ -48,20 +49,34 @@ export default function Auth() {
     }
   };
   const [sentTo, setSentTo] = useState("");
+  // arrived from a finished checkout: the link lands on /welcome
+  const [paid, setPaid] = useState(false);
+  // one email a minute from this page (Supabase holds its own limit behind it)
+  const [canResend, setCanResend] = useState(false);
+  const sendLink = async (to: string, redirectTo: string): Promise<boolean> => {
+    setLoading(true);
+    const problem = await sendSignInLink(to, redirectTo, false);
+    setLoading(false);
+    if (problem) {
+      toast({ title: "Couldn't send the link", description: problem, variant: "destructive" });
+      return false;
+    }
+    setSentTo(to);
+    setMode("code");
+    setCanResend(false);
+    window.setTimeout(() => setCanResend(true), 60_000);
+    return true;
+  };
+  const linkTarget = () => window.location.origin + (paid ? "/welcome" : from.split("#")[0]);
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget as HTMLFormElement);
-    setLoading(true);
     if (mode === "email") {
-      const to = String(form.get("email") ?? email).trim();
-      const problem = await sendSignInLink(to, window.location.origin + from.split("#")[0], false);
-      setLoading(false);
-      if (problem) return toast({ title: "Couldn't send the link", description: problem, variant: "destructive" });
-      setSentTo(to);
-      setMode("code");
+      await sendLink(String(form.get("email") ?? email).trim(), linkTarget());
       return;
     }
+    setLoading(true);
     const problem = await verifySignInCode(sentTo || String(form.get("email") ?? email).trim(), String(form.get("code") ?? ""));
     setLoading(false);
     if (problem) return toast({ title: "Couldn't sign in", description: problem, variant: "destructive" });
@@ -69,8 +84,17 @@ export default function Auth() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate(from, { replace: true });
+    // /auth?email=..&checkout=done is where /start/done sends a new customer (docs/postmosis-billing.md): this
+    // browser asks for their sign-in link, exactly as the form does, so paying never signs anyone in by itself.
+    // Read from window and removed at once, so a reload or a second run of this effect sends nothing more.
+    const q = new URLSearchParams(window.location.search);
+    const fromCheckout = q.get("checkout") === "done" && !!q.get("email");
+    if (fromCheckout) window.history.replaceState(window.history.state, "", `/auth?email=${encodeURIComponent(q.get("email")!)}`);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session) return navigate(from, { replace: true });
+      if (!fromCheckout) return;
+      setPaid(true);
+      await sendLink(q.get("email")!, window.location.origin + "/welcome");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
@@ -136,7 +160,7 @@ export default function Auth() {
             {mode !== "password" && (
               <CardDescription>
                 {mode === "code" && !sentTo ? "Type your email and the code from the sign-in email."
-                  : mode === "code" ? <>If an account uses <span className="font-semibold text-foreground">{sentTo}</span>, a sign-in link is on its way. Tap it in this browser, or type the code from the email.</>
+                  : mode === "code" ? <>{paid && "Your payment went through. "}If an account uses <span className="font-semibold text-foreground">{sentTo}</span>, a sign-in link is on its way. Tap it in this browser, or type the code from the email.</>
                   : "We'll email you a sign-in link. No password needed."}
               </CardDescription>
             )}
@@ -207,6 +231,7 @@ export default function Auth() {
               </form>
             )}
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-primary">
+              {mode === "code" && sentTo && <button type="button" disabled={!canResend || loading} onClick={() => void sendLink(sentTo, linkTarget())} className="disabled:font-normal disabled:text-muted-foreground">{canResend ? "Send it again" : "Send it again in a minute"}</button>}
               {mode === "code" && <button type="button" onClick={() => setMode("email")}>{sentTo ? "Use a different email" : "Email me a link instead"}</button>}
               {mode === "email" && <button type="button" onClick={() => setMode("code")}>I have a code</button>}
               {mode !== "password" && <button type="button" onClick={() => setMode("password")}>Use a password instead</button>}

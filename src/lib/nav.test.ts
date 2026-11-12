@@ -15,7 +15,7 @@ const OLD_PATHS = [
   "/settings", "/notifications", "/settings/post-choices", "/accounts", "/bio", "/links", "/connect", "/adlauncher", "/reels/team", "/automations", "/activity", "/skills",
 ];
 // Pages the nav gained since: Brand's Products and Demo videos tabs (sections of the brand kit drawn alone, 12 Nov).
-const NEW_PATHS = ["/brand/products", "/brand/demo-videos"];
+const NEW_PATHS = ["/brand/products", "/brand/demo-videos", "/settings/billing"];
 const LEO = "tanjunsing@gmail.com";
 const ANYONE = "someone@example.com";
 const pages = (id: string, email: string) => visiblePages(section(id).pages, email).map((p) => p.to);
