@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import ProfessionField from "@/components/ProfessionField";
 import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
 import { supabase } from "@/lib/supabase";
-import { markOnboarded } from "@/lib/onboarding";
+import { isOnboarded, markOnboarded } from "@/lib/onboarding";
+import { flowKey, parseFlow, shouldRun } from "@/lib/onboardingFlow";
+import { storedUserId } from "@/lib/socialConnect";
+import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import { useTourUser } from "@/lib/useTourUser";
 import { startTour } from "@/lib/tour";
 import { PencilSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
@@ -29,7 +32,32 @@ export async function onboardThenGo(
   navigate(to);
 }
 
+/**
+ * The set-up flow's account, read from the sign-in this device keeps so the first frame is already the right page:
+ * one not onboarded yet that is part way through the flow or has no answer to "What do you do?". Everyone else, and
+ * a frame with no stored sign-in, gets Getting started as it was.
+ */
+function setUpFor(): string | null {
+  const uid = storedUserId();
+  if (!uid) return null;
+  let kept = null;
+  try {
+    kept = parseFlow(localStorage.getItem(flowKey(uid)));
+  } catch {
+    // storage blocked: no flow was kept
+  }
+  return shouldRun(isOnboarded(uid), !!loadBrand(uid)?.profession?.trim(), kept) ? uid : null;
+}
+
 export default function WelcomePage() {
+  const navigate = useNavigate();
+  // decided once: the flow saves "What do you do?" part way through, which must not swap the page under it
+  const [setUp] = useState(setUpFor);
+  if (setUp) return <OnboardingFlow userId={setUp} go={(to) => void onboardThenGo(setUp, to, navigate)} />;
+  return <GettingStarted />;
+}
+
+function GettingStarted() {
   const navigate = useNavigate();
   const tour = useTourUser();
   const [userId, setUserId] = useState<string | null>(null);

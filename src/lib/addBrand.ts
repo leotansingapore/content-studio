@@ -39,6 +39,9 @@ export const NETWORKS: { key: SocialPlatform; label: string; base: string }[] = 
   { key: "tiktok", label: "TikTok", base: "https://www.tiktok.com/@" },
 ];
 
+/** What a site read does, in order, shown ticking while the one request runs (/brands/new and the first-run set-up). */
+export const READ_STEPS = ["Opening the site", "Name and logo", "Brand colour", "Social accounts", "What you do and for whom", "How you sound"];
+
 export interface KeptBrand {
   address: string;
   name: string;

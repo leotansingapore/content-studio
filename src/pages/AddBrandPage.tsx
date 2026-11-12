@@ -13,7 +13,7 @@ import { callFn, EdgeError } from "@/lib/edgeFn";
 import type { PlanAudience } from "@/lib/positioning";
 import { loadProfiles } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
-import { AUDIENCE_NAMES, blankDna, createBrand, keptBrand, keptBrandKey, NETWORKS, parseTopics, PROFESSION_NEEDED, readBody, shownTopics, type BrandDna as Dna } from "@/lib/addBrand";
+import { AUDIENCE_NAMES, blankDna, createBrand, keptBrand, keptBrandKey, NETWORKS, parseTopics, PROFESSION_NEEDED, READ_STEPS, readBody, shownTopics, type BrandDna as Dna } from "@/lib/addBrand";
 import { appDna, appFacts, appProfession, appStoreLink, isAppRead, MAX_PAINS, proofLines, readComplaints, readListing, readRivals, type AppRead } from "@/lib/appStore";
 import { asPostLang, LANG_NAMES } from "@/lib/translate";
 
@@ -22,7 +22,7 @@ import { asPostLang, LANG_NAMES } from "@/lib/translate";
 // One address, a short wait with named steps, then pre-filled cards to confirm instead of typing. The brand's
 // own stores (brand kit, positioning, social accounts, voice) are filled when it is created.
 
-const STEPS = ["Opening the site", "Name and logo", "Brand colour", "Social accounts", "What you do and for whom", "How you sound"];
+const STEPS = READ_STEPS;
 const APP_STEPS = ["Opening the App Store listing", "Its website: colour and social accounts", "Apps like it", "What their users complain about"];
 const CARDS = ["identity", "colour", "social", "offer", "topics", "voice"] as const;
 // an App Store read adds two cards: the store's own facts, and complaints about apps like it
