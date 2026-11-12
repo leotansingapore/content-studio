@@ -5,7 +5,7 @@
 import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { INTRO_CARD_SECONDS, defaultSettings } from "./videoEdit";
-import { exportJob, startExport, type BrandArt } from "./videoMedia";
+import type { BrandArt } from "./videoMedia";
 
 vi.mock("@/lib/fastExport", () => ({ exportFast: async () => null }));
 
@@ -186,6 +186,13 @@ class OfflineAudioContext {
 }
 
 const CLOCK: Parameters<typeof vi.useFakeTimers>[0] = { now: 0, toFake: ["setTimeout", "clearTimeout", "performance"] };
+// Each export runs in a fresh copy of videoMedia: an export a timed-out test left running kept the module's job at
+// "running", and every later test was refused with "An export is already running" (12 Nov). Transformed once here.
+await import("./videoMedia");
+const freshMedia = () => {
+  vi.resetModules();
+  return import("./videoMedia");
+};
 beforeEach(() => {
   for (const [k, v] of Object.entries({ MediaRecorder: FakeRecorder, MediaStream: class {}, AudioContext, OfflineAudioContext, GainNode, AudioBufferSourceNode })) vi.stubGlobal(k, v);
   vi.stubGlobal("window", { setTimeout: (f: () => void, ms: number) => setTimeout(f, ms) });
@@ -212,6 +219,7 @@ const settings = { ...defaultSettings("bold"), wordsPerCaption: 2, endCard: true
 
 /** One real-time export, as the log of the recorder and everything painted, with the file's length. */
 async function run(s: typeof settings, art: BrandArt | null = brand, said = words): Promise<string[]> {
+  const { exportJob, startExport } = await freshMedia();
   // every run from 0 on the clock
   vi.useRealTimers();
   vi.useFakeTimers(CLOCK);
