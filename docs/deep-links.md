@@ -378,6 +378,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /make/slideshow | show | a made slideshow's id: shows it as the result (the page sets it when its run finishes) | the run in progress or just made | push | /make/slideshow?show=ssmh2k9x01ab |
 | /make/slideshow | slide | the result's slide, 1-based; out of range reads as 1 | 1 | replace | /make/slideshow?show=ssmh2k9x01ab&slide=3 |
 | /make/slideshow | batch | open: the Make a batch card (kept hooks x looks, src/lib/slideshowBatch.ts); its picks are not in the address | closed | replace | /make/slideshow?batch=open |
+| /make/slideshow | more | open: More settings unfolded (size, pictures, look or photo mood) | shut | replace | /make/slideshow?more=open |
 | /make/wall-of-text | source | a remix source key (the same keys as /generate?source= below): the post to remix. Leo's sign-ins only (src/lib/leoOnly.ts). A key that no longer resolves says so and asks for another | none | replace | /make/wall-of-text?source=trend%3Atrend-2026-10-20-trend-9 |
 | /make/wall-of-text | from | topic, remix (Start from) | remix with a source, else topic | replace | /make/wall-of-text?from=topic |
 | /make/wall-of-text | mention | no: the words leave the brand out; yes: written only when the start is no | the brand's Post choices: Always is yes, Never no, Sometimes either | replace | /make/wall-of-text?from=topic&mention=no |

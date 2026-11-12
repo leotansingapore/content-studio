@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { WarningIcon, CalendarDotsIcon, CaretLeftIcon, CaretRightIcon, CopyIcon, DownloadSimpleIcon, CircleNotchIcon, PencilSimpleIcon, FloppyDiskIcon } from "@phosphor-icons/react";
 import FormatShell from "@/components/make/FormatShell";
+import MoreSettings from "@/components/make/MoreSettings";
 import SlideshowBatchCard, { useBatch } from "@/components/make/SlideshowBatch";
 import PickList, { metaOf } from "@/components/make/PickList";
 import FlagChips from "@/components/remix/FlagChips";
@@ -65,6 +66,12 @@ import { batchBusy } from "@/lib/slideshowBatch";
 const SIZES = ["4x5", "9x16"] as const;
 type Size = (typeof SIZES)[number];
 const SIZE_LABELS: Record<Size, string> = { "4x5": "4:5", "9x16": "9:16" };
+const PICTURE_WORDS: Record<ShowPictures, string> = { stock: "stock photos", mine: "from my media", ai: "AI pictures" };
+
+/** More settings' line on the slideshow page: "4:5, stock photos", then the look or a photo mood picked. */
+export function showPicks(size: Size, pictures: ShowPictures, detail: string | null): string[] {
+  return [SIZE_LABELS[size], PICTURE_WORDS[pictures], detail && detail[0].toLowerCase() + detail.slice(1)].filter((x): x is string => !!x);
+}
 const WORDS_KEY = "cs-make-slideshow";
 /** The remix function's note cap (parseMakeRequest in supabase/functions/remix/logic.ts). */
 const STEER_MAX = 300;
@@ -336,37 +343,41 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
               </p>
             )}
           </div>
-          <Field label="Size">
-            {SIZES.map((s) => (
-              <FilterChip key={s} active={size === s} onClick={() => set("size", s === "4x5" ? null : s)}>
-                {SIZE_LABELS[s]}
-              </FilterChip>
-            ))}
-          </Field>
-          <Field label="Pictures">
-            <FilterChip active={pictures === "stock"} onClick={() => set("pictures", null)}>Stock photos for me</FilterChip>
-            <FilterChip active={pictures === "mine"} onClick={() => set("pictures", "mine")}>From my media</FilterChip>
-            <FilterChip active={pictures === "ai"} onClick={() => set("pictures", "ai")}>AI pictures, one look</FilterChip>
-          </Field>
-          {pictures === "ai" && (
-            <Field label="Look">
-              {LOOK_IDS.map((l) => (
-                <FilterChip key={l} active={look === l} onClick={() => set("look", l === "photo" ? null : l)}>{EXPLAINER_LOOKS[l].label}</FilterChip>
+          {/* the size and where the pictures come from fold away, named in one line; their defaults make a good post */}
+          <MoreSettings picks={showPicks(size, pictures, pictures === "ai" ? EXPLAINER_LOOKS[look].label : pictures === "stock" && mood !== "match" ? PHOTO_MOODS[mood].label : null)}>
+            <Field label="Size">
+              {SIZES.map((s) => (
+                <FilterChip key={s} active={size === s} onClick={() => set("size", s === "4x5" ? null : s)}>
+                  {SIZE_LABELS[s]}
+                </FilterChip>
               ))}
             </Field>
-          )}
+            <Field label="Pictures">
+              <FilterChip active={pictures === "stock"} onClick={() => set("pictures", null)}>Stock photos for me</FilterChip>
+              <FilterChip active={pictures === "mine"} onClick={() => set("pictures", "mine")}>From my media</FilterChip>
+              <FilterChip active={pictures === "ai"} onClick={() => set("pictures", "ai")}>AI pictures, one look</FilterChip>
+            </Field>
+            {pictures === "ai" && (
+              <Field label="Look">
+                {LOOK_IDS.map((l) => (
+                  <FilterChip key={l} active={look === l} onClick={() => set("look", l === "photo" ? null : l)}>{EXPLAINER_LOOKS[l].label}</FilterChip>
+                ))}
+              </Field>
+            )}
+            {pictures === "stock" && (
+              <Field label="Photo mood">
+                <FilterChip active={mood === "match"} onClick={() => set("mood", null)}>One for each point</FilterChip>
+                {PHOTO_MOOD_IDS.map((m) => (
+                  <FilterChip key={m} active={mood === m} onClick={() => set("mood", m)}>{PHOTO_MOODS[m].label}</FilterChip>
+                ))}
+              </Field>
+            )}
+          </MoreSettings>
+          {/* money and a missing requirement stay in view, folded or not */}
           {pictures === "ai" && (
             <p className="text-xs text-muted-foreground">
               {priceText(PRICES["slide-pictures"] as Price)} of picture credit a slideshow, {DAILY_LIMITS["slide-pictures"]} a day.
             </p>
-          )}
-          {pictures === "stock" && (
-            <Field label="Photo mood">
-              <FilterChip active={mood === "match"} onClick={() => set("mood", null)}>One for each point</FilterChip>
-              {PHOTO_MOOD_IDS.map((m) => (
-                <FilterChip key={m} active={mood === m} onClick={() => set("mood", m)}>{PHOTO_MOODS[m].label}</FilterChip>
-              ))}
-            </Field>
           )}
           {pictures === "mine" && !hasMedia && (
             <p className="text-xs text-muted-foreground">
