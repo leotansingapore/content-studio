@@ -9,7 +9,7 @@ import { addProfile, setActiveProfile } from "./profiles";
 import type { SavedClone } from "./reelClone";
 import {
   TALK_LENGTHS, aiMark, asTopic, canWrite, clearScript, cloneTalkHref, cloneWords, dataBlob, defaultWho, loadTyped, needsPriceCheck, saveTyped,
-  readWps, scriptEstimate, scriptSeconds, speakerFace, speakerFile, speakerOf, speakers, talkCaps, talkParams, talkPrice, talkWords, videoEstimate, videoPrice, whoChoices, wordLine,
+  readWps, scriptEstimate, scriptSeconds, speakerFace, speakerFile, speakerOf, speakers, startVoice, startWho, talkCaps, talkParams, talkPicks, talkPrice, talkWords, videoEstimate, videoPrice, whoChoices, wordLine,
   writePlan, type Speaker,
 } from "./talkingHead";
 import type { VoiceId } from "./textVoice";
@@ -227,6 +227,24 @@ describe("what was typed", () => {
     localStorage.setItem("cs-make-talking-head-u1", "{not json");
     expect(loadTyped("u1")).toEqual({ script: "", look: "" });
   });
+
+  it("keeps the voice, setting and length picked by hand through a reload and a make, and drops ones no longer offered", () => {
+    saveTyped("u1", { script: "Hi", look: "A man", voice: "eric", setting: "car", length: 30 });
+    expect(loadTyped("u1")).toEqual({ script: "Hi", look: "A man", voice: "eric", setting: "car", length: 30 });
+    clearScript("u1");
+    expect(loadTyped("u1")).toEqual({ script: "", look: "A man", voice: "eric", setting: "car", length: 30 });
+    localStorage.setItem("cs-make-talking-head-u1", JSON.stringify({ script: "", look: "", voice: "nobody", setting: "moon", length: 12 }));
+    expect(loadTyped("u1")).toEqual({ script: "", look: "" });
+  });
+});
+
+describe("More settings' line", () => {
+  it("names the voice, then a new presenter's setting and look, mid-sentence", () => {
+    expect(talkPicks("eric", null, null)).toEqual(["Eric's voice"]);
+    expect(talkPicks("alice", "office", "A Chinese Singaporean woman in her 30s")).toEqual(["Alice's voice", "office desk", "a Chinese Singaporean woman in her 30s"]);
+    expect(talkPicks("alice", "couch", "Raj, a man in a blue shirt")).toEqual(["Alice's voice", "on the couch", "Raj, a man in a blue shirt"]);
+    expect(talkPicks("alice", "car", "  ")).toEqual(["Alice's voice", "parked car"]);
+  });
 });
 
 describe("who speaks (Leo only)", () => {
@@ -262,6 +280,33 @@ describe("who speaks (Leo only)", () => {
     setWho(UID, "ask");
     expect(defaultWho(speakers(UID))).toBe("");
     expect(whoChoices(speakers(UID))).toEqual(["mine", "presenter", mei.id]);
+  });
+
+  it("starts every make with someone, so a first press needs no pick", () => {
+    // Ask each time with nothing saved: a new AI presenter, which always works
+    expect(startWho(speakers(UID))).toBe("presenter");
+    face();
+    // Ask each time with your face saved: your face
+    expect(startWho(speakers(UID))).toBe("mine");
+    const mei = keep("Mei", 1);
+    expect(startWho(speakers(UID))).toBe(mei.id);
+    // Post choices leaving the saved presenter out: your face
+    expect(startWho(speakers(UID), () => false)).toBe("mine");
+    // Who appears is your face, but it is off: a new presenter
+    setWho(UID, "me");
+    turnOffFace(UID);
+    expect(startWho(speakers(UID))).toBe("presenter");
+  });
+
+  it("starts in a voice that fits who speaks: a presenter's own or its look's, your remembered one for your face", () => {
+    const mei = keep("Mei", 1);
+    // Mei's look names a woman, so a remembered man's voice gives way to Alice
+    expect(startVoice(speakers(UID), mei.id, "", "eric")).toBe("alice");
+    expect(startVoice(speakers(UID), mei.id, "", "lily")).toBe("lily");
+    expect(startVoice(speakers(UID), "presenter", "A Tamil Singaporean man in his 40s", "alice")).toBe("eric");
+    expect(startVoice(speakers(UID), "presenter", "Someone friendly", "lily")).toBe("lily");
+    expect(startVoice(speakers(UID), "mine", "A woman", "george")).toBe("george");
+    expect(startVoice(null, "presenter", "A woman", "eric")).toBe("alice");
   });
 
   it("follows the brand: each brand's presenters and Who appears, the one face for all of them", () => {
