@@ -31,7 +31,7 @@ import SectionTabs from "@/components/SectionTabs";
 import { links } from "@/lib/links";
 import { newPostHref } from "@/lib/newPost";
 import { useNewVersion } from "@/lib/newVersion";
-import { applyTheme, readTheme, resolveTheme, saveTheme, type ThemePick } from "@/lib/theme";
+import { applyTheme, readTheme, resolveTheme, saveTheme, type ThemeOutlet, type ThemePick } from "@/lib/theme";
 import {
   SECTIONS,
   mobileTabs,
@@ -186,7 +186,7 @@ const THEMES = [
 ] as const;
 
 /** Light, Dark or System (the device's setting), the picked one pressed. A tap keeps the account menu open. */
-function ThemeSwitch({ theme, onTheme }: { theme: ThemePick; onTheme: (t: ThemePick) => void }) {
+export function ThemeSwitch({ theme, onTheme }: { theme: ThemePick; onTheme: (t: ThemePick) => void }) {
   return (
     <div role="group" aria-label="Theme" onClick={(e) => e.stopPropagation()} className="grid grid-cols-3 gap-0.5 rounded-lg border border-border/70 p-0.5">
       {THEMES.map(([t, Icon, label]) => (
@@ -793,7 +793,7 @@ export default function StudioLayout() {
           <ErrorBoundary resetKey={pathname}>
             <Suspense fallback={<RouteSkeleton />}>
               <div key={pathname} className="page-enter">
-                <Outlet />
+                <Outlet context={{ theme, onTheme: switchTheme } satisfies ThemeOutlet} />
               </div>
             </Suspense>
           </ErrorBoundary>

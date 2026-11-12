@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { loadPositioning } from "@/lib/positioning";
@@ -17,6 +17,8 @@ import { useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
 import { useScrollToHash } from "@/lib/urlState";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
 import { adviserBrand } from "@/lib/profession";
+import type { ThemeOutlet } from "@/lib/theme";
+import { ThemeSwitch } from "@/pages/StudioLayout";
 import inspirationData from "@/data/inspiration.json";
 import advisorsData from "@/data/advisors.json";
 import {
@@ -27,6 +29,7 @@ import {
   ChevronRight,
   ArrowRight,
   Bookmark,
+  Palette,
 } from "lucide-react";
 
 type Insp = { id: string; hook: string; topic: string };
@@ -63,6 +66,7 @@ export default function PlaybookPage() {
   const leo = useLeoUser();
   // the stored session answers on the first frame, so the page never paints an empty brand and then fills in
   const user = useSignedInUser();
+  const look = useOutletContext<ThemeOutlet | undefined>();
   const [saved, setSaved] = useState<SavedItems>({
     inspiration: [],
     creators: [],
@@ -251,6 +255,15 @@ export default function PlaybookPage() {
           )}
         </SectionCard>
       </div>}
+
+      {look && (
+        <SectionCard icon={Palette} title="Appearance">
+          <p className="mb-3 text-sm text-muted-foreground">Light, Dark, or System to follow this device.</p>
+          <div className="max-w-sm">
+            <ThemeSwitch theme={look.theme} onTheme={look.onTheme} />
+          </div>
+        </SectionCard>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Button asChild variant={next ? "outline" : "default"} className={next ? "gap-1.5" : "gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"}>
