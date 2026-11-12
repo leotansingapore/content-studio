@@ -6,7 +6,7 @@ const auth = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/supabase", () => ({ supabase: { auth } }));
 
-import { linkFailed, returnTo, sendSignInLink, verifySignInCode } from "@/lib/magicLink";
+import { RESEND_MS, checkoutArrival, linkFailed, resendWait, returnTo, sendSignInLink, verifySignInCode } from "@/lib/magicLink";
 
 const refuse = (message: string, status = 400) => ({ error: { message, status } });
 
@@ -65,5 +65,33 @@ describe("a sign-in link that came back without a session", () => {
     expect(returnTo("/brand", "?a=1&code=abcdef", "")).toEqual({ from: "/brand?a=1", linkFailed: true });
     expect(returnTo("/", "", "#error=access_denied&error_code=otp_expired")).toEqual({ from: "/", linkFailed: true });
     expect(returnTo("/brand", "?a=1", "#website")).toEqual({ from: "/brand?a=1#website", linkFailed: false });
+  });
+});
+
+describe("arriving from a finished checkout", () => {
+  it("emails the link only for checkout=done with an email", () => {
+    expect(checkoutArrival("?email=mei%2Bx%40example.test&checkout=done")).toEqual({ email: "mei+x@example.test", cleaned: "/auth?email=mei%2Bx%40example.test" });
+    for (const q of ["", "?email=mei%40example.test", "?checkout=done", "?checkout=done&email=%20", "?email=mei%40example.test&checkout=pending"]) expect(checkoutArrival(q), q).toBeNull();
+  });
+
+  it("leaves an address a reload does not send from", () => {
+    const { cleaned } = checkoutArrival("?email=mei%40example.test&checkout=done")!;
+    expect(checkoutArrival(cleaned.slice(cleaned.indexOf("?")))).toBeNull();
+  });
+});
+
+describe("Send it again", () => {
+  const T = Date.parse("2026-11-12T04:00:00Z");
+  it("waits a minute from the last email and counts the seconds down", () => {
+    expect(resendWait(T, T)).toBe(60);
+    expect(resendWait(T, T + 1)).toBe(60);
+    expect(resendWait(T, T + 18_000)).toBe(42);
+    expect(resendWait(T, T + RESEND_MS - 1)).toBe(1);
+    expect(resendWait(T, T + RESEND_MS)).toBe(0);
+    expect(resendWait(T, T + 10 * RESEND_MS)).toBe(0);
+  });
+
+  it("has no wait before anything was sent", () => {
+    expect(resendWait(0, T)).toBe(0);
   });
 });

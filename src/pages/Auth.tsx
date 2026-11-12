@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { LINK_FAILED, sendSignInLink, verifySignInCode } from "@/lib/magicLink";
+import { LINK_FAILED, checkoutArrival, resendWait, sendSignInLink, verifySignInCode } from "@/lib/magicLink";
 
 export default function Auth() {
   const { toast } = useToast();
@@ -51,8 +51,15 @@ export default function Auth() {
   const [sentTo, setSentTo] = useState("");
   // arrived from a finished checkout: the link lands on /welcome
   const [paid, setPaid] = useState(false);
-  // one email a minute from this page (Supabase holds its own limit behind it)
-  const [canResend, setCanResend] = useState(false);
+  // one email a minute from this page: when the last went, and a clock for the wait shown on "Send it again"
+  const [sentAt, setSentAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const wait = resendWait(sentAt, now);
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = window.setTimeout(() => setNow(Date.now()), 1000);
+    return () => window.clearTimeout(t);
+  }, [wait, now]);
   const sendLink = async (to: string, redirectTo: string): Promise<boolean> => {
     setLoading(true);
     const problem = await sendSignInLink(to, redirectTo, false);
@@ -63,8 +70,8 @@ export default function Auth() {
     }
     setSentTo(to);
     setMode("code");
-    setCanResend(false);
-    window.setTimeout(() => setCanResend(true), 60_000);
+    setSentAt(Date.now());
+    setNow(Date.now());
     return true;
   };
   const linkTarget = () => window.location.origin + (paid ? "/welcome" : from.split("#")[0]);
@@ -87,14 +94,13 @@ export default function Auth() {
     // /auth?email=..&checkout=done is where /start/done sends a new customer (docs/postmosis-billing.md): this
     // browser asks for their sign-in link, exactly as the form does, so paying never signs anyone in by itself.
     // Read from window and removed at once, so a reload or a second run of this effect sends nothing more.
-    const q = new URLSearchParams(window.location.search);
-    const fromCheckout = q.get("checkout") === "done" && !!q.get("email");
-    if (fromCheckout) window.history.replaceState(window.history.state, "", `/auth?email=${encodeURIComponent(q.get("email")!)}`);
+    const arrival = checkoutArrival(window.location.search);
+    if (arrival) window.history.replaceState(window.history.state, "", arrival.cleaned);
     supabase.auth.getSession().then(async ({ data }) => {
       if (data.session) return navigate(from, { replace: true });
-      if (!fromCheckout) return;
+      if (!arrival) return;
       setPaid(true);
-      await sendLink(q.get("email")!, window.location.origin + "/welcome");
+      await sendLink(arrival.email, window.location.origin + "/welcome");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
@@ -230,8 +236,8 @@ export default function Auth() {
                 </Button>
               </form>
             )}
-            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-primary">
-              {mode === "code" && sentTo && <button type="button" disabled={!canResend || loading} onClick={() => void sendLink(sentTo, linkTarget())} className="disabled:font-normal disabled:text-muted-foreground">{canResend ? "Send it again" : "Send it again in a minute"}</button>}
+            <div className={`mt-4 flex flex-wrap gap-x-4 text-sm font-semibold text-primary ${mode === "code" && sentTo ? "[&>button]:min-h-11" : "gap-y-2"}`}>
+              {mode === "code" && sentTo && <button type="button" disabled={wait > 0 || loading} onClick={() => void sendLink(sentTo, linkTarget())} className="tabular-nums disabled:font-normal disabled:text-muted-foreground">{wait > 0 ? `Send it again in ${wait}s` : "Send it again"}</button>}
               {mode === "code" && <button type="button" onClick={() => setMode("email")}>{sentTo ? "Use a different email" : "Email me a link instead"}</button>}
               {mode === "email" && <button type="button" onClick={() => setMode("code")}>I have a code</button>}
               {mode !== "password" && <button type="button" onClick={() => setMode("password")}>Use a password instead</button>}

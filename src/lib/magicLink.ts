@@ -23,6 +23,18 @@ export async function verifySignInCode(email: string, code: string): Promise<str
   return error ? "That code didn't work. Check it, or ask for a new email." : null;
 }
 
+/** /auth?email=..&checkout=done, where /start/done sends a new customer (docs/postmosis-billing.md): the address to
+ * email a sign-in link, and the URL to leave in the bar so a reload sends nothing more. Null for any other arrival. */
+export function checkoutArrival(search: string): { email: string; cleaned: string } | null {
+  const q = new URLSearchParams(search);
+  const email = (q.get("email") ?? "").trim();
+  return q.get("checkout") === "done" && email ? { email, cleaned: `/auth?email=${encodeURIComponent(email)}` } : null;
+}
+
+/** One sign-in email a minute from this page (Supabase holds its own limit behind it): seconds until the next. */
+export const RESEND_MS = 60_000;
+export const resendWait = (sentAt: number, now: number): number => (sentAt ? Math.max(0, Math.ceil((sentAt + RESEND_MS - now) / 1000)) : 0);
+
 export const LINK_FAILED = "That sign-in link didn't work. It may have expired or been used, or it opened in a different browser from the one that asked. Type the code from the email, or send a new link.";
 
 const LINK_PARAMS = ["code", "error", "error_code", "error_description"];
