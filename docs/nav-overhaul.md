@@ -1,189 +1,175 @@
-# Navigation overhaul (wave 3, r3-nav)
+# Navigation map
 
-Base origin/main cbbd8707, branch r3-nav in ~/worktrees.noindex/cs-ff-choices. Leo: "do be very aggressive in the
-navigation improvement overhaul too" and "everything should be stupidly simple to use".
+Laid out as Fastlane's (app.usefastlane.ai) after Leo, 12 Nov: "FOLLOW THE USEFASTLANE LAYOUT, GO THROUGH EVERY SINGLE
+THING". The reference is the 11 Nov meeting frames (~/worktrees.noindex/ff1111/fastlane-ref/frames-1111/, for example
+t11-13.jpg) and the 24 Oct screenshots beside them (20-account-menu.jpg, 24-chat-thread.jpg, 25-chat-new.jpg). The
+code is src/lib/nav.ts (every page, once), src/pages/StudioLayout.tsx (the sidebar, phone bar and More sheet) and
+src/components/SectionTabs.tsx (the tab row and its picker).
 
-No address changes. Every page keeps its URL and its Leo-only gate; what changes is where the nav lists it.
+No address has changed since the first nav overhaul (11 Nov): every page keeps its URL and its gate, and only where
+the nav lists it moves. src/lib/nav.test.ts holds the list of addresses, the five-tab limit for both sign-ins, the
+Leo-only set, and the order below.
 
-## Before (87 entries)
+## The sidebar
 
-Sidebar: Home, Strategy, Studio, Radar, Grow, Analytics, then Brand, Learn, Feedback and Settings at the foot. Ten
-places to go, plus New post with a second menu on its arrow, and Jump to.
-
-- Tabs per section on Leo's sign-ins: Strategy 7, Studio 8 (five of them with a second row of chips), Radar 5 (two
-  with chips), Grow 5, Analytics 2, Brand 6, Learn 4.
-- Phone bar: Home, Strategy, Create (a menu), Studio or Chats, More. More held 7 or 8 tiles.
-
-## After
-
-Sidebar: Home, Create, Library, Plan, Insights, then Brand and Settings at the foot. One button: New post for
-customers, Ask the agent for Leo. Jump to stays as the search box under it.
-
-A section has at most 5 tabs and one row. The open tab, when it holds several pages, shows the open page's name and
-a small arrow; pressing it lists the others (the picker). Filters stay on the pages.
-
-| Section | Tabs (pages in each tab's picker) |
+| Fastlane (11 Nov) | Ours |
 |---|---|
-| Home | no tabs. /home; /agent (Leo, from the button and the chat list); /north-star (Leo, account menu) |
-| Create | Start (/studio); Write (Post, Weekly batch, Answer, Sales script, Hooks, Script); Slides (Carousel, Slideshow, Design, Auto slideshows, Picture sets, Image); Video (Video editor, Hook + demo, Clone a reel, Faces and voices); Formats (All formats, Blitz), Leo only |
-| Library | My work (Everything, All posts, Board, Grid, as a switch on the page); Approvals (Posts board, Leader approvals) |
-| Plan | Calendar; Campaigns (Leo); Plans (Weekly plan, Launch plan, LinkedIn, Social north star); Ideas (Leo) |
-| Insights | Results (/analytics); Coach; Find posts (Top posts, Carousels, What's working, Trends, Inspiration, Saved, Your market); Creators (Following, Creators to follow, Research); Recruit (Recruit kit, Conversations, Reply agent, Reply drafts, Auto-DM), on adviser brands only |
-| Brand | Fastlane's five (wave 7): Profile (Profile, Your voice, Brand kit, Audiences, Positioning); Products (/brand/products, Leo); Competitors (Leo); Demo videos (/brand/demo-videos, Leo); Media. Anyone else's Brand is Profile and Media |
-| Settings | index of tiles: You, Connections, Your team, The agent, Help (Getting started, Academy, How to post, How it works, Feedback) |
+| Logo, workspace switcher | Logo, brand switcher, and a search icon for Jump to (ours; Cmd or Ctrl K anywhere) |
+| Home, Campaigns, Studio, Brand, Competitor Radar, Analytics, Warmed accounts | Home, Campaigns, Studio, Brand, Competitor Radar, Analytics (no warmed accounts) |
+| Chats with a plus, then Today and Previous 30 days | Leo: Chats with a plus, then Today, Yesterday and Earlier, each chat its own link. Everyone else: the one filled New post button in that place |
+| Workspace card: name, credits, usage bar, menu | Workspace card: the open brand, today's agent messages used as a bar (Leo) or who is signed in, and a menu with North star (Leo), Settings, Help, the theme and Sign out. A dot on it, and New on Help, when the feedback board has news |
+| New version ready, Later, Refresh | The same, above the card |
 
-Phone bar: Home, Create, Library, Plan, More. Leo's is Home, Create, Chats, Plan, More. More holds what the bar
-does not: Insights, Brand, Settings (and Library on Leo's).
+Settings and Help left the sidebar: they are in the card's menu (Help opens /settings#help, Settings' Help tiles).
+Brand moved up from the foot into the list.
 
-## Where every entry goes
+## The phone
 
-| Before | Address | After | Why |
+Bottom bar: Home, Campaigns, then Chats (Leo) or Studio (everyone else), and More. More holds a tile for each other
+place (Studio on Leo's, Brand, Competitor Radar, Analytics, Settings), the theme, Help and Sign out.
+
+## Tabs
+
+Five at most, one row. A tab that holds several pages shows an arrow when open; pressing it lists them (the picker),
+under kind headings where one tab holds several kinds. Filters stay on the pages.
+
+| Place | Leo | Everyone else |
+|---|---|---|
+| Home | no tabs | no tabs |
+| Campaigns | Campaigns, Calendar, Plans (Weekly plan, Launch plan, LinkedIn, Social north star), Ideas, Approvals (Posts board, Leader approvals) | Calendar, Plans (Weekly plan, Launch plan, LinkedIn), Leader approvals (Approvals when on the posts board) |
+| Studio | Overview, Create (All formats; Words: Post, Weekly batch, Answer, Sales script, Hooks, Script; Slides and pictures: Carousel, Slideshow, Design, Auto slideshows, Picture sets, Image; Video: Video editor, Hook + demo, Remix a post), Library (Everything, All posts, Board, Grid, switched on the page), Blitz, Faces and voices | Overview, Create (opening on Post; the same makers without All formats, Script and Image), Library |
+| Brand | Profile (Profile, Your voice, Brand kit, Audiences, Positioning), Products, Competitors, Demo videos, Media | Profile (Profile, Your voice, Brand kit, Positioning on an adviser brand), Media |
+| Competitor Radar | Find posts (Top posts or Swipe file, Carousels, What's working, Trends, Inspiration), Creators (Following, Creators to follow, Research), Saved, Your market when on | Find posts (Top posts or News, Carousels, What's working, Trends and Inspiration on an adviser brand), Creators (Following, Creators to follow on an adviser brand), Your market when on |
+| Analytics | Results, Coach, Recruit on an adviser brand (Recruit kit, Conversations, Reply agent, Reply drafts, Auto-DM) | Results, Coach, Recruit on an adviser brand |
+| Settings | tiles, each page leading back: You, Connections, Your team, The agent, Help | the same, without the Leo-only tiles |
+
+The recruit pages are a tab on adviser brands only; any brand still opens them by address and from Jump to.
+
+## The agent's chat
+
+Fastlane's three columns from lg: the sidebar with the chats list, the open chat centred in the panel with its
+composer pinned at the bottom, and Your work full height against the panel's right edge (xl up; a Your work button
+opens it as a sheet below that). On a chat, the sidebar lights that chat, not Home. Phones keep Chats and Your work
+as buttons over the chat.
+
+## Every page, and where it is
+
+| Address | Name | Where | Who |
 |---|---|---|---|
-| Home > Overview | /home | Home | same |
-| Home > Agent (Leo) | /agent | Home, from Ask the agent and the chat list | same |
-| Home > North star (Leo) | /north-star | account menu | same |
-| Strategy > Campaigns (Leo) | /campaigns | Plan > Campaigns | Strategy is called Plan: the word a stranger uses |
-| Strategy > Calendar | /calendar | Plan > Calendar | first tab for customers |
-| Strategy > Plan | /plan | Plan > Plans, as Weekly plan | three plans are one job |
-| Strategy > Launch | /launch | Plan > Plans picker, Launch plan | same job |
-| Strategy > LinkedIn | /linkedin | Plan > Plans picker, LinkedIn | same job |
-| Strategy > Ideas (Leo) | /ideas | Plan > Ideas | same |
-| Strategy > Social north star (Leo) | /social-north-star | Plan > Plans picker | a plan of formats |
-| Studio > Overview | /studio | Create > Start | becomes the "what do you want to make?" screen |
-| Studio > Create > All formats (Leo) | /make | Create > Formats, and "More formats" on Start | the catalogue sits behind one link |
-| Studio > Create > Carousel | /carousel | Create > Slides | slides and pictures are one job |
-| Studio > Create > Image (Leo) | /image | Create > Slides picker | same job |
-| Studio > Create > Video | /edit | Create > Video | same |
-| Studio > Create > Hook + demo | /make/hook-demo | Create > Video picker | it makes a video |
-| Studio > Write > Post | /generate | Create > Write | first maker |
-| Studio > Write > Batch | /generate/batch | Create > Write picker, Weekly batch | named as its page |
-| Studio > Write > Answer | /generate/answer | Create > Write picker | same job |
-| Studio > Write > VSL | /generate/vsl | Create > Write picker, Sales script | VSL is jargon |
-| Studio > Write > Hooks | /hooks | Create > Write picker | same job |
-| Studio > Write > Script (Leo) | /script | Create > Write picker | same job |
-| Studio > Library > Everything | /library | Library > Everything | Library is its own place, as on Fastlane's Studio tab row but one level up |
-| Studio > Library > All posts | /drafts | Library > Everything picker, Posts | a view of my stuff |
-| Studio > Library > Board | /board | Library > Everything picker | a view |
-| Studio > Library > Grid | /grid | Library > Everything picker | a view |
-| Studio > Library > Media | /media | Brand > Media (wave 7; was Library > Media) | Fastlane's Photos and videos: the logo, product photos and footage the makers draw from |
-| Studio > Blitz (Leo) | /blitz | Create > Formats picker, "Blitz: swipe through ready drafts" | a way to make; plain subtitle |
-| Studio > Influencers > Faces and voices (Leo) | /people | Create > Video picker | who appears in videos |
-| Studio > Slideshows > Slideshow | /slideshow | Create > Slides picker | same job as Carousel |
-| Studio > Slideshows > Design | /design | Create > Slides picker | same job |
-| Studio > Slideshows > Campaigns | /design/campaigns | Create > Slides picker, Auto slideshows | no longer a second "Campaigns" |
-| Studio > Slideshows > Libraries | /design/libraries | Create > Slides picker, Picture sets | no longer a second "Library" |
-| Studio > Approvals > Posts board | /reels | Library > Approvals | review of made posts |
-| Studio > Approvals > Leader approvals | /team | Library > Approvals picker | same job |
-| Radar > Posts > Top posts | /swipe | Insights > Find posts | find something to remix |
-| Radar > Posts > Carousels | /carousels | Insights > Find posts picker | a source |
-| Radar > Posts > What's working | /working | Insights > Find posts picker | a source |
-| Radar > Posts > Trends | /trends | Insights > Find posts picker | a source |
-| Radar > Posts > Inspiration | /inspiration | Insights > Find posts picker | a source; the page keeps its name |
-| Radar > Creators > Following | /following | Insights > Creators | who to watch |
-| Radar > Creators > Creators | /profiles | Insights > Creators picker, Creators to follow | named as its heading |
-| Radar > Creators > Research (Leo) | /research | Insights > Creators picker | same job |
-| Radar > Remix > Clone a reel | /clone | Create > Video picker | it makes a script from a reel |
-| Radar > Saved (Leo) | /saved | Insights > Find posts picker | saved things to remix |
-| Radar > Your market | /market | Insights > Find posts picker | research |
-| Grow > Brand Brain | /recruit | Insights > Recruit, as Recruit kit | Brand Brain is an internal name |
-| Grow > Conversations | /recruit/conversations | Insights > Recruit picker | same page, its tab |
-| Grow > AI agent | /recruit/agent | Insights > Recruit picker, Reply agent | "Agent" already means the studio's agent |
-| Grow > Reply drafts | /recruit/engage | Insights > Recruit picker | same |
-| Grow > Auto-DM (Leo) | /recruit/auto-dm | Insights > Recruit picker | same |
-| Analytics > Analytics | /analytics | Insights > Results | first tab |
-| Analytics > Coach | /coach | Insights > Coach | same |
-| Brand > My Playbook | /playbook | Brand > Profile, first in its picker | Fastlane's word; the page's heading changes with it |
-| Brand > Your voice | /voice | Brand > Profile picker, Your voice (wave 7) | Profile's Tone and voice rows lead here; named as its heading |
-| Brand > Brand kit | /brand | Brand > Profile picker, Brand kit (wave 7), without its products and demo videos | Profile's Identity and Look rows lead here |
-| Brand > Audiences (Leo) | /audiences | Brand > Profile picker (wave 7) | Profile's Personas rows lead here |
-| Brand > Competitors (Leo) | /competitors | Brand > Competitors (wave 7; was Insights > Creators in waves 3 to 6) | Fastlane's Brand tab; their ads stay in Insights > Find posts |
-| Brand > F.A.D.S. | /fads | Brand > Profile picker, Positioning | F.A.D.S. is an internal name |
-| Learn > Getting started | /welcome | Settings > Help | help is not a destination |
-| Learn > Academy | /academy | Settings > Help | same |
-| Learn > How to post | /create-guide | Settings > Help | same |
-| Learn > How the studio works | /tutorial | Settings > Help, How it works | same |
-| Feedback | /feedback | Settings > Help | same |
-| Settings and its 12 tiles | unchanged | Settings | same |
-| New post arrow menu | 7 links | removed; Create > Start is that list | one button |
-| Phone Create menu | 7 links | the bar's Create opens Create > Start | one screen for both |
+| /home | Overview | Home (no tabs) | everyone |
+| /agent | Agent | Chats in the sidebar (+ for a new one); Chats on the phone bar | Leo |
+| /north-star | North star | the workspace card's menu | Leo |
+| /campaigns | Campaigns | Campaigns > Campaigns | Leo |
+| /calendar | Calendar | Campaigns > Calendar | everyone |
+| /plan | Weekly plan | Campaigns > Plans > Weekly plan | everyone |
+| /launch | Launch plan | Campaigns > Plans > Launch plan | everyone |
+| /linkedin | LinkedIn | Campaigns > Plans > LinkedIn | everyone |
+| /social-north-star | Social north star | Campaigns > Plans > Social north star | Leo |
+| /ideas | Ideas | Campaigns > Ideas | Leo |
+| /reels | Posts board | Campaigns > Approvals > Posts board | posts board members |
+| /team | Leader approvals | Campaigns > Approvals > Leader approvals | everyone |
+| /studio | Overview | Studio > Overview | everyone |
+| /make | All formats | Studio > Create > All formats | Leo |
+| /generate | Post | Studio > Create > Post | everyone |
+| /generate/batch | Weekly batch | Studio > Create > Weekly batch | everyone |
+| /generate/answer | Answer | Studio > Create > Answer | everyone |
+| /generate/vsl | Sales script | Studio > Create > Sales script | everyone |
+| /hooks | Hooks | Studio > Create > Hooks | everyone |
+| /script | Script | Studio > Create > Script | Leo |
+| /carousel | Carousel | Studio > Create > Carousel | everyone |
+| /slideshow | Slideshow | Studio > Create > Slideshow | everyone |
+| /design | Design | Studio > Create > Design | everyone |
+| /design/campaigns | Auto slideshows | Studio > Create > Auto slideshows | everyone |
+| /design/libraries | Picture sets | Studio > Create > Picture sets | everyone |
+| /image | Image | Studio > Create > Image | Leo |
+| /edit | Video editor | Studio > Create > Video editor | everyone |
+| /make/hook-demo | Hook + demo | Studio > Create > Hook + demo | everyone |
+| /clone | Clone a reel | Studio > Create > Clone a reel | everyone |
+| /library | Everything | Studio > Library > Everything | everyone |
+| /drafts | All posts | Studio > Library > All posts | everyone |
+| /board | Board | Studio > Library > Board | everyone |
+| /grid | Grid | Studio > Library > Grid | everyone |
+| /blitz | Blitz | Studio > Blitz | Leo |
+| /people | Faces and voices | Studio > Faces and voices (Fastlane's Influencers tab) | Leo |
+| /playbook | Profile | Brand > Profile | everyone |
+| /voice | Your voice | Brand > Profile > Your voice | everyone |
+| /brand | Brand kit | Brand > Profile > Brand kit | everyone |
+| /audiences | Audiences | Brand > Profile > Audiences | Leo |
+| /fads | Positioning | Brand > Profile > Positioning | adviser brand |
+| /brand/products | Products | Brand > Products | Leo |
+| /competitors | Competitors | Brand > Competitors | Leo |
+| /brand/demo-videos | Demo videos | Brand > Demo videos | Leo |
+| /media | Media | Brand > Media | everyone |
+| /swipe | Top posts | Competitor Radar > Find posts > Top posts | everyone |
+| /carousels | Carousels | Competitor Radar > Find posts > Carousels | everyone |
+| /working | What's working | Competitor Radar > Find posts > What's working | everyone |
+| /trends | Trends | Competitor Radar > Find posts > Trends | adviser brand |
+| /inspiration | Inspiration | Competitor Radar > Find posts > Inspiration | adviser brand |
+| /following | Following | Competitor Radar > Creators > Following | everyone |
+| /profiles | Creators to follow | Competitor Radar > Creators > Creators to follow | adviser brand |
+| /research | Research | Competitor Radar > Creators > Research | Leo |
+| /saved | Saved | Competitor Radar > Saved | Leo |
+| /market | Your market | Competitor Radar > Your market | market switched on |
+| /analytics | Results | Analytics > Results | everyone |
+| /coach | Coach | Analytics > Coach | everyone |
+| /recruit | Recruit kit | Analytics > Recruit > Recruit kit | tab on adviser brands |
+| /recruit/conversations | Conversations | Analytics > Recruit > Conversations | tab on adviser brands |
+| /recruit/agent | Reply agent | Analytics > Recruit > Reply agent | tab on adviser brands |
+| /recruit/engage | Reply drafts | Analytics > Recruit > Reply drafts | tab on adviser brands |
+| /recruit/auto-dm | Auto-DM | Analytics > Recruit > Auto-DM | Leo, tab on adviser brands, posting switched on |
+| /settings | Settings | the workspace card's menu (Help opens /settings#help) | everyone |
+| /notifications | Notifications | Settings > You tile | everyone |
+| /settings/post-choices | Post choices | Settings > You tile | everyone |
+| /accounts | Social accounts | Settings > Connections tile | posting switched on |
+| /bio | Link in bio | Settings > Connections tile | everyone |
+| /links | Tracked links | Settings > Connections tile | everyone |
+| /connect | Connect Claude | Settings > Connections tile | everyone |
+| /adlauncher | AdLauncher | Settings > Connections tile | Leo |
+| /reels/team | Reviewers | Settings > Your team tile | board owners |
+| /automations | What runs without you | Settings > The agent tile | Leo |
+| /activity | Activity | Settings > The agent tile | Leo |
+| /skills | Skills | Settings > The agent tile | Leo |
+| /welcome | Getting started | Settings > Help tile (a new sign-in's first screen: no way-back row) | everyone |
+| /academy | Academy | Settings > Help tile | everyone |
+| /create-guide | How to post | Settings > Help tile | everyone |
+| /tutorial | How it works | Settings > Help tile | everyone |
+| /feedback | Feedback | Settings > Help tile | everyone |
 
-## Create > Start
 
-One question, "What do you want to make?", a box for the topic with Write it, and six big choices: Post, Carousel,
-Slideshow, Video, Weekly batch, Answer. "More formats" opens the catalogue for Leo and the rest of the makers for
-everyone else. The rows that were on the page (formats, ads, trending, your latest) stay under it.
+Jump to finds every page by its name, its own old names (`was` in nav.ts: F.A.D.S., Brand Brain, VSL, My Playbook,
+Influencers...) and its section's old names (Plan, Strategy, Create, Library, Radar, Insights, Grow, Studio), the
+section's ranked below the page's own words.
 
-## Taps to a first written post (new customer, phone, from Home)
-
-| | Before | After |
-|---|---|---|
-| Phone | 8: Create, Post, Next, Next, Next, Generate 3 hooks, Skip, pick a hook | 5: Create, Write it, Generate 3 hooks, Skip, pick a hook |
-| Computer | 7: New post, Next, Next, Next, Generate 3 hooks, Skip, pick a hook | 5: New post, Write it, Generate 3 hooks, Skip, pick a hook |
-
-Walked on localhost as the demo login at 390 up to the three hooks (two paid hook calls); the last tap, picking a
-hook, was read off the screen and not pressed. The three taps inside the writer are GeneratePage's own.
-
-## Judged too risky to move, and why
-
-- The writer's own steps (Generate 3 hooks, the one question, pick a hook). Cutting them is a change to GeneratePage
-  (5,000+ lines, another builder's) and to what gets paid for; the topic box skips the three Nexts without touching it.
-- Truly merging pages into one (one Write page, one Slides page, one Library page with a view switch). Each is its own
-  route with its own state and deep links; the picker gives the one-tab, one-control result with no address or state
-  change. Merging Library's four views into one page is the best next candidate.
-- New post now opens Create > Start with the topic box focused (wave 4, Leo's call), and goes back to the writer
-  while the tab holds an unfinished post there (src/lib/newPost.ts).
-- F.A.D.S. inside page copy (Plan's "F.A.D.S. tool", the page's own steps). The nav, the heading and Jump to say
-  Positioning; the framework's name stays where the academy teaches it.
-- Help under Settings has no place on the phone bar or sidebar; it is in the account menu, Settings and Jump to.
-  Getting started is also a step on Home.
-- Insights > Recruit: the recruit kit is not an insight, but it needed a home under five destinations. Since wave 4
-  the tab shows on adviser brands only; any brand still opens its pages by address and from Jump to.
-- "One obvious next action on every screen" was applied to the shell, the tab rows and Create > Start. The 80 pages
-  under them were walked for dead ends and errors, not redesigned.
-
-## First-tab pages: what is left inside each page (wave 4 pass)
-
-Looked at as the demo login at 390 and 1440, once with its posts and once as a new sign-in (nothing on the device, the
-sync faked). Fixed in the shell and headers: Getting started no longer says "back to Settings", and the empty Library,
-the empty calendar and Getting started each offer one button that opens Create > Start. Left inside the pages:
-
-| Page | What is still more than one thing, or unclear |
-|---|---|
-| Home (/home), with posts | At 1440 the page itself has no filled button: Write a post, Plan a week and Weekly batch are three equal outlines beside Start diagnosis and the Get set up list. The sidebar's New post is the one filled button on screen. On a phone Write a post is filled and the page reads well |
-| Getting started (/welcome), a new sign-in's Home | Four ways on at once: Set my voice, Write a post and Plan a week on the step cards, then Start with my first post, Show me around and a Skip link. On a phone the filled button sits under three cards, below the fold. The heading carries an emoji. The phone bar lights More, because the page lives under Settings |
-| Create > Start (/studio) | Clear. The Post tile opens the writer on its first step while the topic box opens it on its last; a tile press with an empty box could ask for the topic first |
-| Library (/library) | Empty: clear (Write a post, Find a post to remix). With posts there is no leading action, which fits a place to browse; every card has its own Open |
-| Calendar (/calendar) | On a phone four rows of controls (view, platform, status and Add note, month) come before the first week. "3 a week, 5 a week, 7 a week" are three equal choices with none recommended. Write a post in the week card is a button only when nothing at all is planned; otherwise it is a link in small print |
-| Results (/analytics) | A new sign-in meets three tools in a row that each ask for a handle (Audit your account, Analyze a creator, Your accounts) before any result. "Your account audit" sits directly over a card titled "Audit your account". Audit my Instagram is the one filled button |
-| Profile (/playbook) | Clear: one filled button names the next gap. The two Saved panels under it were not opened empty |
-| Every page, phones | The round chat button covers the bottom right of the content (the Answer tile's words on Create, a row's arrow on Profile). It comes from the shared feedback component |
-
-## Brand as Fastlane's five tabs (wave 7, 12 Nov)
+## Measured (12 Nov, before and after this map)
 
 | | Before | After |
 |---|---|---|
-| Leo | Profile, Voice, Brand kit, Audiences (Audiences, Positioning) | Profile (Profile, Your voice, Brand kit, Audiences, Positioning), Products, Competitors, Demo videos, Media |
-| Anyone else, adviser brand | Profile, Voice, Brand kit, Positioning | Profile (Profile, Your voice, Brand kit, Positioning), Media |
-| Anyone else, other brand | Profile, Voice, Brand kit | Profile (Profile, Your voice, Brand kit), Media |
+| Sidebar controls at 1440, everyone else | 12, 5 with a border | 11, 2 with a border |
+| Sidebar controls at 1440, Leo (no chats yet) | 13, 6 with a border | 11, 2 with a border |
+| Filled buttons in Leo's sidebar | 1 (Ask the agent) | 0 (Chats with a plus) |
+| Phone bar | 5 (Home, Create, Library or Chats, Plan, More) | 4 (Home, Campaigns, Studio or Chats, More) |
+| Places in the sidebar | 5 plus Brand and Settings at the foot | 6, Settings in the card's menu |
+| Agent chat at 1440, new chat | Chat 664px wide in the 990px column, Your work 256px inside it | Chat column 890px with the thread centred at 672px, Your work 288px full height at the panel's edge |
+| Sideways scroll at 390 on every nav page | 0 | 0 |
 
-- Products and Demo videos were sections in the middle of the 20-section Brand kit page. They are pages of their own
-  now, /brand/products and /brand/demo-videos (Fastlane's addresses), drawn by BrandPage with `part`, so they load and
-  save the kit exactly as before and nothing about them changed. The script product card went with Products. The
-  Brand kit page no longer shows them. Every older address (/brand#products, ?product=, ?products=review,
-  #script-product, #demo-videos, ?demo=) opens the new tab with the rest of the address kept (links.ts
-  brandPartAddress), and every link the app builds goes there directly.
-- Competitors came back from Insights > Creators, as gaps/brand.md row 1 proposed; their ads stay in Find posts.
-- Media came from the Library, where it was the one tab that was not something you made.
-- Gates: unchanged. Products, Competitors, Demo videos and Audiences are Leo's; Positioning is an adviser brand's.
-  Anyone else opening /brand/products or /brand/demo-videos gets "This page isn't on your account yet", as for any
-  Leo-only page; /brand#products for them stays on the kit, which never had that section for them.
+## How we got here
 
-Left:
-- The tab is called Media, not Fastlane's "Photos and videos". About 25 lines across other builders' pages say "Saved
-  to Media", "Add from Media" or "No photos in Media yet"; renaming the tab alone would name a place nothing else
-  calls by that name. Renaming it everywhere is one sweep, Leo's call.
-- Brand kit is still one long page under Profile's picker (You, DM links, offers, emoji and hashtags, words to avoid,
-  colours, fonts, sign-off, posting times, language, logo, on every post). Fastlane splits these across Profile's
-  rows with in-place editing; ours links each Profile row to its section. Editing in place is a page rebuild.
-- Products and Demo videos have no visible page title: the section's own card heading ("Products and services",
-  "Demo videos") is the first thing under the tab, as on Fastlane, so a visible title would say it twice.
+- 24 Oct: one sidebar and tab rows after Fastlane's shell (docs/fastlane-nav-gap.md).
+- 11 Nov, waves 3 and 4: 87 entries cut to five places, five tabs at most, pickers instead of chip rows, Create's
+  first screen, New post opening it, recruit tabs on adviser brands only.
+- 12 Nov, wave 7: Brand as Fastlane's five tabs; Products and Demo videos pages of their own.
+- 12 Nov, wave 8: this map. Plan is Campaigns, Create and Library are one Studio again, Insights split back into
+  Competitor Radar and Analytics, Brand in the list, Settings and Help in the workspace card, the chat in three
+  columns.
+
+## Left
+
+- Fastlane puts the section's name over its tabs ("Studio", then Overview, Create...). Ours shows the tabs, then each
+  page's own heading; adding the section name would put a third heading on every page.
+- The Influencers tab is called Faces and voices, as its page heading is.
+- Media keeps its name (Fastlane's Photos and videos): about 25 lines across the app say "Saved to Media".
+- Everyone else's Campaigns has no page called Campaigns (that page is Leo's): it opens on the calendar.
+- Home for everyone else shows two filled buttons at once: New post in the sidebar and the page's own Finish your
+  post or Write a post. Home is not part of the shell.
+- The brand's connected channels (ChannelsBlock) still sit under the brand switcher when posting is switched on;
+  Fastlane has none there and lists them in Settings > Integrations.
