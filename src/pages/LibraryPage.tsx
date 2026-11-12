@@ -3,24 +3,23 @@
 // beside it. Read-only apart from its links: each card opens the page that made it. Nothing is stored here.
 
 import { newPostHref } from "@/lib/newPost";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { BooksIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import LibraryCard from "@/components/library/LibraryCard";
+import LibraryChip from "@/components/library/LibraryChip";
 import LibraryViews from "@/components/library/LibraryViews";
 import { thumbSources, useFontsReady } from "@/components/library/LibraryThumb";
 import MakingNow, { useLibraryJobs } from "@/components/library/MakingNow";
 import { useZernioRefresh } from "@/components/PostItForMe";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
 import { DEFAULT_BRAND, loadBrand, loadCarousels } from "@/lib/carousel";
 import { DESIGNS_CHANGED, loadDesigns } from "@/lib/design";
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
 import { loadImages, onImagesChanged } from "@/lib/images";
 import {
-  FORMAT_LABELS,
   LIBRARY_FORMATS,
   LIBRARY_STATUSES,
   STATUS_LABELS,
@@ -41,6 +40,15 @@ import NotFoundPage from "@/pages/NotFoundPage";
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const FORMATS = ["all", ...LIBRARY_FORMATS] as const;
 const STATUSES = ["all", ...LIBRARY_STATUSES] as const;
+// Fastlane's order and words (All formats, Video, Slideshow, Image), with our text posts after them; Slides covers
+// carousels, slideshows and Designs. The address keeps ?format=carousel.
+const FORMAT_CHIPS: { value: (typeof FORMATS)[number]; label: string }[] = [
+  { value: "all", label: "All formats" },
+  { value: "video", label: "Video" },
+  { value: "carousel", label: "Slides" },
+  { value: "image", label: "Image" },
+  { value: "text", label: "Text" },
+];
 
 export default function LibraryPage() {
   const user = useSignedInUser();
@@ -102,88 +110,89 @@ function Library({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start lg:gap-8">
-        <div className="min-w-0 space-y-4">
-          <LibraryViews />
-          <header className="flex flex-wrap items-center justify-between gap-2">
-            <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">Library</h1>
-            <Button size="sm" variant="outline" onClick={() => openPanel("making")} className={`lg:hidden ${TOUCH}`}>
-              Making now ({making}){failedJobs ? ` | ${failedJobs} failed` : ""}
-            </Button>
-          </header>
-
-          {items.length === 0 ? (
-            <EmptyState
-              icon={BooksIcon}
-              title="Nothing made yet"
-              actions={
-                <>
-                  <Button asChild className={TOUCH}>
-                    <Link to={newPostHref(userId)}>Write a post</Link>
-                  </Button>
-                  <Button asChild variant="outline" className={TOUCH}>
-                    <Link to={links.swipe()}>Find a post to remix</Link>
-                  </Button>
-                </>
-              }
-            >
-              Posts, carousels, videos and images you make land here.
-            </EmptyState>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <div role="group" aria-label="Format" className="scrollbar-none flex gap-1.5 overflow-x-auto">
-                  {FORMATS.map((f) => (
-                    <FilterChip key={f} active={format === f} onClick={() => setFormat(f)}>
-                      {f === "all" ? "All formats" : FORMAT_LABELS[f]}
-                    </FilterChip>
-                  ))}
-                </div>
-                <div role="group" aria-label="Status" className="scrollbar-none flex gap-1.5 overflow-x-auto">
-                  {STATUSES.map((s) => (
-                    <FilterChip key={s} active={status === s} onClick={() => setStatus(s)} count={counts[s]}>
-                      {s === "all" ? "All" : STATUS_LABELS[s]}
-                    </FilterChip>
-                  ))}
-                </div>
-                <div className="relative max-w-md">
-                  <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                  <Input
-                    type="search"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Search titles, words and captions"
-                    aria-label="Search titles, words and captions"
-                    className={`pl-8 ${TOUCH}`}
-                  />
-                </div>
-              </div>
-
-              {shown.length === 0 ? (
-                <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
-                  <p className="text-sm text-muted-foreground">Nothing matches these filters.</p>
-                  <Button variant="outline" onClick={clear} className={TOUCH}>
-                    Clear filters
-                  </Button>
-                </div>
-              ) : (
-                <ul className="grid grid-cols-2 items-stretch gap-x-3 gap-y-6 sm:grid-cols-3 xl:grid-cols-4">
-                  {shown.map((item) => (
-                    <li key={item.key} className="flex min-w-0">
-                      <LibraryCard item={item} sources={sources} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-        </div>
-
-        <aside className="hidden lg:block lg:sticky lg:top-4">
-          <MakingNow items={items} jobs={jobs} className="rounded-xl border border-border/60 bg-card p-4" />
-        </aside>
+    <div className="space-y-4">
+      {/* Fastlane's Library has no title under the Studio tabs: the view switch and the chips say where you are */}
+      <h1 className="sr-only">Library</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <LibraryViews />
+        {/* what is being made or failed, with its step and Try again; the cards say the same in short */}
+        {making + failedJobs > 0 && (
+          <Button size="sm" variant="ghost" onClick={() => openPanel("making")} className={`gap-1.5 text-xs text-muted-foreground ${TOUCH}`}>
+            {making > 0 && <span className="h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden />}
+            Making now ({making}){failedJobs ? ` | ${failedJobs} failed` : ""}
+          </Button>
+        )}
       </div>
+
+      {items.length === 0 ? (
+        <EmptyState
+          icon={BooksIcon}
+          title="Nothing made yet"
+          actions={
+            <>
+              <Button asChild className={TOUCH}>
+                <Link to={newPostHref(userId)}>Write a post</Link>
+              </Button>
+              <Button asChild variant="outline" className={TOUCH}>
+                <Link to={links.swipe()}>Find a post to remix</Link>
+              </Button>
+            </>
+          }
+        >
+          Posts, carousels, videos and images you make land here.
+        </EmptyState>
+      ) : (
+        <>
+          <div className="space-y-2">
+            {/* one row from lg, as Fastlane's: formats on the left, states on the right */}
+            <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
+              <div role="group" aria-label="Format" className="scrollbar-none -mx-1 flex gap-0.5 overflow-x-auto px-1">
+                {FORMAT_CHIPS.map((c) => (
+                  <LibraryChip key={c.value} on={format === c.value} onClick={() => setFormat(c.value)}>
+                    {c.label}
+                  </LibraryChip>
+                ))}
+              </div>
+              <div role="group" aria-label="Status" className="scrollbar-none -mx-1 flex gap-0.5 overflow-x-auto px-1">
+                {STATUSES.map((s) => (
+                  <LibraryChip key={s} on={status === s} onClick={() => setStatus(s)} count={s === "all" ? undefined : counts[s]}>
+                    {s === "all" ? "All" : STATUS_LABELS[s]}
+                  </LibraryChip>
+                ))}
+              </div>
+            </div>
+            <div className="relative max-w-sm">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Input
+                type="search"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Search titles, words and captions"
+                aria-label="Search titles, words and captions"
+                className={`h-9 pl-8 ${TOUCH}`}
+              />
+            </div>
+          </div>
+
+          {shown.length === 0 ? (
+            <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
+              <p className="text-sm text-muted-foreground">Nothing matches these filters.</p>
+              <Button variant="outline" onClick={clear} className={TOUCH}>
+                Clear filters
+              </Button>
+            </div>
+          ) : (
+            // Fastlane's density: six portrait cards a row on a wide screen
+            <ul className="grid grid-cols-2 items-start gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+              {shown.map((item) => (
+                <li key={item.key} className="flex min-w-0">
+                  <LibraryCard item={item} sources={sources} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
 
       <MakingSheet open={panel === "making"} onClose={closePanel}>
         <MakingNow items={items} jobs={jobs} />
@@ -192,34 +201,22 @@ function Library({ userId }: { userId: string }) {
   );
 }
 
-// The shell's lg breakpoint, where Making now is a column beside the grid.
-const WIDE = "(min-width: 1024px)";
-const onWideChange = (cb: () => void) => {
-  const m = window.matchMedia(WIDE);
-  m.addEventListener("change", cb);
-  return () => m.removeEventListener("change", cb);
-};
-const isWide = () => window.matchMedia(WIDE).matches;
-
-/** Making now on phones and tablets: a bottom sheet over the page (?panel=making, pushed, so Back closes it). */
-function MakingSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+/** Making now: a sheet over the page (?panel=making, pushed, so Back closes it), from the bottom on a phone. */
+function MakingSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
-  // from lg the sheet is display:none, and a hidden modal would still make the whole page inert
-  const wide = useSyncExternalStore(onWideChange, isWide);
-  const show = open && !wide;
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (show && !d.open) d.showModal?.();
-    if (!show && d.open) d.close();
-  }, [show]);
+    if (open && !d.open) d.showModal?.();
+    if (!open && d.open) d.close();
+  }, [open]);
   return (
     <dialog
       ref={ref}
       aria-label="Making now"
-      onClose={() => show && onClose()}
+      onClose={() => open && onClose()}
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[80vh] w-full max-w-none rounded-t-2xl border-t border-border/70 bg-background p-0 shadow-xl backdrop:bg-foreground/40 lg:hidden"
+      className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[80vh] w-full max-w-none rounded-t-2xl border-t border-border/70 bg-background p-0 shadow-xl backdrop:bg-foreground/40 sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-[28rem] sm:-translate-x-1/2 sm:rounded-2xl sm:border"
     >
       <div className="relative p-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
         <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="absolute right-2 top-2 h-11 w-11 p-0 text-muted-foreground">

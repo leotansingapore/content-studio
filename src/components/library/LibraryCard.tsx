@@ -1,5 +1,6 @@
-// One card on /library: a thumb drawn only once it is on screen, "<Format> | <title>", the status line and Open,
-// plus Schedule on a ready post and Try again on a failure. Thumbs are memoised by id and updatedAt.
+// One card on /library, after Fastlane's (11 Nov): a thumb drawn only once it is on screen, where it came from,
+// "<Kind> | <title>" and the status line, the whole card one link. Schedule and Copy link show over the thumb on hover
+// with a mouse; a failure keeps Try again in words. Thumbs are memoised by id and updatedAt.
 
 import { memo, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -35,20 +36,43 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
   const making = item.status === "making";
   const failed = item.status === "failed";
 
+  // a ready post's Schedule and any card's Copy link: shown over the picture on hover or focus with a mouse, left out
+  // on touch (the editor the card opens has both), as Fastlane's cards carry no buttons at rest
+  const tools = !making && !failed && (
+    <span className="absolute inset-x-1.5 bottom-1.5 z-10 hidden items-center justify-end gap-1 transition-opacity [@media(pointer:fine)]:flex [@media(pointer:fine)]:opacity-0 [@media(pointer:fine)]:focus-within:opacity-100 [@media(pointer:fine)]:group-hover/card:opacity-100">
+      {item.scheduleHref && (
+        <Button asChild size="sm" variant="secondary" className="h-7 px-2 text-xs shadow-sm">
+          <Link to={item.scheduleHref}>Schedule</Link>
+        </Button>
+      )}
+      <CopyLinkButton path={item.href} label={`Copy link to ${item.title}`.slice(0, 120)} className="h-7 w-7 rounded-md bg-secondary shadow-sm" />
+    </span>
+  );
+
   return (
-    <article className="flex w-full min-w-0 flex-col gap-2">
-      <Link to={item.href} tabIndex={-1} aria-hidden className={cn("relative block overflow-hidden rounded-lg border border-border/60 bg-muted", item.format === "video" ? "aspect-[9/16]" : "aspect-[4/5]")}>
+    // the whole card opens the piece (the title's link stretches over it); the links inside sit above that
+    <article className="group/card relative flex w-full min-w-0 flex-col gap-1.5">
+      <div className={cn("relative overflow-hidden rounded-lg border border-border/60 bg-muted transition-colors group-hover/card:border-primary/40", item.format === "video" ? "aspect-[9/16]" : "aspect-[4/5]")}>
         <div ref={ref} className="h-full w-full">
           <LibraryThumb item={item} sources={sources} seen={seen} />
         </div>
-      </Link>
-      <div className="min-w-0 space-y-1">
-        <p className="line-clamp-2 text-sm font-medium leading-snug">
-          <span className="text-muted-foreground">{item.kind} | </span>
-          {item.title}
+        {tools}
+      </div>
+      <div className="min-w-0 space-y-0.5">
+        {/* Fastlane's card: where it came from, "Kind · title" on one line, then when it goes out */}
+        {item.source && <p className="truncate text-[11px] text-muted-foreground" title={item.source}>{item.source}</p>}
+        <p className="truncate text-sm font-medium leading-snug" title={`${item.kind} | ${item.title}`}>
+          {/* a failed job's Try again opens the same maker, so the card opens it too */}
+          <Link to={item.href} aria-label={`Open ${item.title}`} className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring">
+            <span className="text-muted-foreground">{item.kind} | </span>
+            {item.title}
+          </Link>
         </p>
-        {item.source && <p className="truncate text-xs text-muted-foreground" title={item.source}>{item.source}</p>}
-        {item.key.startsWith("d:") && <CampaignPostLink userId={sources.userId} draft={{ id: item.key.slice(2), campaign: item.campaign }} />}
+        {item.key.startsWith("d:") && (
+          <div className="relative z-10 empty:hidden">
+            <CampaignPostLink userId={sources.userId} draft={{ id: item.key.slice(2), campaign: item.campaign }} />
+          </div>
+        )}
         <p className={cn("flex items-start gap-1 text-xs", failed ? "text-destructive" : "text-muted-foreground")}>
           {making && (item.waiting ? <ClockIcon className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> : <CircleNotchIcon className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />)}
           <span className="min-w-0 break-words">{statusLine(item)}</span>
@@ -57,7 +81,7 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
         {item.status === "ready" && item.note && <p className="text-xs text-muted-foreground">{item.note}</p>}
         {!here && <p className="text-xs text-muted-foreground">The video file is on the device that made it.</p>}
         {item.live && (
-          <p className="flex flex-wrap gap-x-3 text-xs">
+          <p className="relative z-10 flex flex-wrap gap-x-3 text-xs">
             {item.live.map((l) => (
               <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className={cn("inline-flex items-center gap-1 font-semibold text-primary hover:underline", TOUCH)}>
                 {platformName(l.platform)} <ArrowSquareOutIcon className="h-3 w-3" aria-hidden />
@@ -65,27 +89,12 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
             ))}
           </p>
         )}
-      </div>
-      <div className="mt-auto flex flex-wrap gap-1">
-        {/* a failed job's Try again opens the same maker, so it stands alone */}
-        {item.retryHref !== item.href && (
-          <Button asChild size="sm" variant="outline" className={cn("h-8 px-2.5 text-xs", TOUCH)}>
-            <Link to={item.href} aria-label={`Open ${item.title}`}>
-              Open
-            </Link>
-          </Button>
+        {/* a failure stays in words with its way out, on every screen */}
+        {item.retryHref && item.retryHref !== item.href && (
+          <Link to={item.retryHref} className={cn("relative z-10 inline-flex items-center text-xs font-semibold text-primary hover:underline", TOUCH)}>
+            Try again
+          </Link>
         )}
-        {item.scheduleHref && (
-          <Button asChild size="sm" variant="outline" className={cn("h-8 px-2.5 text-xs", TOUCH)}>
-            <Link to={item.scheduleHref}>Schedule</Link>
-          </Button>
-        )}
-        {item.retryHref && (
-          <Button asChild size="sm" variant="outline" className={cn("h-8 px-2.5 text-xs", TOUCH)}>
-            <Link to={item.retryHref}>Try again</Link>
-          </Button>
-        )}
-        {!making && !failed && <CopyLinkButton path={item.href} label={`Copy link to ${item.title}`.slice(0, 120)} className="ml-auto h-8 w-8" />}
       </div>
     </article>
   );
