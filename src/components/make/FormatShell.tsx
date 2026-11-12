@@ -3,13 +3,15 @@
 // Two columns from 1024 px; on a phone the result sits under the options and the footer stays above the tab bar.
 
 import type { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CaretLeftIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { usedUpLine } from "@/data/formats";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { links } from "@/lib/links";
 import { reasonText, type Price, type PriceOpts } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import type { UsageFeature } from "../../../supabase/functions/_shared/usageCaps.ts";
 
 export interface ShellFooter {
@@ -38,14 +40,24 @@ export default function FormatShell(p: { title: string; blurb: string; options: 
   const left = f.cap ? leftOf(f.cap) : null;
   const usedUp = f.caps?.length ? usedUpLine([f.cap, ...f.caps].filter((c): c is UsageFeature => !!c), leftOf) : null;
   const reason = f.reason ?? usedUp ?? reasonText({ left, leo: true });
-  // a page opened straight from a link has nothing to go back to in the app
+  // Leo's sign-ins go back to the catalogue by name, as Fastlane's "< Studio" chip; everyone else (no catalogue)
+  // goes back where they came from, or Home for a page opened straight from a link
+  const leo = useLeoOnly();
   const back = () => ((window.history.state as { idx?: number } | null)?.idx ? navigate(-1) : navigate("/home"));
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <Button variant="ghost" size="sm" onClick={back} className="-ml-2 gap-1 text-muted-foreground">
-          <CaretLeftIcon className="h-4 w-4" /> Back
-        </Button>
+        {leo ? (
+          <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1 text-muted-foreground">
+            <Link to={links.make()}>
+              <CaretLeftIcon className="h-4 w-4" /> Formats
+            </Link>
+          </Button>
+        ) : (
+          <Button variant="ghost" size="sm" onClick={back} className="-ml-2 gap-1 text-muted-foreground">
+            <CaretLeftIcon className="h-4 w-4" /> Back
+          </Button>
+        )}
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">{p.title}</h1>
         <p className="text-sm text-muted-foreground">{p.blurb}</p>
       </header>
