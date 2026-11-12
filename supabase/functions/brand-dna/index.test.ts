@@ -26,6 +26,20 @@ vi.mock("./logic.ts", async (importOriginal) => {
   return { ...real, siteUrl: (raw: unknown) => (siteUrlGot.push(raw), real.siteUrl(raw)) };
 });
 
+const lookFails = vi.hoisted(() => ({ on: false }));
+vi.mock("./look.ts", async (importOriginal) => {
+  const real = await importOriginal<typeof import("./look.ts")>();
+  const fail = (): never => {
+    throw new RangeError("Maximum call stack size exceeded");
+  };
+  return {
+    ...real,
+    logoPicks: (...a: Parameters<typeof real.logoPicks>) => (lookFails.on ? fail() : real.logoPicks(...a)),
+    lookColours: (...a: Parameters<typeof real.lookColours>) => (lookFails.on ? fail() : real.lookColours(...a)),
+    lookFonts: (...a: Parameters<typeof real.lookFonts>) => (lookFails.on ? fail() : real.lookFonts(...a)),
+  };
+});
+
 const PAGE = `<title>Acme Wealth | Plans</title><link rel="apple-touch-icon" href="/t.png"><style>.a{color:#1f6feb}</style>
 <p>We help young families save.</p><a href="https://instagram.com/acmewealth">ig</a>`;
 const PNG = new Uint8Array(400).fill(7);
@@ -78,6 +92,7 @@ beforeEach(() => {
   for (const k of Object.keys(routes)) delete routes[k];
   delete env.TYPESAFE_API_KEY;
   siteUrlGot.length = 0;
+  lookFails.on = false;
 });
 const html = (body: string) => () => new Response(body, { headers: { "content-type": "text/html; charset=utf-8" } });
 const OPENAI = "https://api.openai.com/v1/chat/completions";
@@ -180,7 +195,7 @@ describe("brand-dna phase 4 (Leo only)", () => {
     expect(db.spent).toEqual([]);
     const r = await call({ url: "acme.sg" }, "u1");
     expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice"]);
-    // no page past the home page (the share picture is a logo candidate, as today)
+    // no page past the home page
     expect(seen.filter((u) => /acme\.sg\/(about|services|blog|contact)/.test(u))).toEqual([]);
   });
 
@@ -321,6 +336,105 @@ describe("brand-dna phase 4 (Leo only)", () => {
     expect(await call({ mode: "image", url: "https://acme.sg/huge.png" }, "leo")).toMatchObject({ status: 422, body: { code: "too_big" } });
     expect(db.refunded).toEqual(["brand-image"]);
     expect(db.spent.every((f) => f === "brand-image")).toBe(true);
+  });
+});
+
+describe("the brand's look: logo, colours and fonts", () => {
+  const KEYS = ["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice"];
+  const LOOK = `<html lang="en"><title>Acme Wealth | Plans</title><meta property="og:image" content="/og.jpg">
+<link rel="stylesheet" href="/css/one.css"><link rel="stylesheet" href="/css/two.css"><link rel="stylesheet" href="/css/three.css"><link rel="stylesheet" href="/css/four.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&amp;display=swap" rel="stylesheet">
+<header><a href="/" aria-label="Acme Wealth home"><svg viewBox="0 0 120 32"><path fill="#0b7a55" d="M0 0h120v32H0z"/></svg></a></header>
+<p>We help young families save.</p><a class="btn" href="/start">Start</a>`;
+  const css = (body: string) => () => new Response(body, { headers: { "content-type": "text/css" } });
+  const look = (home = LOOK) => {
+    routes["https://acme.sg/"] = html(home);
+    routes["https://acme.sg/css/one.css"] = css(".btn{background:#0b7a55}h1{font-family:'Fraunces',serif}");
+    routes["https://acme.sg/css/two.css"] = () => {
+      throw new TypeError("error sending request");
+    };
+    routes["https://acme.sg/css/three.css"] = css("body{font-family:'Inter',sans-serif}");
+    llm = { name: "Acme Wealth", oneLiner: "We help families save.", audienceDetail: "Young parents", topics: ["Savings"], edge: "Plain advice", voice: "Warm." };
+  };
+  const unpack = (url: string) => Buffer.from(url.split(",")[1], "base64").toString("utf8");
+
+  it("gives a listed uid colours and fonts after pagesRead and lang, from the page and up to 3 stylesheets", async () => {
+    look();
+    const r = await call({ url: "acme.sg" }, "leo");
+    expect(r.status).toBe(200);
+    expect(Object.keys(r.body)).toEqual([...KEYS, "pagesRead", "lang", "colours", "fonts"]);
+    expect(r.body).toMatchObject({ colour: "#0b7a55", colours: ["#0b7a55"], fonts: ["Fraunces", "Inter"], pagesRead: ["https://acme.sg/"], lang: null });
+    expect(seen).toEqual(expect.arrayContaining(["https://acme.sg/css/one.css", "https://acme.sg/css/two.css", "https://acme.sg/css/three.css"]));
+    expect(seen.filter((u) => u.endsWith(".css") || u.includes("fonts.googleapis"))).toHaveLength(3);
+    expect(db.spent).toEqual(["brand-dna"]);
+  });
+
+  it("keeps an unlisted uid's answer to the same 11 keys, with the site's colour", async () => {
+    look();
+    const r = await call({ url: "acme.sg" }, "u1");
+    expect(Object.keys(r.body)).toEqual(KEYS);
+    expect(r.body.colour).toBe("#0b7a55");
+  });
+
+  it("returns the header's inline drawing as an SVG data URL and never fetches the share picture", async () => {
+    look();
+    const r = await call({ url: "acme.sg" }, "u1");
+    expect(r.body.logo).toMatch(/^data:image\/svg\+xml;base64,/);
+    expect(unpack(r.body.logo)).toBe('<svg xmlns="http://www.w3.org/2000/svg" width="512" height="137" viewBox="0 0 120 32"><path fill="#0b7a55" d="M0 0h120v32H0z"/></svg>');
+    expect(seen).not.toContain("https://acme.sg/og.jpg");
+
+    look('<title>Acme Wealth</title><meta property="og:image" content="/og.jpg"><p>We help young families save.</p>');
+    routes["https://acme.sg/og.jpg"] = () => new Response(PNG, { headers: { "content-type": "image/png" } });
+    const bare = await call({ url: "acme.sg" }, "u1");
+    expect(bare.body.logo).toBeNull();
+    expect(seen).not.toContain("https://acme.sg/og.jpg");
+  });
+
+  it("turns a logo file that is an SVG into a cleaned SVG data URL whose fills give the colour", async () => {
+    look('<title>Acme Wealth</title><header><a href="/"><img src="/brand/logo.svg" alt="Acme Wealth"></a></header><p>Hi</p>');
+    routes["https://acme.sg/brand/logo.svg"] = () =>
+      new Response('<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>alert(1)</script><path fill="#e11d48" d="M0 0h10v10H0z"/></svg>', { headers: { "content-type": "image/svg+xml" } });
+    const r = await call({ url: "acme.sg" }, "leo");
+    expect(r.body.logo).toMatch(/^data:image\/svg\+xml;base64,/);
+    expect(unpack(r.body.logo)).not.toContain("script");
+    expect(r.body).toMatchObject({ colour: "#e11d48", colours: ["#e11d48"] });
+  });
+
+  it("moves on to the next logo when an SVG file would not parse", async () => {
+    look('<title>Acme Wealth</title><link rel="apple-touch-icon" href="/t.png"><header><a href="/"><img src="/brand/logo.svg" alt="Acme Wealth"></a></header><p>Hi</p>');
+    routes["https://acme.sg/brand/logo.svg"] = () =>
+      new Response('<svg xmlns="http://www.w3.org/2000/svg" xmlns:x="&ns_extend;" viewBox="0 0 10 10"><path d="M0 0h10v10H0z"/></svg>', { headers: { "content-type": "image/svg+xml" } });
+    const r = await call({ url: "acme.sg" }, "u1");
+    expect(r.body.logo).toMatch(/^data:image\/png;base64,/);
+    expect(seen).toEqual(expect.arrayContaining(["https://acme.sg/brand/logo.svg", "https://acme.sg/t.png"]));
+  });
+
+  it("never makes a template's black theme-color the brand colour, and keeps a dark logo's ink when nothing else shows", async () => {
+    const cra = '<title>Acme Wealth</title><meta name="theme-color" content="#000000"><link rel="apple-touch-icon" href="/logo192.png"><div id="root"></div>';
+    look(cra);
+    expect((await call({ url: "acme.sg" }, "u1")).body.colour).toBeNull();
+    look(`${cra}<style>.hero{background:#e11d48}</style>`);
+    expect((await call({ url: "acme.sg" }, "leo")).body).toMatchObject({ colour: "#e11d48", colours: [] });
+    look('<title>Acme Wealth</title><header><a href="/" aria-label="Acme Wealth home"><svg viewBox="0 0 74 24"><path fill="#212121" d="M0 0h74v24H0z"/></svg></a></header>');
+    expect((await call({ url: "acme.sg" }, "leo")).body).toMatchObject({ colour: "#212121", colours: ["#212121"] });
+  });
+
+  it("answers a stylesheet that holds one selector of 150,000 classes", async () => {
+    look(`<title>Acme Wealth</title><link rel="stylesheet" href="/css/one.css"><div class="a ${Array.from({ length: 40 }, (_, i) => `c${i}`).join(" ")}">Hi</div>`);
+    routes["https://acme.sg/css/one.css"] = css(`${".a".repeat(149990)}{color:#e11d48}`);
+    const r = await call({ url: "acme.sg" }, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ colours: [], fonts: [] });
+  });
+
+  it("still answers when the look throws: the page's own colour, no logo, no fonts, one use", async () => {
+    look('<title>Acme Wealth</title><style>.hero{background:#e11d48}</style><link rel="apple-touch-icon" href="/t.png"><p>Hi</p>');
+    lookFails.on = true;
+    const r = await call({ url: "acme.sg" }, "leo");
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ name: "Acme Wealth", colour: "#e11d48", logo: null, colours: [], fonts: [] });
+    expect(db.spent).toEqual(["brand-dna"]);
+    expect(seen).not.toContain("https://acme.sg/t.png");
   });
 });
 

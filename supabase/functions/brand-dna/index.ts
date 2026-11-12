@@ -35,13 +35,17 @@ import {
   parseAudienceAsk, parseAudiences, parseProducts, parseWritten, pickPages, productClues, productMessages, PRODUCTS_FORMAT, readSite, type SiteFacts, siteUrl,
   withOffers, WRITE_FORMAT, writeMessages,
 } from "./logic.ts";
+import { colourful, type LogoPick, logoPicks, lookColours, lookFonts, stylesheetLinks, svgDataUrl, svgFile } from "./look.ts";
 
 const PAGE_BYTES = 300_000;
 // under the brand kit's 350,000-character limit once base64 grows it by a third
 const LOGO_BYTES = 250_000;
 const IMAGE_BYTES = 2_000_000;
+const STYLE_BYTES = 300_000;
 const HTML = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5";
 const IMAGES = "image/png,image/webp,image/jpeg;q=0.8";
+const LOGOS = "image/png,image/webp,image/svg+xml,image/jpeg;q=0.8";
+const CSS = "text/css,*/*;q=0.1";
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -69,23 +73,50 @@ function dataUrl(bytes: Uint8Array, type: string): string {
   return `data:${type};base64,${btoa(bin)}`;
 }
 
-/** The first of up to 3 logos that is a small PNG, JPEG or WebP, as a data URL; 15 seconds for all of them. */
-async function logoOf(candidates: string[]): Promise<string | null> {
+const logoFrom = async (picks: LogoPick[], page: string): Promise<{ dataUrl: string; svg: string } | null> => {
   const deadline = AbortSignal.timeout(15_000);
-  for (const href of candidates.slice(0, 3)) {
-    const u = safeFeedUrl(href);
-    if (!u || deadline.aborted) continue;
-    try {
-      const { bytes } = await fetchCapped(u, LOGO_BYTES + 1, IMAGES, deadline);
-      const type = imageType(bytes);
-      if (bytes.byteLength > LOGO_BYTES || !type || bytes.byteLength < 200) continue;
-      return dataUrl(bytes, type);
-    } catch {
-      // the next candidate
+  let fetched = 0;
+  for (const p of picks) {
+    if (p.kind === "svg") {
+      const url = svgDataUrl(p.svg, page);
+      if (url) return { dataUrl: url, svg: p.svg };
+      continue;
     }
+    const u = safeFeedUrl(p.src);
+    if (!u || fetched === 3 || deadline.aborted) continue;
+    fetched++;
+    const got = await fetchCapped(u, LOGO_BYTES + 1, LOGOS, deadline).catch(() => null);
+    if (!got || got.bytes.byteLength > LOGO_BYTES) continue;
+    const type = imageType(got.bytes);
+    if (type) {
+      if (got.bytes.byteLength >= 200) return { dataUrl: dataUrl(got.bytes, type), svg: "" };
+      continue;
+    }
+    const text = new TextDecoder().decode(got.bytes);
+    const url = svgFile(text) ? svgDataUrl(text, page) : null;
+    if (url) return { dataUrl: url, svg: text };
   }
   return null;
-}
+};
+
+const safely = <T>(what: string, run: () => T, fallback: T): T => {
+  try {
+    return run();
+  } catch (e) {
+    console.warn("brand-dna: look", what, msg(e));
+    return fallback;
+  }
+};
+
+const sheetsOf = async (html: string, base: URL): Promise<string> => {
+  const deadline = AbortSignal.timeout(8_000);
+  const texts = await Promise.all(stylesheetLinks(html, base).map(async (href) => {
+    const u = safeFeedUrl(href);
+    const got = u ? await fetchCapped(u, STYLE_BYTES, CSS, deadline).catch(() => null) : null;
+    return got && !/html/.test(got.type) ? new TextDecoder().decode(got.bytes) : "";
+  }));
+  return texts.filter(Boolean).join("\n");
+};
 
 /**
  * The deep read's other pages: Jev picks up to 4 of the home page's links, fetched side by side through the same guard
@@ -283,9 +314,10 @@ Deno.serve(async (req) => {
     return json({ error: `We couldn't open ${url.host}. Check the address, or start with just a name.` }, 422);
   }
   if (!/html|xml|text/.test(page.type)) return json({ error: `${url.host} didn't send a web page. Check the address.` }, 422);
+  const html = new TextDecoder().decode(page.bytes);
   let site: ReturnType<typeof readSite>;
   try {
-    site = readSite(new TextDecoder().decode(page.bytes), page.url);
+    site = readSite(html, page.url);
   } catch (e) {
     console.warn("brand-dna: read", url.host, e instanceof Error ? e.message : e);
     return json({ error: `We couldn't read ${url.host}. Start with just a name instead.` }, 422);
@@ -295,21 +327,25 @@ Deno.serve(async (req) => {
   const more = deep ? (await morePages(site, page.url)).map((p) => ({ url: p.url.href, text: p.text })) : [];
   const fenced = more.length ? fencePages([{ url: page.url.href, text: site.text }, ...more]) : null;
 
+  const picks = safely("logo", () => logoPicks(html, page.url, site.name), [] as LogoPick[]);
   // the words (LLM) and the logo download run side by side; either may come back empty
-  const [written, logo] = await Promise.all([
+  const [written, logo, css] = await Promise.all([
     openaiChat({ model: OPENAI_MODEL, max_tokens: 700, response_format: WRITE_FORMAT, messages: writeMessages(site, page.url.href, fenced?.block) }, { signal: AbortSignal.timeout(40_000) })
       .then(async (r) => (r.ok ? parseWritten((await r.json())?.choices?.[0]?.message?.content) : (console.warn("brand-dna: openai", r.status), null)))
       .catch((e) => (console.warn("brand-dna: openai", e instanceof Error ? e.message : e), null)),
-    logoOf(site.logos),
+    logoFrom(picks, html).catch((e) => (console.warn("brand-dna: look logo", msg(e)), null)),
+    sheetsOf(html, page.url).catch((e) => (console.warn("brand-dna: look sheets", msg(e)), "")),
   ]);
+  const drawn = picks.flatMap((p) => (p.kind === "svg" && (p.from === "home link" || p.from === "header") ? [p.svg] : []))[0] ?? "";
+  const colours = safely("colours", () => lookColours(html, css, logo?.svg || drawn).slice(0, 4), [] as string[]);
   const about = [written?.oneLiner, written?.audienceDetail, site.description].filter(Boolean).join(" ");
   const audience = about ? choiceOf(await askJev({ text: about.slice(0, 1500) }, { audience: audienceAsk }, { who: "brand-dna" }), "audience", AUDIENCES) : null;
 
   return json({
     url: page.url.origin,
     name: written?.name || site.name,
-    colour: site.colour,
-    logo,
+    colour: colours.find(colourful) ?? site.colour ?? colours[0] ?? null,
+    logo: logo?.dataUrl ?? null,
     handles: site.handles,
     oneLiner: written?.oneLiner ?? "",
     audience: audience ?? "general",
@@ -317,6 +353,6 @@ Deno.serve(async (req) => {
     topics: written?.topics ?? [],
     edge: written?.edge ?? "",
     voice: written?.voice ?? "",
-    ...(listed ? { pagesRead: fenced?.read ?? [page.url.href], lang: site.lang } : {}),
+    ...(listed ? { pagesRead: fenced?.read ?? [page.url.href], lang: site.lang, colours, fonts: safely("fonts", () => lookFonts(html, css).slice(0, 3), [] as string[]) } : {}),
   });
 });

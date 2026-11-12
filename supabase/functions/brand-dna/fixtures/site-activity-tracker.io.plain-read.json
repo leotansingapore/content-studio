@@ -94,6 +94,8 @@
   "fetched": [
     "https://activity-tracker.io/",
     "https://activity-tracker.io/apple-touch-icon.png",
+    "https://activity-tracker.io/assets/index-DRLpCvWH.css",
+    "https://activity-tracker.io/favicon.png",
     "https://api.openai.com/v1/chat/completions",
     "https://api.typesafe.ai/v1/systemone"
   ]
