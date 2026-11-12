@@ -1,0 +1,88 @@
+import { useEffect, useId, useRef, useState } from "react";
+import { BriefcaseIcon, ChartLineUpIcon, CheckIcon, HouseLineIcon, LaptopIcon, PencilSimpleLineIcon, PersonSimpleRunIcon, ScalesIcon, type Icon } from "@phosphor-icons/react";
+import { Actions, PrimaryPill, StepTitle, fieldClass } from "@/components/onboarding/parts";
+import { MAX_PROFESSION_CHARS, PROFESSION_CHOICES } from "@/lib/profession";
+import { WORK_LINES } from "@/lib/onboardingFlow";
+
+const ICONS: Record<string, Icon> = {
+  "Financial adviser": ChartLineUpIcon,
+  Coach: PersonSimpleRunIcon,
+  Consultant: BriefcaseIcon,
+  "Real estate agent": HouseLineIcon,
+  Freelancer: LaptopIcon,
+  Lawyer: ScalesIcon,
+};
+
+const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+export function WorkStep({ value, onChange, onContinue, titleId }: { value: string; onChange: (v: string) => void; onContinue: () => void; titleId: string }) {
+  const id = useId();
+  const listed = PROFESSION_CHOICES.find((c) => same(c, value) || (c === "Financial adviser" && same(value, "financial advisor")));
+  const [other, setOther] = useState(() => !!value.trim() && !listed);
+  const otherRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (other) otherRef.current?.focus();
+  }, [other]);
+
+  const card = (key: string, title: string, line: string, picked: boolean, Glyph: Icon, onPick: () => void) => (
+    <button
+      key={key}
+      type="button"
+      aria-pressed={picked}
+      onClick={onPick}
+      className={`group relative flex min-h-[132px] w-[calc(50%-6px)] flex-col items-start gap-3 overflow-hidden rounded-[20px] border-2 p-4 text-left transition-colors sm:w-[166px] ${
+        picked ? "border-primary bg-primary/[0.07]" : "border-transparent bg-card shadow-card hover:border-border"
+      }`}
+    >
+      {picked && (
+        <span className="absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-200">
+          <CheckIcon size={14} weight="bold" />
+        </span>
+      )}
+      <span className={`grid h-11 w-11 place-items-center rounded-2xl transition-transform motion-safe:group-hover:scale-105 ${picked ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+        <Glyph size={22} weight={picked ? "fill" : "regular"} />
+      </span>
+      <span className="space-y-1">
+        <span className={`block text-[15px] font-semibold leading-snug ${picked ? "text-primary" : "text-foreground"}`}>{title}</span>
+        <span className="block text-[13px] leading-snug text-muted-foreground">{line}</span>
+      </span>
+    </button>
+  );
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (value.trim()) onContinue();
+      }}
+      className="flex w-full max-w-[720px] flex-1 flex-col justify-center gap-8 pb-[6vh] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
+    >
+      <StepTitle id={titleId} title="What do you do?" lead="Every post is written for this. You can change it later." />
+      <div role="group" aria-labelledby={titleId} className="flex flex-wrap justify-center gap-3 sm:gap-4">
+        {PROFESSION_CHOICES.map((c) =>
+          card(c, c, WORK_LINES[c] ?? "", !other && listed === c, ICONS[c] ?? BriefcaseIcon, () => {
+            setOther(false);
+            onChange(c);
+          }),
+        )}
+        {card("other", "Something else", other && value.trim() ? value.trim() : "Type what you do", other, PencilSimpleLineIcon, () => {
+          if (!other) onChange("");
+          setOther(true);
+        })}
+      </div>
+      {other && (
+        <div className="mx-auto w-full max-w-[420px] space-y-1.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1">
+          <label htmlFor={`${id}-own`} className="text-[15px] font-medium">
+            What you do, in a few words
+          </label>
+          <input ref={otherRef} id={`${id}-own`} value={value} maxLength={MAX_PROFESSION_CHARS} onChange={(e) => onChange(e.target.value)} placeholder="Like photographer, dentist or bakery" className={fieldClass} />
+        </div>
+      )}
+      <Actions>
+        <PrimaryPill type="submit" disabled={!value.trim()}>
+          Continue
+        </PrimaryPill>
+      </Actions>
+    </form>
+  );
+}

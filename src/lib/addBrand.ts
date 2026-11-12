@@ -1,8 +1,9 @@
 // Add a brand (/brands/new): what a site read gives back, and the half-done form kept for the tab so
 // leaving the page or reloading does not throw away the read and the cards already checked.
-import { DEFAULT_BRAND, normalizeHandle, saveBrand, type CarouselBrand } from "@/lib/carousel";
+import { DEFAULT_BRAND, MAX_PALETTE, normalizeHandle, saveBrand, type CarouselBrand } from "@/lib/carousel";
+import type { SlideFont } from "@/lib/carouselLayout";
 import type { PostLang } from "@/lib/links";
-import { EMPTY_POSITIONING, savePositioning, type PlanAudience } from "@/lib/positioning";
+import { EMPTY_POSITIONING, saveGoal, savePositioning, type GoalKind, type PlanAudience, type PlanPlatform } from "@/lib/positioning";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 import { saveSocialAccounts, type SocialAccounts, type SocialPlatform } from "@/lib/socialAccounts";
 import { addFact } from "@/lib/voiceMemory";
@@ -22,6 +23,8 @@ export interface BrandDna {
   voice: string;
   /** When Leo's deep read came back (brand-from-website); everyone else's read has none. */
   readAt?: string;
+  colours?: string[];
+  fonts?: string[];
 }
 
 export const AUDIENCE_NAMES: Record<PlanAudience, string> = {
@@ -64,7 +67,9 @@ export const isDna = (d: unknown): d is BrandDna => {
     !!x.handles &&
     typeof x.handles === "object" &&
     Array.isArray(x.topics) &&
-    x.topics.every((t) => typeof t === "string")
+    x.topics.every((t) => typeof t === "string") &&
+    (x.colours === undefined || (Array.isArray(x.colours) && x.colours.every((c) => typeof c === "string"))) &&
+    (x.fonts === undefined || (Array.isArray(x.fonts) && x.fonts.every((f) => typeof f === "string")))
   );
 };
 
@@ -142,6 +147,14 @@ export const PROFESSION_NEEDED = "Pick what you do first, so the AI writes this 
  * voice), with "What do you do?" on its kit. A new brand must answer it, so nothing is created until it has.
  * `facts` (an App Store read's proof lines and picked complaints) go to the new brand's memory, which the writers read.
  */
+export interface BrandExtras {
+  platform?: PlanPlatform;
+  cadence?: number;
+  goal?: { text: string; kind: GoalKind };
+  palette?: string[];
+  slideFont?: SlideFont;
+}
+
 export function createBrand(
   uid: string,
   title: string,
@@ -149,6 +162,7 @@ export function createBrand(
   profession: string,
   postLang: PostLang | null,
   facts: string[] = [],
+  extras: BrandExtras = {},
 ): { ok: true; id: string } | { ok: false; error: string } {
   if (!profession.trim()) return { ok: false, error: PROFESSION_NEEDED };
   const p = addProfile(uid, title);
@@ -160,7 +174,14 @@ export function createBrand(
     return { ok: true, id: p.id };
   }
   const ig = brand.handles.instagram?.replace(/^@/, "") ?? "";
-  saveBrand(uid, { ...newBrandKit(brand, title), ...(postLang ? { postLang } : {}), profession });
+  const palette = (extras.palette ?? []).slice(0, MAX_PALETTE).map((hex, i) => ({ name: `Colour ${i + 2}`, hex }));
+  saveBrand(uid, {
+    ...newBrandKit(brand, title),
+    ...(postLang ? { postLang } : {}),
+    ...(palette.length ? { palette } : {}),
+    ...(extras.slideFont ? { slideFont: extras.slideFont } : {}),
+    profession,
+  });
   savePositioning(uid, {
     ...EMPTY_POSITIONING,
     oneLiner: brand.oneLiner,
@@ -168,9 +189,11 @@ export function createBrand(
     audienceDetail: brand.audienceDetail,
     topics: brand.topics,
     edge: brand.edge,
-    platform: ig ? "instagram" : EMPTY_POSITIONING.platform,
+    platform: extras.platform ?? (ig ? "instagram" : EMPTY_POSITIONING.platform),
+    ...(extras.cadence ? { cadence: extras.cadence } : {}),
     updatedAt: new Date().toISOString(),
   });
+  if (extras.goal) saveGoal(uid, extras.goal.text, extras.goal.kind);
   const now = new Date().toISOString();
   const accounts: SocialAccounts = {};
   for (const n of NETWORKS) {

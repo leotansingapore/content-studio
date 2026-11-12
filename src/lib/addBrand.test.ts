@@ -152,6 +152,25 @@ describe("creating a brand (Add a brand)", () => {
     expect(loadPositioning(UID)?.oneLiner).toBe("We help young families plan their CPF.");
   });
 
+  it("saves the onboarding answers on the new brand, and Leo's palette and slide look only when given", () => {
+    const made = createBrand(UID, "Acme Advisory", dna, "Financial adviser", null, [], {
+      platform: "linkedin",
+      cadence: 5,
+      goal: { text: "Get more sign-ups and enquiries", kind: "clients" },
+      palette: ["#7C5CF0", "#F59E0B", "#10B981", "#EF4444"],
+      slideFont: "classic",
+    });
+    if (made.ok === false) throw new Error(made.error);
+    expect(loadPositioning(UID)).toMatchObject({ platform: "linkedin", cadence: 5, goal: "Get more sign-ups and enquiries", goalKind: "clients", oneLiner: "We help young families plan their CPF." });
+    expect(loadBrand(UID)).toMatchObject({ color: "#0F766E", slideFont: "classic", palette: [{ name: "Colour 2", hex: "#7C5CF0" }, { name: "Colour 3", hex: "#F59E0B" }, { name: "Colour 4", hex: "#10B981" }] });
+    const plain = createBrand(UID, "Acme Two", dna, "Financial adviser", null);
+    if (plain.ok === false) throw new Error(plain.error);
+    expect(loadBrand(UID)?.palette).toBeUndefined();
+    expect(loadBrand(UID)?.slideFont).toBeUndefined();
+    expect(loadPositioning(UID)).toMatchObject({ platform: "instagram", cadence: 3 });
+    expect(loadPositioning(UID)?.goal).toBeUndefined();
+  });
+
   it("puts an App Store read's facts on the new brand only", () => {
     const facts = ["Tidy is free to download on the App Store", 'Users of other productivity apps complain: "Will not sync"'];
     const made = createBrand(UID, "Tidy", { ...dna, name: "Tidy" }, "productivity app", null, facts);

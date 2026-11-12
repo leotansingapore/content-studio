@@ -9,6 +9,7 @@ import { AUDIENCE_NAMES, isDna, NETWORKS, type BrandDna } from "@/lib/addBrand";
 import { DEFAULT_BRAND, normalizeHex, type CarouselBrand } from "@/lib/carousel";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import type { PostLang } from "@/lib/links";
+import { logoForKit } from "@/lib/logoImage";
 import { loadMarket, saveMarket, type MarketState } from "@/lib/market";
 import { EMPTY_POSITIONING, loadPositioning, savePositioning, type Positioning } from "@/lib/positioning";
 import { scoped } from "@/lib/profiles";
@@ -237,7 +238,8 @@ export async function startRead(userId: string, address: string, now = Date.now)
   let line = "";
   try {
     const d = await callFn<Omit<SiteRead, "readAt">>("brand-dna", { url: address.trim(), deep: true }, failedLine(address));
-    const read = { ...d, pagesRead: Array.isArray(d.pagesRead) ? d.pagesRead : [d.url], lang: d.lang ?? null, readAt: new Date(now()).toISOString() };
+    const logo = typeof d.logo === "string" && d.logo.startsWith("data:image/svg+xml") ? await logoForKit(d.logo) : d.logo;
+    const read = { ...d, logo, pagesRead: Array.isArray(d.pagesRead) ? d.pagesRead : [d.url], lang: d.lang ?? null, readAt: new Date(now()).toISOString() };
     // an answer of another shape would break the review cards (and the page with them): it counts as a failed read
     if (!isRead(read)) throw new Error(failedLine(address));
     keep(key, { read, picks: {} });

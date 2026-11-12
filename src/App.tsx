@@ -172,6 +172,16 @@ export default function App() {
           }
         />
         <Route
+          path="/brands/new"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={null}>
+                <AddBrandPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           element={
             <ProtectedRoute>
               <StudioLayout />
@@ -264,7 +274,6 @@ export default function App() {
           <Route path="/board" element={<BoardPage />} />
           <Route path="/reels" element={<ReelsPage />} />
           <Route path="/reels/team" element={<ReelsTeamPage />} />
-          <Route path="/brands/new" element={<AddBrandPage />} />
           <Route path="/coach" element={<CoachPage />} />
           {/* Diagnosis now lives inside the Coach as its first step. */}
           <Route path="/diagnosis" element={<Redirect to="/coach" />} />
