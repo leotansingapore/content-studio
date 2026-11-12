@@ -1,19 +1,33 @@
 {
-  "fetched": "2026-11-11",
+  "fetched": "2026-11-12",
   "questions": [
     {
-      "question": "How to buy Anthropic stock in SG",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1xt2oas/how_to_buy_anthropic_stock_in_sg/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-11-10T23:53:03.000Z",
+      "question": "Fixed deposit war",
+      "url": "https://forums.hardwarezone.com.sg/threads/fixed-deposit-war.7230970/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-11T14:54:06.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "MARI invest",
+      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-11-11T05:11:56.000Z",
       "audience": "general"
     },
     {
       "question": "Standchart eSaver",
       "url": "https://forums.hardwarezone.com.sg/threads/standchart-esaver.5070862/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-10T15:16:56.000Z",
+      "publishedAt": "2026-11-11T05:05:42.000Z",
       "audience": "working-adult"
+    },
+    {
+      "question": "How to buy Anthropic stock in SG",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1xt2oas/how_to_buy_anthropic_stock_in_sg/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-11-10T23:53:03.000Z",
+      "audience": "general"
     },
     {
       "question": "VRWA or VALU?",
@@ -119,13 +133,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-11-09T13:16:25.000Z",
       "audience": "working-adult"
-    },
-    {
-      "question": "Fixed deposit war",
-      "url": "https://forums.hardwarezone.com.sg/threads/fixed-deposit-war.7230970/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-09T12:12:44.000Z",
-      "audience": "general"
     },
     {
       "question": "What is considered behind nowadays?",
@@ -301,13 +308,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-11-06T09:52:03.000Z",
       "audience": "working-adult"
-    },
-    {
-      "question": "MARI invest",
-      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-11-06T09:22:44.000Z",
-      "audience": "young-adult"
     },
     {
       "question": "Endowus Offer ETF",
