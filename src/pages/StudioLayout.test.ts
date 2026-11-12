@@ -260,18 +260,24 @@ describe("the sidebar folded to icons", () => {
   it("opens unfolded when this device never chose", async () => {
     const { first } = await load();
     expect(first).toContain('aria-label="Collapse sidebar"');
-    expect(first).toContain(">Jump to...<");
+    // Jump to is a search icon beside the brand switcher when open (r8: Fastlane's layout has no search row)
+    expect(first).toContain('aria-label="Jump to a page"');
+    expect(first).toContain(" New post</a>");
   });
 
-  it("stays folded on this device, each place an icon named for screen readers", async () => {
+  it("stays folded on this device, each place an icon named for screen readers, and the workspace card a square", async () => {
     local.setItem("cs-nav-folded", "1");
     const { first } = await load();
     expect(first).toContain('aria-label="Expand sidebar"');
-    for (const name of ["Home", "Create", "Library", "Plan", "Insights", "New post", "Jump to", "Brand"]) {
-      expect(first).toContain(`aria-label="${name}`);
-      expect(first).toContain(`data-tip="${name}`);
+    // Fastlane's six places, then New post (Leo: New chat) and Jump to
+    for (const name of ["Home", "Campaigns", "Studio", "Brand", "Competitor Radar", "Analytics", "New post", "Jump to"]) {
+      expect(first, name).toContain(`aria-label="${name}`);
+      expect(first, name).toContain(`data-tip="${name}`);
     }
+    expect(first).toContain(", account menu");
+    // Settings lives in the card's menu, not on the rail
+    expect(first).not.toContain('aria-label="Settings');
     expect(first).not.toContain(">Jump to...<");
-    expect(first).not.toContain(">New post<");
+    expect(first).not.toContain(" New post</a>");
   });
 });
