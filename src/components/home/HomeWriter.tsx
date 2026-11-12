@@ -23,7 +23,7 @@ export const WRITER_CHIPS = [
   { to: "/generate/batch", label: "Weekly batch" },
 ] as const;
 
-export default function HomeWriter({ userId, primary = false, className }: { userId: string | null; primary?: boolean; className?: string }) {
+export default function HomeWriter({ userId, primary = false, chips = true, className }: { userId: string | null; primary?: boolean; chips?: boolean; className?: string }) {
   const navigate = useNavigate();
   const [topic, setTopicState] = useState("");
   useEffect(() => {
@@ -81,7 +81,7 @@ export default function HomeWriter({ userId, primary = false, className }: { use
         </p>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {WRITER_CHIPS.map((c) => (
+        {chips && WRITER_CHIPS.map((c) => (
           <button
             key={c.to}
             type="button"

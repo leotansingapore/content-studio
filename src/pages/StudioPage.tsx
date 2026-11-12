@@ -1,69 +1,85 @@
-// /studio (Create > Start, docs/nav-overhaul.md): one screen that answers "what do you want to make?". A topic box
-// that opens the post writer on its last step (the agent's composer for Leo), six big choices one tap from their
-// maker, and the rest behind More formats: the catalogue for Leo, the other makers for everyone else. Under them, ads
-// running now, trending posts and your latest. Reads only what this device and the bundled drops hold; calls no AI.
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowRightIcon, CaretRightIcon } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { CREATE_FORMATS, MORE_FORMATS } from "@/lib/createFormats";
-import ReelCard from "@/components/ReelCard";
-import { CreationTile, recentCreations } from "@/components/home/HomeRows";
-import { readThumbSources, useFontsReady } from "@/components/library/LibraryThumb";
-import { FORMATS } from "@/data/formats";
-import { ADS, daysRunning } from "@/lib/adsSwipe";
-import { loadCarousels } from "@/lib/carousel";
-import { loadDesigns } from "@/lib/design";
-import { loadDrafts } from "@/lib/draftHistory";
-import { loadImages } from "@/lib/images";
-import { loadMedia } from "@/lib/mediaLibrary";
-import { loadSlideshows } from "@/lib/slideshow";
-import { loadProjects } from "@/lib/videoProjects";
-import { loadCreateTopic, saveCreateTopic, tileHref } from "@/lib/createTopic";
+// /studio (Studio > Overview), after Fastlane's Studio overview (11 Nov frames t06-23 to t06-59; docs/nav-overhaul.md):
+// a way to start from your own material at the top, every format as a card under "Content formats", then "Remix a
+// competitor ad". For everyone else the top is the writer box (HomeWriter: New post lands here as /studio#topic) and the
+// formats are the makers they can open, each taking the box's topic with it; for Leo it is Fastlane's three cards
+// (upload your own, pictures, an AI clip) and the whole catalogue with prices. The question and the agent's composer
+// live on Home since 12 Nov. Reads only what this device and the bundled drops hold; calls no AI.
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { CaretRightIcon, FilmStripIcon, ImageIcon, UploadSimpleIcon, type Icon as IconType } from "@phosphor-icons/react";
+import FormatTile from "@/components/make/FormatTile";
+import HomeWriter from "@/components/home/HomeWriter";
+import { RemixCompetitorAd, RemixMarketAd, longestRunning, longestSwipeAds } from "@/components/home/HomeRows";
+import PriceChip from "@/components/PriceChip";
+import { FORMATS, formatHref, type FormatDef } from "@/data/formats";
+import { STATIC_FORMATS, staticFormatHref } from "@/data/staticFormats";
+import { ADS } from "@/lib/adsSwipe";
+import { loadCompetitorAds } from "@/lib/competitorAds";
+import { loadCompetitors } from "@/lib/competitors";
+import { CREATE_FORMATS, MORE_FORMATS, type CreateFormat } from "@/lib/createFormats";
+import { loadCreateTopic, tileHref } from "@/lib/createTopic";
 import { links } from "@/lib/links";
-import { buildCreatorAverages, enrich, sortPosts, type ScoredPost } from "@/lib/postInsights";
 import { adviserBrand } from "@/lib/profession";
-import { activeProfile } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
-import { getAllTopPosts } from "@/lib/topPosts";
 import { useLeoUser } from "@/lib/useLeoOnly";
 
-// the agent engine loads for Leo only, as on Home
-const Composer = lazy(() => import("@/components/agent/Composer"));
+export { writeTarget } from "@/components/home/HomeWriter";
 
-const ROW = 5;
-const TOP = (() => {
-  const all = getAllTopPosts();
-  const averages = buildCreatorAverages(all);
-  const scored: ScoredPost[] = all.map((post) => ({ post, insight: enrich(post, averages) }));
-  return sortPosts(scored, "engagement", { averages, now: Date.now() }).slice(0, ROW);
-})();
-const TOP_ADS = [...ADS].sort((a, b) => (daysRunning(b) ?? 0) - (daysRunning(a) ?? 0)).slice(0, ROW);
-const READY = FORMATS.filter((f) => f.ready).length;
+/** Everyone else's formats: every maker they can open but the post writer, which is the box above them. */
+export const CUSTOMER_FORMATS: CreateFormat[] = [...CREATE_FORMATS, ...MORE_FORMATS].filter((w) => w.to !== "/generate");
+// Leo's: the catalogue /make shows, video formats in gallery order then the static ads
+const VIDEO = FORMATS.filter((f) => f.ready).sort((a, b) => a.group - b.group);
+const STATICS = STATIC_FORMATS.filter((f) => f.ready);
 
-function Row({ id, title, seeAll, children }: { id: string; title: string; seeAll?: { to: string; label: string }; children: ReactNode }) {
+/** Fastlane's three cards over the formats, on Leo's sign-ins. */
+const OWN: { to: string; name: string; blurb: string; icon: IconType }[] = [
+  { to: "/edit", name: "Upload your own", blurb: "Post your own video, with captions", icon: UploadSimpleIcon },
+  { to: "/image", name: "Generate images", blurb: "Stills from a prompt or a reference", icon: ImageIcon },
+  { to: links.edit({ panel: ["ai"], kind: "template" }), name: "Generate a video", blurb: "A clip from a prompt or an image", icon: FilmStripIcon },
+];
+
+const GRID = "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5";
+const CARD = "group flex h-full min-w-0 flex-col gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+// no format has a preview clip yet: a short tile, as the Create gallery draws them, not a wall of empty phone-sized boxes
+const POSTER = "relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted transition-colors group-hover:border-primary/40";
+
+function Section({ id, title, count, more, children }: { id: string; title: string; count?: number; more?: { to: string; label: string }; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-h`} className="scroll-mt-6 space-y-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 id={`${id}-h`} className="text-lg font-semibold text-foreground">
+      <div className="flex min-h-9 items-center justify-between gap-3">
+        <h2 id={`${id}-h`} className="flex items-center gap-2 text-lg font-semibold text-foreground">
           {title}
+          {count !== undefined && <span className="rounded-md bg-muted px-1.5 text-xs font-semibold tabular-nums text-muted-foreground">{count}</span>}
         </h2>
-        {seeAll && (
-          <Link to={seeAll.to} className="inline-flex min-h-9 items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11">
-            {seeAll.label} <CaretRightIcon className="h-4 w-4" />
+        {more && (
+          <Link to={more.to} className="inline-flex min-h-9 items-center gap-0.5 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:min-h-11">
+            {more.label} <CaretRightIcon className="h-4 w-4" />
           </Link>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{children}</div>
+      {children}
     </section>
   );
 }
 
-const tile = "flex min-h-11 flex-col gap-1.5 rounded-xl border border-border/70 bg-card p-4 transition-colors hover:border-primary/40";
+/** One format: its poster (a drawn storyboard, or the maker's icon), name, line and, on Leo's, its price. */
+function FormatCard({ to, name, blurb, poster, price, onClick }: { to: string; name: string; blurb: string; poster: ReactNode; price?: ReactNode; onClick?: (e: React.MouseEvent) => void }) {
+  return (
+    <Link to={to} onClick={onClick} className={CARD}>
+      <span className={POSTER}>{poster}</span>
+      <span className="min-w-0 space-y-1 px-0.5">
+        <span className="block text-sm font-semibold leading-snug text-foreground">{name}</span>
+        <span className="line-clamp-2 block text-xs text-muted-foreground">{blurb}</span>
+        {price}
+      </span>
+    </Link>
+  );
+}
 
-/** Where "Write it" and the Post tile both go: the writer's last step with the topic typed, or null to ask for the topic first. */
-export const writeTarget = (topic: string): string | null => (topic.trim() ? links.generate({ detail: topic.trim() }) : null);
+const leoPrice = (f: FormatDef) => {
+  const p = f.price();
+  return <span className="inline-flex max-w-full rounded-full border border-border px-2 py-0.5">{p === null ? <span className="text-[11px] text-muted-foreground">No AI cost</span> : <PriceChip price={p} left={null} />}</span>;
+};
 
 export default function StudioPage() {
   const leo = useLeoUser();
@@ -73,142 +89,74 @@ export default function StudioPage() {
     // getSession reads the stored session: no Auth round trip under the client lock
     void supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id ?? null));
   }, []);
-  const brand = userId ? activeProfile(userId)?.name : "";
-  // Your latest is the Library's newest five, drawn as the Library draws them (the stores it reads, on this device)
-  const stores = useMemo(
-    () => (userId ? { drafts: loadDrafts(userId), carousels: loadCarousels(userId), slideshows: loadSlideshows(userId), projects: loadProjects(userId), media: loadMedia(userId), designs: loadDesigns(userId), images: loadImages(userId) } : null),
-    [userId],
-  );
-  const latest = useMemo(() => (stores ? recentCreations(stores, ROW) : []), [stores]);
-  const fontsReady = useFontsReady(latest.some((c) => c.item.thumb?.kind === "show"));
-  const sources = useMemo(() => (userId && stores ? readThumbSources(userId, stores, fontsReady) : undefined), [userId, stores, fontsReady]);
-  const [topic, setTopicState] = useState("");
-  // what was typed here is still here on the way back from any maker (this tab only)
-  useEffect(() => {
-    if (userId) setTopicState((t) => t || loadCreateTopic(userId));
-  }, [userId]);
-  const setTopic = (t: string) => {
-    setTopicState(t);
-    if (userId) saveCreateTopic(userId, t);
-  };
-  // New post lands here as /studio#topic: the box takes the cursor, so typing is the next thing (never on a plain
-  // visit, where a phone would open its keyboard over the choices)
-  const { hash, key } = useLocation();
-  const topicBox = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (hash === "#topic") topicBox.current?.focus();
-  }, [hash, key, leo]);
-  // Write it and the Post tile are one path: with no topic yet, the box takes the cursor and says what it needs
-  const [asked, setAsked] = useState(false);
-  const write = () => {
-    const to = writeTarget(topic);
-    if (to) return navigate(to);
-    setAsked(true);
-    topicBox.current?.focus();
-  };
-  // the ads and top posts are Singapore personal finance: an adviser brand's rows only
+  // the bundled ads are Singapore personal finance: an adviser brand's only; Leo's own competitors come first
   const adviser = adviserBrand(userId);
+  const competitors = useMemo(() => {
+    if (!leo) return null;
+    const list = loadCompetitors(leo.id).list;
+    return list.length ? { watching: list.length, ads: longestRunning(list, loadCompetitorAds(leo.id), 10) } : null;
+  }, [leo]);
+  const marketAds = useMemo(() => (adviser ? longestSwipeAds(ADS, 10) : []), [adviser]);
+  // a tile takes the box's topic with it (createTopic.ts), read when it is pressed: the box keeps it on every keystroke
+  const carry = (to: string) => (e: React.MouseEvent) => {
+    const topic = userId ? loadCreateTopic(userId) : "";
+    if (!topic.trim()) return;
+    e.preventDefault();
+    navigate(tileHref(to, topic, userId));
+  };
 
   return (
     <div className="space-y-10">
-      <header className="space-y-4">
-        <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">What do you want to make{brand ? ` for ${brand}` : ""}?</h1>
-        {leo ? (
-          <Suspense fallback={<div className="h-28 rounded-xl border border-border/70 bg-card" aria-busy="true" />}>
-            <Composer userId={leo.id} threadId={null} slot="studio" onSent={(id) => navigate(links.agent({ thread: id }))} />
-          </Suspense>
-        ) : leo === null ? (
-          // a topic typed here opens the writer on its last step: three fewer presses to a first post
-          <form
-            className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
-            onSubmit={(e) => {
-              e.preventDefault();
-              write();
-            }}
-          >
-            <Input ref={topicBox} id="topic" value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="What your post is about" aria-describedby={asked && !topic.trim() ? "topic-ask" : undefined} placeholder="What's your post about?" maxLength={300} className="h-12 flex-1 text-base" />
-            <Button type="submit" className="h-12 gap-2 px-5">
-              Write it <ArrowRightIcon className="h-4 w-4" />
-            </Button>
-            {asked && !topic.trim() && (
-              <p id="topic-ask" role="status" className="text-sm text-muted-foreground sm:order-last sm:basis-full">
-                Type a topic first, a few words will do.
-              </p>
-            )}
-          </form>
-        ) : (
-          <div className="h-12" aria-busy="true" />
-        )}
-      </header>
+      {leo ? (
+        <>
+          <h1 className="sr-only">Studio</h1>
+          <section aria-label="Make from your own" className="grid gap-3 sm:grid-cols-3">
+            {OWN.map((o) => (
+              <Link key={o.name} to={o.to} className="flex min-h-11 items-start gap-3 rounded-xl border border-border/70 bg-card p-4 transition-colors hover:border-primary/40">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <o.icon className="h-4 w-4" aria-hidden />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-foreground">{o.name}</span>
+                  <span className="block text-xs text-muted-foreground">{o.blurb}</span>
+                </span>
+              </Link>
+            ))}
+          </section>
+        </>
+      ) : (
+        <header className="space-y-4">
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">What do you want to make?</h1>
+          {/* the formats below are the chips' makers, so the box shows none; Write it is the page's one filled button */}
+          {leo === null ? <HomeWriter userId={userId} chips={false} primary /> : <div className="h-28" aria-busy="true" />}
+        </header>
+      )}
 
-      <section aria-label="Ways to make" className="space-y-3">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          {CREATE_FORMATS.map((w) => (
-            <Link
-              key={w.to}
-              to={w.to}
-              className={tile}
-              // customers: the Post tile is the topic box's twin, and every other tile takes the box's topic with it
-              // (Leo's screen has the agent's composer instead of the box)
-              onClick={leo !== null ? undefined : w.to === "/generate" ? (e) => (e.preventDefault(), write()) : topic.trim() ? (e) => (e.preventDefault(), navigate(tileHref(w.to, topic, userId))) : undefined}
-            >
-              <w.icon className="h-5 w-5 text-primary" />
-              <span className="text-base font-semibold text-foreground">{w.name}</span>
-              <span className="text-sm text-muted-foreground">{w.blurb}</span>
-            </Link>
-          ))}
-        </div>
-        {leo ? (
-          <Link to="/make" className="inline-flex min-h-11 items-center gap-0.5 text-sm font-semibold text-primary hover:underline">
-            More formats <span className="ml-1 font-normal tabular-nums text-muted-foreground">{READY}</span> <CaretRightIcon className="h-4 w-4" />
-          </Link>
-        ) : (
-          <details className="group">
-            <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-0.5 text-sm font-semibold text-primary hover:underline [&::-webkit-details-marker]:hidden">
-              More formats <CaretRightIcon className="h-4 w-4 transition-transform group-open:rotate-90" />
-            </summary>
-            <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-3">
-              {MORE_FORMATS.map((w) => (
-                <Link key={w.to} to={w.to} className={tile}>
-                  <w.icon className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">{w.name}</span>
-                  <span className="text-xs text-muted-foreground">{w.blurb}</span>
-                </Link>
+      <Section id="formats" title="Content formats" count={leo ? VIDEO.length + STATICS.length : CUSTOMER_FORMATS.length} more={leo ? { to: links.make(), label: "All formats" } : undefined}>
+        <ul aria-label="Ways to make" className={GRID}>
+          {leo
+            ? [
+                ...VIDEO.map((f) => (
+                  <li key={f.slug} className="min-w-0">
+                    <FormatCard to={formatHref(f)} name={f.name} blurb={f.blurb} poster={<FormatTile f={f} />} price={leoPrice(f)} />
+                  </li>
+                )),
+                ...STATICS.map((f) => (
+                  <li key={`static-${f.slug}`} className="min-w-0">
+                    <FormatCard to={staticFormatHref(f.slug)} name={f.name} blurb={f.blurb} poster={<ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden />} />
+                  </li>
+                )),
+              ]
+            : CUSTOMER_FORMATS.map((w) => (
+                <li key={w.to} className="min-w-0">
+                  <FormatCard to={w.to} name={w.name} blurb={w.blurb} poster={<w.icon className="h-7 w-7 text-primary" aria-hidden />} onClick={carry(w.to)} />
+                </li>
               ))}
-            </div>
-          </details>
-        )}
-      </section>
+        </ul>
+      </Section>
 
-      {adviser && <>
-      <Row id="ads" title="Ads running now" seeAll={{ to: links.swipe({ tab: "ads" }), label: `All ${ADS.length} ads` }}>
-        {TOP_ADS.map((ad) => (
-          <Link key={ad.adId} to={links.swipe({ tab: "ads", ad: ad.adId })} className="group min-w-0 space-y-1.5">
-            <span className="block aspect-square overflow-hidden rounded-xl bg-muted ring-1 ring-border/60">
-              <img src={ad.image} alt="" loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]" />
-            </span>
-            <span className="block truncate text-sm font-medium text-foreground">{ad.advertiser}</span>
-            <span className="line-clamp-2 text-xs text-muted-foreground">{ad.headline || ad.body}</span>
-          </Link>
-        ))}
-      </Row>
-
-      <Row id="trending" title="Trending in your niche" seeAll={{ to: links.swipe(), label: "All top posts" }}>
-        {TOP.map((item) => (
-          <ReelCard key={item.post.advisorId + item.post.shortCode} item={item} href={links.swipe({ post: `${item.post.advisorId}-${item.post.shortCode}` })} />
-        ))}
-      </Row>
-      </>}
-
-      <Row id="latest" title="Your latest" seeAll={{ to: links.library(), label: "Library" }}>
-        {latest.length === 0 ? (
-          <p className="col-span-full text-sm text-muted-foreground">
-            Nothing made yet. <Link to="/generate" className="font-medium text-primary hover:underline">Write a post</Link>
-          </p>
-        ) : (
-          latest.map((c) => <CreationTile key={c.key} c={c} sources={sources} />)
-        )}
-      </Row>
+      {/* trending posts are under Insights > Find posts and your latest under Library, so neither repeats here */}
+      {competitors ? <RemixCompetitorAd {...competitors} /> : <RemixMarketAd ads={marketAds} />}
     </div>
   );
 }
