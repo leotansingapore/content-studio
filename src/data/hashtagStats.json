@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-03",
+  "updated": "2026-11-12",
   "tags": {
     "budgeting": {
       "history": [
@@ -47,28 +47,33 @@
           "day": "2026-11-03",
           "videos": 19,
           "medianViews": 146100
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 18,
+          "medianViews": 184550
         }
       ],
       "related": [
         {
-          "tag": "fintok",
-          "overlap": 0.16
+          "tag": "personalfinance",
+          "overlap": 0.17
         },
         {
           "tag": "moneytok",
-          "overlap": 0.16
+          "overlap": 0.17
         },
         {
-          "tag": "personalfinance",
-          "overlap": 0.16
-        },
-        {
-          "tag": "savingmoney",
-          "overlap": 0.16
+          "tag": "budget",
+          "overlap": 0.17
         },
         {
           "tag": "budgetingtips",
-          "overlap": 0.16
+          "overlap": 0.17
+        },
+        {
+          "tag": "budgetingtiktok",
+          "overlap": 0.11
         }
       ],
       "finance": true
@@ -84,28 +89,65 @@
           "day": "2026-10-28",
           "videos": 6,
           "medianViews": 341450
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 5,
+          "medianViews": 27400
         }
       ],
       "related": [
         {
-          "tag": "money",
-          "overlap": 0.67
-        },
-        {
-          "tag": "personalfinance",
-          "overlap": 0.5
-        },
-        {
           "tag": "investing",
-          "overlap": 0.5
+          "overlap": 0.8
         },
         {
           "tag": "fintok",
-          "overlap": 0.5
+          "overlap": 0.6
         },
         {
-          "tag": "moneytok",
-          "overlap": 0.33
+          "tag": "money",
+          "overlap": 0.6
+        },
+        {
+          "tag": "personalfinance",
+          "overlap": 0.4
+        },
+        {
+          "tag": "financialliteracy",
+          "overlap": 0.2
+        }
+      ],
+      "finance": true
+    },
+    "financetok": {
+      "history": [
+        {
+          "day": "2026-11-12",
+          "videos": 5,
+          "medianViews": 173900
+        }
+      ],
+      "related": [
+        {
+          "tag": "fintok",
+          "overlap": 0.6
+        },
+        {
+          "tag": "business",
+          "overlap": 0.6
+        },
+        {
+          "tag": "makemoney",
+          "overlap": 0.4
+        },
+        {
+          "tag": "businessstory",
+          "overlap": 0.4
+        },
+        {
+          "tag": "personalfinance",
+          "overlap": 0.2
         }
       ],
       "finance": true
@@ -203,28 +245,33 @@
           "day": "2026-11-03",
           "videos": 22,
           "medianViews": 33650
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 19,
+          "medianViews": 31700
         }
       ],
       "related": [
         {
           "tag": "personalfinance",
-          "overlap": 0.27
+          "overlap": 0.26
         },
         {
           "tag": "investing",
-          "overlap": 0.18
+          "overlap": 0.16
+        },
+        {
+          "tag": "moneytips",
+          "overlap": 0.16
         },
         {
           "tag": "taxes",
-          "overlap": 0.14
+          "overlap": 0.16
         },
         {
-          "tag": "savingmoney",
-          "overlap": 0.09
-        },
-        {
-          "tag": "financialfreedom",
-          "overlap": 0.09
+          "tag": "investingforbeginners",
+          "overlap": 0.11
         }
       ],
       "finance": true
@@ -275,27 +322,32 @@
           "day": "2026-11-03",
           "videos": 16,
           "medianViews": 32600
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 16,
+          "medianViews": 64500
         }
       ],
       "related": [
         {
-          "tag": "personalfinance",
-          "overlap": 0.25
-        },
-        {
           "tag": "investing",
-          "overlap": 0.25
+          "overlap": 0.44
         },
         {
-          "tag": "trading",
-          "overlap": 0.25
+          "tag": "personalfinance",
+          "overlap": 0.38
         },
         {
-          "tag": "budgeting",
+          "tag": "moneytok",
           "overlap": 0.19
         },
         {
-          "tag": "fomo",
+          "tag": "finance",
+          "overlap": 0.19
+        },
+        {
+          "tag": "financetok",
           "overlap": 0.19
         }
       ],
@@ -347,28 +399,33 @@
           "day": "2026-11-03",
           "videos": 11,
           "medianViews": 41100
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 13,
+          "medianViews": 118000
         }
       ],
       "related": [
         {
-          "tag": "moneytok",
-          "overlap": 0.55
+          "tag": "money",
+          "overlap": 0.62
         },
         {
-          "tag": "money",
-          "overlap": 0.55
+          "tag": "moneytok",
+          "overlap": 0.54
         },
         {
           "tag": "budgeting",
-          "overlap": 0.18
+          "overlap": 0.15
         },
         {
-          "tag": "motivation",
-          "overlap": 0.18
+          "tag": "trending",
+          "overlap": 0.15
         },
         {
           "tag": "foryou",
-          "overlap": 0.18
+          "overlap": 0.15
         }
       ],
       "finance": false
@@ -419,28 +476,33 @@
           "day": "2026-11-03",
           "videos": 9,
           "medianViews": 10000
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 13,
+          "medianViews": 15800
         }
       ],
       "related": [
         {
-          "tag": "financialliteracy",
-          "overlap": 0.44
-        },
-        {
           "tag": "fintok",
-          "overlap": 0.44
+          "overlap": 0.54
         },
         {
-          "tag": "trading",
-          "overlap": 0.33
+          "tag": "personalfinance",
+          "overlap": 0.46
         },
         {
-          "tag": "fomo",
-          "overlap": 0.33
+          "tag": "finance",
+          "overlap": 0.31
+        },
+        {
+          "tag": "financialliteracy",
+          "overlap": 0.23
         },
         {
           "tag": "money",
-          "overlap": 0.22
+          "overlap": 0.23
         }
       ],
       "finance": true
@@ -523,28 +585,33 @@
           "day": "2026-11-03",
           "videos": 12,
           "medianViews": 60050
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 14,
+          "medianViews": 133250
         }
       ],
       "related": [
         {
           "tag": "moneytok",
-          "overlap": 0.5
+          "overlap": 0.36
+        },
+        {
+          "tag": "personalfinance",
+          "overlap": 0.29
         },
         {
           "tag": "investing",
-          "overlap": 0.17
+          "overlap": 0.21
         },
         {
-          "tag": "motivation",
-          "overlap": 0.17
+          "tag": "finance",
+          "overlap": 0.21
         },
         {
-          "tag": "success",
-          "overlap": 0.17
-        },
-        {
-          "tag": "financialliteracy",
-          "overlap": 0.08
+          "tag": "trending",
+          "overlap": 0.14
         }
       ],
       "finance": true
@@ -589,28 +656,33 @@
           "day": "2026-11-03",
           "videos": 6,
           "medianViews": 18868
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 8,
+          "medianViews": 7027
         }
       ],
       "related": [
         {
           "tag": "personalfinance",
-          "overlap": 0.83
-        },
-        {
-          "tag": "savingmoney",
-          "overlap": 0.5
+          "overlap": 1
         },
         {
           "tag": "financialliteracy",
-          "overlap": 0.33
+          "overlap": 0.38
         },
         {
-          "tag": "fintok",
-          "overlap": 0.33
+          "tag": "investing",
+          "overlap": 0.38
         },
         {
           "tag": "budgeting",
-          "overlap": 0.17
+          "overlap": 0.13
+        },
+        {
+          "tag": "moneytok",
+          "overlap": 0.13
         }
       ],
       "finance": true
@@ -661,28 +733,33 @@
           "day": "2026-11-03",
           "videos": 16,
           "medianViews": 29800
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 18,
+          "medianViews": 70100
         }
       ],
       "related": [
         {
           "tag": "money",
-          "overlap": 0.38
+          "overlap": 0.28
+        },
+        {
+          "tag": "personalfinance",
+          "overlap": 0.22
         },
         {
           "tag": "budgeting",
-          "overlap": 0.19
+          "overlap": 0.17
         },
         {
           "tag": "fintok",
-          "overlap": 0.13
+          "overlap": 0.17
         },
         {
-          "tag": "financialfreedom",
-          "overlap": 0.13
-        },
-        {
-          "tag": "financetips",
-          "overlap": 0.13
+          "tag": "trending",
+          "overlap": 0.17
         }
       ],
       "finance": true
@@ -733,28 +810,33 @@
           "day": "2026-11-03",
           "videos": 14,
           "medianViews": 26350
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 21,
+          "medianViews": 9200
         }
       ],
       "related": [
         {
-          "tag": "financialliteracy",
-          "overlap": 0.43
-        },
-        {
           "tag": "moneytips",
-          "overlap": 0.36
+          "overlap": 0.38
         },
         {
           "tag": "fintok",
           "overlap": 0.29
         },
         {
-          "tag": "budgeting",
-          "overlap": 0.21
+          "tag": "investing",
+          "overlap": 0.29
         },
         {
-          "tag": "savingmoney",
-          "overlap": 0.21
+          "tag": "financialliteracy",
+          "overlap": 0.24
+        },
+        {
+          "tag": "moneytok",
+          "overlap": 0.19
         }
       ],
       "finance": true
@@ -879,6 +961,11 @@
           "day": "2026-11-03",
           "videos": 15,
           "medianViews": 38400
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 15,
+          "medianViews": 38400
         }
       ],
       "related": [
@@ -951,28 +1038,33 @@
           "day": "2026-11-03",
           "videos": 7,
           "medianViews": 10100
+        },
+        {
+          "day": "2026-11-12",
+          "videos": 8,
+          "medianViews": 468700
         }
       ],
       "related": [
         {
-          "tag": "moneytok",
-          "overlap": 0.71
-        },
-        {
           "tag": "money",
-          "overlap": 0.71
+          "overlap": 0.88
         },
         {
-          "tag": "success",
-          "overlap": 0.29
+          "tag": "moneytok",
+          "overlap": 0.63
+        },
+        {
+          "tag": "trending",
+          "overlap": 0.25
+        },
+        {
+          "tag": "moneyspread",
+          "overlap": 0.25
         },
         {
           "tag": "financialliteracy",
-          "overlap": 0.14
-        },
-        {
-          "tag": "motivation",
-          "overlap": 0.14
+          "overlap": 0.13
         }
       ],
       "finance": false
