@@ -4,10 +4,11 @@
 // leaving the page keeps it going; a paid presenter video resumes at no cost after a reload).
 //
 // URL (docs/deep-links.md): source=<RemixSource key> (the list is written from it), mention=no, who=presenter,
-// behind=demo|picture, stand=corner, and for a presenter the talking head page's setting, length and voice, all
-// replace. Nothing makes on arrival: the presenter costs more than US$1, and the green screen has no Also make link.
+// behind=demo|picture, stand=corner, and for a presenter the talking head page's setting, length, voice and more=open
+// (its More settings unfolded), all replace. Nothing makes on arrival: the presenter costs more than US$1, and the green screen has no Also make link.
 // Device: cs-make-green-screen-<scoped uid> keeps the typed note and the demo or picture picked; the presenter's script
-// and look are the talking head page's (cs-make-talking-head-<scoped uid>). Behind them, the brand's saved demos that
+// and look, and the voice, setting and length picked by hand, are the talking head page's (cs-make-talking-head-<scoped uid>).
+// A presenter shows what to say and the length; the voice, look and setting fold under More settings, named in its line. Behind them, the brand's saved demos that
 // play whole (/brand/demo-videos) are listed first; one picked is copied to its own bd-gs- key (greenScreen.ts).
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
@@ -15,6 +16,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
 import { SavedDemos } from "@/components/brand/DemoVideosSection";
 import FormatShell from "@/components/make/FormatShell";
+import MoreSettings from "@/components/make/MoreSettings";
 import { metaOf } from "@/components/make/PickList";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -36,11 +38,12 @@ import {
   type BehindPick, type GreenBehind, type GreenJob, type GreenWho, type Typed,
 } from "@/lib/greenScreen";
 import { links } from "@/lib/links";
+import { loadRemixPrefs } from "@/lib/remixBrand";
 import { mediaLength } from "@/lib/longAudio";
 import { NOTE_ITEMS, layoutNote, noteSvg } from "@/lib/notesCard";
 import type { RemixSource } from "@/lib/remixSource";
 import {
-  DEFAULT_LENGTH, TALK_LENGTHS, TALK_SETTINGS, loadTyped as loadTalkTyped, saveTyped as saveTalkTyped, wordCount, wordLine, writePlan,
+  DEFAULT_LENGTH, TALK_LENGTHS, TALK_SETTINGS, loadTyped as loadTalkTyped, saveTyped as saveTalkTyped, startVoice, talkPicks, wordCount, wordLine, writePlan,
   type TalkLength, type TalkSetting, type Typed as TalkTyped,
 } from "@/lib/talkingHead";
 import { dropTalk, madePresenter, onTalkJob, ownsPending, talkJob, type TalkJob } from "@/lib/talkingHeadJob";
@@ -82,16 +85,21 @@ export default function GreenScreen({ userId, source }: { userId: string; source
   const [who, setWho] = useUrlState<GreenWho>("who", "mine", { allowed: GREEN_WHO });
   const [behind, setBehind] = useUrlState<GreenBehind>("behind", "notes", { allowed: GREEN_BEHIND });
   const [stand, setStand] = useUrlState<Stand>("stand", "bottom", { allowed: STANDS });
-  const [setting, setSetting] = useUrlState<TalkSetting>("setting", "office", { allowed: TALK_SETTINGS.map((s) => s.id) });
-  const [lengthParam, setLength] = useUrlState<string>("length", String(DEFAULT_LENGTH), { allowed: TALK_LENGTHS.map(String) });
-  const length = Number(lengthParam) as TalkLength;
-  const [voice, setVoice] = useUrlState<VoiceId>("voice", "alice", { allowed: VOICE_IDS });
   const [mention] = useUrlState("mention", useMentionStart(userId), { allowed: ["yes", "no"] });
   const [typed, setTyped] = useState<Typed>(() => loadTyped(userId));
   const [said, setSaid] = useState<TalkTyped>(() => {
     const t = loadTalkTyped(userId);
     return t.look ? t : { ...t, look: pickLook(userId, LOOKS) };
   });
+  // the presenter's picks start from the ones made by hand on either page (kept in said), else a voice that fits the look
+  const keep = (pick: Partial<TalkTyped>) => setSaid((t) => ({ ...t, ...pick }));
+  const [setting, setSettingParam] = useUrlState<TalkSetting>("setting", said.setting ?? "office", { allowed: TALK_SETTINGS.map((s) => s.id) });
+  const [lengthParam, setLengthParam] = useUrlState<string>("length", String(said.length ?? DEFAULT_LENGTH), { allowed: TALK_LENGTHS.map(String) });
+  const length = Number(lengthParam) as TalkLength;
+  const [voice, setVoiceParam] = useUrlState<VoiceId>("voice", startVoice(null, "presenter", said.look, said.voice ?? loadRemixPrefs(userId).voice), { allowed: VOICE_IDS });
+  const setSetting = (v: TalkSetting) => { setSettingParam(v); keep({ setting: v }); };
+  const setLength = (v: TalkLength) => { setLengthParam(String(v)); keep({ length: v }); };
+  const setVoice = (v: VoiceId) => { setVoiceParam(v); keep({ voice: v }); };
   const [mine, setMine] = useState<Mine | null>(null);
   const [person, setPerson] = useState<"none" | "loading" | "looking" | "nobody" | "found">("none");
   const checking = useRef(0);
@@ -177,7 +185,7 @@ export default function GreenScreen({ userId, source }: { userId: string; source
     : oursWaiting ? PAID_WAITING
     : elsewhere ? OTHER_VIDEO
     : !scriptPlan && n < 3 ? "Type what they say, or a topic to write it from."
-    : said.look.trim().length < 10 ? "Describe your presenter first."
+    : said.look.trim().length < 10 ? "Describe your presenter under More settings."
     : null;
   const spend = { write: writeFirst, talk: talkSpend, minutes: who === "mine" ? mine?.minutes ?? null : null };
   const { cap, caps } = greenCaps(spend);
@@ -310,32 +318,35 @@ export default function GreenScreen({ userId, source }: { userId: string; source
                   {scriptPlan && <> {scriptPlan === "source" ? "Make the video writes what they say from this post first." : "Make the video writes what they say from this topic first."}</>}
                 </p>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                {madePresenter(said.look, setting) && <img src={madePresenter(said.look, setting)!} alt="Your AI presenter" className="h-40 w-24 shrink-0 rounded-lg object-cover" />}
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Textarea rows={3} value={said.look} maxLength={MAX_LOOK} aria-label="How your presenter looks" className="text-sm"
+              <div className="flex items-center gap-3">
+                {madePresenter(said.look, setting) && <img src={madePresenter(said.look, setting)!} alt="Your AI presenter" className="h-24 w-14 shrink-0 rounded-lg object-cover" />}
+                <p className="text-xs text-muted-foreground">The person is made by AI.</p>
+              </div>
+              <Field label="Length">
+                {TALK_LENGTHS.map((s) => (
+                  <FilterChip key={s} active={length === s} onClick={() => setLength(s)}>{s} s</FilterChip>
+                ))}
+              </Field>
+              <MoreSettings picks={talkPicks(voice, setting, said.look)}>
+                <Field label="Voice">
+                  {VOICE_IDS.map((v) => (
+                    <FilterChip key={v} active={voice === v} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</FilterChip>
+                  ))}
+                </Field>
+                <div className="space-y-1.5">
+                  <Label htmlFor="make-green-look" className={FIELD_LABEL}>How they look</Label>
+                  <Textarea id="make-green-look" rows={3} value={said.look} maxLength={MAX_LOOK} className="text-sm"
                     onChange={(e) => setSaid({ ...said, look: e.target.value })} />
                   <Button size="sm" variant="outline" className={TOUCH} onClick={() => setSaid({ ...said, look: nextLook(userId, LOOKS, said.look) })}>
                     Another look
                   </Button>
-                  <p className="text-xs text-muted-foreground">The person is made by AI.</p>
                 </div>
-              </div>
-              <Field label="Setting">
-                {TALK_SETTINGS.map((s) => (
-                  <FilterChip key={s.id} active={setting === s.id} onClick={() => setSetting(s.id)}>{s.label}</FilterChip>
-                ))}
-              </Field>
-              <Field label="Voice">
-                {VOICE_IDS.map((v) => (
-                  <FilterChip key={v} active={voice === v} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</FilterChip>
-                ))}
-              </Field>
-              <Field label="Length">
-                {TALK_LENGTHS.map((s) => (
-                  <FilterChip key={s} active={length === s} onClick={() => setLength(String(s))}>{s} s</FilterChip>
-                ))}
-              </Field>
+                <Field label="Setting">
+                  {TALK_SETTINGS.map((s) => (
+                    <FilterChip key={s.id} active={setting === s.id} onClick={() => setSetting(s.id)}>{s.label}</FilterChip>
+                  ))}
+                </Field>
+              </MoreSettings>
             </div>
           )}
         </CardContent>

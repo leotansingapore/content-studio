@@ -7,14 +7,19 @@
 // URL (docs/deep-links.md): source=<RemixSource key> (MakeFormatPage resolves it; clone:<platform>:<postId> fills the
 // box with that Clone a reel result's own script), mention=no, who=mine|presenter|<saved presenter id> (your saved face,
 // a new AI presenter, or one of the brand's; the brand's Who appears when absent), setting=car|kitchen|couch|cafe,
-// length=8|20|30 and voice=<voice id>, all replace. The press is always the adviser's: this format costs more than
-// US$1, so nothing makes on arrival. Device: cs-make-talking-head-<scoped uid> keeps the typed script and look.
+// length=8|20|30, voice=<voice id> and more=open (More settings unfolded), all replace. The press is always the adviser's:
+// this format costs more than US$1, so nothing makes on arrival. Device: cs-make-talking-head-<scoped uid> keeps the
+// typed script and look, and the voice, setting and length picked by hand.
+// The page shows what a first make needs (what to say, who says it, the length), each with a default that makes a
+// good post untouched (startWho, startVoice); the voice and a new presenter's look and setting are folded under
+// More settings, whose line names every current pick.
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import ComplianceChips from "@/components/ComplianceChips";
 import FormatShell from "@/components/make/FormatShell";
+import MoreSettings from "@/components/make/MoreSettings";
 import { metaOf } from "@/components/make/PickList";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -28,11 +33,12 @@ import { LOOKS, MAX_LOOK, aiBusy, onAiJob, pendingAvatar } from "@/lib/aiVideo";
 import { nextLook, pickLook, presenterStarts, useCoin, useMentionStart } from "@/lib/postChoices";
 import { scanCompliance } from "@/lib/compliance";
 import { links } from "@/lib/links";
+import { loadRemixPrefs } from "@/lib/remixBrand";
 import { loadSavedClones } from "@/lib/reelClone";
 import type { RemixSource } from "@/lib/remixSource";
 import {
-  DEFAULT_LENGTH, TALK_LENGTHS, TALK_SETTINGS, canWrite, cloneWords, defaultWho, loadTyped, saveTyped, speakerOf, talkCaps, talkPrice, talkWords, useSpeakers,
-  whoChoices, wordCount, wordLine, writePlan, type TalkLength, type TalkSetting, type TalkWho, type Typed,
+  DEFAULT_LENGTH, TALK_LENGTHS, TALK_SETTINGS, canWrite, cloneWords, loadTyped, saveTyped, speakerOf, startVoice, startWho, talkCaps, talkPicks, talkPrice, talkWords,
+  useSpeakers, whoChoices, wordCount, wordLine, writePlan, type TalkLength, type TalkSetting, type TalkWho, type Typed,
 } from "@/lib/talkingHead";
 import { dropTalk, goOnAtPrice, madePresenter, onTalkJob, ownsPending, resumeTalk, startTalk, talkBusy, talkJob, writeTalk, type TalkAsk, type TalkJob } from "@/lib/talkingHeadJob";
 import { VOICES, VOICE_IDS, type VoiceId } from "@/lib/textVoice";
@@ -60,25 +66,30 @@ export default function TalkingHead({ userId, source }: { userId: string; source
   // the AI video slot is shared with the editor's AI panel: its changes decide whether this can start
   const [, bump] = useReducer((n: number) => n + 1, 0);
   useEffect(() => onAiJob(() => bump()), []);
-  // who speaks: your saved face, a saved presenter or a new one, the brand's Who appears preselected (Ask each time
-  // picks none); a photo picked by hand is not offered on Leo's pages (people-my-face)
-  const people = useSpeakers(userId);
-  const flip = useCoin();
-  const [whoParam, setWho] = useUrlState<string>("who", people ? defaultWho(people, (l) => presenterStarts(userId, l, flip)) : "", { allowed: people ? whoChoices(people) : [] });
-  const who = whoParam as TalkWho | "";
-  const speaker = people ? speakerOf(people, who) : null;
-  const [setting, setSetting] = useUrlState<TalkSetting>("setting", "office", { allowed: TALK_SETTINGS.map((s) => s.id) });
-  const [lengthParam, setLength] = useUrlState<string>("length", String(DEFAULT_LENGTH), { allowed: TALK_LENGTHS.map(String) });
-  const length = Number(lengthParam) as TalkLength;
-  const [voice, setVoice] = useUrlState<VoiceId>("voice", "alice", { allowed: VOICE_IDS });
-  // Leo's sign-ins aim the script at the words the picked voice reads in the length (live-p7a-fix); everyone else as today
-  const leo = useLeoUser();
-  const byVoice = leo ? voice : undefined;
-  const [mention] = useUrlState("mention", useMentionStart(userId), { allowed: ["yes", "no"] });
   const [typed, setTyped] = useState<Typed>(() => {
     const t = loadTyped(userId);
     return t.look ? t : { ...t, look: pickLook(userId, LOOKS) };
   });
+  // who speaks: the brand's Who appears (Post choices) while that person is on, else your saved face, else a new AI
+  // presenter, so a first press needs no pick; a photo picked by hand is not offered on Leo's pages (people-my-face)
+  const people = useSpeakers(userId);
+  const flip = useCoin();
+  const [whoParam, setWho] = useUrlState<string>("who", people ? startWho(people, (l) => presenterStarts(userId, l, flip)) : "", { allowed: people ? whoChoices(people) : [] });
+  const who = whoParam as TalkWho | "";
+  const speaker = people ? speakerOf(people, who) : null;
+  // a pick made by hand is kept on this device (typed), so a fresh visit starts from it; the address still wins
+  const keep = (pick: Partial<Typed>) => setTyped((t) => ({ ...t, ...pick }));
+  const [setting, setSettingParam] = useUrlState<TalkSetting>("setting", typed.setting ?? "office", { allowed: TALK_SETTINGS.map((s) => s.id) });
+  const [lengthParam, setLengthParam] = useUrlState<string>("length", String(typed.length ?? DEFAULT_LENGTH), { allowed: TALK_LENGTHS.map(String) });
+  const length = Number(lengthParam) as TalkLength;
+  const [voice, setVoiceParam] = useUrlState<VoiceId>("voice", startVoice(people, who, typed.look, typed.voice ?? loadRemixPrefs(userId).voice), { allowed: VOICE_IDS });
+  const setSetting = (v: TalkSetting) => { setSettingParam(v); keep({ setting: v }); };
+  const setLength = (v: TalkLength) => { setLengthParam(String(v)); keep({ length: v }); };
+  const setVoice = (v: VoiceId) => { setVoiceParam(v); keep({ voice: v }); };
+  // Leo's sign-ins aim the script at the words the picked voice reads in the length (live-p7a-fix); everyone else as today
+  const leo = useLeoUser();
+  const byVoice = leo ? voice : undefined;
+  const [mention] = useUrlState("mention", useMentionStart(userId), { allowed: ["yes", "no"] });
   // the text a write or a clone replaced, one Undo away
   const [undo, setUndo] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -160,7 +171,7 @@ export default function TalkingHead({ userId, source }: { userId: string; source
     : !plan && n < 3 ? "Type your script, or a topic to write it from."
     : !who ? "Pick who speaks first."
     : who === "mine" && !speaker ? "Save your face first."
-    : who === "presenter" && typed.look.trim().length < 10 ? "Describe your presenter first."
+    : who === "presenter" && typed.look.trim().length < 10 ? "Describe your presenter under More settings."
     : null;
   const retry = job?.state === "failed" && !job.writeOnly && !job.refused && !job.waiting;
 
@@ -257,30 +268,10 @@ export default function TalkingHead({ userId, source }: { userId: string; source
             <FilterChip active={who === "presenter"} onClick={() => setWho("presenter")}>New presenter</FilterChip>
           </Field>
           {who === "presenter" ? (
-            <>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                {shown && <img src={shown} alt="Your AI presenter" className="h-40 w-24 shrink-0 rounded-lg object-cover" />}
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Textarea
-                    rows={3}
-                    value={typed.look}
-                    maxLength={MAX_LOOK}
-                    aria-label="How your presenter looks"
-                    className="text-sm"
-                    onChange={(e) => setTyped({ ...typed, look: e.target.value })}
-                  />
-                  <Button size="sm" variant="outline" className={TOUCH} onClick={() => setTyped({ ...typed, look: nextLook(userId, LOOKS, typed.look) })}>
-                    Another look
-                  </Button>
-                  <p className="text-xs text-muted-foreground">The person is made by AI.</p>
-                </div>
-              </div>
-              <Field label="Setting">
-                {TALK_SETTINGS.map((s) => (
-                  <FilterChip key={s.id} active={setting === s.id} onClick={() => setSetting(s.id)}>{s.label}</FilterChip>
-                ))}
-              </Field>
-            </>
+            <div className="flex items-center gap-3">
+              {shown && <img src={shown} alt="Your AI presenter" className="h-24 w-14 shrink-0 rounded-lg object-cover" />}
+              <p className="text-xs text-muted-foreground">The person is made by AI.</p>
+            </div>
           ) : speaker ? (
             <div className="flex items-center gap-3">
               <img
@@ -293,16 +284,41 @@ export default function TalkingHead({ userId, source }: { userId: string; source
           ) : who === "mine" ? (
             <Link to={links.people({ record: true })} className={`inline-flex items-center text-sm font-medium text-primary underline-offset-2 hover:underline ${TOUCH}`}>Save your face first</Link>
           ) : null}
-          <Field label="Voice">
-            {VOICE_IDS.map((v) => (
-              <FilterChip key={v} active={voice === v} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</FilterChip>
-            ))}
-          </Field>
           <Field label="Length">
             {TALK_LENGTHS.map((s) => (
-              <FilterChip key={s} active={length === s} onClick={() => setLength(String(s))}>{s} s</FilterChip>
+              <FilterChip key={s} active={length === s} onClick={() => setLength(s)}>{s} s</FilterChip>
             ))}
           </Field>
+          <MoreSettings picks={talkPicks(voice, who === "presenter" ? setting : null, who === "presenter" ? typed.look : null)}>
+            <Field label="Voice">
+              {VOICE_IDS.map((v) => (
+                <FilterChip key={v} active={voice === v} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</FilterChip>
+              ))}
+            </Field>
+            {who === "presenter" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="make-talk-look" className={FIELD_LABEL}>How they look</Label>
+                  <Textarea
+                    id="make-talk-look"
+                    rows={3}
+                    value={typed.look}
+                    maxLength={MAX_LOOK}
+                    className="text-sm"
+                    onChange={(e) => setTyped({ ...typed, look: e.target.value })}
+                  />
+                  <Button size="sm" variant="outline" className={TOUCH} onClick={() => setTyped({ ...typed, look: nextLook(userId, LOOKS, typed.look) })}>
+                    Another look
+                  </Button>
+                </div>
+                <Field label="Setting">
+                  {TALK_SETTINGS.map((s) => (
+                    <FilterChip key={s.id} active={setting === s.id} onClick={() => setSetting(s.id)}>{s.label}</FilterChip>
+                  ))}
+                </Field>
+              </>
+            )}
+          </MoreSettings>
         </CardContent>
       </Card>
     </fieldset>

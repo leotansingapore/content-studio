@@ -2,20 +2,21 @@
 // tested on their own: the word target per length and its line, when a press writes the script first, the price of a
 // press and the caps it spends, the price check after the voiceover, a Clone a reel result's own script, and the
 // device key that keeps what was typed.
-//   device: cs-make-talking-head-<scoped uid>: { script, look, filled? } (the typed script and presenter look; filled
-//   is the source key the script was last filled from, so a reload never fills over an edit). Cleared after a make.
+//   device: cs-make-talking-head-<scoped uid>: { script, look, filled?, voice?, setting?, length? } (the typed script and
+//   presenter look; filled is the source key the script was last filled from, so a reload never fills over an edit; the
+//   voice, setting and length picked by hand, so a fresh visit starts from them). Only the script is cleared after a make.
 // Who speaks (people-in-videos, Leo only, shared with the editor's You speaking): your saved face (myFace.ts) or one of
 // the brand's saved presenters (presenters.ts), the brand's "Who appears" preselected, and the AI mark each make carries.
 
 import { useEffect, useState } from "react";
 import { links } from "@/lib/links";
 import { loadFace, onFaceChanged, type MyFace } from "@/lib/myFace";
-import { loadPresenters, onPresenters, onPresentersChanged, type Presenter } from "@/lib/presenters";
+import { loadPresenters, onPresenters, onPresentersChanged, presenterVoice, type Presenter } from "@/lib/presenters";
 import { priceOf, sumPrices, type Price } from "@/lib/prices";
 import { scoped } from "@/lib/profiles";
 import { sourceKey, type RemixSource } from "@/lib/remixSource";
 import type { SavedClone } from "@/lib/reelClone";
-import type { VoiceId } from "@/lib/textVoice";
+import { VOICES, VOICE_IDS, type VoiceId } from "@/lib/textVoice";
 import type { AiMark } from "@/lib/videoProjects";
 import { CUT_WINDOW, MAX_AVATAR_SECONDS, MAX_SLICE, type SettingId } from "../../supabase/functions/ai-video/logic.ts";
 import { MAX_TOPIC, SPEAKING_SECONDS, scriptWords, speakingWords, type SpeakingSeconds } from "../../supabase/functions/remix/logic.ts";
@@ -155,6 +156,10 @@ export interface Typed {
   look: string;
   /** The source key the script was filled from. */
   filled?: string;
+  /** Picked by hand under More settings or Length; missing until then, so the page's own default holds. */
+  voice?: VoiceId;
+  setting?: TalkSetting;
+  length?: TalkLength;
 }
 
 const typedKey = (userId: string) => `cs-make-talking-head-${scoped(userId)}`;
@@ -166,6 +171,9 @@ export function loadTyped(userId: string): Typed {
       script: typeof t?.script === "string" ? t.script : "",
       look: typeof t?.look === "string" ? t.look : "",
       ...(typeof t?.filled === "string" ? { filled: t.filled } : {}),
+      ...(VOICE_IDS.includes(t?.voice) ? { voice: t.voice as VoiceId } : {}),
+      ...(TALK_SETTINGS.some((x) => x.id === t?.setting) ? { setting: t.setting as TalkSetting } : {}),
+      ...(TALK_LENGTHS.includes(t?.length) ? { length: t.length as TalkLength } : {}),
     };
   } catch {
     return { script: "", look: "" };
@@ -180,9 +188,10 @@ export function saveTyped(userId: string, t: Typed): void {
   }
 }
 
-/** After a make: the script goes (a source fills it again next time), the presenter look stays for the next one. */
+/** After a make: the script goes (a source fills it again next time), the presenter look and the picks stay for the next one. */
 export function clearScript(userId: string): void {
-  saveTyped(userId, { script: "", look: loadTyped(userId).look });
+  const { filled: _filled, ...kept } = loadTyped(userId);
+  saveTyped(userId, { ...kept, script: "" });
 }
 
 // ---- who speaks: your saved face or a saved presenter (Leo only) ----
@@ -232,6 +241,33 @@ export const defaultWho = (s: Speakers, keep: (look: string) => boolean = () => 
   const p = s.presenters.find((x) => x.id === s.who);
   return s.who === "ask" || (p && !keep(p.look)) ? "" : s.who;
 };
+
+/**
+ * Who a make starts with, so a first press needs no pick: the brand's "Who appears" (defaultWho, Post choices) while
+ * that person is on, else your saved face, else a new AI presenter, which always works.
+ */
+export function startWho(s: Speakers, keep?: (look: string) => boolean): TalkWho {
+  const w = defaultWho(s, keep);
+  return w && speakerOf(s, w) ? (w as TalkWho) : s.face ? "mine" : "presenter";
+}
+
+/**
+ * The voice a make starts in: a saved presenter's own or one that fits its look, one that fits a new presenter's look,
+ * or for your face the remembered voice (the last one picked here, else the brand's), all through presenterVoice.
+ */
+export function startVoice(s: Speakers | null, who: string, look: string, remembered: VoiceId): VoiceId {
+  if (who === "mine") return remembered;
+  const p = s?.presenters.find((x) => x.id === who);
+  return presenterVoice(p ?? { look: who === "presenter" ? look : "" }, remembered);
+}
+
+/** More settings' line on a person-on-camera page: "Alice's voice, office desk, a woman in her 30s..." (the look last, cut by the row). */
+export function talkPicks(voice: VoiceId, setting: TalkSetting | null, look: string | null): string[] {
+  const where = setting ? TALK_SETTINGS.find((x) => x.id === setting)?.label : undefined;
+  // mid-line: "office desk", "a woman in her 30s" (a name at the start of a look keeps its capital)
+  const look2 = look?.trim().replace(/^(A|An|The)\b/, (m) => m.toLowerCase());
+  return [`${VOICES[voice].label}'s voice`, where && where[0].toLowerCase() + where.slice(1), look2].filter((x): x is string => !!x);
+}
 
 /** The picks a ?face= or ?who= link may hold: your face, a new presenter, or a saved one. */
 export const whoChoices = (s: Speakers) => ["mine", "presenter", ...s.presenters.map((p) => p.id)];
