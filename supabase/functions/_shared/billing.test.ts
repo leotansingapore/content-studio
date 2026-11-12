@@ -45,6 +45,7 @@ const db: Db = {
   },
   rowBySubscription: async (id) => w.rows.find((r) => r.stripe_subscription_id === id) ?? null,
   rowByUser: async (id) => w.rows.find((r) => r.user_id === id) ?? null,
+  rowByCustomer: async (id) => w.rows.find((r) => r.stripe_customer_id === id) ?? null,
   saveRow: async (row) => {
     if (w.saveFails) throw new Error("write failed");
     w.rows = [...w.rows.filter((r) => r.user_id !== row.user_id), row];
@@ -93,7 +94,7 @@ const keep = async (r: Promise<Response>) => {
 const start = (query: string, method = "GET") => keep(handleStart(new Request(`https://x.supabase.co/functions/v1/postmosis-start${query}`, { method }), deps));
 const done = (id = SESSION) => start(`/done?session_id=${id}`);
 const hook = (eventKey: string, signature = "good") => keep(handleWebhook(new Request("https://x/postmosis-webhook", { method: "POST", body: eventKey, headers: { "stripe-signature": signature } }), deps));
-const portal = () => handlePortal(new Request("https://x/postmosis-portal", { method: "POST" }), deps);
+const portal = (body: unknown = {}) => handlePortal(new Request("https://x/postmosis-portal", { method: "POST", body: JSON.stringify(body) }), deps);
 const event = (key: string, type: string, object: Record<string, unknown>) => (w.events[key] = { id: `evt_${key}`, type, data: { object } });
 const to = (r: Response) => r.headers.get("Location") ?? "";
 const mei = (madeBy: string | null = null) => w.accounts.push({ id: "old-user", email: "mei@example.test", madeBy });
@@ -186,11 +187,10 @@ describe("/start", () => {
     expect(w.stripeCalls).toEqual([]);
   });
 
-  it("fills in a well-formed email and drops anything else", async () => {
-    await start("?plan=pay&email=Mei%40Example.test");
-    await start("?plan=pay&email=%3Cscript%3E%40x.test");
-    await start("?plan=pay&email=nope");
-    expect(w.checkouts.map((c) => c.customer_email)).toEqual(["mei@example.test", undefined, undefined]);
+  it("takes no email or customer from the address", async () => {
+    await start("?plan=pay&email=Mei%40Example.test&customer=cus_victim");
+    expect(w.checkouts[0]).not.toHaveProperty("customer_email");
+    expect(w.checkouts[0]).not.toHaveProperty("customer");
   });
 });
 
@@ -290,12 +290,55 @@ describe("a checkout under an email that already has an account", () => {
     expect(w.holds).toMatchObject([{ reason: "account_without_subscription" }]);
   });
 
-  it("attaches to a returning customer whose own subscription no longer gives access", async () => {
+  it("holds a checkout under a lapsed customer's email from another Stripe customer, and leaves their row alone", async () => {
+    mei("sub_first");
+    const theirs: Row = { user_id: "old-user", email: "mei@example.test", status: "canceled", stripe_subscription_id: "sub_first", stripe_customer_id: "cus_first" };
+    w.rows.push({ ...theirs });
+    // the payer is told nothing different
+    expect(to(await done())).toBe(INBOX);
+    event("c1", "checkout.session.completed", { id: SESSION, metadata: { app: "postmosis" }, subscription: "sub_1" });
+    await hook("c1");
+    expect(w.rows).toEqual([theirs]);
+    expect(w.holds).toMatchObject([{ stripe_subscription_id: "sub_1", stripe_customer_id: "cus_1", reason: "customer_mismatch" }]);
+    // the owner's Billing still opens the owner's own Stripe customer
+    w.user = "old-user";
+    await portal();
+    expect(w.portals).toEqual(["cus_first"]);
+  });
+
+  it("holds it too when the lapsed row has no Stripe customer on file", async () => {
     mei("sub_first");
     w.rows.push({ user_id: "old-user", email: "mei@example.test", status: "canceled", stripe_subscription_id: "sub_first" });
+    await done();
+    expect(w.rows).toMatchObject([{ stripe_subscription_id: "sub_first", status: "canceled" }]);
+    expect(w.holds).toMatchObject([{ reason: "customer_mismatch" }]);
+  });
+
+  it("attaches a restart by the signed-in lapsed customer: the checkout is for their own Stripe customer", async () => {
+    mei("sub_first");
+    w.rows.push({ user_id: "old-user", email: "mei@example.test", status: "canceled", stripe_subscription_id: "sub_first", stripe_customer_id: "cus_first" });
+    w.user = "old-user";
+    const r = await portal({ restart: true, customer: "cus_victim" });
+    expect(await r.json()).toEqual({ url: "https://checkout.stripe.com/c/pay/x" });
+    expect(w.checkouts).toEqual([{ ...checkoutParams("pay", PRICE), customer: "cus_first", cancel_url: "https://app.postmosis.com/" }]);
+    expect(w.portals).toEqual([]);
+    // Stripe makes the subscription under that customer, whose email they have since changed at Stripe
+    w.subs.sub_1 = sub({ status: "active", customer: { id: "cus_first", email: "mei.new@example.test" } });
     expect(to(await done())).toBe(INBOX);
-    expect(w.rows).toMatchObject([{ user_id: "old-user", stripe_subscription_id: "sub_1", status: "trialing" }]);
+    expect(w.rows).toMatchObject([{ user_id: "old-user", email: "mei@example.test", status: "active", stripe_subscription_id: "sub_1", stripe_customer_id: "cus_first" }]);
     expect(w.holds).toEqual([]);
+    expect(w.accounts).toHaveLength(1);
+  });
+
+  it("restarts only a subscription Stripe has finished with", async () => {
+    mei("sub_first");
+    w.user = "old-user";
+    for (const status of ["active", "trialing", "past_due", "unpaid"]) {
+      w.rows = [{ user_id: "old-user", email: "mei@example.test", status, past_due_since: new Date(NOW - 30 * 86_400_000).toISOString(), stripe_subscription_id: "sub_first", stripe_customer_id: "cus_first" }];
+      const r = await portal({ restart: true });
+      expect([status, r.status, (await r.json()).code]).toEqual([status, 409, "not_ended"]);
+    }
+    expect(w.checkouts).toEqual([]);
   });
 
   it("holds a second checkout beside a subscription that still gives access, so cancelling it locks nobody out", async () => {
@@ -307,6 +350,15 @@ describe("a checkout under an email that already has an account", () => {
     expect((await hook("d1")).status).toBe(200);
     expect(w.rows).toMatchObject([{ stripe_subscription_id: "sub_first", status: "active" }]);
     expect(w.holds).toMatchObject([{ stripe_subscription_id: "sub_1", reason: "second_subscription", status: "canceled" }]);
+  });
+
+  it("holds a second subscription from the same Stripe customer while the first still gives access", async () => {
+    mei("sub_first");
+    w.rows.push({ user_id: "old-user", email: "mei@example.test", status: "active", stripe_subscription_id: "sub_first", stripe_customer_id: "cus_first" });
+    w.subs.sub_1 = sub({ customer: { id: "cus_first", email: "mei@example.test" } });
+    await done();
+    expect(w.rows).toMatchObject([{ stripe_subscription_id: "sub_first", status: "active" }]);
+    expect(w.holds).toMatchObject([{ stripe_subscription_id: "sub_1", reason: "second_subscription" }]);
   });
 
   it("never replaces a free account's row", async () => {

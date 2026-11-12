@@ -36,9 +36,13 @@ export async function loadSubscription(userId: string): Promise<SubRow | null> {
   return known;
 }
 
-/** Sends the browser to Stripe's portal for this account (card, invoices, cancel). Throws an EdgeError in plain words. */
-export async function openBillingPortal(): Promise<void> {
-  const { url } = await callFn<{ url: string }>("postmosis-portal", {}, "Couldn't open billing. Try again in a minute.");
+/**
+ * Sends the browser to Stripe for this account: the portal (card, invoices, cancel), or with `restart` a new
+ * checkout for the same Stripe customer once the subscription has ended. Signed in either way, so the server
+ * takes the customer from this account's own row. Throws an EdgeError in plain words.
+ */
+export async function openBillingPortal(restart = false): Promise<void> {
+  const { url } = await callFn<{ url: string }>("postmosis-portal", restart ? { restart: true } : {}, "Couldn't open billing. Try again in a minute.");
   window.location.assign(url);
 }
 
@@ -71,16 +75,13 @@ export function billingSummary(row: SubRow | null, now: number): string {
   return paywallFor(row).body;
 }
 
-/** The paywall's words and its one button: the portal when a card needs fixing, a new checkout otherwise. */
-export function paywallFor(row: SubRow): { title: string; body: string; button: string; action: "portal" | "checkout" } {
-  if ((row.status === "past_due" || row.status === "unpaid") && row.stripe_customer_id) {
+/** The paywall's words and its one button: a new checkout once the subscription has ended, the portal otherwise. */
+export function paywallFor(row: SubRow): { title: string; body: string; button: string; action: "portal" | "restart" } {
+  if (row.status === "canceled" || row.status === "incomplete_expired") {
+    return { title: "Your subscription has ended", body: "Your posts and brand kit are still here. Subscribe again to get back to them.", button: `Subscribe again, ${PRICE} a month`, action: "restart" };
+  }
+  if (row.status === "past_due" || row.status === "unpaid") {
     return { title: "Your payment didn't go through", body: "We couldn't charge your card, so your studio is paused. Your posts and brand kit are still here. Update your card to open it again.", button: "Update your card", action: "portal" };
   }
-  if (row.status === "canceled") {
-    return { title: "Your subscription has ended", body: "Your posts and brand kit are still here. Subscribe again to get back to them.", button: `Subscribe again, ${PRICE} a month`, action: "checkout" };
-  }
-  return { title: "Your subscription isn't active", body: "The payment for this account was never completed, so the studio is closed. Subscribe to open it.", button: `Subscribe, ${PRICE} a month`, action: "checkout" };
+  return { title: "Your subscription isn't active", body: "Your studio is paused, and your posts and brand kit are still here. Billing shows what your subscription needs.", button: "Manage billing", action: "portal" };
 }
-
-/** A new checkout for this account's own email, so the subscription lands on this account. */
-export const checkoutHref = (email: string) => `/start?plan=pay${email ? `&email=${encodeURIComponent(email)}` : ""}`;

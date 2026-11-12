@@ -61,7 +61,9 @@ select public.cs_test_expect_error(
   $$insert into public.cs_subscription_events (id, type) values ('evt_test_abc', 'customer.subscription.updated')$$,
   '%cs_subscription_events_pkey%', '5 an event is logged once');
 insert into public.cs_held_checkouts (stripe_subscription_id, stripe_customer_id, email, status, reason)
-  values ('sub_held', 'cus_held', 'cs-test-sub-b@example.test', 'trialing', 'account_without_subscription');
+  values ('sub_held', 'cus_held', 'cs-test-sub-b@example.test', 'trialing', 'account_without_subscription'),
+         ('sub_held_mm', 'cus_held', 'cs-test-sub-b@example.test', 'active', 'customer_mismatch'),
+         ('sub_held_2nd', 'cus_held', 'cs-test-sub-b@example.test', 'active', 'second_subscription');
 select public.cs_test_expect_error(
   $$insert into public.cs_held_checkouts (stripe_subscription_id, stripe_customer_id, email, status, reason) values ('sub_held2', 'cus_x', 'x@example.test', 'active', 'because')$$,
   '%violates%', '5b a held checkout needs a known reason');

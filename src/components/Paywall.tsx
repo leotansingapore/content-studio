@@ -8,7 +8,7 @@ import { forgetMarketShown } from "@/lib/market";
 import { disablePushHere } from "@/lib/notify";
 import { forgetMe } from "@/lib/reelsBoard";
 import { forgetSocialConnect } from "@/lib/socialConnect";
-import { checkoutHref, openBillingPortal, paywallFor, type SubRow } from "@/lib/subscription";
+import { openBillingPortal, paywallFor, type SubRow } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 
 export default function Paywall({ row, email }: { row: SubRow; email: string }) {
@@ -19,9 +19,8 @@ export default function Paywall({ row, email }: { row: SubRow; email: string }) 
   const go = async () => {
     setBusy(true);
     setProblem("");
-    if (p.action === "checkout") return window.location.assign(checkoutHref(email));
     try {
-      await openBillingPortal();
+      await openBillingPortal(p.action === "restart");
     } catch (e) {
       setProblem(e instanceof Error ? e.message : "Couldn't open billing. Try again in a minute.");
       setBusy(false);

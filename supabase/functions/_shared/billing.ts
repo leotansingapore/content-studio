@@ -47,7 +47,7 @@ export type StripeApi = {
 };
 
 export type Row = SubRow & { user_id: string; email: string; stripe_subscription_id?: string | null };
-export type Hold = { stripe_subscription_id: string; stripe_customer_id: string; email: string; status: string; reason: "account_without_subscription" | "second_subscription"; updated_at: string };
+export type Hold = { stripe_subscription_id: string; stripe_customer_id: string; email: string; status: string; reason: "account_without_subscription" | "second_subscription" | "customer_mismatch"; updated_at: string };
 // Nothing here can mint a session, a token or a sign-in link: the public endpoints have no way to sign anyone in.
 export type Db = {
   /** The account an email belongs to, and the subscription that created it (stamped at creation), if one did. */
@@ -56,6 +56,8 @@ export type Db = {
   createAccount(email: string, madeBy: string): Promise<string | null>;
   rowBySubscription(subscriptionId: string): Promise<Row | null>;
   rowByUser(userId: string): Promise<Row | null>;
+  /** The row a Stripe customer already pays for, if any. */
+  rowByCustomer(customerId: string): Promise<Row | null>;
   saveRow(row: Row & { updated_at: string }): Promise<void>;
   /** A paid checkout that was not attached to any account: the owner attaches or refunds it by hand. */
   saveHold(hold: Hold): Promise<void>;
@@ -82,8 +84,11 @@ const SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]{8,250}$/;
 
 export const planOf = (v: string | null): "pay" | "trial" | null => (v === "pay" || v === "trial" ? v : null);
 
-/** The Checkout Session for a plan. Every address is a constant: nothing from the request but a checked email. */
-export function checkoutParams(plan: "pay" | "trial", price: string, email: string | null): Record<string, unknown> {
+/**
+ * The Checkout Session for a plan. Every address is a constant and nothing comes from the request. `customer` is
+ * set only by postmosis-portal's restart, from the signed-in caller's own row: the public /start never sets one.
+ */
+export function checkoutParams(plan: "pay" | "trial", price: string, customer: string | null = null): Record<string, unknown> {
   return {
     mode: "subscription",
     line_items: [{ price, quantity: 1 }],
@@ -92,9 +97,9 @@ export function checkoutParams(plan: "pay" | "trial", price: string, email: stri
     payment_method_collection: "always",
     metadata: { app: "postmosis", plan },
     subscription_data: { metadata: { app: "postmosis" }, ...(plan === "trial" ? { trial_period_days: TRIAL_DAYS } : {}) },
-    ...(email ? { customer_email: email } : {}),
+    ...(customer ? { customer } : {}),
     success_url: `${APP}/start/done?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${SITE}/pricing`,
+    cancel_url: customer ? `${APP}/` : `${SITE}/pricing`,
   };
 }
 
@@ -108,12 +113,13 @@ const customerOf = (sub: StripeSub) => (typeof sub.customer === "string" ? { id:
  * Makes cs_subscriptions say what Stripe says about one subscription, creating the account first when a paid or
  * trialing subscription has none. Run by the webhook and by /start/done, in either order, any number of times.
  *
- * An email typed at Stripe proves nothing about who owns the inbox, so a checkout is attached to an account that
- * already exists only when that account is a customer already: this subscription created it, or it has a
- * cs_subscriptions row whose subscription no longer gives access. An account with no row (from before billing)
- * is never given one here, or a stranger could pay under its email, cancel, and paywall it. Such a checkout, and a
- * second one beside a subscription that still gives access, is HELD (cs_held_checkouts) for the owner to attach or
- * refund by hand, and gates nobody.
+ * An email typed at Stripe proves nothing about who owns the inbox, so a checkout is attached to an existing
+ * account in two cases only: (a) this subscription created the account, or (b) its Stripe customer is the one the
+ * account's row already has, which only the signed-in restart (postmosis-portal) can bring about. An email match
+ * is never enough, with or without a row: a stranger paying under a lapsed customer's email would otherwise put
+ * their own Stripe customer on that row, and the owner's Billing page would open the stranger's portal. Everything
+ * else is HELD (cs_held_checkouts) for the owner to attach or refund by hand; a hold never changes a row and
+ * gates nobody. So is a second subscription beside one that still gives access.
  *
  * Returns null when nothing is on file for it (not ours, or nothing paid yet), else the checkout's email.
  */
@@ -124,29 +130,40 @@ export async function syncSubscription(db: Db, sub: StripeSub, o: { price: strin
   const updated_at = new Date(o.now).toISOString();
   const existing = await db.rowBySubscription(sub.id);
   let userId = existing?.user_id ?? null;
+  let email = existing?.email ?? "";
   if (!userId) {
-    if (!EMAIL.test(stripeEmail)) return null;
     // nothing paid and no trial started: no account and no row
     const grants = GRANTS.has(sub.status);
-    let account = await db.accountForEmail(stripeEmail);
-    if (!account) {
-      if (!grants) return null;
-      const made = await db.createAccount(stripeEmail, sub.id);
-      // null: the other of webhook and /start/done made it a moment ago
-      account = made ? { userId: made, madeBy: sub.id } : await db.accountForEmail(stripeEmail);
-      if (!account) throw new Error("account neither created nor found");
+    let reason: Hold["reason"] | null;
+    // (b) found by the customer, not the email, so a customer who changed their email at Stripe still matches
+    const theirs = await db.rowByCustomer(customer.id);
+    if (theirs) {
+      reason = hasAccess(theirs, o.now) ? "second_subscription" : null;
+      userId = theirs.user_id;
+      email = theirs.email;
+    } else {
+      if (!EMAIL.test(stripeEmail)) return null;
+      let account = await db.accountForEmail(stripeEmail);
+      if (!account) {
+        if (!grants) return null;
+        const made = await db.createAccount(stripeEmail, sub.id);
+        // null: the other of webhook and /start/done made it a moment ago
+        account = made ? { userId: made, madeBy: sub.id } : await db.accountForEmail(stripeEmail);
+        if (!account) throw new Error("account neither created nor found");
+      }
+      const row = await db.rowByUser(account.userId);
+      // (a), and only while the account has no row: a row here belongs to some other Stripe customer
+      reason = row ? (hasAccess(row, o.now) ? "second_subscription" : "customer_mismatch") : account.madeBy === sub.id ? null : "account_without_subscription";
+      userId = account.userId;
+      email = stripeEmail;
     }
-    const row = await db.rowByUser(account.userId);
-    const reason = !row ? (account.madeBy === sub.id ? null : "account_without_subscription") : hasAccess(row, o.now) ? "second_subscription" : null;
     if (reason) {
       // kept in step with Stripe afterwards, so the owner sees whether it is still being paid for
-      await db.saveHold({ stripe_subscription_id: sub.id, stripe_customer_id: customer.id, email: stripeEmail, status: sub.status, reason, updated_at });
-      return grants ? { email: stripeEmail, held: true } : null;
+      await db.saveHold({ stripe_subscription_id: sub.id, stripe_customer_id: customer.id, email: stripeEmail || email, status: sub.status, reason, updated_at });
+      return grants ? { email, held: true } : null;
     }
     if (!grants) return null;
-    userId = account.userId;
   }
-  const email = existing?.email || stripeEmail;
   await db.saveRow({
     user_id: userId,
     email,
@@ -165,7 +182,7 @@ export async function syncSubscription(db: Db, sub: StripeSub, o: { price: strin
 /** Where /start/done ends: the app's sign-in page, which emails that address its sign-in link. Never a session. */
 const inboxUrl = (email: string) => `${APP}/auth?email=${encodeURIComponent(email)}&checkout=done`;
 
-/** GET /postmosis-start?plan=pay|trial[&email=] and GET /postmosis-start/done?session_id= (public, no JWT). */
+/** GET /postmosis-start?plan=pay|trial and GET /postmosis-start/done?session_id= (public, no JWT). */
 export async function handleStart(req: Request, deps: Deps): Promise<Response> {
   if (req.method !== "GET") return new Response(null, { status: 405, headers: { Allow: "GET" } });
   const cfg = configOf(deps.env);
@@ -176,9 +193,8 @@ export async function handleStart(req: Request, deps: Deps): Promise<Response> {
   if (!/\/done\/?$/.test(url.pathname)) {
     const plan = planOf(url.searchParams.get("plan"));
     if (!plan) return redirect(302, `${SITE}/pricing`);
-    const email = (url.searchParams.get("email") ?? "").trim().toLowerCase();
     try {
-      const session = await stripe.createCheckout(checkoutParams(plan, cfg.price, EMAIL.test(email) ? email : null));
+      const session = await stripe.createCheckout(checkoutParams(plan, cfg.price));
       if (!session.url || !session.url.startsWith("https://")) throw new Error("no checkout url");
       return redirect(303, session.url);
     } catch (e) {
@@ -256,7 +272,15 @@ export async function handleWebhook(req: Request, deps: Deps): Promise<Response>
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
-/** POST /postmosis-portal (JWT on): a Stripe customer portal link for the caller's own customer, never one from the request. */
+/** Subscriptions Stripe has finished with: only these may be started again, or the old one could still charge. */
+const ENDED = new Set(["canceled", "incomplete_expired"]);
+
+/**
+ * POST /postmosis-portal (JWT on). {} answers a Stripe customer portal link for the caller's own customer.
+ * { restart: true } answers a new Checkout for the caller's own customer once their subscription has ended, so the
+ * new subscription attaches to their row by its customer id (syncSubscription, rule b). The customer always comes
+ * from the caller's row, never from the request.
+ */
 export async function handlePortal(req: Request, deps: Deps): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -264,11 +288,16 @@ export async function handlePortal(req: Request, deps: Deps): Promise<Response> 
   if (!cfg) return json({ code: "off", error: "Billing isn't available right now." }, 503);
   const uid = await deps.user!(req);
   if (!uid) return json({ error: "Sign in again." }, 401);
+  const restart = ((await req.json().catch(() => null)) as { restart?: unknown } | null)?.restart === true;
   try {
     const row = await deps.db().rowByUser(uid);
     if (!row?.stripe_customer_id) return json({ code: "no_subscription", error: "There's no subscription on this account." }, 404);
-    const { url } = await deps.stripe(cfg.key).portal(row.stripe_customer_id, `${APP}/settings/billing`);
-    return json({ url });
+    const stripe = deps.stripe(cfg.key);
+    if (!restart) return json({ url: (await stripe.portal(row.stripe_customer_id, `${APP}/settings/billing`)).url });
+    if (!ENDED.has(row.status)) return json({ code: "not_ended", error: "Your subscription is still open. Reload this page." }, 409);
+    const session = await stripe.createCheckout(checkoutParams("pay", cfg.price, row.stripe_customer_id));
+    if (!session.url || !session.url.startsWith("https://")) throw new Error("no checkout url");
+    return json({ url: session.url });
   } catch (e) {
     console.error("postmosis-portal failed", (e as { code?: string })?.code ?? "unknown");
     return json({ error: "Couldn't open billing. Try again in a minute." }, 500);

@@ -4,8 +4,9 @@
 --   cs_subscriptions          one row per account that came in through Stripe Checkout (or was given a row by
 --                             hand). An account with NO row is grandfathered: full access, never gated.
 --   cs_held_checkouts         paid checkouts that were NOT attached to an account: the email belongs to an account
---                             with no subscription row (the payer has not proved the inbox is theirs), or to
---                             one whose own subscription still gives access. They gate nobody. The owner
+--                             with no subscription row or with a row under another Stripe customer (the payer
+--                             has not proved the inbox is theirs), or to one whose own subscription still
+--                             gives access. They gate nobody and change no row. The owner
 --                             attaches or refunds each by hand:  select * from cs_held_checkouts where resolved_at is null;
 --   cs_subscription_events    Stripe event ids the webhook finished (a repeat delivery is skipped).
 --   cs_account_for_email      the account an email belongs to, and the subscription that created it, if one
@@ -43,6 +44,7 @@ create table if not exists public.cs_subscriptions (
 );
 
 create index if not exists cs_subscriptions_stripe_sub on public.cs_subscriptions (stripe_subscription_id);
+create index if not exists cs_subscriptions_stripe_customer on public.cs_subscriptions (stripe_customer_id);
 
 alter table public.cs_subscriptions enable row level security;
 revoke all on table public.cs_subscriptions from public, anon, authenticated;
@@ -57,7 +59,7 @@ create table if not exists public.cs_held_checkouts (
   email text not null,
   -- Stripe's status for it, kept in step by the webhook: still paid for, or already cancelled
   status text not null,
-  reason text not null check (reason in ('account_without_subscription', 'second_subscription')),
+  reason text not null check (reason in ('account_without_subscription', 'second_subscription', 'customer_mismatch')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   -- set by hand once it has been attached or refunded

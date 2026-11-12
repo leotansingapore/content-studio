@@ -52,6 +52,7 @@ function database(): Db {
     },
     rowBySubscription: (id) => one("stripe_subscription_id", id),
     rowByUser: (id) => one("user_id", id),
+    rowByCustomer: (id) => one("stripe_customer_id", id),
     saveRow: async (row) => {
       const { error } = await admin.from("cs_subscriptions").upsert(row, { onConflict: "user_id" });
       if (error) throw error;

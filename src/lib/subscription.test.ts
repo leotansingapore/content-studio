@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { billingLine, billingSummary, checkoutHref, gateOf, paywallFor } from "./subscription";
+import { billingLine, billingSummary, gateOf, paywallFor } from "./subscription";
 
 const NOW = Date.parse("2026-11-12T04:00:00Z");
 const at = (days: number) => new Date(NOW + days * 86_400_000).toISOString();
@@ -44,16 +44,12 @@ describe("the paywall", () => {
     expect(gateOf({ status: "canceled" }, NOW)).toBe("paywall");
   });
 
-  it("offers the portal when a card needs fixing and a new checkout otherwise", () => {
-    expect(paywallFor({ status: "past_due", stripe_customer_id: "cus_1" }).action).toBe("portal");
-    expect(paywallFor({ status: "unpaid", stripe_customer_id: "cus_1" }).action).toBe("portal");
-    expect(paywallFor({ status: "unpaid" }).action).toBe("checkout");
-    expect(paywallFor({ status: "canceled", stripe_customer_id: "cus_1" })).toMatchObject({ action: "checkout", title: "Your subscription has ended" });
-    expect(paywallFor({ status: "incomplete_expired" }).action).toBe("checkout");
-  });
-
-  it("starts the checkout with the account's own email", () => {
-    expect(checkoutHref("mei+x@example.test")).toBe("/start?plan=pay&email=mei%2Bx%40example.test");
-    expect(checkoutHref("")).toBe("/start?plan=pay");
+  it("offers a new checkout only once the subscription has ended, and the portal otherwise", () => {
+    expect(paywallFor({ status: "canceled", stripe_customer_id: "cus_1" })).toMatchObject({ action: "restart", title: "Your subscription has ended" });
+    expect(paywallFor({ status: "incomplete_expired" }).action).toBe("restart");
+    // still open at Stripe: a second subscription beside it could charge twice
+    expect(paywallFor({ status: "past_due", stripe_customer_id: "cus_1" })).toMatchObject({ action: "portal", button: "Update your card" });
+    expect(paywallFor({ status: "unpaid" }).action).toBe("portal");
+    expect(paywallFor({ status: "paused" })).toMatchObject({ action: "portal", button: "Manage billing" });
   });
 });
