@@ -991,7 +991,8 @@ export default function StudioLayout() {
             isChat(pathname) ? "lg:max-w-none lg:p-0" : "lg:px-6 lg:pb-24 xl:px-10"
           }`}
         >
-          {!isChat(pathname) && <BillingNote />}
+          {/* its own page says the same and has the button */}
+          {!isChat(pathname) && pathname !== "/settings/billing" && <BillingNote />}
           <SectionTabs email={email} />
           {/* Lazy route chunks resolve here so the rails/bottom nav never flicker.
               A crash or a chunk missing after a deploy stays inside this area. */}

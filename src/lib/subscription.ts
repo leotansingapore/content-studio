@@ -78,10 +78,10 @@ export function billingSummary(row: SubRow | null, now: number): string {
 /** The paywall's words and its one button: a new checkout once the subscription has ended, the portal otherwise. */
 export function paywallFor(row: SubRow): { title: string; body: string; button: string; action: "portal" | "restart" } {
   if (row.status === "canceled" || row.status === "incomplete_expired") {
-    return { title: "Your subscription has ended", body: "Your posts and brand kit are still here. Subscribe again to get back to them.", button: `Subscribe again, ${PRICE} a month`, action: "restart" };
+    return { title: "Your subscription has ended", body: "Your posts and brand kit are still here.", button: `Subscribe again, ${PRICE} a month`, action: "restart" };
   }
   if (row.status === "past_due" || row.status === "unpaid") {
-    return { title: "Your payment didn't go through", body: "We couldn't charge your card, so your studio is paused. Your posts and brand kit are still here. Update your card to open it again.", button: "Update your card", action: "portal" };
+    return { title: "Your payment didn't go through", body: "We couldn't charge your card, so your studio is paused. Your posts and brand kit are still here.", button: "Update your card", action: "portal" };
   }
   return { title: "Your subscription isn't active", body: "Your studio is paused, and your posts and brand kit are still here. Billing shows what your subscription needs.", button: "Manage billing", action: "portal" };
 }
