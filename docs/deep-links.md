@@ -348,7 +348,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /media | item | a picture's key: scrolled to and marked; Copy link on every picture. the picture list lives on the device that added it, so the link opens there; anywhere else it says "That picture is not on this device" | none | set by links | /media?item=cimg-mh2k9x01ab |
 | /academy | lesson | a lesson's YouTube id: opens and plays it | none | push | /academy?lesson=0Q1AQAxpdGg |
 | /playbook | #section | identity, offer, personas, proof, look, tone, on-file: a group of "What the AI knows" (proof and on-file on Leo's sign-ins only); each row links to the page that edits it | top | (anchor) | /playbook#look |
-| /brand | #section | script-product (Leo only: the product card scripts read, where the Playbook's Proof row lands), you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
+| /brand | #section | you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
 | /create-guide | #step | idea, draft, carousel, reel, reverse-engineer, compliance, schedule | top | (anchor) | /create-guide#reel |
 | /tutorial | #section | why, voice, guided-flow, after, tabs, design, campaigns, claude-design, rules, rhythm, first-action | top | (anchor) | /tutorial#tabs |
 | /voice | (none) | the past posts are typed text, kept for this tab until Save; Leo's sections and learnings are under "Faces, voices and brand" below | | | /voice |
@@ -565,11 +565,12 @@ page. Same rules as above: built in src/lib/links.ts, defaults left out of links
 | /media | starters | Leo only. 1: the starter sets sheet over the sets view (8 sets of free Pexels photos and clips) | closed | replace | /media?view=sets&starters=1 |
 | /media | kind | Leo only. photos, videos | all | replace | /media?kind=videos |
 | /media | type | Leo only. person, logo, product, past-post, screen, footage, other | any | replace | /media?kind=photos&type=logo |
-| /brand | #section | Leo only, beside today's sections: website, products, demo-videos, people, font, on-every-post, language | top | (anchor) | /brand#products |
+| /brand | #section | Leo only, beside today's sections: website, people, font, on-every-post, language. #products, #script-product and #demo-videos open Brand > Products or Brand > Demo videos instead (links.ts brandPartAddress) | top | (anchor) | /brand#website |
 | /brand | website | Leo only. review: this device's waiting website read; with nothing waiting the section shows and the param is dropped (replace) | none | push | /brand?website=review#website |
-| /brand | products | Leo only. review: this device's waiting products scan; with nothing waiting the section shows and the param is dropped (replace) | none | push | /brand?products=review#products |
-| /brand | product | Leo only. a saved product's id, its editor open; new opens a blank one | none | push | /brand?product=new#products |
-| /brand | demo | Leo only. a saved demo's key, that demo open; closing replaces | none | push | /brand?demo=cvid-mh2k9x01ab#demo-videos |
+| /brand/products | products | Leo only. review: this device's waiting products scan; with nothing waiting the section shows and the param is dropped (replace). /brand?products=review opens it here | none | push | /brand/products?products=review |
+| /brand/products | product | Leo only. a saved product's id, its editor open; new opens a blank one. /brand?product= opens it here | none | push | /brand/products?product=new |
+| /brand/products | #script-product | Leo only. the product card scripts read, where Profile's Proof row lands. /brand#script-product opens it here | top | (anchor) | /brand/products#script-product |
+| /brand/demo-videos | demo | Leo only. a saved demo's key, that demo open; closing replaces. /brand?demo= opens it here | none | push | /brand/demo-videos?demo=cvid-mh2k9x01ab |
 | /brand | preview | Leo only. end: the brand preview shows the video end card instead of a slide | slide | replace | /brand?preview=end |
 | /voice | #section | Leo only. how-you-sound, facts, learned | top | (anchor) | /voice#facts |
 | /voice | learning | Leo only. a learning's id, that learning open | none | push | /voice?learning=l-lq3k9z#learned |

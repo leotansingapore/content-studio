@@ -26,10 +26,10 @@ a small arrow; pressing it lists the others (the picker). Filters stay on the pa
 |---|---|
 | Home | no tabs. /home; /agent (Leo, from the button and the chat list); /north-star (Leo, account menu) |
 | Create | Start (/studio); Write (Post, Weekly batch, Answer, Sales script, Hooks, Script); Slides (Carousel, Slideshow, Design, Auto slideshows, Picture sets, Image); Video (Video editor, Hook + demo, Clone a reel, Faces and voices); Formats (All formats, Blitz), Leo only |
-| Library | Everything (Everything, Posts, Board, Grid); Media; Approvals (Posts board, Leader approvals) |
+| Library | My work (Everything, All posts, Board, Grid, as a switch on the page); Approvals (Posts board, Leader approvals) |
 | Plan | Calendar; Campaigns (Leo); Plans (Weekly plan, Launch plan, LinkedIn, Social north star); Ideas (Leo) |
-| Insights | Results (/analytics); Coach; Find posts (Top posts, Carousels, What's working, Trends, Inspiration, Saved, Your market); Creators (Following, Creators to follow, Research, Competitors); Recruit (Recruit kit, Conversations, Reply agent, Reply drafts, Auto-DM), on adviser brands only |
-| Brand | Profile (/playbook); Voice; Brand kit; Audiences (Audiences, Positioning). A tab that holds one page for a sign-in is named after that page, so customers see Positioning |
+| Insights | Results (/analytics); Coach; Find posts (Top posts, Carousels, What's working, Trends, Inspiration, Saved, Your market); Creators (Following, Creators to follow, Research); Recruit (Recruit kit, Conversations, Reply agent, Reply drafts, Auto-DM), on adviser brands only |
+| Brand | Fastlane's five (wave 7): Profile (Profile, Voice, Brand kit, Audiences, Positioning); Products (/brand/products, Leo); Competitors (Leo); Demo videos (/brand/demo-videos, Leo); Media. Anyone else's Brand is Profile and Media |
 | Settings | index of tiles: You, Connections, Your team, The agent, Help (Getting started, Academy, How to post, How it works, Feedback) |
 
 Phone bar: Home, Create, Library, Plan, More. Leo's is Home, Create, Chats, Plan, More. More holds what the bar
@@ -65,7 +65,7 @@ does not: Insights, Brand, Settings (and Library on Leo's).
 | Studio > Library > All posts | /drafts | Library > Everything picker, Posts | a view of my stuff |
 | Studio > Library > Board | /board | Library > Everything picker | a view |
 | Studio > Library > Grid | /grid | Library > Everything picker | a view |
-| Studio > Library > Media | /media | Library > Media | uploads, not made things |
+| Studio > Library > Media | /media | Brand > Media (wave 7; was Library > Media) | Fastlane's Photos and videos: the logo, product photos and footage the makers draw from |
 | Studio > Blitz (Leo) | /blitz | Create > Formats picker, "Blitz: swipe through ready drafts" | a way to make; plain subtitle |
 | Studio > Influencers > Faces and voices (Leo) | /people | Create > Video picker | who appears in videos |
 | Studio > Slideshows > Slideshow | /slideshow | Create > Slides picker | same job as Carousel |
@@ -92,12 +92,12 @@ does not: Insights, Brand, Settings (and Library on Leo's).
 | Grow > Auto-DM (Leo) | /recruit/auto-dm | Insights > Recruit picker | same |
 | Analytics > Analytics | /analytics | Insights > Results | first tab |
 | Analytics > Coach | /coach | Insights > Coach | same |
-| Brand > My Playbook | /playbook | Brand > Profile | Fastlane's word; the page's heading changes with it |
-| Brand > Your voice | /voice | Brand > Voice | shorter |
-| Brand > Brand kit | /brand | Brand > Brand kit | same |
-| Brand > Audiences (Leo) | /audiences | Brand > Audiences | same |
-| Brand > Competitors (Leo) | /competitors | Insights > Creators picker | Brand keeps to 5; it is a source to remix |
-| Brand > F.A.D.S. | /fads | Brand > Audiences picker, Positioning | F.A.D.S. is an internal name |
+| Brand > My Playbook | /playbook | Brand > Profile, first in its picker | Fastlane's word; the page's heading changes with it |
+| Brand > Your voice | /voice | Brand > Profile picker, Voice (wave 7) | Profile's Tone and voice rows lead here |
+| Brand > Brand kit | /brand | Brand > Profile picker, Brand kit (wave 7), without its products and demo videos | Profile's Identity and Look rows lead here |
+| Brand > Audiences (Leo) | /audiences | Brand > Profile picker (wave 7) | Profile's Personas rows lead here |
+| Brand > Competitors (Leo) | /competitors | Brand > Competitors (wave 7; was Insights > Creators in waves 3 to 6) | Fastlane's Brand tab; their ads stay in Insights > Find posts |
+| Brand > F.A.D.S. | /fads | Brand > Profile picker, Positioning | F.A.D.S. is an internal name |
 | Learn > Getting started | /welcome | Settings > Help | help is not a destination |
 | Learn > Academy | /academy | Settings > Help | same |
 | Learn > How to post | /create-guide | Settings > Help | same |
@@ -157,3 +157,33 @@ the empty calendar and Getting started each offer one button that opens Create >
 | Results (/analytics) | A new sign-in meets three tools in a row that each ask for a handle (Audit your account, Analyze a creator, Your accounts) before any result. "Your account audit" sits directly over a card titled "Audit your account". Audit my Instagram is the one filled button |
 | Profile (/playbook) | Clear: one filled button names the next gap. The two Saved panels under it were not opened empty |
 | Every page, phones | The round chat button covers the bottom right of the content (the Answer tile's words on Create, a row's arrow on Profile). It comes from the shared feedback component |
+
+## Brand as Fastlane's five tabs (wave 7, 12 Nov)
+
+| | Before | After |
+|---|---|---|
+| Leo | Profile, Voice, Brand kit, Audiences (Audiences, Positioning) | Profile (Profile, Voice, Brand kit, Audiences, Positioning), Products, Competitors, Demo videos, Media |
+| Anyone else, adviser brand | Profile, Voice, Brand kit, Positioning | Profile (Profile, Voice, Brand kit, Positioning), Media |
+| Anyone else, other brand | Profile, Voice, Brand kit | Profile (Profile, Voice, Brand kit), Media |
+
+- Products and Demo videos were sections in the middle of the 20-section Brand kit page. They are pages of their own
+  now, /brand/products and /brand/demo-videos (Fastlane's addresses), drawn by BrandPage with `part`, so they load and
+  save the kit exactly as before and nothing about them changed. The script product card went with Products. The
+  Brand kit page no longer shows them. Every older address (/brand#products, ?product=, ?products=review,
+  #script-product, #demo-videos, ?demo=) opens the new tab with the rest of the address kept (links.ts
+  brandPartAddress), and every link the app builds goes there directly.
+- Competitors came back from Insights > Creators, as gaps/brand.md row 1 proposed; their ads stay in Find posts.
+- Media came from the Library, where it was the one tab that was not something you made.
+- Gates: unchanged. Products, Competitors, Demo videos and Audiences are Leo's; Positioning is an adviser brand's.
+  Anyone else opening /brand/products or /brand/demo-videos gets "This page isn't on your account yet", as for any
+  Leo-only page; /brand#products for them stays on the kit, which never had that section for them.
+
+Left:
+- The tab is called Media, not Fastlane's "Photos and videos". About 25 lines across other builders' pages say "Saved
+  to Media", "Add from Media" or "No photos in Media yet"; renaming the tab alone would name a place nothing else
+  calls by that name. Renaming it everywhere is one sweep, Leo's call.
+- Brand kit is still one long page under Profile's picker (You, DM links, offers, emoji and hashtags, words to avoid,
+  colours, fonts, sign-off, posting times, language, logo, on every post). Fastlane splits these across Profile's
+  rows with in-place editing; ours links each Profile row to its section. Editing in place is a page rebuild.
+- Products and Demo videos have no visible page title: the section's own card heading ("Products and services",
+  "Demo videos") is the first thing under the tab, as on Fastlane, so a visible title would say it twice.

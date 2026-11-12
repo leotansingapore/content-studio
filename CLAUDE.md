@@ -91,7 +91,8 @@
   not sync.
 - Nav: every page is listed once, in `src/lib/nav.ts` (SECTIONS). Five places to go and two at the foot (Leo
   2026-11-11, "everything should be stupidly simple to use"; `docs/nav-overhaul.md` has the map of where each page
-  went): Home, Create, Library, Plan, Insights, then Brand and Settings. Desktop has ONE sidebar (StudioLayout) with
+  went): Home, Create, Library, Plan, Insights, then Brand (Fastlane's tabs: Profile, Products, Competitors, Demo
+  videos, Media) and Settings. Desktop has ONE sidebar (StudioLayout) with
   one button (New post, or Ask the agent). The open section's tabs are one row at the top of every page, rendered once
   by the shell (`SectionTabs`, from `sectionTabs()`): five at most (`MAX_TABS`), never a second row. Pages that do one
   job share a `group`: that tab shows an arrow when open and lists them (the picker). `bare` pages (Home, the agent,
