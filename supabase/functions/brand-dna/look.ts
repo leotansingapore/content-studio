@@ -473,14 +473,28 @@ const headerEnd = (body: string): number => {
   return nav > 0 ? Math.max(nav, Math.min(body.length, 20_000)) : Math.min(body.length, 60_000);
 };
 
+export const logoWindow = (html: string): string => {
+  const early = html.slice(0, 400_000);
+  if (/<header\b|<nav\b/i.test(early) || html.length <= 400_000) return early;
+  const at = html.slice(400_000, 1_200_000).search(/<header\b/i);
+  if (at < 0) return early;
+  const from = 400_000 + at;
+  return html.slice(0, 100_000) + html.slice(from, from + 150_000);
+};
+
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
 export const logoPicks = (html: string, base: URL, name = ""): LogoPick[] => {
   const body = html.slice(0, 400_000);
   const end = headerEnd(body);
   const header = body.slice(0, end);
   const brand = brandRe(name);
+  const site = squash(base.hostname.replace(/^www\./i, "").split(".")[0] ?? "");
   const someoneElse = (label: string) => {
     const m = label.match(/^\s*(.+?)[\s'’s-]+logo\b/i);
-    return !!m && !!brand && !brand.any.test(m[1]);
+    if (!m || !brand || brand.any.test(m[1])) return false;
+    const said = squash(m[1]);
+    return !(site.length >= 3 && said.length >= 3 && (site.includes(said) || said.includes(site)));
   };
   const picks: (LogoPick & { score: number })[] = [];
   const img = (src: string, from: string, score: number) => picks.push({ kind: "img", src, from, score });

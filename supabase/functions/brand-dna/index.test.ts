@@ -149,6 +149,14 @@ describe("brand-dna", () => {
     }
   });
 
+  it("reads the home page up to 1 MB for its logo, so a header past the first 400 KB still gives it", async () => {
+    routes["https://late.sg/"] = html(`<title>Late</title><body>${"<p>words</p>".repeat(40_000)}<header><a href="/"><svg viewBox="0 0 20 10"><title>Late Logo</title><path d="M0 0h20v10z" fill="#e11d48"/></svg></a></header></body>`);
+    const r = await call({ url: "late.sg" });
+    expect(r.status).toBe(200);
+    expect(r.body.logo).toMatch(/^data:image\/svg\+xml;base64,/);
+    expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice"]);
+  });
+
   it("still returns what the page itself shows when the LLM fails", async () => {
     llm = "not json";
     const r = await call({ url: "acme.sg" });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colourGap, logoPicks, lookColours, lookFonts, parseColour, stylesheetLinks, svgDataUrl, svgFile, TWIN_GAP } from "./look.ts";
+import { colourGap, logoPicks, logoWindow, lookColours, lookFonts, parseColour, stylesheetLinks, svgDataUrl, svgFile, TWIN_GAP } from "./look.ts";
 
 const base = new URL("https://acme.sg/");
 const unpack = (url: string | null) => (url ? new TextDecoder().decode(Uint8Array.from(atob(url.split(",")[1]), (c) => c.charCodeAt(0))) : "");
@@ -120,6 +120,34 @@ describe("logoPicks", () => {
   it("returns at most 5", () => {
     const html = `${HEAD}${Array.from({ length: 8 }, (_, i) => `<img src="/img/acme-logo-${"abcdefgh"[i]}.png" alt="Acme Wealth">`).join("")}`;
     expect(logoPicks(html, base, "Acme Wealth")).toHaveLength(5);
+  });
+});
+
+describe("logoWindow", () => {
+  const filler = (n: number) => `<div>${"x".repeat(n)}</div>`;
+  const late = `<head><link rel="apple-touch-icon" href="/t.png"></head><body>${filler(450_000)}<header><a href="/en"><svg viewBox="0 0 188 16"><title>Tony Robbins Logo</title><path d="M0 0h10v10z"/></svg></a></header></body>`;
+
+  it("keeps the first 400 KB when the header is in it", () => {
+    const early = `<header><a href="/"><img src="/logo.png"></a></header>${filler(500_000)}`;
+    expect(logoWindow(early)).toBe(early.slice(0, 400_000));
+  });
+
+  it("joins the page's head to a header that starts past 400 KB, so its home link logo is found", () => {
+    const shown = logoWindow(late);
+    expect(shown.length).toBeLessThan(260_000);
+    expect(shown.startsWith("<head><link rel=\"apple-touch-icon\"")).toBe(true);
+    expect(logoPicks(shown, new URL("https://www.tonyrobbins.com/"), "Carat").map((p) => `${p.from} ${p.kind}`)[0]).toMatch(/svg$/);
+    expect(logoPicks(late.slice(0, 400_000), new URL("https://www.tonyrobbins.com/"), "Carat").map((p) => p.from)).toEqual(["touch icon"]);
+  });
+
+  it("finds no window past 1.2 MB and takes the first 400 KB", () => {
+    expect(logoWindow(`${filler(1_300_000)}<header></header>`)).toHaveLength(400_000);
+  });
+
+  it("takes a logo titled with the site's own host as the brand's, whatever the page calls itself", () => {
+    const svg = `<header><a href="/"><svg viewBox="0 0 10 10"><title>Tony Robbins Logo</title><path d="M0 0h10v10z"/></svg></a></header>`;
+    expect(logoPicks(svg, new URL("https://www.tonyrobbins.com/"), "Carat")).toHaveLength(1);
+    expect(logoPicks(svg, new URL("https://acme.sg/"), "Acme Wealth")).toEqual([]);
   });
 });
 

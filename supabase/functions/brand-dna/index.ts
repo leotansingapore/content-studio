@@ -35,9 +35,10 @@ import {
   parseAudienceAsk, parseAudiences, parseProducts, parseWritten, pickPages, productClues, productMessages, PRODUCTS_FORMAT, readSite, type SiteFacts, siteUrl,
   withOffers, WRITE_FORMAT, writeMessages,
 } from "./logic.ts";
-import { colourful, type LogoPick, logoPicks, lookColours, lookFonts, stylesheetLinks, svgDataUrl, svgFile } from "./look.ts";
+import { colourful, type LogoPick, logoPicks, logoWindow, lookColours, lookFonts, stylesheetLinks, svgDataUrl, svgFile } from "./look.ts";
 
 const PAGE_BYTES = 300_000;
+const HOME_BYTES = 1_000_000;
 // under the brand kit's 350,000-character limit once base64 grows it by a third
 const LOGO_BYTES = 250_000;
 const IMAGE_BYTES = 2_000_000;
@@ -308,7 +309,7 @@ Deno.serve(async (req) => {
 
   let page: { bytes: Uint8Array; type: string; url: URL };
   try {
-    page = await fetchCapped(url, PAGE_BYTES, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5", AbortSignal.timeout(20_000));
+    page = await fetchCapped(url, HOME_BYTES, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5", AbortSignal.timeout(20_000));
   } catch (e) {
     console.warn("brand-dna: page", url.host, e instanceof Error ? e.message : e);
     return json({ error: `We couldn't open ${url.host}. Check the address, or start with just a name.` }, 422);
@@ -327,17 +328,19 @@ Deno.serve(async (req) => {
   const more = deep ? (await morePages(site, page.url)).map((p) => ({ url: p.url.href, text: p.text })) : [];
   const fenced = more.length ? fencePages([{ url: page.url.href, text: site.text }, ...more]) : null;
 
-  const picks = safely("logo", () => logoPicks(html, page.url, site.name), [] as LogoPick[]);
+  const top = html.slice(0, PAGE_BYTES);
+  const shown = safely("logo", () => logoWindow(html), top);
+  const picks = safely("logo", () => logoPicks(shown, page.url, site.name), [] as LogoPick[]);
   // the words (LLM) and the logo download run side by side; either may come back empty
   const [written, logo, css] = await Promise.all([
     openaiChat({ model: OPENAI_MODEL, max_tokens: 700, response_format: WRITE_FORMAT, messages: writeMessages(site, page.url.href, fenced?.block) }, { signal: AbortSignal.timeout(40_000) })
       .then(async (r) => (r.ok ? parseWritten((await r.json())?.choices?.[0]?.message?.content) : (console.warn("brand-dna: openai", r.status), null)))
       .catch((e) => (console.warn("brand-dna: openai", e instanceof Error ? e.message : e), null)),
-    logoFrom(picks, html).catch((e) => (console.warn("brand-dna: look logo", msg(e)), null)),
-    sheetsOf(html, page.url).catch((e) => (console.warn("brand-dna: look sheets", msg(e)), "")),
+    logoFrom(picks, shown).catch((e) => (console.warn("brand-dna: look logo", msg(e)), null)),
+    sheetsOf(top, page.url).catch((e) => (console.warn("brand-dna: look sheets", msg(e)), "")),
   ]);
   const drawn = picks.flatMap((p) => (p.kind === "svg" && (p.from === "home link" || p.from === "header") ? [p.svg] : []))[0] ?? "";
-  const colours = safely("colours", () => lookColours(html, css, logo?.svg || drawn).slice(0, 4), [] as string[]);
+  const colours = safely("colours", () => lookColours(top, css, logo?.svg || drawn).slice(0, 4), [] as string[]);
   const about = [written?.oneLiner, written?.audienceDetail, site.description].filter(Boolean).join(" ");
   const audience = about ? choiceOf(await askJev({ text: about.slice(0, 1500) }, { audience: audienceAsk }, { who: "brand-dna" }), "audience", AUDIENCES) : null;
 
@@ -353,6 +356,6 @@ Deno.serve(async (req) => {
     topics: written?.topics ?? [],
     edge: written?.edge ?? "",
     voice: written?.voice ?? "",
-    ...(listed ? { pagesRead: fenced?.read ?? [page.url.href], lang: site.lang, colours, fonts: safely("fonts", () => lookFonts(html, css).slice(0, 3), [] as string[]) } : {}),
+    ...(listed ? { pagesRead: fenced?.read ?? [page.url.href], lang: site.lang, colours, fonts: safely("fonts", () => lookFonts(top, css).slice(0, 3), [] as string[]) } : {}),
   });
 });
