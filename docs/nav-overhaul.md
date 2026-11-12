@@ -16,9 +16,10 @@ Leo-only set, and the order below.
 |---|---|
 | Logo, workspace switcher | Logo, brand switcher, and a search icon for Jump to (ours; Cmd or Ctrl K anywhere) |
 | Home, Campaigns, Studio, Brand, Competitor Radar, Analytics, Warmed accounts | Home, Campaigns, Studio, Brand, Competitor Radar, Analytics (no warmed accounts) |
-| Chats with a plus, then Today and Previous 30 days | Leo: Chats with a plus, then Today, Yesterday and Earlier, each chat its own link. Everyone else: the one filled New post button in that place |
+| Chats with a plus, then Today and Previous 30 days | Leo: Chats with a plus, then Today, Yesterday and Earlier, each chat its own link. Everyone else: New post in that place, as an outline, so the page's own action stays the one filled button |
 | Workspace card: name, credits, usage bar, menu | Workspace card: the open brand, today's agent messages used as a bar (Leo) or who is signed in, and a menu with North star (Leo), Settings, Help, the theme and Sign out. A dot on it, and New on Help, when the feedback board has news |
 | New version ready, Later, Refresh | The same, above the card |
+| Collapse handle on the sidebar's edge | The same (Jilian, 12 Nov): the sidebar folds to an icon rail and back from its edge or Cmd/Ctrl+\\, remembered per device (src/lib/navFold.ts). Folded, the rail shows the six places, New post (Leo: New chat), Jump to and the workspace card's square, each named on hover |
 
 Settings and Help left the sidebar: they are in the card's menu (Help opens /settings#help, Settings' Help tiles).
 Brand moved up from the foot into the list.
@@ -146,7 +147,7 @@ section's ranked below the page's own words.
 |---|---|---|
 | Sidebar controls at 1440, everyone else | 12, 5 with a border | 11, 2 with a border |
 | Sidebar controls at 1440, Leo (no chats yet) | 13, 6 with a border | 11, 2 with a border |
-| Filled buttons in Leo's sidebar | 1 (Ask the agent) | 0 (Chats with a plus) |
+| Filled buttons in the sidebar | 1 for everyone (New post, or Ask the agent) | 0 (New post is an outline; Leo has Chats with a plus) |
 | Phone bar | 5 (Home, Create, Library or Chats, Plan, More) | 4 (Home, Campaigns, Studio or Chats, More) |
 | Places in the sidebar | 5 plus Brand and Settings at the foot | 6, Settings in the card's menu |
 | Agent chat at 1440, new chat | Chat 664px wide in the 990px column, Your work 256px inside it | Chat column 890px with the thread centred at 672px, Your work 288px full height at the panel's edge |
