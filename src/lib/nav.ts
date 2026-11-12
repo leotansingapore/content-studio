@@ -216,7 +216,7 @@ export const SECTIONS: NavSection[] = [
       // Fastlane's Brand tabs: Profile, Products, Competitors, Demo videos, Photos and videos (Leo 11 Nov). Profile is
       // what the AI knows, each row linking to where it is set: those pages are its picker
       { to: "/playbook", label: "Profile", group: "Profile", was: "My Playbook playbook" },
-      { to: "/voice", label: "Voice", title: "Your voice", was: "tone" },
+      { to: "/voice", label: "Your voice", was: "tone Voice" },
       { to: "/brand", label: "Brand kit", was: "logo colours" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS, was: "personas" },
       { to: "/fads", label: "Positioning", subTabs: true, show: () => adviserBrand(), was: "F.A.D.S. fads differentiation" },

@@ -29,7 +29,7 @@ a small arrow; pressing it lists the others (the picker). Filters stay on the pa
 | Library | My work (Everything, All posts, Board, Grid, as a switch on the page); Approvals (Posts board, Leader approvals) |
 | Plan | Calendar; Campaigns (Leo); Plans (Weekly plan, Launch plan, LinkedIn, Social north star); Ideas (Leo) |
 | Insights | Results (/analytics); Coach; Find posts (Top posts, Carousels, What's working, Trends, Inspiration, Saved, Your market); Creators (Following, Creators to follow, Research); Recruit (Recruit kit, Conversations, Reply agent, Reply drafts, Auto-DM), on adviser brands only |
-| Brand | Fastlane's five (wave 7): Profile (Profile, Voice, Brand kit, Audiences, Positioning); Products (/brand/products, Leo); Competitors (Leo); Demo videos (/brand/demo-videos, Leo); Media. Anyone else's Brand is Profile and Media |
+| Brand | Fastlane's five (wave 7): Profile (Profile, Your voice, Brand kit, Audiences, Positioning); Products (/brand/products, Leo); Competitors (Leo); Demo videos (/brand/demo-videos, Leo); Media. Anyone else's Brand is Profile and Media |
 | Settings | index of tiles: You, Connections, Your team, The agent, Help (Getting started, Academy, How to post, How it works, Feedback) |
 
 Phone bar: Home, Create, Library, Plan, More. Leo's is Home, Create, Chats, Plan, More. More holds what the bar
@@ -93,7 +93,7 @@ does not: Insights, Brand, Settings (and Library on Leo's).
 | Analytics > Analytics | /analytics | Insights > Results | first tab |
 | Analytics > Coach | /coach | Insights > Coach | same |
 | Brand > My Playbook | /playbook | Brand > Profile, first in its picker | Fastlane's word; the page's heading changes with it |
-| Brand > Your voice | /voice | Brand > Profile picker, Voice (wave 7) | Profile's Tone and voice rows lead here |
+| Brand > Your voice | /voice | Brand > Profile picker, Your voice (wave 7) | Profile's Tone and voice rows lead here; named as its heading |
 | Brand > Brand kit | /brand | Brand > Profile picker, Brand kit (wave 7), without its products and demo videos | Profile's Identity and Look rows lead here |
 | Brand > Audiences (Leo) | /audiences | Brand > Profile picker (wave 7) | Profile's Personas rows lead here |
 | Brand > Competitors (Leo) | /competitors | Brand > Competitors (wave 7; was Insights > Creators in waves 3 to 6) | Fastlane's Brand tab; their ads stay in Insights > Find posts |
@@ -162,9 +162,9 @@ the empty calendar and Getting started each offer one button that opens Create >
 
 | | Before | After |
 |---|---|---|
-| Leo | Profile, Voice, Brand kit, Audiences (Audiences, Positioning) | Profile (Profile, Voice, Brand kit, Audiences, Positioning), Products, Competitors, Demo videos, Media |
-| Anyone else, adviser brand | Profile, Voice, Brand kit, Positioning | Profile (Profile, Voice, Brand kit, Positioning), Media |
-| Anyone else, other brand | Profile, Voice, Brand kit | Profile (Profile, Voice, Brand kit), Media |
+| Leo | Profile, Voice, Brand kit, Audiences (Audiences, Positioning) | Profile (Profile, Your voice, Brand kit, Audiences, Positioning), Products, Competitors, Demo videos, Media |
+| Anyone else, adviser brand | Profile, Voice, Brand kit, Positioning | Profile (Profile, Your voice, Brand kit, Positioning), Media |
+| Anyone else, other brand | Profile, Voice, Brand kit | Profile (Profile, Your voice, Brand kit), Media |
 
 - Products and Demo videos were sections in the middle of the 20-section Brand kit page. They are pages of their own
   now, /brand/products and /brand/demo-videos (Fastlane's addresses), drawn by BrandPage with `part`, so they load and
