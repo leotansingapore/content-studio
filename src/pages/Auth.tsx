@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CircleNotchIcon, EnvelopeIcon, SparkleIcon } from "@phosphor-icons/react";
+import { CircleNotchIcon, EnvelopeIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 
 import {
   Card,
@@ -50,7 +50,8 @@ export default function Auth() {
   };
   const [sentTo, setSentTo] = useState("");
   // arrived from a finished checkout: the link lands on /welcome
-  const [paid, setPaid] = useState(false);
+  const [paid, setPaid] = useState(() => !!checkoutArrival(location.search));
+  const [sendFailed, setSendFailed] = useState(false);
   // one email a minute from this page: when the last went, and a clock for the wait shown on "Send it again"
   const [sentAt, setSentAt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
@@ -65,9 +66,11 @@ export default function Auth() {
     const problem = await sendSignInLink(to, redirectTo, false);
     setLoading(false);
     if (problem) {
+      setSendFailed(true);
       toast({ title: "Couldn't send the link", description: problem, variant: "destructive" });
       return false;
     }
+    setSendFailed(false);
     setSentTo(to);
     setMode("code");
     setSentAt(Date.now());
@@ -158,7 +161,18 @@ export default function Auth() {
           <p className="text-sm text-muted-foreground">
             {paid ? (
               <>
-                Your payment went through. {sentTo ? <>We sent a sign-in link to <span className="font-semibold text-foreground [overflow-wrap:anywhere]">{sentTo}</span>.</> : "We're sending your sign-in link now."}
+                Your payment went through.{" "}
+                {sentTo ? (
+                  <>
+                    If an account uses <span className="font-semibold text-foreground [overflow-wrap:anywhere]">{sentTo}</span>, a sign-in link is on its way.
+                  </>
+                ) : sendFailed ? (
+                  "The sign-in link didn't send. Send it again below."
+                ) : (
+                  <>
+                    Sending a sign-in link to <span className="font-semibold text-foreground [overflow-wrap:anywhere]">{email}</span>.
+                  </>
+                )}
               </>
             ) : (
               "Use the email your account is under."
@@ -170,8 +184,8 @@ export default function Auth() {
           <Card>
             <CardContent className="space-y-5 pt-6">
               <div className="flex items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                  {sentTo ? <EnvelopeIcon className="h-5 w-5" /> : <CircleNotchIcon className="h-5 w-5 animate-spin" />}
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${sendFailed && !sentTo ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
+                  {sentTo ? <EnvelopeIcon className="h-5 w-5" /> : sendFailed ? <WarningCircleIcon className="h-5 w-5" /> : <CircleNotchIcon className="h-5 w-5 animate-spin" />}
                 </span>
                 <p className="text-sm text-muted-foreground">
                   Open the link in this browser to set up your brand. It takes about two minutes, and nothing is posted until you say so.
