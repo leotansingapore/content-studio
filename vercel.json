@@ -33,6 +33,14 @@
       "destination": "/api/page-og?path=:path"
     },
     {
+      "source": "/start",
+      "destination": "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start"
+    },
+    {
+      "source": "/start/done",
+      "destination": "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/postmosis-start/done"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/"
     }
