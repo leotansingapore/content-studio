@@ -50,7 +50,7 @@
     /* The canvas behind the sidebar and page panels on desktop. */
     --rail: 220 24% 96%;
     /* The sidebar panel with its margin; the page panel and fixed pills offset by it (StudioLayout). */
-    --nav-w: 250px;
+    --nav-w: 260px;
 
     --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(255 80% 62%));
     --gradient-hero: linear-gradient(135deg, hsl(221 83% 53%), hsl(255 75% 60%));
@@ -60,6 +60,10 @@
     --shadow-card: 0 1px 2px hsl(220 20% 20% / 0.04), 0 4px 16px -8px hsl(220 20% 20% / 0.10);
 
     --radius: 0.75rem;
+  }
+
+  :root[data-nav-folded] {
+    --nav-w: 76px;
   }
 
   /* The studio's default (src/lib/theme.ts), after Fastlane: near-black, neutral, the panels one step up from the canvas. */
@@ -224,5 +228,12 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.4);
+  }
+}
+
+@layer utilities {
+  .bg-dots {
+    background-image: radial-gradient(circle, hsl(var(--foreground) / 0.07) 1px, transparent 1.2px);
+    background-size: 16px 16px;
   }
 }

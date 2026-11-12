@@ -255,3 +255,23 @@ describe("StudioLayout for Leo", () => {
     expect(logActivity(UID, { who: "you", kind: "post", title: "Made another post" })).toBeNull();
   });
 });
+
+describe("the sidebar folded to icons", () => {
+  it("opens unfolded when this device never chose", async () => {
+    const { first } = await load();
+    expect(first).toContain('aria-label="Collapse sidebar"');
+    expect(first).toContain(">Jump to...<");
+  });
+
+  it("stays folded on this device, each place an icon named for screen readers", async () => {
+    local.setItem("cs-nav-folded", "1");
+    const { first } = await load();
+    expect(first).toContain('aria-label="Expand sidebar"');
+    for (const name of ["Home", "Create", "Library", "Plan", "Insights", "New post", "Jump to", "Brand"]) {
+      expect(first).toContain(`aria-label="${name}`);
+      expect(first).toContain(`data-tip="${name}`);
+    }
+    expect(first).not.toContain(">Jump to...<");
+    expect(first).not.toContain(">New post<");
+  });
+});

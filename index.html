@@ -55,6 +55,7 @@
           document.documentElement.classList.add("dark");
           document.querySelector('meta[name="theme-color"]').setAttribute("content", "#111214");
         }
+        if (localStorage.getItem("cs-nav-folded") === "1") document.documentElement.setAttribute("data-nav-folded", "");
       } catch (e) {}
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

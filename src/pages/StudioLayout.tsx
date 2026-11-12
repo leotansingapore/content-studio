@@ -25,12 +25,13 @@ import { useZernioOutbox } from "@/lib/useZernioOutbox";
 import { readTeamPostsHere, readTeamReviews } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
 import { sgDay } from "@/lib/goals";
-import { ChevronUp, CircleHelp, LayoutGrid, LogOut, MessageSquarePlus, Monitor, Moon, Plus, Search, Settings, Sparkles, Star, Sun, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, CircleHelp, LayoutGrid, LogOut, MessageSquarePlus, Monitor, Moon, Plus, RefreshCw, Search, Settings, Sparkles, Star, Sun, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import SectionTabs from "@/components/SectionTabs";
 import { links } from "@/lib/links";
 import { newPostHref } from "@/lib/newPost";
 import { useNewVersion } from "@/lib/newVersion";
+import { NAV_FOLD_KEY, applyFolded, foldShortcut, isFoldKey, readFolded, saveFolded } from "@/lib/navFold";
 import { applyTheme, readTheme, resolveTheme, saveTheme, type ThemeOutlet, type ThemePick } from "@/lib/theme";
 import {
   SECTIONS,
@@ -131,19 +132,31 @@ function useScrollMemory() {
   }, [key, pathname, navType]);
 }
 
-function SideLink({ s, to, active, count = 0 }: { s: NavSection; to: string; active: boolean; count?: number }) {
+export const railItem = (active: boolean, folded: boolean) =>
+  `relative flex h-9 shrink-0 items-center rounded-[10px] text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:h-11 ${
+    folded ? "w-10 justify-center" : "w-full gap-2.5 px-2"
+  } ${active ? "bg-accent font-medium text-foreground ring-1 ring-inset ring-border [&>span>svg]:text-primary" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`;
+
+function Dot({ className = "bg-warning" }: { className?: string }) {
+  return <span aria-hidden className={`absolute -right-1 -top-1 h-2 w-2 rounded-full ring-2 ring-sidebar ${className}`} />;
+}
+
+function SideLink({ s, to, active, count = 0, folded }: { s: NavSection; to: string; active: boolean; count?: number; folded: boolean }) {
   const Icon = s.icon;
   return (
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={`flex min-h-9 items-center gap-2.5 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:min-h-11 ${
-        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
-      }`}
+      aria-label={folded ? s.label + (count > 0 ? `, ${count} need you` : "") : undefined}
+      data-tip={folded ? s.label : undefined}
+      className={railItem(active, folded)}
     >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1 truncate">{s.label}</span>
-      {count > 0 && (
+      <span className="relative flex shrink-0">
+        <Icon className="h-4 w-4" />
+        {folded && count > 0 && <Dot />}
+      </span>
+      {!folded && <span className="flex-1 truncate">{s.label}</span>}
+      {!folded && count > 0 && (
         <>
           <span aria-hidden className="flex items-center gap-1 text-xs font-semibold tabular-nums text-warning">
             <span className="h-1.5 w-1.5 rounded-full bg-warning" />
@@ -156,16 +169,25 @@ function SideLink({ s, to, active, count = 0 }: { s: NavSection; to: string; act
   );
 }
 
-/** Brand and Settings: the sidebar's foot buttons. Settings carries the dot for something new on the feedback board, which lives there. */
-function FootLink({ s, to, active, wide = false }: { s: NavSection; to: string; active: boolean; wide?: boolean }) {
+function FootLink({ s, to, active, folded }: { s: NavSection; to: string; active: boolean; folded: boolean }) {
   const isNew = s.id === "settings" && feedbackIsNew();
+  const Icon = s.icon;
+  if (folded)
+    return (
+      <Link to={to} aria-current={active ? "page" : undefined} aria-label={s.label + (isNew ? ", new" : "")} data-tip={s.label} className={railItem(active, true)}>
+        <span className="relative flex shrink-0">
+          <Icon className="h-4 w-4" />
+          {isNew && <Dot className="bg-primary" />}
+        </span>
+      </Link>
+    );
   return (
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={`relative flex min-h-9 items-center rounded-lg border px-3 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
-        wide ? "justify-start" : "justify-center"
-      } ${active ? "border-primary/40 bg-primary/10 text-primary" : "border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
+      className={`relative flex min-h-9 items-center justify-center rounded-[10px] border px-3 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
+        active ? "border-border bg-accent text-foreground" : "border-border/70 bg-background text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+      }`}
     >
       {s.label}
       {isNew && (
@@ -214,7 +236,9 @@ function AccountMenu({
   theme,
   onTheme,
   onSignOut,
+  folded = false,
 }: {
+  folded?: boolean;
   email: string;
   settingsTo: string;
   northStar: boolean;
@@ -247,7 +271,12 @@ function AccountMenu({
   return (
     <div ref={ref} className="relative">
       {open && (
-        <div role="menu" aria-label="Account" onClick={() => setOpen(false)} className="absolute inset-x-0 bottom-full z-40 mb-2 rounded-xl border border-border bg-popover p-1 shadow-lg">
+        <div
+          role="menu"
+          aria-label="Account"
+          onClick={() => setOpen(false)}
+          className={`z-40 rounded-xl border border-border bg-popover p-1 shadow-lg ${folded ? "fixed bottom-2.5 left-[var(--nav-w)] w-64" : "absolute inset-x-0 bottom-full mb-2"}`}
+        >
           {northStar && (
             <Link role="menuitem" to="/north-star" className={item}>
               <Star className="h-4 w-4 text-muted-foreground" /> North star
@@ -267,24 +296,39 @@ function AccountMenu({
           </button>
         </div>
       )}
-      <button
-        ref={trigger}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors [@media(pointer:coarse)]:min-h-11 ${
-          active ? "border-primary/40 bg-primary/10" : "border-border/70 bg-background hover:border-primary/40"
-        }`}
-      >
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-primary text-sm font-semibold uppercase text-primary-foreground">
-          {email.charAt(0) || "?"}
-        </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={email}>
-          {email || "Account"}
-        </span>
-        <ChevronUp className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "" : "rotate-180"}`} />
-      </button>
+      {folded ? (
+        <button
+          ref={trigger}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label={`Account, ${email || "signed in"}`}
+          data-tip={open ? undefined : email || "Account"}
+          onClick={() => setOpen((o) => !o)}
+          className={`grid h-10 w-10 place-items-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active || open ? "bg-accent" : "hover:bg-accent/60"}`}
+        >
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary text-sm font-semibold uppercase text-primary-foreground">{email.charAt(0) || "?"}</span>
+        </button>
+      ) : (
+        <button
+          ref={trigger}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+          className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors [@media(pointer:coarse)]:min-h-11 ${
+            active ? "border-border bg-accent" : "border-border/70 bg-background hover:bg-accent/60"
+          }`}
+        >
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-primary text-sm font-semibold uppercase text-primary-foreground">
+            {email.charAt(0) || "?"}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={email}>
+            {email || "Account"}
+          </span>
+          <ChevronUp className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "" : "rotate-180"}`} />
+        </button>
+      )}
     </div>
   );
 }
@@ -335,6 +379,9 @@ export default function StudioLayout() {
   const [moreOpen, setMoreOpen] = useState(false);
   // Jump to: Cmd/Ctrl+K anywhere, the button under New post, or the search button on phones.
   const [jumpOpen, setJumpOpen] = useState(false);
+  const [folded, setFolded] = useState(readFolded);
+  const [sliding, setSliding] = useState(false);
+  const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null);
   // the stored session names the account on the first frame; getUser below confirms it
   const [email, setEmail] = useState<string>(() => storedUser()?.email ?? "");
   const [uid, setUid] = useState<string | null>(null);
@@ -453,16 +500,55 @@ export default function StudioLayout() {
     };
   }, []);
 
+  useLayoutEffect(() => {
+    applyFolded(folded);
+    setTip(null);
+  }, [folded]);
+  useEffect(
+    () => () => {
+      applyFolded(false);
+    },
+    [],
+  );
+  useEffect(() => {
+    if (!sliding) return;
+    const t = window.setTimeout(() => setSliding(false), 260);
+    return () => window.clearTimeout(t);
+  }, [sliding]);
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => (e.key === NAV_FOLD_KEY || e.key === null) && setFolded(readFolded());
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+  const toggleFold = () => {
+    setSliding(true);
+    setFolded((f) => {
+      saveFolded(!f);
+      return !f;
+    });
+  };
+  const showTip = (target: EventTarget | null) => {
+    const el = folded && target instanceof Element ? target.closest<HTMLElement>("[data-tip]") : null;
+    if (!el?.dataset.tip) return setTip(null);
+    const r = el.getBoundingClientRect();
+    setTip({ text: el.dataset.tip, x: r.right + 12, y: r.top + r.height / 2 });
+  };
+  useEffect(() => setTip(null), [pathname]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setJumpOpen((o) => !o);
       }
+      if (isFoldKey(e) && window.matchMedia("(min-width: 1024px)").matches) {
+        e.preventDefault();
+        toggleFold();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Counted from what this device holds, again on every page change, tab return and half minute (and, for Leo, on
   // every autopilot change).
@@ -575,53 +661,99 @@ export default function StudioLayout() {
         Skip to content
       </a>
 
-      {/* Desktop: one sidebar, its own panel beside the page's */}
-      <aside data-nav className="fixed inset-y-0 left-0 z-30 hidden w-[var(--nav-w)] p-2.5 pr-0 lg:flex">
-        <div className="flex min-h-0 w-full flex-col rounded-2xl border border-border/70 bg-sidebar">
-          <div className="flex items-center gap-2 px-3 pt-3">
-            <Link to="/home" aria-label="Postmosis home" title="Postmosis" className="shrink-0 rounded-xl [@media(pointer:coarse)]:grid [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:place-items-center">
+      <aside
+        id="studio-sidebar"
+        data-nav
+        aria-label="Sidebar"
+        onPointerOver={(e) => e.pointerType !== "touch" && showTip(e.target)}
+        onPointerLeave={() => setTip(null)}
+        onFocus={(e) => e.target.matches(":focus-visible") && showTip(e.target)}
+        onBlur={() => setTip(null)}
+        onClickCapture={() => setTip(null)}
+        className="fixed inset-y-0 left-0 z-30 hidden w-[var(--nav-w)] p-2.5 transition-[width] duration-200 ease-[cubic-bezier(0.2,0,0,1)] lg:flex"
+      >
+        <div
+          className={`flex min-h-0 w-full flex-col rounded-[20px] border border-border/70 bg-sidebar ${
+            folded ? "overflow-y-auto overflow-x-hidden [scrollbar-width:none]" : sliding ? "overflow-hidden" : ""
+          }`}
+        >
+          <div className={`flex shrink-0 items-center gap-2 pt-4 ${folded ? "px-2" : "pl-2 pr-3"}`}>
+            <Link
+              to="/home"
+              aria-label="Postmosis home"
+              data-tip={folded ? "Postmosis" : undefined}
+              title={folded ? undefined : "Postmosis"}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               <Logo />
             </Link>
-            <div className="min-w-0 flex-1">
-              <ProfileSwitcher />
-            </div>
+            {!folded && (
+              <div className="min-w-0 flex-1">
+                <ProfileSwitcher />
+              </div>
+            )}
           </div>
-          <ChannelsBlock userId={uid ?? leo?.id} className="px-3 pt-4" />
-          <nav aria-label="Sections" className="space-y-0.5 px-3 pt-4">
+          {!folded && <ChannelsBlock userId={uid ?? leo?.id} className="px-3 pt-5" />}
+          <nav aria-label="Sections" className={`space-y-1 pt-5 ${folded ? "px-2" : "px-3"}`}>
             {MAIN_SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => (
-              <SideLink key={s.id} s={s} to={sectionTo(s)} active={here?.id === s.id} count={s.id === "home" ? homeCount : 0} />
+              <SideLink key={s.id} s={s} to={sectionTo(s)} active={here?.id === s.id} count={s.id === "home" ? homeCount : 0} folded={folded} />
             ))}
           </nav>
-          <div className="space-y-2 px-3 pt-4">
-            {/* the one button: the usual thing in one click. Every other way to make is Create's first screen */}
-            <Button
-              asChild
-              className="h-auto min-h-10 w-full justify-start gap-2 whitespace-normal py-2 text-left bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11"
-            >
-              {leo ? (
-                <Link to={links.agent()}>
-                  <MessageSquarePlus className="h-4 w-4" /> Ask the agent
-                </Link>
-              ) : (
-                <Link to={newPostHref(uid)}>
-                  <Plus className="h-4 w-4" /> New post
-                </Link>
-              )}
-            </Button>
-            <button
-              type="button"
-              onClick={() => setJumpOpen(true)}
-              aria-haspopup="dialog"
-              aria-keyshortcuts="Meta+K Control+K"
-              className="flex h-9 w-full items-center gap-2 rounded-lg border border-border/70 bg-background px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground [@media(pointer:coarse)]:h-11"
-            >
-              <Search className="h-4 w-4 shrink-0" />
-              <span className="flex-1 text-left">Jump to...</span>
-              <kbd className="rounded border border-border/70 px-1.5 font-sans text-[10px] font-semibold">{jumpShortcut()}</kbd>
-            </button>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col px-3 pt-1">
-            {leo && (
+          {folded ? (
+            <div className="space-y-1 px-2 pt-5">
+              <Link
+                to={leo ? links.agent() : newPostHref(uid)}
+                aria-label={leo ? "Ask the agent" : "New post"}
+                data-tip={leo ? "Ask the agent" : "New post"}
+                className="grid h-9 w-10 place-items-center rounded-[10px] border border-primary/40 bg-primary/10 text-primary transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:h-11"
+              >
+                {leo ? <MessageSquarePlus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              </Link>
+              <button
+                type="button"
+                onClick={() => setJumpOpen(true)}
+                aria-haspopup="dialog"
+                aria-label="Jump to"
+                aria-keyshortcuts="Meta+K Control+K"
+                data-tip={`Jump to  ${jumpShortcut()}`}
+                className={railItem(false, true)}
+              >
+                <span className="flex shrink-0">
+                  <Search className="h-4 w-4" />
+                </span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2 px-3 pt-5">
+              <Button
+                asChild
+                className="h-auto min-h-10 w-full justify-start gap-2 whitespace-normal rounded-[10px] bg-gradient-primary py-2 text-left text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11"
+              >
+                {leo ? (
+                  <Link to={links.agent()}>
+                    <MessageSquarePlus className="h-4 w-4" /> Ask the agent
+                  </Link>
+                ) : (
+                  <Link to={newPostHref(uid)}>
+                    <Plus className="h-4 w-4" /> New post
+                  </Link>
+                )}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setJumpOpen(true)}
+                aria-haspopup="dialog"
+                aria-keyshortcuts="Meta+K Control+K"
+                className="flex h-9 w-full items-center gap-2 rounded-[10px] border border-border/70 bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground [@media(pointer:coarse)]:h-11"
+              >
+                <Search className="h-4 w-4 shrink-0" />
+                <span className="flex-1 text-left">Jump to...</span>
+                <kbd className="rounded border border-border/70 px-1.5 font-sans text-[10px] font-semibold">{jumpShortcut()}</kbd>
+              </button>
+            </div>
+          )}
+          <div className="flex min-h-0 flex-1 flex-col px-3 pt-2">
+            {leo && !folded && (
               <ErrorBoundary>
                 <Suspense fallback={null}>
                   <SidebarThreads userId={leo.id} />
@@ -629,31 +761,85 @@ export default function StudioLayout() {
               </ErrorBoundary>
             )}
           </div>
-          <div className="space-y-2 border-t border-border/70 p-3">
-            {version.ready && <NewVersion onLater={version.later} />}
-            <div className="grid grid-cols-2 gap-2">
-              <FootLink s={section("playbook")} to={sectionTo(section("playbook"))} active={here?.id === "playbook"} />
-              <FootLink s={section("settings")} to={sectionTo(section("settings"))} active={here?.id === "settings"} />
+          {folded ? (
+            <div className="flex shrink-0 flex-col items-center gap-1 border-t border-border/70 px-2 py-3">
+              {version.ready && (
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  aria-label="New version ready. Refresh"
+                  data-tip="New version ready: refresh"
+                  className={railItem(false, true)}
+                >
+                  <span className="relative flex shrink-0">
+                    <RefreshCw className="h-4 w-4" />
+                    <Dot className="bg-primary" />
+                  </span>
+                </button>
+              )}
+              <FootLink s={section("playbook")} to={sectionTo(section("playbook"))} active={here?.id === "playbook"} folded />
+              <FootLink s={section("settings")} to={sectionTo(section("settings"))} active={here?.id === "settings"} folded />
+              <div className="pt-1">
+                <AccountMenu
+                  folded
+                  email={email}
+                  settingsTo={sectionTo(section("settings"))}
+                  northStar={!!leo}
+                  active={pathname === "/north-star"}
+                  theme={theme}
+                  onTheme={switchTheme}
+                  onSignOut={handleSignOut}
+                />
+              </div>
             </div>
-            {leo && (
-              <ErrorBoundary>
-                <Suspense fallback={null}>
-                  <AgentMeter />
-                </Suspense>
-              </ErrorBoundary>
-            )}
-            <AccountMenu
-              email={email}
-              settingsTo={sectionTo(section("settings"))}
-              northStar={!!leo}
-              active={pathname === "/north-star"}
-              theme={theme}
-              onTheme={switchTheme}
-              onSignOut={handleSignOut}
-            />
-          </div>
+          ) : (
+            <div className="shrink-0 space-y-2 border-t border-border/70 p-3">
+              {version.ready && <NewVersion onLater={version.later} />}
+              <div className="grid grid-cols-2 gap-2">
+                <FootLink s={section("playbook")} to={sectionTo(section("playbook"))} active={here?.id === "playbook"} folded={false} />
+                <FootLink s={section("settings")} to={sectionTo(section("settings"))} active={here?.id === "settings"} folded={false} />
+              </div>
+              {leo && (
+                <ErrorBoundary>
+                  <Suspense fallback={null}>
+                    <AgentMeter />
+                  </Suspense>
+                </ErrorBoundary>
+              )}
+              <AccountMenu
+                email={email}
+                settingsTo={sectionTo(section("settings"))}
+                northStar={!!leo}
+                active={pathname === "/north-star"}
+                theme={theme}
+                onTheme={switchTheme}
+                onSignOut={handleSignOut}
+              />
+            </div>
+          )}
         </div>
+        <button
+          type="button"
+          onClick={toggleFold}
+          aria-label={folded ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!folded}
+          aria-controls="studio-sidebar"
+          aria-keyshortcuts={"Meta+\\ Control+\\"}
+          title={`${folded ? "Expand" : "Collapse"} sidebar  ${foldShortcut()}`}
+          className="absolute right-1 top-1/2 z-10 grid h-10 w-4 -translate-y-1/2 place-items-center rounded-full bg-card text-muted-foreground ring-1 ring-inset ring-border transition-colors before:absolute before:-inset-x-2 before:-inset-y-2 before:content-[''] hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {folded ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </button>
       </aside>
+      {tip && (
+        <div
+          aria-hidden
+          style={{ left: tip.x, top: tip.y }}
+          className="pointer-events-none fixed z-50 hidden -translate-y-1/2 whitespace-pre rounded-md border border-border bg-popover px-2 py-1 text-xs font-medium text-popover-foreground shadow-md lg:block"
+        >
+          {tip.text}
+        </div>
+      )}
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md lg:hidden">
@@ -779,8 +965,8 @@ export default function StudioLayout() {
         </div>
       </nav>
 
-      <div className="lg:py-2.5 lg:pl-[var(--nav-w)] lg:pr-2.5">
-        <div className="lg:min-h-[calc(100vh-1.25rem)] lg:rounded-2xl lg:border lg:border-border/70 lg:bg-canvas">
+      <div className="transition-[padding-left] duration-200 ease-[cubic-bezier(0.2,0,0,1)] lg:py-2.5 lg:pl-[var(--nav-w)] lg:pr-2.5">
+        <div className="lg:min-h-[calc(100vh-1.25rem)] lg:rounded-[20px] lg:border lg:border-border/70 lg:bg-canvas lg:bg-dots">
         <main
           id="main-content"
           ref={mainRef}
