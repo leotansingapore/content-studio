@@ -86,7 +86,6 @@ import {
   ArrowRightIcon,
   TrashIcon,
   CalendarIcon,
-  CompassIcon,
   CaretDownIcon,
   TrendUpIcon,
 } from "@phosphor-icons/react";
@@ -497,16 +496,8 @@ export default function PlanPage() {
   if (editing || !plan) {
     return (
       <div className="space-y-6">
-        <Card className="overflow-hidden border-border/60 shadow-card">
-          <div className="bg-gradient-hero px-5 py-5 text-primary-foreground sm:px-6">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-90">
-              <CompassIcon className="h-3.5 w-3.5" /> Content system
-            </div>
-            <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight">
-              Turn your positioning into a week of posts
-            </h1>
-          </div>
-        </Card>
+        {/* a plain title, as Calendar and Campaigns have (Fastlane draws no banner over a form) */}
+        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">Turn your positioning into a week of posts</h1>
 
         {leo && userId && !plan && <AutopilotCard userId={userId} onDraftsChange={setDrafts} />}
 

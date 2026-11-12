@@ -22,7 +22,6 @@ import { loadCarousels } from "@/lib/carousel";
 import { loadDrafts } from "@/lib/draftHistory";
 import { localDateKey } from "@/lib/dueDates";
 import { buildLibrary, type LibraryItem } from "@/lib/library";
-import { LABEL_CHIP } from "@/lib/labels";
 import { imageWrite, loadImages, onImagesChanged } from "@/lib/images";
 import { links } from "@/lib/links";
 import { isPositioningUsable, loadPositioning } from "@/lib/positioning";
@@ -34,10 +33,11 @@ import { loadProjects } from "@/lib/videoProjects";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
-const STATUS: Record<CampaignStatus, { label: string; chip: string }> = {
-  draft: { label: "Draft", chip: LABEL_CHIP.muted },
-  running: { label: "Running", chip: LABEL_CHIP.primary },
-  done: { label: "Done", chip: LABEL_CHIP.success },
+// a status is a word with a mark, as Fastlane's "Planned" is, not a pill that looks like a button
+const STATUS: Record<CampaignStatus, { label: string; tone: string }> = {
+  draft: { label: "Draft", tone: "text-muted-foreground" },
+  running: { label: "Running", tone: "text-primary" },
+  done: { label: "Done", tone: "text-success" },
 };
 
 export default function CampaignsPage() {
@@ -140,7 +140,9 @@ function Campaigns({ userId }: { userId: string }) {
           <p className="tabular-nums">{p.line}</p>
           {p.failed && <p className="text-warning">{p.failed}</p>}
         </div>
-        <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${s.chip}`}>{s.label}</span>
+        <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${s.tone}`}>
+          <span aria-hidden className="h-2 w-2 rounded-[2px] border border-current" />{s.label}
+        </span>
         <Button asChild variant="outline" size="sm">
           <Link to={links.campaign(c.id)} aria-label={`Open ${c.name}`}>Open</Link>
         </Button>
