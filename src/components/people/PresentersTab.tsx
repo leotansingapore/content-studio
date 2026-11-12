@@ -1,10 +1,11 @@
 // Your presenters (/people?tab=presenters; people-presenters, Leo only): up to 4 invented Singaporeans per brand, made
-// three at a time on ai-video and kept with a name, and the brand's "Who appears" choice. The Make a presenter sheet is
+// three at a time on ai-video and kept with a name, and the brand's "Who appears" choice. Laid out as Fastlane's
+// Influencers: a grid of faces with the New presenter card first, and Who appears under it. The Make a presenter sheet is
 // ?make=1 and a presenter's card ?presenter=<id> (both push). The make runs in presentersJob.ts, outside React, so the
 // sheet can close and the page can be left while it goes on. Every presenter is labelled AI wherever it shows.
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
-import { CheckIcon, CircleNotchIcon, DotsThreeIcon, XIcon } from "@phosphor-icons/react";
+import { CheckIcon, CircleNotchIcon, DotsThreeIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,27 +74,8 @@ export default function PresentersTab({ userId }: { userId: string }) {
   const job = make.state !== "idle" && make.state !== "refused" && make.state !== "failed";
   return (
     <div className="space-y-6">
-      <section className={CARD} aria-labelledby="who-appears">
-        <h2 id="who-appears" className="font-serif text-lg font-semibold">Who appears in {videosOf(brand)}</h2>
-        <div role="radiogroup" aria-labelledby="who-appears" className="flex flex-wrap items-center gap-2">
-          <Choice checked={data.who === "me"} disabled={!face} onClick={() => who("me")}>Me</Choice>
-          {on.map((p) => (
-            <Choice key={p.id} checked={data.who === p.id} onClick={() => who(p.id)}>{p.name}, AI presenter</Choice>
-          ))}
-          <Choice checked={data.who === "ask"} onClick={() => who("ask")}>Ask each time</Choice>
-          {!face && (
-            <Link to={links.people({ record: true })} className="inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline sm:min-h-9">
-              Save your face first
-            </Link>
-          )}
-        </div>
-      </section>
-
       <section className="space-y-4" aria-labelledby="your-presenters">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="your-presenters" className="font-serif text-lg font-semibold">Your presenters</h2>
-          {on.length > 0 && !sheet && <Button className={BIG} onClick={openSheet}>Make a presenter</Button>}
-        </div>
+        <h2 id="your-presenters" className="sr-only">Your presenters</h2>
 
         {sheet ? (
           <MakeSheet userId={userId} prefs={data.prefs} full={on.length >= MAX_ON} taken={on.map((p) => p.name)} left={left("ai-presenter")} brand={brand} onClose={() => setSheet(false)} />
@@ -110,20 +92,37 @@ export default function PresentersTab({ userId }: { userId: string }) {
           </div>
         ) : null}
 
-        {on.length ? (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {on.map((p) => (
-              <PresenterCard key={p.id} userId={userId} p={p} isDefault={data.who === p.id} open={openId === p.id} cardRef={openId === p.id ? linked : undefined} />
-            ))}
-          </ul>
-        ) : (
-          !sheet && (
-            <div className={CARD}>
-              <p className="text-sm text-muted-foreground">No presenters yet. Make one, and the same face can front all {videosOf(brand)}.</p>
-              <Button className={BIG} onClick={openSheet}>Make a presenter</Button>
-            </div>
-          )
-        )}
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {!sheet && !job && (
+            <li className="flex min-w-0">
+              <button type="button" onClick={openSheet}
+                className="flex min-h-[16rem] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/70 p-4 text-center transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-hidden><PlusIcon className="h-5 w-5" /></span>
+                <span className="text-sm font-semibold">New presenter</span>
+                {!on.length && <span className="text-xs text-muted-foreground">The same face can front all {videosOf(brand)}.</span>}
+              </button>
+            </li>
+          )}
+          {on.map((p) => (
+            <PresenterCard key={p.id} userId={userId} p={p} isDefault={data.who === p.id} open={openId === p.id} cardRef={openId === p.id ? linked : undefined} />
+          ))}
+        </ul>
+      </section>
+
+      <section className={CARD} aria-labelledby="who-appears">
+        <h2 id="who-appears" className="font-serif text-lg font-semibold">Who appears in {videosOf(brand)}</h2>
+        <div role="radiogroup" aria-labelledby="who-appears" className="flex flex-wrap items-center gap-2">
+          <Choice checked={data.who === "me"} disabled={!face} onClick={() => who("me")}>Me</Choice>
+          {on.map((p) => (
+            <Choice key={p.id} checked={data.who === p.id} onClick={() => who(p.id)}>{p.name}, AI presenter</Choice>
+          ))}
+          <Choice checked={data.who === "ask"} onClick={() => who("ask")}>Ask each time</Choice>
+          {!face && (
+            <Link to={links.people({ record: true })} className="inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline sm:min-h-9">
+              Save your face first
+            </Link>
+          )}
+        </div>
       </section>
     </div>
   );
@@ -288,10 +287,11 @@ function VoicePick({ userId, p }: { userId: string; p: Presenter }) {
   };
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <label className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+      {/* stacked, so the picker keeps the card's width on a two-across phone grid */}
+      <label className="grid w-full min-w-0 gap-1 text-xs text-muted-foreground">
         Voice
         <select value={p.voice ?? ""} onChange={(e) => pick(e.target.value)}
-          className="h-11 min-w-0 max-w-[15rem] rounded-md border border-border bg-background px-2 text-sm text-foreground sm:h-9">
+          className="h-11 w-full min-w-0 rounded-md border border-border bg-background px-2 text-sm text-foreground sm:h-9">
           <option value="">Fits the look ({VOICES[fits].label})</option>
           {VOICE_IDS.map((v) => <option key={v} value={v}>{VOICES[v].label}, {VOICES[v].note}</option>)}
         </select>
@@ -325,9 +325,9 @@ function PresenterCard({ userId, p, isDefault, open, cardRef }: { userId: string
   const done = (r: ReturnType<typeof setWho>) => (r.ok === false ? toast({ title: r.error }) : setMode("view"));
 
   return (
-    <li ref={cardRef} className={`flex gap-3 rounded-xl border p-3 shadow-card ${open ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`}>
-      <img src={p.photo || p.url} alt={`${p.name}, AI presenter`} className="aspect-[9/16] w-20 shrink-0 rounded-lg object-cover sm:w-24" />
-      <div className="min-w-0 flex-1 space-y-2">
+    <li ref={cardRef} className={`flex min-w-0 flex-col gap-2 rounded-xl border p-1.5 shadow-card ${open ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`}>
+      <img src={p.photo || p.url} alt={`${p.name}, AI presenter`} className="aspect-[4/5] w-full rounded-lg object-cover object-top" />
+      <div className="min-w-0 flex-1 space-y-2 px-1 pb-1">
         {mode === "rename" ? (
           <div className="space-y-2">
             <Input value={name} maxLength={MAX_NAME} autoFocus aria-label="Name, only you see it" onChange={(e) => setName(e.target.value)}
