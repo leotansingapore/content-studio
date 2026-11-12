@@ -1027,7 +1027,7 @@ export default function DraftsPage() {
                     {draftLine(d.source)}
                   </Link>
                 )}
-                {d.campaign && userId && <CampaignPostLink userId={userId} link={d.campaign} className="mb-2 w-fit max-w-full text-[11px]" />}
+                {userId && <CampaignPostLink userId={userId} draft={d} className="mb-2 w-fit max-w-full text-[11px]" />}
                 {d.media && /^https?:\/\//i.test(d.media) && (
                   <a
                     href={d.media}
