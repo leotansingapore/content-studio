@@ -6,13 +6,14 @@
 // images too), then one ai-image make with its words flag (no "No text" rule, no Soul v2 fallback) and the brand kit's
 // logo and the product's own picture as pictures for the model to put in (the logo where the format carries a brand
 // mark) keeps the photo in Media under AI images, cut from the model's 3:4 to the examples' 4:5 (makeImage's ratio; the
-// prompt keeps words clear of the cut edges). The run lives outside React, as MemeOptions' pictures do, so leaving the
+// prompt keeps words clear of the cut edges). Each make takes an ad angle: the brand's four least recently used for the
+// format go to the writer, Jev picks one (the first when it can't), and the one taken is remembered for next time. The run lives outside React, as MemeOptions' pictures do, so leaving the
 // page keeps it, and it mirrors its step into formatJob for /library's Making now. A reload forgets the run; the
 // picture's paid token is picked up by resumeImage, still lands in Media, and the page shows it again from the picture
 // job (shownPhotoAd).
 
 import { useEffect, useState } from "react";
-import { staticFormatHref, type StaticFormat } from "@/data/staticFormats";
+import { STATIC_SHOTS, staticFormatHref, type StaticFormat } from "@/data/staticFormats";
 import { AI_FOLDER, imageBusy, imageJob, makeImage, type ImageJob } from "@/lib/aiImage";
 import { DEFAULT_BRAND, loadBrand } from "@/lib/carousel";
 import { setFormatJob } from "@/lib/formatJob";
@@ -21,9 +22,11 @@ import { WRITE_FAILED, blankImage, imageById, imageMention, imageWrite, imageWri
 import { getFile } from "@/lib/deviceFiles";
 import { links } from "@/lib/links";
 import { adFacts, adProduct, loadProducts, type Product } from "@/lib/products";
+import { scoped } from "@/lib/profiles";
 import { ownBrandName } from "@/lib/remixBrand";
 import { scalePicture } from "@/lib/remixLink";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic.ts";
+import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 
 /** ai-image makes 3:4 and the photo is kept 4:5, cut from the middle: a little goes off the top and the bottom. */
 export const PHOTO_RATIO = 4 / 5;
@@ -64,6 +67,43 @@ export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { 
     .join(" ");
 }
 
+// ---- the ad angle each make takes (remix STATIC_ANGLES), remembered per brand and format ----
+
+/** How many of a format's least recently used angles Jev picks from: the brand's last 8 there never come back next. */
+export const ANGLE_POOL = 4;
+const ANGLES = "content-studio-static-angles-";
+
+/** A format's angles this brand took, the latest first. */
+export function usedAngles(userId: string, slug: string): string[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(ANGLES + scoped(userId)) ?? "{}")?.[slug];
+    return Array.isArray(list) ? list.filter((a): a is string => typeof a === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function rememberAngle(userId: string, slug: string, angle: string): void {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ANGLES + scoped(userId)) ?? "{}");
+    const all = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    const list = [angle, ...usedAngles(userId, slug).filter((a) => a !== angle)].slice(0, Object.keys(STATIC_ANGLES).length);
+    localStorage.setItem(ANGLES + scoped(userId), JSON.stringify({ ...all, [slug]: list }));
+  } catch {
+    // storage full: the next make starts the rotation again, nothing else is lost
+  }
+}
+
+/** The angles in the order to offer them: the never used first (the format's own examples' angles ahead), then the oldest used. Pure. */
+export function angleOrder(slug: string, used: string[]): string[] {
+  const all = [...new Set([...(STATIC_SHOTS[slug] ?? []).map(([, a]) => a), ...Object.keys(STATIC_ANGLES)])].filter((a) => a in STATIC_ANGLES);
+  const recent = used.filter((a) => all.includes(a));
+  return [...all.filter((a) => !recent.includes(a)), ...[...recent].reverse()];
+}
+
+/** The first three words of the format's sample ad: the words never open on them. */
+export const sampleOpening = (f: Pick<StaticFormat, "slug" | "example">) => (isStatic(f.slug) && f.example ? mainWords(f.slug, f.example) : "").split(/\s+/).filter(Boolean).slice(0, 3).join(" ");
+
 export interface PhotoAd {
   seq: number;
   slug: string;
@@ -71,6 +111,8 @@ export interface PhotoAd {
   designId: string;
   state: "writing" | "making" | "done" | "failed";
   error?: string;
+  /** The ad angle the words took, once written (remix sends it back). */
+  angle?: string;
   /** Done: the photo's Media key and a data URL to show it. */
   mediaKey?: string;
   preview?: string;
@@ -144,23 +186,28 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   set({ ...base, state: "writing" });
   const sold = adProduct(loadProducts(userId).items, format.topic);
   const product = sold ? adFacts(sold) : undefined;
-  await startImageWrite(userId, { designId: design.id, source: null, topic: format.topic, layout: slug, mention: imageMention(userId), note: "", size: design.size, read: false, ...(product ? { product } : {}) });
+  const angles = angleOrder(slug, usedAngles(userId, slug)).slice(0, ANGLE_POOL);
+  const avoid = sampleOpening(f);
+  await startImageWrite(userId, { designId: design.id, source: null, topic: format.topic, layout: slug, mention: imageMention(userId), note: "", size: design.size, read: false, angles, ...(avoid ? { avoid } : {}), ...(product ? { product } : {}) });
   const w = imageWrite();
   const words = imageById(userId, design.id)?.words ?? {};
   if (w?.designId !== design.id || w.state !== "done" || !mainWords(slug, words)) return set({ ...base, state: "failed", error: w?.error || WRITE_FAILED });
+  // the words are written: their angle counts as used whatever happens to the picture
+  if (w.angle) rememberAngle(userId, slug, w.angle);
+  const made = { ...base, ...(w.angle ? { angle: w.angle } : {}) };
   const kit = loadBrand(userId) ?? DEFAULT_BRAND;
   const brand = { name: ownBrandName(userId), color: kit.color };
   const full = photoAdPrompt(f, brand, words, product);
   // the words are the ad: a product line that would push them over the cap is the part left out
   const prompt = full.length > MAX_PROMPT && product ? photoAdPrompt(f, brand, words) : full;
-  if (prompt.length > MAX_PROMPT) return set({ ...base, state: "failed", error: TOO_LONG });
-  set({ ...base, state: "making" });
+  if (prompt.length > MAX_PROMPT) return set({ ...made, state: "failed", error: TOO_LONG });
+  set({ ...made, state: "making" });
   // the kit's logo and the product's own picture go as pictures the model puts in (ai-image refs); with no logo the name
   // in the words is the mark, and with no picture the product line describes it
   const picture = sold ? await productPicture(sold) : undefined;
   const refs = { ...(kit.logo ? { logo: kit.logo } : {}), ...(picture ? { product: picture } : {}) };
   await makeImage(userId, prompt, `${f.name}: ${mainWords(slug, words)}`, undefined, undefined, { words: true, ratio: PHOTO_RATIO, ...(refs.logo || refs.product ? { refs } : {}) });
   const j = imageJob();
-  if (j?.state !== "done" || !j.mediaKey) return set({ ...base, state: "failed", error: j?.error || NOT_MADE });
-  set({ ...base, state: "done", mediaKey: j.mediaKey, preview: j.preview });
+  if (j?.state !== "done" || !j.mediaKey) return set({ ...made, state: "failed", error: j?.error || NOT_MADE });
+  set({ ...made, state: "done", mediaKey: j.mediaKey, preview: j.preview });
 }

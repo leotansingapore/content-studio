@@ -2,7 +2,8 @@
 // layouts, the memes and the ad versions stays byte for byte (pinned before the static layouts were added), and each
 // static layout gets its own rules, response fields and checks.
 import { describe, expect, it } from "vitest";
-import { AD_LAYOUTS, MEME_LAYOUTS, STATIC_FIELDS, STATIC_LAYOUTS, buildMakePrompt, imageProblem, masText, parseMakeRequest, responseFormat, textFields, validateMake, type MakeResult } from "./logic";
+import { STATIC_SHOTS } from "../../../src/data/staticFormats";
+import { AD_LAYOUTS, MEME_LAYOUTS, STATIC_ANGLES, STATIC_FIELDS, STATIC_LAYOUTS, angleQuestion, angleState, buildMakePrompt, pickAngle, imageProblem, masText, parseMakeRequest, responseFormat, textFields, validateMake, type MakeResult } from "./logic";
 
 const SOURCE = { key: "ad:2095783381019179", kind: "ad", format: "image", text: "Protect your family today with a plan that grows with you. Get a free quote." };
 const BRAND = { name: "Jane Tan", oneLiner: "I help young families plan", audience: "young parents", topics: ["Insurance basics"], facts: "- Ten years advising", mention: true, offer: null, rules: "" };
@@ -71,6 +72,46 @@ describe("a static ad about one product", () => {
     expect(quiet.brand.facts).toContain("The product this ad is about: Activity Tracker");
     const long = req({ as: "image", layout: "street-poster", topic: "x", product: { name: "n".repeat(90), what: "w".repeat(300), forWho: "f".repeat(200) } }).product!;
     expect([long.name.length, long.what.length, long.forWho.length]).toEqual([60, 200, 120]);
+  });
+});
+
+describe("a static ad's angle", () => {
+  it("is one of the twelve its examples are labelled with, each with what it does", () => {
+    expect(Object.keys(STATIC_ANGLES).sort()).toEqual([...new Set(Object.values(STATIC_SHOTS).flat().map(([, angle]) => angle))].sort());
+    expect(Object.keys(STATIC_ANGLES)).toHaveLength(12);
+  });
+
+  it("takes only known angles, once each, on a static layout, and the sample's opening only there", () => {
+    const r = req({ as: "image", layout: "street-poster", topic: "x", angles: ["The offer", "constructor", "The offer", 7, "Bust a myth"], avoid: "Still dark, still" });
+    expect(r.angles).toEqual(["The offer", "Bust a myth"]);
+    expect(r.avoid).toBe("Still dark, still");
+    expect(r.angle).toBeUndefined();
+    const plain = req({ as: "image", layout: "headline", topic: "x", angles: ["The offer"], avoid: "Still dark" });
+    expect([plain.angles, plain.avoid]).toEqual([undefined, undefined]);
+    expect(req({ as: "image", layout: "street-poster", topic: "x", angles: ["nope"] }).angles).toBeUndefined();
+    // the request can't set the angle itself
+    expect(req({ as: "image", layout: "street-poster", topic: "x", angle: "The offer" }).angle).toBeUndefined();
+  });
+
+  it("tells the writer the angle, over the layout's own, and never to open on the sample's words", () => {
+    const r = { ...req({ as: "image", layout: "street-poster", topic: "x", angles: ["Answer the doubt"], avoid: 'Still "dark", still', brand: BIZ }), angle: "Answer the doubt" };
+    const { system } = buildMakePrompt(r);
+    expect(system).toContain("- The ad's angle is Answer the doubt: raise a doubt a buyer has before buying and answer it with one fact. The headline and every line take this angle, over any angle a line above suggests.");
+    expect(system).toContain(`- Never open with "Still 'dark', still" or those same opening words: start your own way.`);
+    // offered angles alone, before the server picks, change nothing
+    expect(buildMakePrompt(req({ as: "image", layout: "street-poster", topic: "x", angles: ["The offer"], brand: BIZ })).system).toBe(buildMakePrompt(req({ as: "image", layout: "street-poster", topic: "x", brand: BIZ })).system);
+  });
+
+  it("asks Jev to pick from the offered angles only, and falls back to the first", () => {
+    const q = angleQuestion(["The offer", "Bust a myth"]);
+    expect(q.angle).toMatchObject({ type: "choice", criteria: { "The offer": STATIC_ANGLES["The offer"], "Bust a myth": STATIC_ANGLES["Bust a myth"] } });
+    expect(Object.keys((q.angle as { criteria: object }).criteria)).toEqual(["The offer", "Bust a myth"]);
+    const choice = (c: string) => ({ angle: { type: "choice" as const, choice: c } });
+    expect(pickAngle(choice("Bust a myth"), ["The offer", "Bust a myth"])).toBe("Bust a myth");
+    expect(pickAngle(choice("The moment"), ["The offer", "Bust a myth"])).toBe("The offer");
+    expect(pickAngle(null, ["The offer", "Bust a myth"])).toBe("The offer");
+    const state = angleState(req({ as: "image", layout: "street-poster", topic: "Prospecting", brand: BIZ }));
+    expect(state).toEqual({ brand: expect.stringContaining("Name: Hilltop Coffee"), ad: expect.stringMatching(/^A static ad that is a poster in a lit street display/), topic: "Prospecting" });
   });
 });
 

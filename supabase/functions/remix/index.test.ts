@@ -359,6 +359,30 @@ describe("phase 3's shapes", () => {
     expect(used()).toBe(1);
   });
 
+  it("takes the static angle Jev picks from the ones offered, writes to it and sends it back; the first offered without Jev", async () => {
+    const poster = { mode: "make", as: "image", layout: "street-poster", topic: "Prospecting", angles: ["Answer the doubt", "The offer", "Bust a myth"], brand: { name: "ActivityTracker", speaker: "business" } };
+    const posterWords = { headline: "Your memory keeps no score", line: "ActivityTracker logs each day as a streak." };
+    openai.mode = "queue";
+    openai.answers = [{ refuse: false, reason: "", words: posterWords, ...CAP }];
+    jev.answers = { angle: { type: "choice", choice: "Bust a myth", probabilities: { "Bust a myth": 0.6 } } as never };
+    const r = await send(poster);
+    expect(r).toMatchObject({ status: 200, body: { result: { as: "image", layout: "street-poster", angle: "Bust a myth" } } });
+    expect(jev.questions[0]).toEqual(["angle"]);
+    expect(jev.states[0]).toMatchObject({ topic: "Prospecting", ad: expect.stringMatching(/^A static ad that is a poster/) });
+    expect(openai.sent[0].messages[0].content).toContain("- The ad's angle is Bust a myth: name a common belief");
+    expect(used()).toBe(1);
+    // Jev with no answer: the app's rotation, the first offered
+    openai.answers = [{ refuse: false, reason: "", words: posterWords, ...CAP }];
+    jev.answers = null;
+    expect((await send(poster)).body.result.angle).toBe("Answer the doubt");
+    expect(openai.sent[1].messages[0].content).toContain("- The ad's angle is Answer the doubt:");
+    // one angle offered is taken as it is, with nothing asked of Jev
+    const asked = jev.questions.length;
+    openai.answers = [{ refuse: false, reason: "", words: posterWords, ...CAP }];
+    expect((await send({ ...poster, angles: ["The offer"] })).body.result.angle).toBe("The offer");
+    expect(jev.questions.slice(asked).some((q) => q.includes("angle"))).toBe(false);
+  });
+
   it("never asks a business's image the MAS question, which is about licensed advisers", async () => {
     openai.mode = "queue";
     openai.answers = [{ refuse: false, reason: "", words: { ...words, quote: "We built it for the reps who forget nothing but still lose deals." }, ...CAP }];

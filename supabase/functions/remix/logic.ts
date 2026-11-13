@@ -214,6 +214,26 @@ export const STATIC_FIELDS: Record<StaticLayout, Record<string, number>> = {
   "tshirt-print": { print: 20 },
 };
 export const isStaticLayout = (l: unknown): l is StaticLayout => (STATIC_LAYOUTS as readonly unknown[]).includes(l);
+
+/**
+ * The ad angles a static format's make can take, each with what it does: the twelve STATIC_SHOTS labels its examples
+ * with (src/data/staticFormats.ts). A make takes one, so the same format never writes the same ad twice in a row.
+ */
+export const STATIC_ANGLES: Record<string, string> = {
+  "Name the pain": "open on a problem the buyer lives with, then show the brand as the way out",
+  "Answer the doubt": "raise a doubt a buyer has before buying and answer it with one fact",
+  "How it works": "say what the buyer does and what the product does, in plain steps",
+  "The offer": "say plainly what the buyer gets and how to start",
+  "Us vs the usual": "set the brand beside the usual way of doing it",
+  "Founder's story": "say why the brand does it this way, as the people behind it would, from the facts given only",
+  "Before and after": "show the buyer's day before the brand and after it",
+  "Bust a myth": "name a common belief about the problem and show why it is wrong",
+  "Cost of waiting": "show what putting it off costs the buyer",
+  "A friend's word": "say it the way a friend would point another to it, never as a customer's story",
+  "The moment": "catch the exact moment in the buyer's day when they need it",
+  "Make them smile": "take a light, funny look at the problem it solves",
+};
+const isAngle = (a: unknown): a is string => typeof a === "string" && Object.prototype.hasOwnProperty.call(STATIC_ANGLES, a);
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
 const FORMATS = ["video", "carousel", "image", "text"] as const;
 
@@ -317,6 +337,15 @@ export interface MakeRequest {
    * facts first; the words name it and one thing it does.
    */
   product?: AdProduct;
+  /**
+   * image with a static layout only: the ad angles it may take (STATIC_ANGLES), the brand's least recently used for the
+   * format first. Jev picks one; the first is the rotation's pick when Jev has no answer.
+   */
+  angles?: string[];
+  /** Set by the server from `angles`, never from the request: the angle the words take, sent back on the result. */
+  angle?: string;
+  /** image with a static layout only: the opening words of the format's sample ad, which the words never start with. */
+  avoid?: string;
   /** Every format but hooks: a HOOK_FORMULA_COPY id the opening line follows (remix-variations); an unknown id is dropped. */
   formula?: string;
   /** edit only, and always sent there. */
@@ -341,7 +370,8 @@ export type MakeResult =
   | { as: "notes"; title: string; items: string[]; caption: string }
   /** search: the stock clip behind a hook on screen, left out when it isn't one (hookSearch). */
   | { as: "hooks"; hooks: { text: string; formula: string; search?: string }[] }
-  | { as: "image"; layout: AdLayout | StaticLayout; layoutBy: "jev" | "default"; words: Partial<Record<string, string>>; caption: string }
+  /** angle: a static format's, when the make sent angles. */
+  | { as: "image"; layout: AdLayout | StaticLayout; layoutBy: "jev" | "default"; words: Partial<Record<string, string>>; caption: string; angle?: string }
   /** best and dropped come from Jev after writing (memeVerdict); dropped options stay in the list. */
   | { as: "meme"; options: Record<string, string>[]; best: number | null; dropped: number[]; caption: string }
   /** best and dropped come from Jev after writing (adsVerdict); mas counts the dropped that failed the MAS question; checked is false when Jev gave no answer, so nothing was read. */
@@ -625,7 +655,9 @@ function parseShape(as: MakeAs, r: Item, speaker: Speaker): Partial<MakeRequest>
     // the description plus the picture's own words (an ad's steps live there)
     if (typeof r.shows === "string" && r.shows.length > 800) return "Keep what the picture shows under 800 characters.";
     const shows = line(r.shows, 800);
-    return { ...(layout ? { layout } : {}), ...(shows ? { shows } : {}) };
+    const angles = isStaticLayout(layout) && Array.isArray(r.angles) ? [...new Set(r.angles.filter(isAngle))] : [];
+    const avoid = isStaticLayout(layout) ? line(r.avoid, 60) : "";
+    return { ...(layout ? { layout } : {}), ...(shows ? { shows } : {}), ...(angles.length ? { angles } : {}), ...(avoid ? { avoid } : {}) };
   }
   if (as === "meme") {
     const layout = MEME_LAYOUTS.find((x) => x === r.layout);
@@ -1113,6 +1145,8 @@ function staticRules(req: MakeRequest, layout: StaticLayout): string[] {
           "- Made-up people have a first name or a username only, never a full name, a job title or a company.",
         ]
       : []),
+    ...(req.angle ? [`- The ad's angle is ${req.angle}: ${STATIC_ANGLES[req.angle]}. The headline and every line take this angle, over any angle a line above suggests.`] : []),
+    ...(req.avoid ? [`- Never open with "${req.avoid.replace(/"/g, "'")}" or those same opening words: start your own way.`] : []),
     ...(req.product && req.brand.mention
       ? [`- The ad is about ${req.product.name}, from the facts given. Where the words say what the brand does, they name ${req.product.name} and one concrete thing it does, never a general line about the brand.`]
       : []),
@@ -2319,6 +2353,27 @@ export function jevFacts(b: Pick<BrandPack, "oneLiner" | "audience" | "offer" | 
 export const FLAG_AT = 0.5;
 
 // ---- Phase 3's decisions (Jev picks, the LLM only writes) ---------------------------------------------
+
+/** What Jev reads to pick a static format's angle: the brand and its facts, the kind of ad, and what it is about. */
+export function angleState(req: MakeRequest) {
+  const layout = isStaticLayout(req.layout) ? req.layout : "general-ad";
+  const shape = ((req.brand.speaker === "person" && PERSON_STATIC_RULES[layout]) || STATIC_RULES[layout])[0];
+  return { brand: [`Name: ${req.brand.name}`, jevFacts(req.brand)].filter(Boolean).join("\n"), ad: `A static ad that is ${shape}`, topic: req.topic || req.source?.text.slice(0, 300) || "" };
+}
+
+/** A static format's angle, picked from the ones the app offers (its least recently used for this brand and format). */
+export function angleQuestion(angles: string[]): Record<string, JevQuestion> {
+  return {
+    angle: {
+      type: "choice",
+      instructions: "`brand` is who the ad is for and what they sell, `ad` is the kind of static ad being made and `topic` is what it is about. Which of these angles would make the strongest ad of that kind for this brand?",
+      criteria: Object.fromEntries(angles.map((a) => [a, STATIC_ANGLES[a]])),
+    },
+  };
+}
+
+/** The angle a static make takes: Jev's pick when it is one offered, else the first offered (the app's rotation). */
+export const pickAngle = (answers: Record<string, JevAnswer> | null, angles: string[]): string => choiceOf(answers, "angle", angles) ?? angles[0];
 
 /** formats-static-ad's layout question; a person's brand is never offered a testimonial (decision 12). */
 export function adLayoutQuestion(speaker: Speaker): Record<string, JevQuestion> {

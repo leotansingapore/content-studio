@@ -256,6 +256,19 @@ describe("Write it for me", () => {
     expect("product" in make.mock.calls[1][0]).toBe(false);
   });
 
+  it("sends a static format's angles and sample opening, which the server takes, and keeps the angle it sends back", async () => {
+    make.mockResolvedValue(reply({ layout: "street-poster", layoutBy: "default", words: { headline: "Still dark.", line: "Logs your streak." }, angle: "The offer" }));
+    await startImageWrite(U, ask({ source: null, topic: "Prospecting", layout: "street-poster", read: false, angles: ["The offer", "Bust a myth"], avoid: "Still dark, still" }));
+    const body = make.mock.calls[0][0];
+    expect(body).toMatchObject({ angles: ["The offer", "Bust a myth"], avoid: "Still dark, still" });
+    expect(parseMakeRequest(body)).toMatchObject({ ok: true, value: { angles: ["The offer", "Bust a myth"], avoid: "Still dark, still" } });
+    expect(imageWrite()).toMatchObject({ state: "done", angle: "The offer" });
+    make.mockResolvedValue(reply({ layout: "street-poster", layoutBy: "default", words: { headline: "Still dark.", line: "Logs your streak." } }));
+    await startImageWrite(U, ask({ source: null, topic: "Prospecting", layout: "street-poster", read: false }));
+    expect(["angles", "avoid"].filter((k) => k in make.mock.calls[1][0])).toEqual([]);
+    expect(imageWrite()).not.toHaveProperty("angle");
+  });
+
   it("passes the picture's own words to the writer, cut at a word to the server's 800 characters", async () => {
     // the WATI ad: its numbered steps are only in the picture, the ad's text just says "Swipe for the steps."
     const steps = "1. Connect your WhatsApp number 2. Import your contacts 3. Send your first broadcast Book a Demo";

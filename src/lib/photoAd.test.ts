@@ -24,6 +24,7 @@ const fake = vi.hoisted(() => {
     imageFails: "",
     calls: [] as { prompt: string; name: string; o?: unknown }[],
     asks: [] as Record<string, unknown>[],
+    writeAngle: "",
     files: {} as Record<string, Blob>,
   };
 });
@@ -45,7 +46,7 @@ vi.mock("@/lib/images", async (actual) => {
       if (fake.writeFails) return void (fake.write = { ...fake.write, state: "failed", error: fake.writeFails });
       const d = real.imageById(userId, ask.designId)!;
       real.saveImage(userId, { ...d, words: { ...d.words, ...fake.writeWords } });
-      fake.write = { ...fake.write, state: "done" };
+      fake.write = { ...fake.write, state: "done", ...(fake.writeAngle ? { angle: fake.writeAngle } : {}) };
     },
   };
 });
@@ -64,7 +65,8 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { PHOTO_EDGES, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, photoAd, photoAdPrompt, productLine, shownPhotoAd, startPhotoAd } from "./photoAd";
+import { ANGLE_POOL, PHOTO_EDGES, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
 import { IMAGE_FIELDS, isStatic } from "@/lib/imageLayout";
@@ -141,7 +143,7 @@ describe("each format's scene", () => {
 describe("the photo run", () => {
   beforeEach(() => {
     localStorage.clear();
-    Object.assign(fake, { write: null, writeFails: "", image: null, imageFails: "", calls: [], asks: [], files: {}, writeWords: { headline: "Still dark, still raining.", line: "Hilltop cold brew." } });
+    Object.assign(fake, { write: null, writeFails: "", image: null, imageFails: "", calls: [], asks: [], files: {}, writeAngle: "", writeWords: { headline: "Still dark, still raining.", line: "Hilltop cold brew." } });
   });
 
   it("shows its first step at once, writes the words into a layout design, then makes one photo from those words", async () => {
@@ -246,6 +248,67 @@ describe("the photo run", () => {
     fake.imageFails = "The image was blocked by the safety filter. Change the prompt and try again.";
     await startPhotoAd(U, poster, { topic: "x" });
     expect(photoAd()).toMatchObject({ state: "failed", error: fake.imageFails });
+  });
+});
+
+describe("the angle each make takes", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    Object.assign(fake, { write: null, writeFails: "", image: null, imageFails: "", calls: [], asks: [], files: {}, writeAngle: "", writeWords: { headline: "Still dark, still raining.", line: "Hilltop cold brew." } });
+  });
+  const ALL = Object.keys(STATIC_ANGLES);
+
+  it("offers the never used first, the format's own examples' angles ahead, then the oldest used", () => {
+    const own = ["The moment", "Before and after", "Make them smile", "The offer"];
+    expect(angleOrder("street-poster", []).slice(0, 4)).toEqual(own);
+    expect(new Set(angleOrder("street-poster", []))).toEqual(new Set(ALL));
+    // used latest first: the never used lead, then the used from the oldest
+    const order = angleOrder("street-poster", ["The offer", "The moment", "not an angle"]);
+    expect(order.slice(0, 3)).toEqual(["Before and after", "Make them smile", "Name the pain"]);
+    expect(order.slice(-2)).toEqual(["The moment", "The offer"]);
+    expect(order).toHaveLength(12);
+  });
+
+  it("is remembered per brand and format in one small synced key, latest first, once each", () => {
+    rememberAngle(U, "street-poster", "The offer");
+    rememberAngle(U, "street-poster", "Bust a myth");
+    rememberAngle(U, "street-poster", "The offer");
+    rememberAngle(U, "text-chat", "Name the pain");
+    expect(usedAngles(U, "street-poster")).toEqual(["The offer", "Bust a myth"]);
+    expect(JSON.parse(localStorage.getItem(`content-studio-static-angles-${U}`)!)).toEqual({ "street-poster": ["The offer", "Bust a myth"], "text-chat": ["Name the pain"] });
+    for (const a of ALL) rememberAngle(U, "street-poster", a);
+    expect(usedAngles(U, "street-poster")).toHaveLength(12);
+    localStorage.setItem(`content-studio-static-angles-${U}`, "[1,2]");
+    expect(usedAngles(U, "street-poster")).toEqual([]);
+    rememberAngle(U, "street-poster", "The offer");
+    expect(usedAngles(U, "street-poster")).toEqual(["The offer"]);
+  });
+
+  it("sends the four least recently used and the sample's opening, keeps the angle taken, and the next make moves on", async () => {
+    expect(sampleOpening(poster)).toBe("Still dark, still");
+    fake.writeAngle = "Make them smile";
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.asks[0]).toMatchObject({ angles: ["The moment", "Before and after", "Make them smile", "The offer"], avoid: "Still dark, still" });
+    expect((fake.asks[0].angles as string[]).length).toBe(ANGLE_POOL);
+    expect(photoAd()).toMatchObject({ state: "done", angle: "Make them smile" });
+    expect(usedAngles(U, "street-poster")).toEqual(["Make them smile"]);
+    fake.writeAngle = "The moment";
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.asks[1].angles).toEqual(["The moment", "Before and after", "The offer", "Name the pain"]);
+    expect(usedAngles(U, "street-poster")).toEqual(["The moment", "Make them smile"]);
+  });
+
+  it("keeps the angle of words whose picture failed, and remembers nothing when the writer sent none back", async () => {
+    fake.writeAngle = "The offer";
+    fake.imageFails = "Couldn't make the photo.";
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(photoAd()).toMatchObject({ state: "failed", angle: "The offer" });
+    expect(usedAngles(U, "street-poster")).toEqual(["The offer"]);
+    fake.imageFails = "";
+    fake.writeAngle = "";
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(photoAd()).not.toHaveProperty("angle");
+    expect(usedAngles(U, "street-poster")).toEqual(["The offer"]);
   });
 });
 

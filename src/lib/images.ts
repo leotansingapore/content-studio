@@ -303,6 +303,9 @@ export interface ImageWriteAsk {
   read: boolean;
   /** A static format's photo make: the brand's product the ad is about (products.ts adFacts). */
   product?: AdProduct;
+  /** A static format's photo make: the angles it may take, least recently used first, and the sample's opening words. */
+  angles?: string[];
+  avoid?: string;
 }
 
 export interface ImageWrite {
@@ -317,6 +320,8 @@ export interface ImageWrite {
   layout?: AdLayout | StaticLayout;
   layoutBy?: "jev" | "default";
   flags?: Flags;
+  /** Done: the static angle the words took, when angles were sent. */
+  angle?: string;
 }
 
 export const WRITE_FAILED = "Couldn't write it right now. Try again in a minute.";
@@ -359,13 +364,15 @@ export async function startImageWrite(userId: string, ask: ImageWriteAsk): Promi
       ...(ask.layout ? { layout: ask.layout } : {}),
       ...(shows ? { shows } : {}),
       ...(ask.product ? { product: ask.product } : {}),
+      ...(ask.angles?.length ? { angles: ask.angles } : {}),
+      ...(ask.avoid ? { avoid: ask.avoid } : {}),
     });
     const res = await requestMake(body);
     if (res?.result?.as !== "image") throw new Error(WRITE_FAILED);
     const result = res.result;
     const design = loadImages(userId).find((x) => x.id === ask.designId);
     if (design) saveImage(userId, { ...design, layout: result.layout, words: wordsFromMake(design.words, result) });
-    set({ ...base, state: "done", layout: result.layout, layoutBy: result.layoutBy, flags: res.flags });
+    set({ ...base, state: "done", layout: result.layout, layoutBy: result.layoutBy, flags: res.flags, ...(typeof result.angle === "string" ? { angle: result.angle } : {}) });
   } catch (e) {
     set({ ...base, state: "failed", ...failure(e, WRITE_FAILED) });
   }

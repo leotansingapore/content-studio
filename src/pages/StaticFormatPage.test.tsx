@@ -17,8 +17,9 @@ const as = vi.hoisted(() => {
     },
     clear: () => store.clear(),
   };
-  return { user: null as null | undefined | { id: string; email: string }, left: {} as Record<string, number>, picture: null as null | Record<string, unknown> };
+  return { user: null as null | undefined | { id: string; email: string }, left: {} as Record<string, number>, picture: null as null | Record<string, unknown>, run: null as null | Record<string, unknown> };
 });
+vi.mock("@/lib/photoAd", async (actual) => ({ ...(await actual<typeof import("@/lib/photoAd")>()), usePhotoAd: () => as.run }));
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user, useLeoOnly: () => !!as.user }));
 // no canvas in node: the example is measured roughly, as the layout tests do
 vi.mock("@/lib/carouselRender", async (actual) => ({ ...(await actual<typeof import("@/lib/carouselRender")>()), createCanvasMeasure: () => (t: string, f: { size: number }) => t.length * f.size * 0.5 }));
@@ -47,6 +48,7 @@ afterEach(() => {
   as.user = null;
   as.left = {};
   as.picture = null;
+  as.run = null;
   localStorage.clear();
 });
 
@@ -107,6 +109,16 @@ describe("the static format page", () => {
     expect(other).not.toContain("Making the photo");
     expect(other).toContain("A picture is already being made");
     expect(button(other, "Make it as a photo")).toContain('disabled=""');
+  });
+
+  it("says on the done card which angle the photo took, and nothing when none came back", () => {
+    as.user = { id: U, email: "leo@x.sg" };
+    as.run = { seq: 1, slug: "street-poster", designId: "img-abc123", state: "done", mediaKey: "cimg-photo1", preview: "data:image/jpeg;base64,eA", angle: "Answer the doubt" };
+    const page = html("street-poster");
+    expect(page).toContain("Your photo ad is ready.");
+    expect(page).toMatch(/ready\.<\/p><p[^>]*>Angle: Answer the doubt<\/p>/);
+    as.run = { ...as.run, angle: undefined };
+    expect(html("street-poster")).not.toMatch(/ready\.<\/p><p[^>]*>Angle:/);
   });
 
   it("offers no photo where the format needs the brand's own product photo and there is none", () => {

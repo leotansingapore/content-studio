@@ -51,6 +51,8 @@ import {
   makeQuestions,
   adLayoutQuestion,
   adsQuestions,
+  angleQuestion,
+  angleState,
   adsState,
   adsVerdict,
   buildMakePrompt,
@@ -70,6 +72,7 @@ import {
   openToAll,
   parseMakeRequest,
   pickAdLayout,
+  pickAngle,
   refusalOf,
   responseFormat,
   rewriteMessage,
@@ -200,6 +203,13 @@ Deno.serve(async (req) => {
       if (pick) opts.layoutBy = "jev";
     }
 
+    // a static format's angle: Jev picks from the ones the app offers, else the first of them (its rotation's pick)
+    if (make.angles?.length) {
+      const answers = make.angles.length > 1 ? await askJev(angleState(make), angleQuestion(make.angles), { who: "remix image angle" }) : null;
+      make.angle = pickAngle(answers, make.angles);
+      console.log("remix image angle", make.angle, answers?.angle?.choice === make.angle ? "jev" : "rotation");
+    }
+
     // a slideshow on a problem with a fix gets a three-row slide too: Jev decides, the writer writes it
     if (make.as === "slideshow") {
       const p = noulOf(await askJev({ topic: rowsTopic(make) }, rowsQuestion(), { who: "remix slideshow rows" }), "problem_fix");
@@ -323,6 +333,7 @@ Deno.serve(async (req) => {
       const answers = text ? await askJev({ post: text }, { mas: { type: "noul", instructions: MAS_QUESTION } }, { who: `remix ${result.as} mas` }) : null;
       flags = { ...flags, mas: masWarn(noulOf(answers, "mas")) };
     }
+    if (result.as === "image" && make.angle) result = { ...result, angle: make.angle };
     console.log("remix ok", make.as, make.keep, make.close, `copied ${flags.copied.length}`, `rewrote ${rewrote}`, `tokens ${tokens.join(" | ")}`, `${Date.now() - startedAt}ms`);
     return json({ as: make.as, result, flags, usage: { used: usage.used, limit: usage.limit } });
   } catch (e) {

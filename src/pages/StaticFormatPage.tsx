@@ -210,6 +210,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                     {mine.preview && <img src={mine.preview} alt="" className="h-20 w-auto shrink-0 rounded border border-border/60" />}
                     <div className="space-y-1">
                       <p className="font-semibold text-foreground">Your photo ad is ready.</p>
+                      {mine.angle && <p className="text-xs text-muted-foreground">Angle: {mine.angle}</p>}
                       <Link to={links.media({ folder: AI_FOLDER, item: mine.mediaKey })} className="inline-flex font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
                         Open it in Photos and videos
                       </Link>
