@@ -476,8 +476,9 @@ export default function PlanPage() {
   }, [searchParams.get("competitor")]);
 
   const postedCount = items.filter((i) => i.posted).length;
-  // Only the next unposted slot gets the filled button: one clear next step.
-  const nextItemId = items.find((i) => !i.posted)?.id ?? null;
+  // One filled button: Add to calendar until every slot is on it, then the next unposted slot's Write it.
+  const onCalendar = items.length > 0 && items.every((it) => drafts.some((d) => d.id === planDraftId(it)));
+  const nextItemId = onCalendar ? (items.find((i) => !i.posted)?.id ?? null) : null;
   const totalCount = items.length;
   const pct = totalCount > 0 ? Math.round((postedCount / totalCount) * 100) : 0;
 
@@ -934,8 +935,9 @@ export default function PlanPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
+              variant={onCalendar ? "outline" : "default"}
               onClick={handleAddToCalendar}
-              className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"
+              className={`gap-1.5 ${onCalendar ? "" : "bg-gradient-primary text-primary-foreground hover:opacity-95"}`}
             >
               <CalendarIcon className="h-3.5 w-3.5" /> Add {totalCount} posts to calendar
             </Button>

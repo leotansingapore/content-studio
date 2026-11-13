@@ -153,6 +153,22 @@ describe("/plan for everyone else", () => {
   });
 });
 
+describe("/plan's one filled button", () => {
+  const filled = (html: string) =>
+    [...html.matchAll(/<(a|button)\b[^>]*class="[^"]*bg-gradient-primary[^"]*"[^>]*>(.*?)<\/\1>/g)].map((m) => m[2].replace(/<[^>]+>/g, "").trim());
+
+  it("is Add to calendar while some slots are not on the calendar", async () => {
+    seed();
+    expect(filled((await frames()).loaded)).toEqual([`Add ${PLAN.items.length} posts to calendar`]);
+  });
+  it("is the next slot's Write it once every slot is on the calendar", async () => {
+    seed();
+    const entry = (id: string) => ({ id: `plan_${id}`, createdAt: "2026-01-05T00:00:00.000Z", hook: "h", draft: "", pillar: "topic", pillarDetail: "", audience: "", format: "carousel", platform: "instagram", ctaType: "", status: "scheduled", scheduledFor: "2030-01-07" });
+    local.setItem(`content-studio-drafts-${UID}`, JSON.stringify(PLAN.items.map((it) => entry(it.id))));
+    expect(filled((await frames()).loaded)).toEqual(["Write it"]);
+  });
+});
+
 describe("/plan for Leo", () => {
   const LEO = { id: UID, email: "tanjunsing@gmail.com" };
 
