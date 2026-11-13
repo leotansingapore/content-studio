@@ -664,6 +664,7 @@ const newSetId = () => `vs-${Date.now().toString(36)}${Math.random().toString(36
 
 /** Trailing hashtags into the first comment: one rule, shared with the schedule steps (NetworkCaptions). */
 export const moveHashtagsToComment = moveHashtags;
+const GENERATE_FILL = "bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95";
 /** The longest change the assistant passes in. */
 const MAX_ASK = 300;
 
@@ -4125,11 +4126,13 @@ function Writer() {
               <StopCircleIcon className="h-4 w-4" /> Stop
             </Button>
           ) : (
+            // while One question first is open its Write with this is the filled button, so this one is an outline
             <Button
               size="lg"
+              variant={ideaAsk ? "outline" : "default"}
               onClick={() => void handleGenerate()}
               disabled={checkingIdea}
-              className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
+              className={`gap-2 ${ideaAsk ? "" : GENERATE_FILL}`}
             >
               <SparkleIcon className="h-4 w-4" />
               {generateButtonLabel}
@@ -4219,9 +4222,10 @@ function Writer() {
               <div className="flex flex-col items-end gap-0.5">
                 <Button
                   type="button"
+                  variant={ideaAsk ? "outline" : "default"}
                   onClick={() => void handleGenerate()}
                   disabled={checkingIdea}
-                  className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 [@media(pointer:coarse)]:h-11"
+                  className={`gap-2 ${ideaAsk ? "" : `${GENERATE_FILL} `}[@media(pointer:coarse)]:h-11`}
                 >
                   <SparkleIcon className="h-4 w-4" />
                   {generateButtonLabel}
