@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { CaretDownIcon, CaretRightIcon, ImageSquareIcon, TrashIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CaretDownIcon, CaretRightIcon, ImageSquareIcon, TrashIcon } from "@phosphor-icons/react";
 import ProfessionField from "@/components/ProfessionField";
 import { LogoTile } from "@/components/onboarding/parts";
 import { shrinkImage } from "@/components/brand/shrinkImage";
@@ -72,12 +72,25 @@ function RowFace({ row, icon }: { row: OverviewRow; icon: ReactNode }) {
   );
 }
 
+/** The "Next:" pointer's look, at the top of Profile and in an open row. */
+export const NEXT = "inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11";
+
+/** "Next: Add a logo", opening that row in place or linking to the page that fills it. */
+export function NextGap({ row, onOpen }: { row: OverviewRow; onOpen: (id: string) => void }) {
+  const words = <>Next: {row.add} <ArrowRightIcon className="h-3.5 w-3.5" aria-hidden /></>;
+  return row.edit
+    ? <button type="button" onClick={() => onOpen(row.id)} className={NEXT}>{words}</button>
+    : <Link to={row.to} className={NEXT}>{words}</Link>;
+}
+
 const ROW = "group flex min-h-[52px] w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 
-export function ProfileGroups({ groups, uid, openId, onOpen, onClose, onSaved }: {
+export function ProfileGroups({ groups, uid, openId, next, onOpen, onClose, onSaved }: {
   groups: OverviewGroup[];
   uid: string;
   openId: string | null;
+  /** The first gap after the open row, offered beside its Done. */
+  next?: OverviewRow;
   onOpen: (id: string) => void;
   onClose: () => void;
   onSaved: () => void;
@@ -103,7 +116,7 @@ export function ProfileGroups({ groups, uid, openId, onOpen, onClose, onSaved }:
                   )}
                   {open && (
                     <div id={`edit-${r.id}`} className="border-t border-border/60 bg-muted/20 px-4 py-4">
-                      <RowEditor kind={r.edit!} row={r} uid={uid} onSaved={onSaved} onDone={onClose} />
+                      <RowEditor kind={r.edit!} row={r} uid={uid} next={next} onOpen={onOpen} onSaved={onSaved} onDone={onClose} />
                     </div>
                   )}
                 </li>
@@ -116,7 +129,15 @@ export function ProfileGroups({ groups, uid, openId, onOpen, onClose, onSaved }:
   );
 }
 
-function RowEditor({ kind, row, uid, onSaved, onDone }: { kind: ProfileEdit; row: OverviewRow; uid: string; onSaved: () => void; onDone: () => void }) {
+function RowEditor({ kind, row, uid, next, onOpen, onSaved, onDone }: {
+  kind: ProfileEdit;
+  row: OverviewRow;
+  uid: string;
+  next?: OverviewRow;
+  onOpen: (id: string) => void;
+  onSaved: () => void;
+  onDone: () => void;
+}) {
   const [status, setStatus] = useState("");
   const box = useRef<HTMLDivElement>(null);
   // the first field takes the keys, so a row opened by Next or a click is typed into straight away
@@ -137,6 +158,8 @@ function RowEditor({ kind, row, uid, onSaved, onDone }: { kind: ProfileEdit; row
       <Editor kind={kind} uid={uid} save={saved} />
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Button type="button" size="sm" variant="outline" className="h-9 [@media(pointer:coarse)]:h-11" onClick={onDone}>Done</Button>
+        {/* the next gap beside the field just filled (law 8), so the chain never sends the eye back to the top */}
+        {next && <NextGap row={next} onOpen={onOpen} />}
         {more && <Link to={row.to} className="text-sm font-medium text-muted-foreground hover:text-foreground hover:underline [@media(pointer:coarse)]:py-3">{more}</Link>}
         <p aria-live="polite" className={`ml-auto text-xs ${status === "Saved" ? "text-success" : "text-destructive"}`}>{status}</p>
       </div>

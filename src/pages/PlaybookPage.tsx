@@ -16,14 +16,14 @@ import { useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
 import { useScrollToHash, useUrlItem } from "@/lib/urlState";
 import { activeProfile } from "@/lib/profiles";
 import { KIT_FEEDS, cachedKit } from "@/lib/brandKitFeed";
-import { ProfileGroups } from "@/components/brand/ProfileRows";
+import { NextGap, ProfileGroups } from "@/components/brand/ProfileRows";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
 import { adviserBrand } from "@/lib/profession";
 import type { ThemeOutlet } from "@/lib/theme";
 import { ThemeSwitch } from "@/pages/StudioLayout";
 import inspirationData from "@/data/inspiration.json";
 import advisorsData from "@/data/advisors.json";
-import { TargetIcon, LightbulbIcon, UsersIcon, CheckCircleIcon, ArrowRightIcon, BookmarkSimpleIcon } from "@phosphor-icons/react";
+import { TargetIcon, LightbulbIcon, UsersIcon, CheckCircleIcon, BookmarkSimpleIcon } from "@phosphor-icons/react";
 
 type Insp = { id: string; hook: string; topic: string };
 type Adv = { id: string; name: string; handle: string };
@@ -104,6 +104,10 @@ export default function PlaybookPage() {
   });
   const done = completeness(groups);
   const next = done.missing[0];
+  // what the open row's Next offers: the first gap that is not the row being typed in
+  const after = done.missing.find((r) => r.id !== editing);
+  // while a row is open its own Next sits beside its field, so the one up here would only repeat it
+  const rowOpen = groups.some((g) => g.rows.some((r) => r.id === editing && r.edit));
   const savedInsp = saved.inspiration
     .map((id) => INSP.find((e) => e.id === id))
     .filter(Boolean) as Insp[];
@@ -136,18 +140,10 @@ export default function PlaybookPage() {
                   </span>
                 )}
               </span>
-              {next && (next.edit ? (
-                <button type="button" onClick={() => openRow(next.id)} className="inline-flex items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
-                  Next: {next.add} <ArrowRightIcon className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              ) : (
-                <Link to={next.to} className="inline-flex items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
-                  Next: {next.add} <ArrowRightIcon className="h-3.5 w-3.5" aria-hidden />
-                </Link>
-              ))}
+              {next && !rowOpen && <NextGap row={next} onOpen={openRow} />}
             </span>
           </div>
-          <ProfileGroups groups={groups} uid={uid} openId={editing} onOpen={openRow} onClose={closeRow} onSaved={redraw} />
+          <ProfileGroups groups={groups} uid={uid} openId={editing} next={after} onOpen={openRow} onClose={closeRow} onSaved={redraw} />
         </>
       )}
 
