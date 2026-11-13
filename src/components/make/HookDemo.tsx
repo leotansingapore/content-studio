@@ -445,7 +445,21 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
           <figcaption className="text-center text-xs text-muted-foreground">The clip starts here</figcaption>
         </figure>
       ) : (
-        <Placeholder>Your result shows here once you make it.</Placeholder>
+        // before the first make: the format's own example, so the pane shows what you will get (as its gallery page does)
+        <figure className="mx-auto w-full max-w-[300px] space-y-1.5">
+          <video
+            src={`/formats/${def.slug}.mp4`}
+            poster={`/formats/${def.slug}.webp`}
+            muted
+            loop
+            playsInline
+            controls
+            autoPlay={typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (prefers-reduced-motion: no-preference)").matches}
+            aria-label={`${def.name} example`}
+            className="aspect-[9/16] w-full rounded-xl border border-border/60 bg-muted object-cover"
+          />
+          <figcaption className="text-center text-xs text-muted-foreground">Example</figcaption>
+        </figure>
       )}
     </div>
   );

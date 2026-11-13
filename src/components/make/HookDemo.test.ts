@@ -71,3 +71,11 @@ describe("Hook plus demo's footer chip", () => {
     expect(crumple).toBe("About US$1.85");
   });
 });
+
+describe("Hook plus demo's result pane before the first make", () => {
+  it("shows the format's example clip in place of a line about it", () => {
+    const html = page();
+    expect(html).toContain('src="/formats/hook-demo.mp4"');
+    expect(html).not.toContain("Your result shows here once you make it.");
+  });
+});
