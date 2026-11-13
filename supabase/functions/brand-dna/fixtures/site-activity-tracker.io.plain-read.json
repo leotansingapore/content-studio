@@ -22,7 +22,8 @@
       "Inter",
       "Montserrat",
       "Rubik"
-    ]
+    ],
+    "profession": ""
   },
   "openai": {
     "model": "gpt-6-sol",
@@ -96,6 +97,19 @@
           "parent": "Parents and young families",
           "pre-retiree": "People in their 50s and 60s planning retirement",
           "general": "Everyone, or businesses rather than people, or the page doesn't say"
+        }
+      },
+      "profession": {
+        "type": "choice",
+        "instructions": "What does the person or business behind this website do for a living?",
+        "criteria": {
+          "adviser": "A financial adviser, planner or insurance agent: insurance, savings, investment or retirement plans for clients",
+          "coach": "A coach: career, life, business, health or fitness coaching for people",
+          "consultant": "A consultant or agency doing projects or services for other businesses",
+          "realtor": "A real estate agent or agency: buying, selling or renting homes and property",
+          "freelancer": "One person selling their own services, like design, writing, photography or software",
+          "lawyer": "A lawyer or a law firm",
+          "other": "Something else: a shop, a product, an app, a clinic, a school, a restaurant or a large company, or the page doesn't say"
         }
       }
     }

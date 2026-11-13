@@ -26,7 +26,8 @@ export const professionAsk = {
   },
 };
 
-export const PROFESSION_MIN = 0.6;
+// set from the 13 Nov shadow run: 0.6 named postmosis.com a freelancer at 0.80; 0.85 fills 18 of 30 labelled sites, 0 wrong
+export const PROFESSION_MIN = 0.85;
 
 export const professionAnswer = (answers: Record<string, JevAnswer> | null): { key: string | null; p: number | null } => {
   const a = answers?.profession;

@@ -5,6 +5,12 @@ import { aboutText, PROFESSION_MIN, PROFESSION_PICKS, professionAnswer, professi
 const answer = (choice: unknown, probabilities: Record<string, unknown> = {}) => ({ profession: { type: "choice" as const, choice: choice as string, probabilities: probabilities as Record<string, number> } });
 
 describe("the profession pick", () => {
+  it("fills only at 0.85 or more, the cut set from the 13 Nov shadow run (0.6 named postmosis.com a freelancer at 0.80)", () => {
+    expect(PROFESSION_MIN).toBe(0.85);
+    expect(professionFrom(answer("freelancer", { freelancer: 0.8, other: 0.12 }))).toBe("");
+    expect(professionFrom(answer("adviser", { adviser: 0.85 }))).toBe("Financial adviser");
+  });
+
   it("offers exactly the work step's chips, plus a way out", () => {
     expect(Object.values(PROFESSION_PICKS)).toEqual([...PROFESSION_CHOICES]);
     expect(Object.keys(professionAsk.criteria)).toEqual([...Object.keys(PROFESSION_PICKS), "other"]);

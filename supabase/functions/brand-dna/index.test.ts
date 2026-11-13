@@ -149,12 +149,29 @@ describe("brand-dna", () => {
     }
   });
 
+  it("asks Jev what the brand does in the same call as who it helps, and names it only at 0.85 or more", async () => {
+    env.TYPESAFE_API_KEY = "t";
+    try {
+      jevReply = (q) => ({ audience: { type: "choice", choice: "working-adult" }, ...("profession" in q ? { profession: { type: "choice", choice: "coach", probabilities: { coach: 0.9, other: 0.1 } } } : {}) });
+      const sure = await call({ url: "acme.sg" });
+      expect(Object.keys(jevAsked[0].questions)).toEqual(["audience", "profession"]);
+      expect(jevAsked.length).toBe(1);
+      expect(sure.body.profession).toBe("Coach");
+      jevAsked.length = 0;
+      jevReply = (q) => ({ audience: { type: "choice", choice: "working-adult" }, ...("profession" in q ? { profession: { type: "choice", choice: "freelancer", probabilities: { freelancer: 0.8, other: 0.12 } } } : {}) });
+      expect((await call({ url: "acme.sg" })).body.profession).toBe("");
+    } finally {
+      delete env.TYPESAFE_API_KEY;
+      jevReply = (q) => ("audience" in q ? { audience: { type: "choice", choice: "working-adult" } } : {});
+    }
+  });
+
   it("reads the home page up to 1 MB for its logo, so a header past the first 400 KB still gives it", async () => {
     routes["https://late.sg/"] = html(`<title>Late</title><body>${"<p>words</p>".repeat(40_000)}<header><a href="/"><svg viewBox="0 0 20 10"><title>Late Logo</title><path d="M0 0h20v10z" fill="#e11d48"/></svg></a></header></body>`);
     const r = await call({ url: "late.sg" });
     expect(r.status).toBe(200);
     expect(r.body.logo).toMatch(/^data:image\/svg\+xml;base64,/);
-    expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice", "colours", "neutrals", "fonts"]);
+    expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice", "colours", "neutrals", "fonts", "profession"]);
   });
 
   it("still returns what the page itself shows when the LLM fails", async () => {
@@ -202,7 +219,7 @@ describe("brand-dna phase 4 (Leo only)", () => {
     expect(seen).toEqual([]);
     expect(db.spent).toEqual([]);
     const r = await call({ url: "acme.sg" }, "u1");
-    expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice", "colours", "neutrals", "fonts"]);
+    expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice", "colours", "neutrals", "fonts", "profession"]);
     // no page past the home page
     expect(seen.filter((u) => /acme\.sg\/(about|services|blog|contact)/.test(u))).toEqual([]);
   });
@@ -348,7 +365,7 @@ describe("brand-dna phase 4 (Leo only)", () => {
 });
 
 describe("the brand's look: logo, colours and fonts", () => {
-  const KEYS = ["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice", "colours", "neutrals", "fonts"];
+  const KEYS = ["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice", "colours", "neutrals", "fonts", "profession"];
   const LOOK = `<html lang="en"><title>Acme Wealth | Plans</title><meta property="og:image" content="/og.jpg">
 <link rel="stylesheet" href="/css/one.css"><link rel="stylesheet" href="/css/two.css"><link rel="stylesheet" href="/css/three.css"><link rel="stylesheet" href="/css/four.css">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&amp;display=swap" rel="stylesheet">

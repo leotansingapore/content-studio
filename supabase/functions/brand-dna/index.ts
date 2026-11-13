@@ -25,6 +25,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { askJev, choiceOf } from "../_shared/jev.ts";
+import { professionAsk, professionFrom } from "./profession.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { fetchCapped } from "../_shared/safeFetch.ts";
 import { consumeUsage, refundUsage, type UsageResult, usageRefusal } from "../_shared/usageCaps.ts";
@@ -345,7 +346,9 @@ Deno.serve(async (req) => {
   const palette = safely("colours", () => lookPalette(top, css, logo?.svg || drawn), { colours: [] as string[], neutrals: [] as string[] });
   const colours = palette.colours.slice(0, 4);
   const about = [written?.oneLiner, written?.audienceDetail, site.description].filter(Boolean).join(" ");
-  const audience = about ? choiceOf(await askJev({ text: about.slice(0, 1500) }, { audience: audienceAsk }, { who: "brand-dna" }), "audience", AUDIENCES) : null;
+  // one Jev call answers both: who the brand helps, and what it does (docs/profession-pick.md)
+  const told = about ? await askJev({ text: about.slice(0, 1500) }, { audience: audienceAsk, profession: professionAsk }, { who: "brand-dna" }) : null;
+  const audience = told ? choiceOf(told, "audience", AUDIENCES) : null;
 
   return json({
     url: page.url.origin,
@@ -362,6 +365,7 @@ Deno.serve(async (req) => {
     colours,
     neutrals: palette.neutrals,
     fonts: safely("fonts", () => lookFonts(top, css).slice(0, 3), [] as string[]),
+    profession: professionFrom(told),
     ...(listed ? { pagesRead: fenced?.read ?? [page.url.href], lang: site.lang } : {}),
   });
 });

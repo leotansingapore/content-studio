@@ -1,6 +1,6 @@
 # Profession pick from a brand read
 
-Status: shadow only. Nothing reads it yet. The live `brand-dna` is unchanged.
+Status: live from 13 Nov 2026 at `PROFESSION_MIN` 0.85, set from the shadow run (18 of 30 labelled sites filled, 0 wrong; 0.6 would have named postmosis.com a freelancer at 0.80).
 
 ## What it will do
 
@@ -36,7 +36,7 @@ TYPESAFE_API_KEY=... OPENAI_API_KEY=... deno run -A supabase/functions/brand-dna
   It lists wrong prefills first, then picks within 0.15 of the cut, then every site.
 - Answers are cached by request, so a second run asks again only what changed.
 
-## Going live, after Leo reads the report
+## How it went live (13 Nov 2026)
 
 1. Set `PROFESSION_MIN` from the report.
 2. In `index.ts`, add `profession: professionAsk` to the audience call and return
