@@ -2,11 +2,13 @@
 
 Item 2 of docs/handovers/2026-11-13-jilian-next.md. Every page a new customer reaches in the first week, opened in light at 1440 and 390 wide. One screenshot per page is in this folder.
 
-Result: one defect, fixed in bde9fef1. No text failed the contrast check, and no other colour is fixed to a dark value.
+Walked twice. The first walk (11 AM) found the defect below. Leo restyled the studio at 1 PM (84d2f0d4 and the commits after it), so every page was walked again at 4 PM on main, in light and in dark, at both widths. The screenshots here are from the second walk.
+
+Result: one defect in the first walk, fixed in bde9fef1. The second walk found nothing: no text failed the contrast check in either theme, no colour is fixed to a dark value in light, and no picture vanishes.
 
 ## How it was checked
 
-- Local dev server, a fake signed-in account, light theme. Nothing touched the live database.
+- Local dev server, a fake signed-in account, light theme (and dark, in the second walk). Nothing touched the live database.
 - `cs_subscriptions` stubbed three ways: a trial with 5 days left, a payment 2 days past due, and an ended subscription.
 - `social` stubbed as switched on with no accounts connected, as on day one.
 - The brand kit had a white logo, then a dark one. Both are made-up "TIDY HOME" wordmarks.
@@ -45,8 +47,10 @@ The tile now follows the logo, the same way set-up's does: a dark tile for a whi
 
 The MoneyBees kit card on /brand (yours only) still uses the dark tile. I left it, since it is not a customer page.
 
+Later the same day the tile rule got two more fixes after review: a white wordmark beside a coloured mark gets the dark tile (306302f7), and the tile is chosen by the logo's outline, so a dark name beside a badge with a white letter keeps the light tile (bcfe2ba6). Picked cards in set-up also got an opaque base and dark-mode icon colours (71466f56).
+
 ## Not covered
 
 - Stripe's own pages (checkout and the portal) and any email.
-- Pages past the first week, and every page in dark.
+- Pages past the first week. Dark was checked by the same three automatic checks, without screenshots in this folder.
 - No new words: nothing in this fix adds or changes a label.
