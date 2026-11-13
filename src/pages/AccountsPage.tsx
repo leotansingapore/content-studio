@@ -321,7 +321,7 @@ export default function AccountsPage() {
       <section aria-labelledby="accounts-social" className="space-y-2">
         <div className="flex items-center gap-1">
           <h2 id="accounts-social" className="text-sm font-semibold">Social accounts{profile.id !== DEFAULT_PROFILE_ID ? ` for ${profile.name}` : ""}</h2>
-          <InfoTip label="About social accounts">Each brand profile connects its own accounts, through Zernio.</InfoTip>
+          <InfoTip label="About social accounts">Each brand connects its own accounts, and posts only to those.</InfoTip>
         </div>
         {(state === "loading" || (state === "ready" && leo === undefined)) && (
           <p className="text-sm text-muted-foreground" aria-live="polite">
