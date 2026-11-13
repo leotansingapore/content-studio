@@ -433,14 +433,17 @@ export default function BoardPage() {
       />
 
       {drafts.length === 0 && feed.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground">
-            <p>Nothing in production yet.</p>
+        <EmptyState
+          icon={ColumnsIcon}
+          title="Nothing in production yet"
+          actions={
             <Button asChild size="sm">
-              <Link to="/generate">Write a post</Link>
+              <Link to={createHref(leo?.email ?? "")}>Create</Link>
             </Button>
-          </CardContent>
-        </Card>
+          }
+        >
+          Posts you write land under Scripted.
+        </EmptyState>
       )}
       {/* Horizontal, Trello/Linear-style board: real-width columns that size to
           their content, grouped by phase, scrolling sideways on narrow screens. */}

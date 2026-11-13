@@ -2,7 +2,6 @@
 // slideshow, video and AI picture in one grid, filtered by format, status and search, with what is still being made
 // beside it. Read-only apart from its links: each card opens the page that made it. Nothing is stored here.
 
-import { newPostHref } from "@/lib/newPost";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { BooksIcon, MagnifyingGlassIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
@@ -164,25 +163,23 @@ function Library({ userId, email }: { userId: string; email: string }) {
           icon={BooksIcon}
           title="Nothing made yet"
           actions={
-            <>
-              <Button asChild className={TOUCH}>
-                <Link to={newPostHref(userId)}>Write a post</Link>
-              </Button>
-              <Button asChild variant="outline" className={TOUCH}>
-                <Link to={links.swipe()}>Find a post to remix</Link>
-              </Button>
-            </>
+            <Button asChild className={TOUCH}>
+              <Link to={createHref(email)}>Create</Link>
+            </Button>
           }
         >
           Posts, carousels, videos and images you make land here.
         </EmptyState>
       ) : shown.length === 0 ? (
-        <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">Nothing matches these filters.</p>
-          <Button variant="outline" onClick={clear} className={TOUCH}>
-            Clear filters
-          </Button>
-        </div>
+        <EmptyState
+          icon={MagnifyingGlassIcon}
+          title="Nothing matches these filters"
+          actions={
+            <Button variant="outline" onClick={clear} className={TOUCH}>
+              Clear filters
+            </Button>
+          }
+        />
       ) : (
         // Fastlane's density: six portrait cards a row on a wide screen
         <ul className="grid grid-cols-2 items-start gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">

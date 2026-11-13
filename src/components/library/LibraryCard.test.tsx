@@ -81,4 +81,23 @@ describe("the Library page", () => {
     expect(out).toMatch(/<ul[^>]*xl:grid-cols-6[^>]*><li[^>]*><a[^>]*href="\/edit"[^>]*>.*?Upload your own<\/a><\/li>/);
     expect(html(<LibraryPage />, "/library?format=text")).not.toContain("Upload your own");
   });
+
+  it("says an empty library in one heading, one sentence and one button, Create", () => {
+    brandDevice("u1");
+    const out = html(<LibraryPage />);
+    expect(out).toContain("Nothing made yet");
+    expect(out).toMatch(/<a[^>]*href="\/generate"[^>]*>Create<\/a>/);
+    expect(out).not.toContain("Find a post to remix");
+    expect(out).not.toContain('aria-label="Format"');
+    expect(out).toContain('aria-label="Library view"');
+  });
+
+  it("says a filter with nothing in it the same way, its one button clearing the filter", () => {
+    seed();
+    const out = html(<LibraryPage />, "/library?format=video");
+    expect(out).toContain("Nothing matches these filters");
+    expect(out).toMatch(/<button[^>]*>Clear filters<\/button>/);
+    expect(out).not.toContain(">Create<");
+    expect(out).not.toContain("xl:grid-cols-6");
+  });
 });

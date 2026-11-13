@@ -873,8 +873,8 @@ export default function DraftsPage() {
             icon={SparkleIcon}
             title="No posts yet"
             actions={
-              <Button size="sm" onClick={() => navigate("/generate")} className="gap-1.5">
-                <PencilSimpleIcon className="h-3.5 w-3.5" /> Write a post
+              <Button size="sm" onClick={() => navigate(createHref(leo?.email ?? ""))}>
+                Create
               </Button>
             }
           >
