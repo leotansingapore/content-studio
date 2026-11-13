@@ -158,11 +158,13 @@ function InspirationCard({
     }
   };
 
+  // outlined in the primary colour: a filled one on every card left the grid with a dozen equal calls (law 7)
   const useAsVibe = (
     <Button
       size="sm"
+      variant="outline"
       onClick={handleUseAsVibe}
-      className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
+      className="w-full gap-1.5 border-primary/40 text-primary hover:text-primary sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
     >
       <SparkleIcon className="h-3.5 w-3.5" />
       Use as vibe
@@ -368,7 +370,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
               />
             </div>
             <Button
-              variant={showFilters || activeFilterCount > 0 ? "default" : "outline"}
+              variant={showFilters || activeFilterCount > 0 ? "secondary" : "outline"}
               onClick={() => setShowFilters((v) => !v)}
               aria-expanded={showFilters}
               className="shrink-0 gap-1.5 [@media(pointer:coarse)]:h-11"
@@ -376,7 +378,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
               <FunnelIcon className="h-3.5 w-3.5" />
               Filters
               {activeFilterCount > 0 && (
-                <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
+                <span className="ml-0.5 rounded-full bg-primary/15 px-1.5 text-[10px] font-bold text-primary">
                   {activeFilterCount}
                 </span>
               )}
