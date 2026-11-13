@@ -11,6 +11,7 @@ import type { JoinJob } from "@/lib/videoMedia";
 import type { VideoProject } from "@/lib/videoProjects";
 import type { WallAsk } from "@/lib/wallJob";
 import {
+  uploadFirst,
   aiJobs,
   buildLibrary,
   countBy,
@@ -427,5 +428,15 @@ describe("where a post opens (the Library card and the Instagram grid)", () => {
     expect(draftHref({ id: "video-p1", format: "short-video" })).toBe(links.edit({ p: "p1" }));
     expect(draftHref({ id: "d1", format: "carousel" })).toBe(links.carousel({ draft: "d1" }));
     expect(draftHref({ id: "d1", format: "text-post" })).toBe(links.generate({ draft: "d1" }));
+  });
+});
+
+describe("the upload tile (first in Everything's grid)", () => {
+  it("leads the whole library and the videos, and stays out of a search, a status or another format", () => {
+    expect(uploadFirst({ format: null, status: null, q: "" })).toBe(true);
+    expect(uploadFirst({ format: "video", status: null, q: "" })).toBe(true);
+    expect(uploadFirst({ format: "text", status: null, q: "" })).toBe(false);
+    expect(uploadFirst({ format: null, status: "ready", q: "" })).toBe(false);
+    expect(uploadFirst({ format: "video", status: null, q: "cpf" })).toBe(false);
   });
 });

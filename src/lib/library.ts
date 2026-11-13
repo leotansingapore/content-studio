@@ -314,6 +314,9 @@ export function filterLibrary(items: LibraryItem[], f: LibraryFilter): LibraryIt
 }
 
 /** Counts per status for the pills, plus all. */
+/** Whether Everything's grid opens on the Upload your own tile: it sends a video to the editor, so it leads only the whole library or its videos, never a search or a status. */
+export const uploadFirst = (f: { format: LibraryFormat | null; status: LibraryStatus | null; q: string }) => !f.q.trim() && !f.status && (!f.format || f.format === "video");
+
 export function countBy(items: LibraryItem[]): Record<LibraryStatus | "all", number> {
   const out = { all: items.length, ready: 0, scheduled: 0, posted: 0, making: 0, failed: 0 };
   for (const it of items) out[it.status]++;

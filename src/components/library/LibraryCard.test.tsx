@@ -74,4 +74,11 @@ describe("the Library page", () => {
     expect(out).toMatch(/<button[^>]*aria-label="Status"[^>]*>.*?Ready \(1\)/);
     expect(out).toContain("Three CPF myths");
   });
+
+  it("opens the grid on Upload your own, a link to the video editor, and leaves it out of a filtered grid", () => {
+    seed();
+    const out = html(<LibraryPage />);
+    expect(out).toMatch(/<ul[^>]*xl:grid-cols-6[^>]*><li[^>]*><a[^>]*href="\/edit"[^>]*>.*?Upload your own<\/a><\/li>/);
+    expect(html(<LibraryPage />, "/library?format=text")).not.toContain("Upload your own");
+  });
 });

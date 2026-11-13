@@ -26,6 +26,7 @@ import {
   buildLibrary,
   countBy,
   filterLibrary,
+  uploadFirst,
   type LibraryFormat,
   type LibraryStatus,
 } from "@/lib/library";
@@ -185,6 +186,18 @@ function Library({ userId, email }: { userId: string; email: string }) {
       ) : (
         // Fastlane's density: six portrait cards a row on a wide screen
         <ul className="grid grid-cols-2 items-start gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+          {/* a way in for a video of your own: Studio's Upload your own, the video editor */}
+          {uploadFirst({ format: fmt, status: st, q }) && (
+            <li className="flex min-w-0">
+              <Link
+                to={links.edit()}
+                className="flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border p-2 text-center text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                <UploadSimpleIcon className="h-5 w-5" aria-hidden />
+                Upload your own
+              </Link>
+            </li>
+          )}
           {shown.map((item) => (
             <li key={item.key} className="flex min-w-0">
               <LibraryCard item={item} sources={sources} />
