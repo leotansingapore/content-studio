@@ -261,6 +261,20 @@ describe("aiUseRows", () => {
       { day: "2026-10-20", feature: "retired-cap", label: "retired-cap", uses: 1, limit: null },
     ]);
   });
+  it("shows the owner's 40 pictures on Leo's sign-in and everyone else's 5, every other limit the same", () => {
+    const rows = [{ feature: "ai-image", day: "2026-10-21", count: 12 }, { feature: "remix-make", day: "2026-10-21", count: 3 }];
+    expect(aiUseRows(rows, true).map((r) => [r.feature, r.limit])).toEqual([["ai-image", 40], ["remix-make", 30]]);
+    expect(aiUseRows(rows, false).map((r) => [r.feature, r.limit])).toEqual([["ai-image", 5], ["remix-make", 30]]);
+    // by default, from the sign-in stored on this device
+    const store = new Map([["sb-hgdbflprrficdoyxmdxe-auth-token", JSON.stringify({ user: { id: "u1", email: "leotanjs95@gmail.com" } })]]);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: () => {}, removeItem: () => {} });
+    try {
+      expect(aiUseRows(rows).find((r) => r.feature === "ai-image")?.limit).toBe(40);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("labels every DAILY_LIMITS key, so a new cap cannot ship without one", () => {
     const labels = AI_USE_LABELS as Record<string, string>;
     expect(Object.keys(DAILY_LIMITS).filter((k) => !labels[k])).toEqual([]);

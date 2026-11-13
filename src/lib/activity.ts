@@ -7,6 +7,7 @@
 // shortcut: synced rows, not a table; move to an insert-only cs_activity table once Leo's rows pass 2 MB or near
 // 1,000 (Q13).
 
+import { limitFor, ownerSignedIn } from "@/lib/aiUsage";
 import { addDays, keyToDate, localDateKey } from "@/lib/dueDates";
 import { links } from "@/lib/links";
 import { scoped } from "@/lib/profiles";
@@ -456,14 +457,15 @@ export interface AiUseRow {
 
 /**
  * The AI use table from cs_ai_usage rows, newest day first: drops the across-everyone "-global" counters and the
- * claimOnce rows (a ":" in the key) that Leo's account also holds, and rows a refund took back to 0.
+ * claimOnce rows (a ":" in the key) that Leo's account also holds, and rows a refund took back to 0. Each limit is the
+ * one the server holds the sign-in to (limitFor: the owner's picture cap on Leo's).
  */
-export function aiUseRows(rows: { feature: string; day: string; count: number }[]): AiUseRow[] {
+export function aiUseRows(rows: { feature: string; day: string; count: number }[], owner = ownerSignedIn()): AiUseRow[] {
   const labels = AI_USE_LABELS as Record<string, string>;
-  const limits = DAILY_LIMITS as Record<string, number>;
+  const known = (f: string): f is UsageFeature => Object.prototype.hasOwnProperty.call(DAILY_LIMITS, f);
   return rows
     .filter((r) => typeof r.feature === "string" && !r.feature.endsWith("-global") && !r.feature.includes(":") && r.count > 0)
-    .map((r) => ({ day: r.day, feature: r.feature, label: labels[r.feature] ?? r.feature, uses: r.count, limit: limits[r.feature] ?? null }))
+    .map((r) => ({ day: r.day, feature: r.feature, label: labels[r.feature] ?? r.feature, uses: r.count, limit: known(r.feature) ? limitFor(r.feature, owner) : null }))
     .sort((a, b) => b.day.localeCompare(a.day) || a.label.localeCompare(b.label));
 }
 
