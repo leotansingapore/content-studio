@@ -1,4 +1,5 @@
-// What you sell (brand-products, Leo only): the brand's products or services, synced per brand under
+// What you sell (brand-products; ticked in Add a brand on every account, edited on Brand > Products, Leo's page): the
+// brand's products or services, synced per brand under
 // content-studio-products-<scoped>. Pictures are cimg- keys on this device (IndexedDB, also in Media's "Products"
 // folder); sources[i] is the site address pictures[i] came from ("" for one uploaded or picked from Media), so
 // another device fetches it again under the same key. Offers stay their own list and remain the only allowed links.
@@ -194,6 +195,12 @@ export interface Scan {
   kind: ProductKind | null;
   items: ScannedProduct[];
 }
+
+/**
+ * The scan with no picture addresses, for an account brand-dna image refuses (not on NORTH_STAR_USERS): a key saved
+ * with no file behind it would send the AI panel's product slot to fetch it, and be refused.
+ */
+export const unpictured = (scan: Scan): Scan => ({ ...scan, items: scan.items.map(({ picture: _, ...row }) => row) });
 
 /**
  * The ticked rows added to the list, skipping any already in it and stopping at MAX_PRODUCTS. Saved items are never

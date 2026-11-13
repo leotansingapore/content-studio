@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   adFacts, adProduct, alreadyAdded, loadProducts, mainProduct, MAX_PRODUCTS, mergeScan, type Product, productBrief, productLabel, PRODUCTS_CHANGED, sanitizeProducts,
-  saveProducts, type Scan,
+  saveProducts, type Scan, unpictured,
 } from "./products";
 import type { ScannedProduct } from "../../supabase/functions/brand-dna/logic.ts";
 
@@ -145,6 +145,14 @@ describe("mergeScan", () => {
     expect(added[1].namedProduct).toBeUndefined();
     expect(next).toMatchObject({ kind: "service", site: "https://acme.sg", readAt: s.readAt });
     expect(sanitizeProducts(next).items).toHaveLength(2);
+  });
+
+  it("adds rows with no picture key when the account can't fetch site pictures (unpictured), so nothing asks brand-dna image later", () => {
+    const s = scan([row({ name: "Wealth plan", picture: "https://acme.sg/w.jpg" }), row({ name: "Estate planning" })]);
+    const { added } = mergeScan({ items: [] }, unpictured(s), [0, 1], {}, NOW);
+    expect(added.map((p) => [p.name, p.pictures, p.sources])).toEqual([["Wealth plan", [], []], ["Estate planning", [], []]]);
+    // the scan itself is left as it was, its pictures still shown in the review
+    expect(s.items[0].picture).toBe("https://acme.sg/w.jpg");
   });
 
   it("matches by page or name, never changing a saved item, and keeps a kind that was picked", () => {

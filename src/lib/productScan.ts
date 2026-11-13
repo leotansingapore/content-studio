@@ -1,4 +1,5 @@
-// Finding what the brand sells on its website (brand-products, Leo only): one brand-dna products scan, run outside
+// Finding what the brand sells on its website from Brand > Products (Leo's page; Add a brand scans for every account
+// in BrandSetup, reading scanOf and reviewRows from here): one brand-dna products scan, run outside
 // React so leaving /brand keeps it going. The answer waits on this device (cs-products-scan-<scoped>, never synced)
 // until Add or Discard. Pictures come one at a time through brand-dna image: a found row's picture while it waits
 // for review, and a saved product's picture on a device that doesn't have it yet (stored under the product's own key,

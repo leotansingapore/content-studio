@@ -19,7 +19,7 @@ import type { PostLang } from "@/lib/links";
 import { logoColours, logoForKit } from "@/lib/logoImage";
 import { NEW_POST } from "@/lib/newPost";
 import { reviewRows, scanOf } from "@/lib/productScan";
-import { loadProducts, mergeScan, saveProducts, type Scan } from "@/lib/products";
+import { loadProducts, mergeScan, saveProducts, type Scan, unpictured } from "@/lib/products";
 import { markOnboarded } from "@/lib/onboarding";
 import { ADDRESS_ERROR, APP_SECTIONS, DEFAULT_NETWORK, holdForQuestions, distinctColours, KEPT_SECTIONS, PRODUCT_SECTIONS, foundNetworks, networksAfterRead, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS, slideFontFor, STEPS, webAddress, type Answers, type Mode, type Network, type Section, type Step, prefilledProfession } from "@/lib/onboardingFlow";
 import { goalChips } from "@/lib/positioning";
@@ -426,7 +426,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     if (link) void readApp(myId, link);
     else {
       void readSite(myId, address.trim());
-      if (leo && productsLeft !== 0) void findProducts(myId, address.trim());
+      if (productsLeft !== 0) void findProducts(myId, address.trim());
     }
     return true;
   };
@@ -437,10 +437,10 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
 
   const findResumed = useRef(false);
   useEffect(() => {
-    if (!start.resumeFind || !leo || findResumed.current) return;
+    if (!start.resumeFind || findResumed.current) return;
     findResumed.current = true;
     void findProducts(readId.current, address.trim());
-  }, [leo]);
+  }, []);
 
   const startRead = () => {
     if (!appStoreLink(address) && !webAddress(address)) {
@@ -504,14 +504,15 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     setMain(n);
   };
 
-  const sections = app ? APP_SECTIONS : leo && !noSite && (found.status === "running" || found.status === "done") ? PRODUCT_SECTIONS : SITE_SECTIONS;
+  const sections = app ? APP_SECTIONS : !noSite && (found.status === "running" || found.status === "done") ? PRODUCT_SECTIONS : SITE_SECTIONS;
   const productRows = () => (found.scan ? reviewRows(first ? loadProducts(uid).items : [], { scan: found.scan, ticks: found.ticks, pics: {} }) : []);
 
   const keepProducts = () => {
-    if (!leo || found.status !== "done" || !found.scan) return;
+    if (found.status !== "done" || !found.scan) return;
     const list = loadProducts(uid);
     const ticked = reviewRows(list.items, { scan: found.scan, ticks: found.ticks, pics: {} }).filter((r) => r.ticked).map((r) => r.i);
-    if (ticked.length) saveProducts(uid, mergeScan(list, found.scan, ticked).next);
+    // site pictures are fetched (brand-dna image) for Leo only; everyone else keeps the product without one
+    if (ticked.length) saveProducts(uid, mergeScan(list, leo ? found.scan : unpictured(found.scan), ticked).next);
   };
   const current = nextSection(done, sections);
 
@@ -750,7 +751,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
           onSlideFont={setSlideFont}
           app={app}
           products={sections.includes("products") ? { busy: found.status === "running", host: read.host || hostOf(address), rows: productRows() } : null}
-          productsNote={leo && found.status === "failed" ? `${found.error} You can add them on Brand > Products.` : ""}
+          productsNote={found.status === "failed" ? `${found.error}${leo ? " You can add them on Brand > Products." : ""}` : ""}
           onProductTick={(i, on) => setFound((f) => ({ ...f, ticks: { ...f.ticks, [i]: on } }))}
           onTick={(key, v, on) => setApp((a) => a && { ...a, [key]: on ? [...a[key], v] : a[key].filter((x) => x !== v) })}
         />
