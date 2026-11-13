@@ -41,7 +41,7 @@ export function ConnectStep({
   const anyConnected = (status?.accounts.length ?? 0) > 0 || (!status && !!justConnected);
   const problem = error || statusError;
   return (
-    <div className="flex w-full max-w-[560px] flex-1 flex-col justify-center gap-8 pb-[6vh] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
+    <div className="flex w-full max-w-[560px] flex-1 flex-col justify-center gap-10 pb-[2vh] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
       <StepTitle id={titleId} title="Connect your accounts" lead="So your posts can go out from here when you say so. You can do this later in Settings too." />
       <p role="status" className="sr-only">
         {note?.text ?? ""}
@@ -62,7 +62,7 @@ export function ConnectStep({
           )}
         </div>
       )}
-      <ul className="divide-y divide-border/70 overflow-hidden rounded-[20px] bg-card shadow-card" aria-busy={loading}>
+      <ul className="divide-y divide-border/70 overflow-hidden rounded-[20px] bg-card" aria-busy={loading}>
         {shown.map((n) => {
           const Glyph = ICONS[n];
           const linked = status?.accounts.filter((a) => a.platform === n) ?? [];
@@ -75,16 +75,16 @@ export function ConnectStep({
                 ? "Not connected"
                 : "";
           return (
-            <li key={n} className="flex items-center gap-3 px-4 py-3.5">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                <Glyph size={20} />
+            <li key={n} className="flex items-center gap-4 p-5">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <Glyph size={22} weight="duotone" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-semibold text-foreground">{PLATFORM_NAME[n]}</span>
-                {line && <span className="block truncate text-[13px] text-muted-foreground">{line}</span>}
+                <span className="block text-base font-bold text-foreground">{PLATFORM_NAME[n]}</span>
+                {line && <span className="block truncate text-sm font-medium text-muted-foreground">{line}</span>}
               </span>
               {known ? (
-                <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-success">
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-success">
                   <CheckCircleIcon size={16} weight="fill" /> Connected
                 </span>
               ) : (
@@ -93,7 +93,7 @@ export function ConnectStep({
                   aria-label={busy === n ? `Opening ${PLATFORM_NAME[n]}` : `Connect ${PLATFORM_NAME[n]}`}
                   disabled={!!busy || !!cap || loading}
                   onClick={() => onConnect(n)}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border/70 bg-card px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50 [@media(pointer:coarse)]:h-11"
+                  className="inline-flex h-[37px] items-center gap-[5px] rounded-full bg-muted px-[15px] text-base font-medium text-foreground transition-colors hover:bg-muted/70 disabled:opacity-50 [@media(pointer:coarse)]:h-11"
                 >
                   {busy === n && <CircleNotchIcon size={14} className="animate-spin" />}
                   {busy === n ? "Opening..." : "Connect"}
@@ -103,8 +103,8 @@ export function ConnectStep({
           );
         })}
       </ul>
-      {status && <p className="-mt-4 text-center text-[13px] text-muted-foreground">{cap ?? countLine(status)}</p>}
-      <Actions>
+      {status && <p className="-mt-5 text-center text-sm font-medium text-muted-foreground">{cap ?? countLine(status)}</p>}
+      <Actions className="sm:justify-center">
         <PrimaryPill onClick={onContinue} disabled={!!busy}>
           {anyConnected || loading || statusError ? "Continue" : "Continue without connecting"}
         </PrimaryPill>
