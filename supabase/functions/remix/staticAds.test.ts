@@ -2,8 +2,8 @@
 // layouts, the memes and the ad versions stays byte for byte (pinned before the static layouts were added), and each
 // static layout gets its own rules, response fields and checks.
 import { describe, expect, it } from "vitest";
-import { STATIC_SHOTS } from "../../../src/data/staticFormats";
-import { AD_LAYOUTS, MEME_LAYOUTS, STATIC_ANGLES, STATIC_FIELDS, STATIC_LAYOUTS, angleQuestion, angleState, buildMakePrompt, pickAngle, imageProblem, masText, parseMakeRequest, responseFormat, textFields, validateMake, type MakeResult } from "./logic";
+import { STATIC_FORMATS, STATIC_SHOTS } from "../../../src/data/staticFormats";
+import { AD_LAYOUTS, MEME_LAYOUTS, STATIC_ANGLES, STATIC_FIELDS, STATIC_LAYOUTS, angleQuestion, angleState, buildMakePrompt, pickAngle, shapeFix, imageProblem, masText, parseMakeRequest, responseFormat, textFields, validateMake, type MakeResult } from "./logic";
 
 const SOURCE = { key: "ad:2095783381019179", kind: "ad", format: "image", text: "Protect your family today with a plan that grows with you. Get a free quote." };
 const BRAND = { name: "Jane Tan", oneLiner: "I help young families plan", audience: "young parents", topics: ["Insurance basics"], facts: "- Ten years advising", mention: true, offer: null, rules: "" };
@@ -57,7 +57,7 @@ describe("a static ad about one product", () => {
     expect(r.product).toEqual(PRODUCT);
     expect(r.brand.facts).toBe("- The product this ad is about: Activity Tracker\n- What Activity Tracker is: Logs daily sales activities as streaks, with a leaderboard.\n- Who Activity Tracker is for: Sales agents\n- Ten years advising");
     const { system } = buildMakePrompt(r);
-    expect(system).toContain("- The ad is about Activity Tracker, from the facts given. Where the words say what the brand does, they name Activity Tracker and one concrete thing it does, never a general line about the brand.");
+    expect(system).toContain("- The ad is about Activity Tracker, from the facts given. Name it once, in the line that says what the brand does, with one concrete thing it does, never a general line about the brand. Every field keeps its word limit: use the product's shortest name, and leave the brand's name out of that line before going over.");
     expect(system).toContain("- What Activity Tracker is: Logs daily sales activities as streaks");
   });
 
@@ -72,6 +72,60 @@ describe("a static ad about one product", () => {
     expect(quiet.brand.facts).toContain("The product this ad is about: Activity Tracker");
     const long = req({ as: "image", layout: "street-poster", topic: "x", product: { name: "n".repeat(90), what: "w".repeat(300), forWho: "f".repeat(200) } }).product!;
     expect([long.name.length, long.what.length, long.forWho.length]).toEqual([60, 200, 120]);
+  });
+});
+
+// Tok Tok Kueh's us-vs-them photo, 13 Nov: "That remix came back in a shape that can't be used" twice. Each format's own
+// example is an answer in its layout's shape; written as the product rule then asked (the brand's mention as the product
+// and one thing it does), the brand-carrying field runs past its word limit on most layouts, and validateMake turns the
+// whole answer away.
+describe("a products-bearing brand's static words", () => {
+  const KUEH = { name: "Tok Tok Kueh", speaker: "business" };
+  const PRODUCT = { name: "Ang Ku Kueh", what: "Soft glutinous rice skin with sweet mung bean, steamed fresh every morning.", forWho: "Office teams" };
+  const WORDS_CAP = { refuse: false, reason: "", caption: "Fresh kueh for the office. Order by noon.", cta: "Save this for Friday.", hashtags: [] };
+  const exampleWords = (layout: (typeof STATIC_LAYOUTS)[number]) => {
+    const ex = STATIC_FORMATS.find((f) => f.slug === layout)!.example!;
+    return Object.fromEntries(Object.keys(STATIC_FIELDS[layout]).map((k) => [k, ex[k] ?? ""]));
+  };
+  const named = (words: Record<string, string>) =>
+    Object.fromEntries(Object.entries(words).map(([k, v]) => [k, v.replace(/Hilltop( Coffee| cold brew)?('s)?/, "Tok Tok Kueh's Ang Ku Kueh, steamed fresh daily,")]));
+  const check = (layout: (typeof STATIC_LAYOUTS)[number], words: Record<string, string>) =>
+    validateMake("image", { ...WORDS_CAP, words }, { layout, brand: req({ as: "image", layout, topic: "x", brand: KUEH, product: PRODUCT }).brand });
+
+  it("reproduces: the product named in the brand's line overruns a field on 12 of the 22 layouts, us-vs-them's 4-word label worst", () => {
+    const failed: string[] = [];
+    for (const layout of STATIC_LAYOUTS) {
+      const fits = exampleWords(layout);
+      expect(check(layout, fits), layout).not.toBeNull();
+      expect(shapeFix({ as: "image", layout }, JSON.stringify({ words: fits })), layout).toBeNull();
+      const words = named(fits);
+      const over = Object.entries(words).filter(([k, v]) => v.split(/\s+/).filter(Boolean).length > STATIC_FIELDS[layout][k]);
+      expect(check(layout, words) === null, layout).toBe(over.length > 0);
+      if (!over.length) continue;
+      failed.push(layout);
+      // the second try names every field that ran over, with its count and its limit
+      const fix = shapeFix({ as: "image", layout }, JSON.stringify({ ...WORDS_CAP, words }))!;
+      for (const [k, v] of over) expect(fix, `${layout} ${k}`).toContain(`words.${k} has ${v.split(/\s+/).filter(Boolean).length} words, over its ${STATIC_FIELDS[layout][k]}`);
+    }
+    expect(failed).toContain("us-vs-them");
+    expect(failed).toHaveLength(12);
+    expect(shapeFix({ as: "image", layout: "us-vs-them" }, JSON.stringify({ words: named(exampleWords("us-vs-them")) }))).toMatch(/^words\.us has 9 words, over its 4\. Return the whole JSON object again/);
+  });
+
+  it("tells the writer on every layout to keep each field in its limit and use the product's shortest name", () => {
+    for (const layout of STATIC_LAYOUTS) {
+      const { system } = buildMakePrompt(req({ as: "image", layout, topic: "x", brand: KUEH, product: PRODUCT }));
+      expect(system, layout).toContain("Every field keeps its word limit: use the product's shortest name");
+      expect(system, layout).not.toContain("Where the words say what the brand does, they name");
+    }
+  });
+
+  it("names an empty field too, and leaves a fitting answer, junk and every other format to the plain retry", () => {
+    const words = { ...exampleWords("us-vs-them"), us: "" };
+    expect(shapeFix({ as: "image", layout: "us-vs-them" }, JSON.stringify({ words }))).toMatch(/^words\.us is empty\./);
+    expect(shapeFix({ as: "image", layout: "headline" }, JSON.stringify({ words: { headline: "w ".repeat(30) } }))).toBeNull();
+    expect(shapeFix({ as: "meme", layout: "pov" }, "{}")).toBeNull();
+    expect(shapeFix({ as: "image", layout: "street-poster" }, "not json")).toBe("words.headline is empty; words.line is empty. Return the whole JSON object again with every words field filled and within its word limit: shorten a name to its key words before going over.");
   });
 });
 

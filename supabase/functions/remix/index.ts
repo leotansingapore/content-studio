@@ -77,6 +77,9 @@ import {
   responseFormat,
   rewriteMessage,
   makeProblem,
+  isStaticLayout,
+  shapeFix,
+  UNFIT,
   validateMake,
   withSpoken,
   type MadeResult,
@@ -228,6 +231,8 @@ Deno.serve(async (req) => {
     let rejected = false;
     // the slideshow's or wall's own "this can't be made safe" answer: a 422, never a retry
     const said: { refusal: string | null } = { refusal: null };
+    // the last answer validateMake turned away, for shapeFix's second try
+    let unfit = "";
     const write = async (msgs: typeof messages): Promise<{ result: MadeResult; raw: string } | null> => {
       const res = await openaiChat(
         { model: FALLBACK_MODEL, temperature: 0.7, max_tokens: 1800, response_format: responseFormat(make), messages: msgs },
@@ -249,19 +254,29 @@ Deno.serve(async (req) => {
       }
       const result = validateMake(make.as, content, opts);
       rejected = !result;
+      if (!result) unfit = String(content ?? "");
       // 2000: six ad versions run past 300 characters, which hid the failing field (27 Oct)
       if (!result) console.error("openai output rejected", String(content ?? "").slice(0, 2000));
       return result ? { result, raw: String(content) } : null;
     };
 
     let first = await write(messages);
-    // an answer the format can't use (a 90-word speaking script, an explainer picture of "chart") gets one more try
-    if (!first && rejected) first = await write(messages);
+    // an answer the format can't use (a 90-word speaking script, an explainer picture of "chart") gets one more try; a
+    // static layout's is told which of its words were empty or too long (us-vs-them's 4-word label, 13 Nov)
+    if (!first && rejected) {
+      const fix = shapeFix(make, unfit);
+      first = await write(fix ? [...messages, { role: "assistant", content: unfit }, { role: "user", content: fix }] : messages);
+    }
     if (!first && said.refusal !== null) {
       const what = !make.source ? "That topic" : make.as === "slideshow" ? "That slideshow" : "That post";
       return fail("refused", `${what} can't be turned into something safe to post. ${make.source ? "Pick another one." : "Try another one."}`, 422);
     }
     if (!first) {
+      // a static layout's words its own limits turned away twice: the writer's miss, never the person's, so the use comes back
+      if (answered && make.as === "image" && isStaticLayout(make.layout)) {
+        await refundUsage(admin, uid, "remix-make", charged.day);
+        return fail("unusable", UNFIT, 422);
+      }
       if (answered) return fail("unusable", "That remix came back in a shape that can't be used. Try again.", 422);
       await refundUsage(admin, uid, "remix-make", charged.day);
       return fail("failed", "That remix didn't go through. Nothing was used.", 502);

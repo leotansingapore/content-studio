@@ -1148,7 +1148,7 @@ function staticRules(req: MakeRequest, layout: StaticLayout): string[] {
     ...(req.angle ? [`- The ad's angle is ${req.angle}: ${STATIC_ANGLES[req.angle]}. The headline and every line take this angle, over any angle a line above suggests.`] : []),
     ...(req.avoid ? [`- Never open with "${req.avoid.replace(/"/g, "'")}" or those same opening words: start your own way.`] : []),
     ...(req.product && req.brand.mention
-      ? [`- The ad is about ${req.product.name}, from the facts given. Where the words say what the brand does, they name ${req.product.name} and one concrete thing it does, never a general line about the brand.`]
+      ? [`- The ad is about ${req.product.name}, from the facts given. Name it once, in the line that says what the brand does, with one concrete thing it does, never a general line about the brand. Every field keeps its word limit: use the product's shortest name, and leave the brand's name out of that line before going over.`]
       : []),
     // Post choices' Never (or Sometimes' flip): the brand rule below says not to name the brand, and it wins
     ...(req.brand.mention ? [] : ["- This picture does not name the brand: where a line above says to name it, leave the name out and keep the words on the problem and what helps."]),
@@ -1726,6 +1726,25 @@ function fieldsWithin(raw: unknown, limits: Record<string, number>, optional: st
     if (v) out[k] = v;
   }
   return out;
+}
+
+/** What the person reads when a static layout's words still don't fit after shapeFix's second try; the use is given back. */
+export const UNFIT = "The words didn't fit this layout, so nothing was used. Try again, or shorten your note.";
+
+/**
+ * The second try for a static layout's words that validateMake turned away: each empty or too-long field by name, so the
+ * writer fixes those instead of guessing; null for anything else, which is sent again as it was.
+ */
+export function shapeFix(req: Pick<MakeRequest, "as" | "layout">, raw: unknown): string | null {
+  if (req.as !== "image" || !isStaticLayout(req.layout)) return null;
+  const words = obj(parseObject(raw)?.words);
+  const misses = Object.entries(STATIC_FIELDS[req.layout]).flatMap(([k, n]) => {
+    const c = wordCount(line(words[k], 400));
+    return !c ? [`words.${k} is empty`] : c > n ? [`words.${k} has ${c} words, over its ${n}`] : [];
+  });
+  return misses.length
+    ? `${misses.join("; ")}. Return the whole JSON object again with every words field filled and within its word limit: shorten a name to its key words before going over.`
+    : null;
 }
 
 /** The result cleaned and capped, or null when it can't be used as is. */

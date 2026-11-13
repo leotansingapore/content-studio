@@ -383,6 +383,25 @@ describe("phase 3's shapes", () => {
     expect(jev.questions.slice(asked).some((q) => q.includes("angle"))).toBe(false);
   });
 
+  it("tells a static layout's writer which words ran over, and gives the use back when they still don't fit", async () => {
+    const vs = { mode: "make", as: "image", layout: "us-vs-them", topic: "Office snacks", angles: ["The offer"], product: { name: "Ang Ku Kueh", what: "Steamed fresh every morning.", forWho: "Offices" }, brand: { name: "Tok Tok Kueh", speaker: "business" } };
+    const fits = { headline: "A vending machine, or kueh at the meeting.", them: "Vending machine", us: "Ang ku kueh", oldA: "Packed snacks from the corner", newA: "Steamed fresh every morning", oldB: "Same biscuits every week", newB: "A different kueh each day", oldC: "Wrappers left on the table", newC: "Served on a tray", close: "Bring kueh to the next meeting." };
+    const over = { ...fits, us: "Tok Tok Kueh's Ang Ku Kueh, steamed daily" };
+    openai.mode = "queue";
+    openai.answers = [{ refuse: false, reason: "", words: over, ...CAP }, { refuse: false, reason: "", words: fits, ...CAP }];
+    const r = await send(vs);
+    expect(r).toMatchObject({ status: 200, body: { result: { layout: "us-vs-them", words: { us: "Ang ku kueh" } } } });
+    expect(openai.calls).toBe(2);
+    const retry = openai.sent[1].messages;
+    expect(retry.at(-2)).toMatchObject({ role: "assistant", content: expect.stringContaining("steamed daily") });
+    expect(retry.at(-1)).toEqual({ role: "user", content: "words.us has 8 words, over its 4. Return the whole JSON object again with every words field filled and within its word limit: shorten a name to its key words before going over." });
+    expect(used()).toBe(1);
+    // over twice: the person is told what to do, and the use comes back
+    openai.answers = [{ refuse: false, reason: "", words: over, ...CAP }, { refuse: false, reason: "", words: over, ...CAP }];
+    expect(await send(vs)).toMatchObject({ status: 422, body: { code: "unusable", error: "The words didn't fit this layout, so nothing was used. Try again, or shorten your note." } });
+    expect(used()).toBe(1);
+  });
+
   it("never asks a business's image the MAS question, which is about licensed advisers", async () => {
     openai.mode = "queue";
     openai.answers = [{ refuse: false, reason: "", words: { ...words, quote: "We built it for the reps who forget nothing but still lose deals." }, ...CAP }];
