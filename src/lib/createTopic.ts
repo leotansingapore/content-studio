@@ -1,7 +1,8 @@
 // Create > Start's topic box (StudioPage): what is typed there goes with whichever tile is tapped, and is still in the
 // box on the way back. Per tab (sessionStorage, cs- keys): a hint, never synced.
 //   cs-create-topic-<scoped>: the box's words
-// Answer takes it in its own address (?q=). Carousel and Weekly batch keep their topic in their per-tab work
+// Answer takes it in its own address (?q=), Hooks and Slideshow's writer (/make/slideshow, where a topic becomes
+// slides; /slideshow itself has no topic field) in ?topic=. Carousel and Weekly batch keep their topic in their per-tab work
 // (cs-carousel-work-, cs-batch-work-), read once when the page opens: the topic is put there only when that work is
 // empty, so nothing already typed or made in them is ever replaced.
 // shortcut: this writes two pages' private per-tab keys, pinned in createTopic.test.ts against their source; give
@@ -59,6 +60,8 @@ export function tileHref(to: string, topicRaw: string, userId: string | null, st
   if (userId) saveCreateTopic(userId, topic, store);
   if (to === "/generate") return links.generate({ detail: topic });
   if (to === "/generate/answer") return `${to}?q=${encodeURIComponent(topic)}`;
+  if (to === "/slideshow") return links.makeFormat("slideshow", { topic });
+  if (to === "/hooks") return `${to}?${new URLSearchParams({ topic })}`;
   if (to === "/carousel" && userId) {
     const typed = (v: unknown) => typeof v === "string" && v.trim() !== "";
     seed(store, CAROUSEL_WORK + scoped(userId), topic, { mode: "topic" }, (w) => typed(w.pasteText) || (Array.isArray(w.slides) && w.slides.length > 0));

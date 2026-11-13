@@ -50,10 +50,15 @@ describe("a topic typed on Create goes with the tile", () => {
     expect(url.searchParams.get("detail")).toBe("a".repeat(300));
   });
 
+  it("opens Slideshow's writer and Hooks with the topic in them", () => {
+    const s = mem();
+    expect(tileHref("/slideshow", "CPF myths", "u1", s)).toBe("/make/slideshow?topic=CPF+myths");
+    expect(tileHref("/hooks", "CPF myths", "u1", s)).toBe("/hooks?topic=CPF+myths");
+  });
+
   it("keeps the topic for the box on the way back, for makers with no topic field too", () => {
     const s = mem();
     expect(tileHref("/edit", "CPF myths", "u1", s)).toBe("/edit");
-    expect(tileHref("/slideshow", "CPF myths", "u1", s)).toBe("/slideshow");
     expect(loadCreateTopic("u1", s)).toBe("CPF myths");
     saveCreateTopic("u1", "  ", s);
     expect(loadCreateTopic("u1", s)).toBe("");
@@ -61,7 +66,7 @@ describe("a topic typed on Create goes with the tile", () => {
 
   it("leaves every tile's address alone when the box is empty", () => {
     const s = mem();
-    for (const to of ["/generate", "/carousel", "/generate/batch", "/generate/answer", "/edit"]) expect(tileHref(to, "  ", "u1", s)).toBe(to);
+    for (const to of ["/generate", "/carousel", "/generate/batch", "/generate/answer", "/edit", "/slideshow", "/hooks"]) expect(tileHref(to, "  ", "u1", s)).toBe(to);
     expect(s.m.size).toBe(0);
   });
 
