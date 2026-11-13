@@ -6,7 +6,7 @@
 import { toPlainText } from "@/lib/plainText";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import type { DraftEntry } from "@/lib/draftHistory";
-import { activeProfile, scoped } from "@/lib/profiles";
+import { activeProfile, DEFAULT_PROFILE_ID, scoped } from "@/lib/profiles";
 import { cachedKit, withKit } from "@/lib/brandKitFeed";
 import { MAX_SLOTS } from "@/lib/postingSlots";
 import { CAROUSEL_DESIGNS, type CarouselDesign, type PostLang } from "@/lib/links";
@@ -835,6 +835,17 @@ export function loadBrand(userId: string | null | undefined): CarouselBrand | nu
     const saved = raw ? sanitizeBrand(JSON.parse(raw)) : null;
     const kit = saved && cachedKit(activeProfile(userId)?.boardBrand);
     return saved && kit ? withKit(saved, kit) : saved;
+  } catch {
+    return null;
+  }
+}
+
+export function brandLogoFor(userId: string | null | undefined, profileId: string): string | null {
+  const s = storage();
+  if (!s || !userId) return null;
+  try {
+    const raw = s.getItem(BRAND_KEY_PREFIX + (profileId === DEFAULT_PROFILE_ID ? userId : `${userId}~${profileId}`));
+    return (raw && sanitizeImage(JSON.parse(raw)?.logo)) || null;
   } catch {
     return null;
   }

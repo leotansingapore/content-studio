@@ -6,6 +6,8 @@ import { CheckIcon, CaretUpDownIcon, PencilSimpleIcon, PlusIcon, TrashIcon } fro
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { socialConnectShown } from "@/lib/socialConnect";
+import { brandLogoFor } from "@/lib/carousel";
+import { useLogoTile } from "@/components/onboarding/parts";
 import {
   activeProfileId,
     DEFAULT_PROFILE_ID,
@@ -17,6 +19,16 @@ import {
 } from "@/lib/profiles";
 
 const initial = (name: string) => name.trim().charAt(0).toUpperCase() || "?";
+
+function BrandMark({ logo, name, size = "h-6 w-6" }: { logo: string | null; name: string; size?: string }) {
+  const tile = useLogoTile(logo);
+  if (!logo) return <span className={`flex ${size} shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary`}>{initial(name)}</span>;
+  return (
+    <span className={`${tile} grid ${size} shrink-0 place-items-center overflow-hidden rounded-md border border-border/60`}>
+      <img src={logo} alt="" className="max-h-full max-w-full object-contain p-0.5" />
+    </span>
+  );
+}
 
 // Which social profile the whole studio is working on. Switching reloads the
 // page so every screen reads that profile's posts, plan and voice fresh.
@@ -30,14 +42,17 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
   const [switching, setSwitching] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const { toast } = useToast();
+  const [logos, setLogos] = useState<Record<string, string | null>>({});
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUserId(id);
-      setProfiles(loadProfiles(id));
+      const list = loadProfiles(id);
+      setProfiles(list);
       setActiveId(activeProfileId(id));
+      setLogos(Object.fromEntries(list.map((p) => [p.id, brandLogoFor(id, p.id)])));
     });
   }, []);
 
@@ -114,6 +129,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
       >
         {/* the name alone, as Fastlane's workspace switcher (one line on the phone bar, up to two in the sidebar); the
             button's label says what it does */}
+        <BrandMark logo={logos[activeId] ?? null} name={active?.name ?? ""} size={compact ? "h-6 w-6" : "h-7 w-7"} />
         {compact ? (
           <span className="max-w-[9rem] truncate text-sm font-semibold text-foreground">{active?.name}</span>
         ) : (
@@ -158,9 +174,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                       disabled={!!switching || !!removing}
                       className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-accent [@media(pointer:coarse)]:min-h-11"
                     >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-                        {initial(p.name)}
-                      </span>
+                      <BrandMark logo={logos[p.id] ?? null} name={p.name} />
                       <span className="min-w-0 flex-1 truncate">
                         {switching === p.id ? `Opening ${p.name}...` : removing === p.id ? `Removing ${p.name}...` : p.name}
                       </span>
