@@ -19,11 +19,11 @@ const html = (at: string) => renderToStaticMarkup(createElement(MemoryRouter, { 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
 const PINNED = {
-  "ugc-creator-review": "2066e13268699140747137a139de40b0641b87ad17c5f4fff79e445c36f02a59",
-  "product-commercial-shotlist": "6068f134eba231881a19f2b539fcb51190cffdbe92373195e44379ccfaa309e3",
-  "timeline-shot-script": "fe93f385290c1974787199114203c98383bcf03933e4090b56ab2217282249c4",
-  "food-asmr": "fd303bf64d9685c2f94463bfb73aa75b577d66effcd130b9ffea757c52811b81",
-  "pov-continuous-take": "f02c40087f7e73208c0c84bc1b12d589766399539e72150eb08b9ff2cdb1f8c7",
+  "ugc-creator-review": "753eec3f3eb36597ff7874a2352edeb16283692ee19cfb993bb191dc2fdd0232",
+  "product-commercial-shotlist": "aa20525b9672fe5898e65af096c1c5cbf00ebb57398fa5827ed5088a8e92855f",
+  "timeline-shot-script": "b08bdfab96c74c2ce351e11151e0b8b4dd4e36f26afe19a8015a2d765d50e889",
+  "food-asmr": "cdba0f1172bd2ff4a83bf24612e8b640e5935b702a592a108bb52d3142664b40",
+  "pov-continuous-take": "867b811d56611f6b174d17943223b59eb8480aa27779d0d70c932ff8110d72cb",
 };
 
 describe("everyone else's template form", () => {

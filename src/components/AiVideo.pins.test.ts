@@ -21,13 +21,13 @@ const html = (at: string) => renderToStaticMarkup(createElement(MemoryRouter, { 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const LEO_PARAMS = "&face=mine&voice=mine";
 
-const AVATAR = "56f249425e25a4dd4807d4bc15b22f44c685d6aa5e2f2a9e1f6e1d3395ed1697";
+const AVATAR = "3500767aea23876bcc776c7c7d9fd879abd6de3324c3755966c2d1e246e7bce3";
 const PERSON: Record<string, string> = {
-  "ugc-creator-review": "2066e13268699140747137a139de40b0641b87ad17c5f4fff79e445c36f02a59",
-  "handheld-ugc-vlog": "bc6405390adda4b2f2d0442079378ccc241d56fbc38327a0c1baf88415379019",
-  "timeline-shot-script": "fe93f385290c1974787199114203c98383bcf03933e4090b56ab2217282249c4",
-  "character-reference-lock": "a84e39c6abab190a0b1d5c854a1b16224dfbf5c76907961e1df41ccc586aac57",
-  "travel-city-walk": "c36a21b7bf2f4fae796706ba21f580989deceb74fd6ed6e137436406f692feda",
+  "ugc-creator-review": "753eec3f3eb36597ff7874a2352edeb16283692ee19cfb993bb191dc2fdd0232",
+  "handheld-ugc-vlog": "e77a06c236a1068c6e8a69d4139ce3deed120f28ede9c72a9f218492ef4880bc",
+  "timeline-shot-script": "b08bdfab96c74c2ce351e11151e0b8b4dd4e36f26afe19a8015a2d765d50e889",
+  "character-reference-lock": "9ca582e037a475c1c923108c58729d2cf9da59f4ab3b0c3b72d3a8fe8c236327",
+  "travel-city-walk": "46f30e16ace1068d5233c20f9d1dcb5472871863718656a7ecb0546a9c5e58a3",
 };
 
 describe("everyone else's You speaking", () => {

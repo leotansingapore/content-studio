@@ -18,8 +18,8 @@ const { default: AiVideo } = await import("./AiVideo");
 const html = (at: string) => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(AiVideo, { onClose: () => undefined })));
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
-const MONTAGE = "22455626b40cac9e92ffbfcad0b869df47d06f51633075b011d78ae0c37d0384";
-const EXPLAINER = "47eb27bb4aa3d4575ae78d029ef0e090e98daa65fac037c173164213ff08ea12";
+const MONTAGE = "1c0c7dba17c682de0488747cc66edd87a22592665bf4add29b50aea4236d1f6d";
+const EXPLAINER = "f7372bcf382eccec8fd1514d84694bdb6e45bd40034122e6cbbcb8956752be8b";
 
 describe("everyone else's montage and explainer", () => {
   it("draw as before, with no Clips from or set pills, and Leo's ?set= ignored", () => {

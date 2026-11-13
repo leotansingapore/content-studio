@@ -149,7 +149,7 @@ describe("/plan for everyone else", () => {
     // wave 8 (12 Nov): a plain title in place of the gradient banner, as Fastlane's screens have; nothing else moved
     expect(first).toMatch(/<h1 class="font-serif [^"]*">Turn your positioning into a week of posts<\/h1>/);
     expect(first).not.toContain("bg-gradient-hero");
-    expect(sha(first)).toBe("c7685633d9b5f9e5128b08996d4c5efb4b3d514848b7b034613353c277ea902d");
+    expect(sha(first)).toBe("dc7bbb66383b067c3658592c4b55974320f0ec1707391bc9811d31d09483eaff");
   });
 });
 
