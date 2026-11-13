@@ -299,6 +299,17 @@ export interface ReviewProps {
 
 const PRODUCT_GROUPS: [ReviewRow["group"], string | null][] = [["yours", null], ["maybe", "Maybe not yours"], ["unsorted", "Check each one: we couldn't sort these."]];
 
+/** A found row's picture, straight from the brand's site; gone (not a broken box) when it doesn't load. */
+function ProductThumb({ src }: { src?: string }) {
+  const [broken, setBroken] = useState(false);
+  if (!src || broken) return null;
+  return (
+    <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border/60 bg-muted">
+      <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
+    </span>
+  );
+}
+
 export function ReviewStep(p: ReviewProps) {
   const { dna, patch, leo, sections, done, current } = p;
   const id = useId();
@@ -534,7 +545,7 @@ export function ReviewStep(p: ReviewProps) {
           ) : (
             <fieldset className="space-y-3">
               <legend className="text-[13px] text-muted-foreground">
-                Found {p.products.rows.length} on {p.products.host}. Untick any that aren't yours. Pictures come in when you open Brand &gt; Products.
+                Found {p.products.rows.length} on {p.products.host}. Untick any that aren't yours.
               </legend>
               {PRODUCT_GROUPS.map(([g, title]) => {
                 const these = p.products!.rows.filter((r) => r.group === g);
@@ -545,6 +556,7 @@ export function ReviewStep(p: ReviewProps) {
                     {these.map((r) => (
                       <label key={r.i} className={`flex items-start gap-2.5 rounded-xl border border-border/60 p-2.5 text-sm [@media(pointer:coarse)]:min-h-11 ${r.added ? "opacity-60" : "cursor-pointer"}`}>
                         <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-primary" checked={r.ticked} disabled={r.added} onChange={(e) => p.onProductTick?.(r.i, e.target.checked)} />
+                        <ProductThumb key={r.row.picture} src={r.row.picture} />
                         <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                           <span className="block font-semibold text-foreground">
                             {r.row.name}
