@@ -999,6 +999,14 @@
       "limit": 100
     }
   },
+  "make-pick": {
+    "limit": 100,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 100
+    }
+  },
   "mcp-calls": {
     "limit": 500,
     "answer": {

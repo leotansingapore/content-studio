@@ -432,6 +432,7 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "campaign-swap": "Campaign posts rewritten",
   "ideas-daily": "Idea sets",
   "agent-act": "Agent messages",
+  "make-pick": "Format picks for an ask",
   "mcp-calls": "Claude tool calls",
   "skill-answer": "Answers to competitor ads",
   "launch-film": "Launch films",

@@ -174,7 +174,7 @@ export const NO_PRICE: UsageFeature[] = [
   // Jev only
   "post-score", "writing-judge", "fact-check", "cold-open", "motion-picks", "montage-pick", "music-mood", "week-pick",
   "engage-picks", "assistant-act", "remix-fit", "ad-labels", "niche-match", "brief-pick", "creator-fit", "carousel-fit", "caption-keywords",
-  "agent-act", "winner-check", "post-match", "post-grade", "post-angles",
+  "agent-act", "make-pick", "winner-check", "post-match", "post-grade", "post-angles",
   // one capped page fetch and one Jev question
   "page-read",
   // Claude's MCP tool calls: reads and add_draft, no paid work
