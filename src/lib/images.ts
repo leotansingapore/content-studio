@@ -308,6 +308,8 @@ export interface ImageWriteAsk {
   angles?: string[];
   avoid?: string;
   openings?: string[];
+  /** A static format's photo make: the brand's last closing or small lines, never reused. */
+  closings?: string[];
 }
 
 export interface ImageWrite {
@@ -370,6 +372,7 @@ export async function startImageWrite(userId: string, ask: ImageWriteAsk): Promi
       ...(ask.angles?.length ? { angles: ask.angles } : {}),
       ...(ask.avoid ? { avoid: ask.avoid } : {}),
       ...(ask.openings?.length ? { openings: ask.openings } : {}),
+      ...(ask.closings?.length ? { closings: ask.closings } : {}),
     });
     const res = await requestMake(body);
     if (res?.result?.as !== "image") throw new Error(WRITE_FAILED);

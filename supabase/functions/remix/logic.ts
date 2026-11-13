@@ -350,6 +350,8 @@ export interface MakeRequest {
   avoid?: string;
   /** image with a static layout only: the brand's last 10 openings on any static format (first four words each), never reused. */
   openings?: string[];
+  /** image with a static layout only: the brand's last 10 closing or small lines on any static format (first four words each), never reused. */
+  closings?: string[];
   /** Every format but hooks: a HOOK_FORMULA_COPY id the opening line follows (remix-variations); an unknown id is dropped. */
   formula?: string;
   /** edit only, and always sent there. */
@@ -662,10 +664,14 @@ function parseShape(as: MakeAs, r: Item, speaker: Speaker): Partial<MakeRequest>
     const shows = line(r.shows, 800);
     const angles = isStaticLayout(layout) && Array.isArray(r.angles) ? [...new Set(r.angles.filter(isAngle))] : [];
     const avoid = isStaticLayout(layout) ? line(r.avoid, 60) : "";
-    // cut, never ellipsed: a quoted opening is matched word for word
-    const said = isStaticLayout(layout) && Array.isArray(r.openings) ? r.openings.filter((o): o is string => typeof o === "string").map((o) => o.replace(/\s+/g, " ").trim().slice(0, 40)).filter(Boolean).slice(0, 10) : [];
-    const openings = said.filter((o, i) => said.findIndex((x) => x.toLowerCase() === o.toLowerCase()) === i);
-    return { ...(layout ? { layout } : {}), ...(shows ? { shows } : {}), ...(angles.length ? { angles } : {}), ...(avoid ? { avoid } : {}), ...(openings.length ? { openings } : {}) };
+    // cut, never ellipsed: a quoted line is matched word for word
+    const lines = (v: unknown) => {
+      const said = isStaticLayout(layout) && Array.isArray(v) ? v.filter((o): o is string => typeof o === "string").map((o) => o.replace(/\s+/g, " ").trim().slice(0, 40)).filter(Boolean).slice(0, 10) : [];
+      return said.filter((o, i) => said.findIndex((x) => x.toLowerCase() === o.toLowerCase()) === i);
+    };
+    const openings = lines(r.openings);
+    const closings = lines(r.closings);
+    return { ...(layout ? { layout } : {}), ...(shows ? { shows } : {}), ...(angles.length ? { angles } : {}), ...(avoid ? { avoid } : {}), ...(openings.length ? { openings } : {}), ...(closings.length ? { closings } : {}) };
   }
   if (as === "meme") {
     const layout = MEME_LAYOUTS.find((x) => x === r.layout);
@@ -1134,10 +1140,15 @@ const PERSON_STATIC_RULES: Partial<Record<StaticLayout, string[]>> = {
   ],
 };
 
-/** The openings a static make must not reuse: the format's sample's, then the brand's own last ones on this format. */
+/** The lines a static make must not reuse: openings (the format's sample's, then the brand's own last ones), then its last closing lines. */
 function openingRule(req: MakeRequest): string[] {
+  const q = (o: string) => `"${o.replace(/"/g, "'")}"`;
   const banned = [req.avoid, ...(req.openings ?? [])].filter((o): o is string => !!o);
-  return banned.length ? [`- Never open with ${banned.map((o) => `"${o.replace(/"/g, "'")}"`).join(", ")} or those same opening words: start your own way.`] : [];
+  return [
+    ...(banned.length ? [`- Never open with ${banned.map(q).join(", ")} or those same opening words: start your own way.`] : []),
+    // "Keep your selling week together." closed two us-vs-them ads in a row (14 Nov)
+    ...(req.closings?.length ? [`- Never reuse the brand's last closing lines, or start any line with their first words: ${req.closings.map(q).join(", ")}.`] : []),
+  ];
 }
 
 /** A static ad format's words: its own rules, then the image rules every ad picture keeps. */

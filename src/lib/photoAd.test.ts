@@ -66,7 +66,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { AD_FACTS_MAX, ANGLE_POOL, OPENINGS_KEPT, openingOf, recentOpenings, rememberOpening, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_RULE, TOO_LONG, unquoted, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { AD_FACTS_MAX, ANGLE_POOL, OPENINGS_KEPT, closingOf, openingOf, recentClosings, recentOpenings, rememberClosing, rememberOpening, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_RULE, TOO_LONG, unquoted, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -566,6 +566,35 @@ describe("the angle each make takes", () => {
     fake.writeFails = "Couldn't write it.";
     await startPhotoAd(U, poster, { topic: "x" });
     expect(recentOpenings(U)).toHaveLength(2);
+  });
+
+  it("knows each format's closing line, its last written field, and none where that is its main line", () => {
+    const vs = staticFormatBySlug("us-vs-them")!;
+    expect(closingOf("us-vs-them", { headline: "Scattered or together?", close: "Keep your selling week together." })).toBe("Keep your selling week together.");
+    expect(closingOf("street-poster", { headline: "Still dark.", line: "Hilltop cold brew." })).toBe("Hilltop cold brew.");
+    expect(closingOf("playful-apology", { sorry: "We're sorry.", signoff: "Not sorry about your week." })).toBe("Not sorry about your week.");
+    // a flyer's typed price is never its closing line, and a one-line format has none
+    expect(closingOf("tear-off-flyer", { headline: "Kueh, delivered.", details: "Order by noon.", price: "$6 a box" })).toBe("Order by noon.");
+    expect(closingOf("lettered-object", { note: "Book the physio." })).toBe("");
+    expect(vs.slug).toBe("us-vs-them");
+  });
+
+  it("keeps the brand's last 10 closing lines beside its openings, and tells the next make, on any format, never to reuse them", async () => {
+    for (let i = 0; i < 12; i++) rememberClosing(U, `Closing ${"abcdefghijkl"[i]} line here`);
+    rememberClosing(U, "closing L LINE here again");
+    expect(recentClosings(U)).toHaveLength(10);
+    expect(recentClosings(U)[0]).toBe("closing L LINE here");
+    expect(recentOpenings(U)).toEqual([]);
+    localStorage.clear();
+    const vs = staticFormatBySlug("us-vs-them")!;
+    fake.writeWords = { headline: "Scattered or together?", them: "a", us: "b", oldA: "c", newA: "d", oldB: "e", newB: "f", oldC: "g", newC: "h", close: "Keep your selling week together." };
+    await startPhotoAd(U, vs, { topic: "x" });
+    expect(fake.asks[0]).not.toHaveProperty("closings");
+    expect(recentClosings(U)).toEqual(["Keep your selling week"]);
+    fake.writeWords = { headline: "Still dark.", line: "Hilltop cold brew." };
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.asks[1].closings).toEqual(["Keep your selling week"]);
+    expect(recentClosings(U)).toEqual(["Hilltop cold brew.", "Keep your selling week"]);
   });
 
   it("keeps the angle of words whose picture failed, and remembers nothing when the writer sent none back", async () => {

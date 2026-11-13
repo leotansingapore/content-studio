@@ -179,6 +179,15 @@ describe("a static ad's angle", () => {
     expect(req({ as: "image", layout: "street-poster", topic: "x", openings: Array(12).fill(0).map((_, i) => `opening ${"abcdefghijkl"[i]}`) }).openings).toHaveLength(10);
   });
 
+  it("tells the writer the brand's last closing lines, once each, up to 10, on a static layout only", () => {
+    const r = { ...req({ as: "image", layout: "us-vs-them", topic: "x", closings: ["Keep your selling week", "keep your selling week", "Hilltop cold brew.", 3], brand: BIZ }), angle: "The offer" };
+    expect(r.closings).toEqual(["Keep your selling week", "Hilltop cold brew."]);
+    expect(buildMakePrompt(r).system).toContain(`- Never reuse the brand's last closing lines, or start any line with their first words: "Keep your selling week", "Hilltop cold brew.".`);
+    expect(buildMakePrompt({ ...r, closings: undefined }).system).not.toContain("closing lines");
+    expect(req({ as: "image", layout: "headline", topic: "x", closings: ["Keep your selling week"] }).closings).toBeUndefined();
+    expect(req({ as: "image", layout: "us-vs-them", topic: "x", closings: Array(12).fill(0).map((_, i) => `close ${"abcdefghijkl"[i]}`) }).closings).toHaveLength(10);
+  });
+
   it("prescribes no moment, setting or hook of its own on any layout: the angle and the picture prompt set those", () => {
     for (const layout of STATIC_LAYOUTS) {
       for (const brand of [BRAND, BIZ]) {
