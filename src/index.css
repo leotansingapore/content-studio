@@ -245,7 +245,7 @@
   .onboard-canvas {
     background-color: #f7f7f7;
     background-image:
-      radial-gradient(30rem 32rem at -6% 2%, hsl(318 92% 84% / 0.7), transparent 68%),
+      radial-gradient(30rem 32rem at -6% 1rem, hsl(318 92% 84% / 0.7), transparent 68%),
       radial-gradient(34rem 30rem at -4% 102%, hsl(206 100% 80% / 0.9), transparent 70%),
       radial-gradient(36rem 30rem at 104% 104%, hsl(330 85% 76% / 0.8), transparent 68%),
       radial-gradient(24rem 30rem at 106% 52%, hsl(345 90% 82% / 0.55), transparent 70%),
