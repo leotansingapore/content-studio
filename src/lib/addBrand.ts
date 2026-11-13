@@ -24,6 +24,7 @@ export interface BrandDna {
   /** When Leo's deep read came back (brand-from-website); everyone else's read has none. */
   readAt?: string;
   colours?: string[];
+  neutrals?: string[];
   fonts?: string[];
 }
 
@@ -69,6 +70,7 @@ export const isDna = (d: unknown): d is BrandDna => {
     Array.isArray(x.topics) &&
     x.topics.every((t) => typeof t === "string") &&
     (x.colours === undefined || (Array.isArray(x.colours) && x.colours.every((c) => typeof c === "string"))) &&
+    (x.neutrals === undefined || (Array.isArray(x.neutrals) && x.neutrals.every((c) => typeof c === "string"))) &&
     (x.fonts === undefined || (Array.isArray(x.fonts) && x.fonts.every((f) => typeof f === "string")))
   );
 };

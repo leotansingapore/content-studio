@@ -49,7 +49,7 @@ describe("progress and the brand set up score", () => {
     expect(scoreOf(1, 4)).toBe(25);
     expect(scoreOf(3, 6)).toBe(50);
     expect(nextLine("identity", 0, 4, false)).toBe("Confirm name and logo to reach 25%");
-    expect(nextLine("look", 1, 4, false)).toBe("Confirm brand colour to reach 50%");
+    expect(nextLine("look", 1, 4, false)).toBe("Confirm brand colours to reach 50%");
     expect(nextLine("look", 1, 4, true)).toBe("Confirm colours and font to reach 50%");
     expect(nextLine(null, 4, 4, false)).toBe("All set. Create your brand when you're ready.");
     expect(nextLine(null, 4, 4, false, "first")).toBe("All set. Save your brand when you're ready.");
@@ -65,7 +65,7 @@ describe("progress and the brand set up score", () => {
 
   it("labels the last confirm as creating the brand", () => {
     expect(confirmLabel("identity", false, "Acme")).toBe("Confirm name and logo");
-    expect(confirmLabel("look", false, "Acme")).toBe("Confirm colour");
+    expect(confirmLabel("look", false, "Acme")).toBe("Confirm colours");
     expect(confirmLabel("look", false, "Acme", true)).toBe("Confirm colours and font");
     expect(confirmLabel("social", true, " Acme ")).toBe("Create Acme");
     expect(confirmLabel("social", true, "  ")).toBe("Create brand");
@@ -162,6 +162,16 @@ describe("logo pixels", () => {
     expect(dominantColours(speck)).toEqual(["#2563EB"]);
     expect(dominantColours(pixels([[0, 0, 0, 255], [255, 255, 255, 255]], 50))).toEqual([]);
     expect(dominantColours(new Uint8ClampedArray(0))).toEqual([]);
+  });
+
+  it("finds the colours of a logo drawn in a gradient, where no single shade covers 3%", () => {
+    const steps = Array.from({ length: 200 }, (_, i) => {
+      const t = i / 199;
+      return [Math.round(10 + 69 * t), Math.round(26 + 153 * t), Math.round(74 + 143 * t), 255] as [number, number, number, number];
+    });
+    const got = dominantColours(pixels(steps, 1));
+    expect(got.length).toBeGreaterThan(0);
+    for (const c of got) expect(parseInt(c.slice(5, 7), 16)).toBeGreaterThan(parseInt(c.slice(1, 3), 16));
   });
 
   it("calls a logo light when nearly all of what shows is near white, so it gets a dark tile", () => {

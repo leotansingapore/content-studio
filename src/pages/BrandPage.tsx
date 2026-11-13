@@ -759,7 +759,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
                 className="h-9 w-24 font-mono text-xs [@media(pointer:coarse)]:h-11"
               />
             </div>
-            {leo && <PaletteRows brand={brand} setBrand={setKit} />}
+            <PaletteRows brand={brand} setBrand={setKit} />
             </fieldset>
           </section>
           {leo && userId && <BrandFontSection userId={userId} />}

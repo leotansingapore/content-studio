@@ -228,7 +228,7 @@ export function sectionTitle(s: Section, leo: boolean): string {
     case "identity":
       return "Name and logo";
     case "look":
-      return leo ? "Colours and font" : "Brand colour";
+      return leo ? "Colours and font" : "Brand colours";
     case "voice":
       return "Voice and audience";
     case "social":
@@ -248,7 +248,7 @@ export function confirmLabel(s: Section, last: boolean, name: string, leo = fals
     case "identity":
       return "Confirm name and logo";
     case "look":
-      return leo ? "Confirm colours and font" : "Confirm colour";
+      return leo ? "Confirm colours and font" : "Confirm colours";
     case "voice":
       return "Confirm voice";
     case "social":

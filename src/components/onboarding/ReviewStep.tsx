@@ -368,7 +368,7 @@ export function ReviewStep(p: ReviewProps) {
           <>
             <div className="space-y-2">
               {leo && <FieldLabel>Brand colours</FieldLabel>}
-              <ColourField picked={p.colours} suggested={p.suggested} presets={p.presets} max={leo ? 4 : 1} onChange={p.onColours} />
+              <ColourField picked={p.colours} suggested={p.suggested} presets={p.presets} max={4} onChange={p.onColours} />
               {!p.colours.length && <p className="text-[13px] font-medium text-destructive">Pick a colour to go on.</p>}
             </div>
             {leo && (

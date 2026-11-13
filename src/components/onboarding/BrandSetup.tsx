@@ -65,13 +65,12 @@ export function targetOf(address: string): string {
 }
 
 function suggestionsFor(d: Dna, fromLogo: string[]): { found: string[]; presets: string[] } {
-  const found = distinctColours([d.colour, ...(d.colours ?? []), ...fromLogo], 8);
+  const found = distinctColours([d.colour, ...(d.colours ?? []), ...fromLogo, ...(d.neutrals ?? [])], 8);
   return { found, presets: found.length >= 2 ? [] : distinctColours(BRAND_PRESETS.map((p) => p.color), 8).filter((c) => !found.includes(c)) };
 }
 
-function startingColours(d: Dna, fromLogo: string[], leo: boolean): string[] {
-  if (leo) return distinctColours([d.colour, ...(d.colours ?? []), ...fromLogo], 4);
-  return distinctColours([d.colour ?? fromLogo[0]], 1);
+function startingColours(d: Dna, fromLogo: string[]): string[] {
+  return distinctColours([d.colour, ...(d.colours ?? []), ...fromLogo, ...(d.neutrals ?? [])], 4);
 }
 
 interface Kept {
@@ -131,7 +130,7 @@ function restore(raw: string | null, mode: Mode): Kept {
     dna,
     done: dna ? ((base?.done ?? []) as Section[]) : [],
     app: dna && isAppRead(extra.app) ? extra.app : null,
-    colours: dna ? (picked.length ? picked : startingColours(dna, [], false)) : [],
+    colours: dna ? (picked.length ? picked : startingColours(dna, [])) : [],
     fromLogo: Array.isArray(extra.fromLogo) ? distinctColours(extra.fromLogo as string[], 3) : [],
     lang: asPostLang(extra.lang),
     slideFont: SLIDE_FONTS.includes(extra.slideFont as SlideFont) ? (extra.slideFont as SlideFont) : "modern",
@@ -338,13 +337,13 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
   const landRead = useCallback(
     async (myId: number, d: Dna, listing: AppRead | null) => {
       const logo = await logoForKit(d.logo);
-      const logoHues = logo ? await logoColours(logo) : [];
+      const logoHues = logo && !/^data:image\/jpeg/i.test(d.logo ?? "") ? await logoColours(logo) : [];
       if (myId !== readId.current) return;
       const next: Dna = { ...d, name: d.name.slice(0, 40), logo, audience: answersRef.current.audience ?? d.audience };
       setNoSite(false);
       setDna(next);
       setFromLogo(logoHues);
-      setColours(startingColours(next, logoHues, leo));
+      setColours(startingColours(next, logoHues));
       setLang(leo ? asPostLang((d as { lang?: unknown }).lang) : null);
       setSlideFont(slideFontFor(d.fonts));
       setDone(new Set());
@@ -517,7 +516,8 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     networks,
     cadence: answers.cadence,
     goal: answers.goal ? { text: goalChips(first ? speakerFor(uid) : "business")[answers.goal], kind: answers.goal } : undefined,
-    ...(leo ? { palette: colours.slice(1), slideFont } : {}),
+    palette: colours.slice(1),
+    ...(leo ? { slideFont } : {}),
   });
 
   const create = () => {

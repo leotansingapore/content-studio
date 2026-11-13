@@ -72,7 +72,10 @@ export function dominantColours(data: Uint8ClampedArray, max = 3): string[] {
     const r = data[i], g = data[i + 1], b = data[i + 2];
     const hi = Math.max(r, g, b), lo = Math.min(r, g, b);
     if (hi - lo <= 40 || hi <= 40 || lo >= 235) continue;
-    const key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+    const d = hi - lo;
+    const hue = hi === r ? ((g - b) / d + 6) % 6 : hi === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    const light = (hi + lo) / 510;
+    const key = Math.floor(hue * 3) * 3 + (light < 0.35 ? 0 : light < 0.65 ? 1 : 2);
     const c = counts.get(key) ?? { n: 0, r: 0, g: 0, b: 0 };
     c.n++;
     c.r += r;
