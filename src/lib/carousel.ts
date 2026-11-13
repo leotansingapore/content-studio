@@ -128,7 +128,8 @@ const HASHTAG_LINE = new RegExp(`^(?:${HASHTAG}[\\s,]*)+$`, "u");
 const TRAILING_HASHTAGS = new RegExp(`[ \\t]+${HASHTAG}(?:[ \\t]+${HASHTAG})*[ \\t]*$`, "gmu");
 const STAGE_DIRECTION = /^(?:\[[^\]]*\]|\([^)]*\))$/;
 const RULE_LINE = /^[-–—_*=•·~]{3,}$/;
-const SLIDE_MARKER = /^(?:slide|page|card)\s*(\d{1,2})\s*(?:[:.)\-–—]\s*(.*))?$/i;
+// the comma: stripDashes turns "SLIDE 1 — Myth" into "SLIDE 1, Myth" before the split
+const SLIDE_MARKER = /^(?:slide|page|card)\s*(\d{1,2})\s*(?:[:.,)\-–—]\s*(.*))?$/i;
 const LABEL_WORDS = "hook|cta|call[\\s-]to[\\s-]action|body|intro|outro";
 /** "HOOK:", "Hook (0-3s):" or "[CTA]" at the start of a script line. */
 const SCRIPT_LABEL = new RegExp(

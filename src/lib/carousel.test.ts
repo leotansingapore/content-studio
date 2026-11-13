@@ -666,6 +666,27 @@ describe("generated carousels keep their own slides", () => {
     expect(slides[1].body).toContain("Even a small top-up");
   });
 
+  // real output for "3 steps to build an emergency fund in your first job" (13 Nov): stripDashes had turned
+  // "SLIDE 1 — MYTH" into "SLIDE 1, MYTH", and every slide title kept its "SLIDE n," label
+  it("reads a marker whose dash became a comma", () => {
+    const draft = [
+      "SLIDE 1, MYTH: “I’ll build an emergency fund when I earn more.”",
+      "Your first job is actually a good time to start, even if you can only set aside S$100 a month.",
+      "",
+      "SLIDE 2, STEP 1: Work from your take-home pay",
+      "Check what lands in your bank account after CPF, then list your essentials.",
+      "",
+      "SLIDE 3, STEP 2: Pick a target you can picture",
+      "Make your first milestone S$1,000.",
+      "",
+      "SLIDE 4, WANT A SIMPLE STARTING POINT?",
+      "Comment **BUFFER** below and I’ll send you a first-job emergency fund checklist.",
+    ].join("\n");
+    const { slides } = splitDraftIntoSlides(draft, { hook: "3 steps to build an emergency fund in your first job" });
+    // "STEP 1:" reads as a numbered item, as it does after "SLIDE 2:"
+    expect(slides.map((x) => x.title)).toEqual(["MYTH: “I’ll build an emergency fund when I earn more.”", "• Work from your take-home pay", "• Pick a target you can picture", "WANT A SIMPLE STARTING POINT?"]);
+  });
+
   it("drops quote marks that wrap a whole title, not ones inside it", async () => {
     expect(toSlideText("“Move #1: Top up early”\nBody text here.").title).toBe("Move #1: Top up early");
     expect(toSlideText("Myth #1: “I can’t touch my CPF”\nBody.").title).toBe("Myth #1: “I can’t touch my CPF”");
