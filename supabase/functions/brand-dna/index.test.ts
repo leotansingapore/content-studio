@@ -182,7 +182,7 @@ describe("brand-dna", () => {
   });
 });
 
-describe("brand-dna phase 4 (Leo only)", () => {
+describe("brand-dna phase 4 (deep and image Leo only, products for everyone)", () => {
   const HOME = `<html lang="zh-SG"><title>Acme Wealth | Plans</title><meta property="og:image" content="/og.jpg">
 <p>We help young families save.</p>
 <a href="/about">About us</a><a href="/services/">Services</a><a href="/blog/tips">Tips</a><a href="/contact">Contact</a><a href="mailto:a@acme.sg">Mail</a>
@@ -211,9 +211,9 @@ describe("brand-dna phase 4 (Leo only)", () => {
   };
   const userText = () => (sent[OPENAI] as { messages: { content: string }[] }).messages[1].content;
 
-  it("refuses deep, products and image before any count for a uid not on NORTH_STAR_USERS, whose plain read is today's", async () => {
+  it("refuses deep and image before any count for a uid not on NORTH_STAR_USERS, whose plain read is today's", async () => {
     site();
-    for (const body of [{ url: "acme.sg", deep: true }, { mode: "products", url: "acme.sg" }, { mode: "image", url: "https://acme.sg/og.jpg" }]) {
+    for (const body of [{ url: "acme.sg", deep: true }, { mode: "image", url: "https://acme.sg/og.jpg" }]) {
       expect(await call(body, "u1")).toEqual({ status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } });
     }
     expect(seen).toEqual([]);
@@ -294,6 +294,32 @@ describe("brand-dna phase 4 (Leo only)", () => {
     expect((sent[OPENAI] as { response_format: { json_schema: { strict: boolean } } }).response_format.json_schema.strict).toBe(true);
     expect(db.spent).toEqual(["brand-products"]);
     expect(db.refunded).toEqual([]);
+  });
+
+  it("scans for products for a uid not on NORTH_STAR_USERS too: the home page and Jev's pages, each item's picture, one brand-products use", async () => {
+    site();
+    routes[OPENAI] = reply({ items: [{ name: "Retirement plan", what: "A plan for your retirement.", forWho: "", price: "", url: "https://acme.sg/services", picture: "https://acme.sg/ret.png", generic: "a retirement plan" }] });
+    const r = await call({ mode: "products", url: "acme.sg" }, "u1");
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({
+      site: "https://acme.sg",
+      pagesRead: ["https://acme.sg/", "https://acme.sg/about", "https://acme.sg/services/"],
+      kind: "service",
+      items: [{ name: "Retirement plan", url: "https://acme.sg/services/", picture: "https://acme.sg/ret.png", offerP: 0.92, namedP: 0.1 }],
+    });
+    expect(db.spent).toEqual(["brand-products"]);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("holds a uid not on NORTH_STAR_USERS to the same products cap and give-back", async () => {
+    site();
+    db.limit = true;
+    expect(await call({ mode: "products", url: "acme.sg" }, "u1")).toMatchObject({ status: 429, body: { code: "daily_limit" } });
+    expect(seen).toEqual([]);
+    db.limit = false;
+    expect(await call({ mode: "products", url: "down.sg" }, "u1")).toEqual({ status: 502, body: { code: "failed", error: "We couldn't open down.sg. Check the address and try again." } });
+    expect(db.spent).toEqual(["brand-products", "brand-products"]);
+    expect(db.refunded).toEqual(["brand-products"]);
   });
 
   it("leaves every item unticked with no error when Jev is silent", async () => {

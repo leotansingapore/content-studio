@@ -4,13 +4,16 @@
 // audience, topics, edge and voice from the page's own words, and asks Jev which life stage it serves. Nothing is
 // stored here: the app pre-fills the brand's own stores and the adviser confirms each field.
 //
+// For every signed-in account (Add a brand finds what the brand sells during the site read, 13 Nov):
+//   mode products   the home page and the pages Jev picks from its links (its own pick, no deep read needed): their
+//                   words, pictures and JSON-LD items, one strict LLM call and one Jev call (offer, named product,
+//                   kind). Each item may carry a picture address seen on those pages (og:image, an img with alt, a
+//                   JSON-LD image). Cap "brand-products", given back when the home page or OpenAI never answered.
+//
 // Phase 4, only for a uid on NORTH_STAR_USERS (403 not_enabled before any count for everyone else, whose read is
 // pinned unchanged in index.test.ts):
 //   deep: true      Jev picks up to 4 more pages from the home page's links; the writer reads them fenced. The answer
 //                   gains pagesRead and lang (a listed uid gets both on any read). Counts "brand-dna" once.
-//   mode products   the home page and the picked pages' words, pictures and JSON-LD items, one strict LLM call and one
-//                   Jev call (offer, named product, kind). Cap "brand-products", given back when the home page or
-//                   OpenAI never answered.
 //   mode image      one picture from the brand's site (public address, PNG, JPEG or WebP by its bytes, at most 2 MB)
 //                   as a data URL. Cap "brand-image", given back when the site never answered.
 //
@@ -294,7 +297,8 @@ Deno.serve(async (req) => {
   const listed = isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid);
   const mode = body?.mode === "products" || body?.mode === "image" || body?.mode === "audiences" ? body.mode : null;
   const deep = body?.deep === true;
-  if ((mode || deep) && !listed) return fail(403, "not_enabled", "This isn't switched on for your account yet.");
+  // products runs for every signed-in account (Add a brand), held to its own daily cap
+  if (((mode && mode !== "products") || deep) && !listed) return fail(403, "not_enabled", "This isn't switched on for your account yet.");
   if (mode === "products") return await products(admin, uid, body);
   if (mode === "image") return await image(admin, uid, body);
   // before the plain read's siteUrl check, which would answer 400 to a profile-only body
