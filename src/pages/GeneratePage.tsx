@@ -41,6 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { formatLines } from "@/lib/workingLibrary";
 import { attachImageTo, autoImage, fixImage, imageBusy, imageJob, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
+import { canCopyPictures, copyPicture, copyPost } from "@/lib/copyPost";
 import { currentScore, labelFor, loadScores, saveScore, scoreFix, scorePost, textKey, tipFor, type FactorId, type PostScore, type ScoreFormat } from "@/lib/postScore";
 import { otherFormulas, splitHook } from "@/lib/variants";
 import { seriesSlots, slotTimesFor } from "@/lib/postingSlots";
@@ -2460,15 +2461,29 @@ function Writer() {
   // Everything copied from here is headed for a social platform, none of which
   // render markdown - strip it so "**hook**" doesn't paste as literal asterisks.
   // A post or caption also gets the brand kit sign-off; a script doesn't.
-  const copyText = async (text: string, title: string, description: string, signOff = false, plat?: string) => {
+  const copyText = async (text: string, title: string, description: string, signOff = false, plat?: string, picture?: string) => {
     try {
-      await navigator.clipboard.writeText(signOff ? forPosting(text, plat) : toPlainText(text));
-      const done = signOff && brandSignOff ? `${title} with your sign-off` : title;
+      const out = signOff ? forPosting(text, plat) : toPlainText(text);
+      const withPic = picture && canCopyPictures() ? await copyPost(out, getFile(picture)).then(() => true, () => false) : false;
+      if (!withPic) await navigator.clipboard.writeText(out);
+      const extras = [withPic ? "the picture" : "", signOff && brandSignOff ? "your sign-off" : ""].filter(Boolean);
+      const done = extras.length ? `${title} with ${extras.join(" and ")}` : title;
       const left = findBlanks(text);
+      const action =
+        withPic && picture ? (
+          <div className="flex shrink-0 flex-col gap-1.5">
+            <ToastAction altText="Copy the text only" onClick={() => void navigator.clipboard.writeText(out).then(() => toast({ title: "Text copied" }))}>
+              Text only
+            </ToastAction>
+            <ToastAction altText="Copy the picture only" onClick={() => void copyPicture(getFile(picture)).then(() => toast({ title: "Picture copied" }), () => toast({ title: "Couldn't copy the picture", variant: "destructive" }))}>
+              Picture only
+            </ToastAction>
+          </div>
+        ) : undefined;
       toast(
         left.length
-          ? { title: `${done}. Fill ${left.length === 1 ? "1 blank" : `${left.length} blanks`} first`, description: left.join(", "), variant: "destructive" }
-          : { title: done, description },
+          ? { title: `${done}. Fill ${left.length === 1 ? "1 blank" : `${left.length} blanks`} first`, description: left.join(", "), variant: "destructive", action }
+          : { title: done, description: withPic ? "Paste into your platform. If only the text or only the picture lands, copy the other one here." : description, action },
       );
     } catch {
       toast({
@@ -2504,7 +2519,9 @@ function Writer() {
   const handleCopy = async () => {
     if (!draft) return;
     if (warnBlocked(copyBlockFor(currentDraftId, draft))) return;
-    await copyText(draft, "Copied", "Paste into your platform of choice.", true);
+    const picture = attachedMedia.media.find((m) => !m.video)?.key;
+    const making = !picture && imgRunning && format === "text-post" && imgJob?.prompt === imagePrompt;
+    await copyText(draft, "Copied", making ? "Your picture is still being made. Copy again once it's on the post." : "Paste into your platform of choice.", true, undefined, picture);
   };
 
   const updateVersion = (id: string, patch: Partial<PlatformVersion>) =>
@@ -3204,7 +3221,7 @@ function Writer() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStreaming, draft, showShortcuts, styleReference]);
+  }, [isStreaming, draft, showShortcuts, styleReference, attachedMedia, imgJob]);
 
   const generateButtonLabel = (() => {
     if (checkingIdea) return "Reading your idea...";
