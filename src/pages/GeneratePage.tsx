@@ -73,8 +73,6 @@ import {
   HashIcon,
   ImageIcon as ImageWandIcon,
   KeyboardIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
   CaretDownIcon,
   PencilSimpleIcon,
   GaugeIcon,
@@ -183,6 +181,7 @@ import {
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUsesLeft } from "@/lib/aiUsage";
 import PriceChip from "@/components/PriceChip";
+import StepFooter from "@/components/StepFooter";
 import { WRITE_PRICE, priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { canCredit, dayMonth, draftLine, earlierRemix, rememberSource, sourceChip, type RemixSource } from "@/lib/remixSource";
 import { speakerFor } from "@/lib/remixBrand";
@@ -4102,50 +4101,31 @@ function Writer() {
             </section>
           )}
 
-          {/* Wizard footer navigation */}
-          <div className="flex items-center justify-between gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={goBack}
-              disabled={wizardStep === 0}
-              className="gap-1.5 text-muted-foreground disabled:opacity-40 [@media(pointer:coarse)]:h-11"
-            >
-              <CaretLeftIcon className="h-4 w-4" /> Back
-            </Button>
-            <span className={`text-xs text-muted-foreground ${canGenerateEarly ? "hidden sm:inline" : ""}`}>
-              Step {wizardStep + 1} of {STEP_META.length}
-            </span>
-            {wizardStep < LAST_STEP ? (
-              <div className="flex items-center gap-2">
+          {/* Wizard footer navigation: the shared step footer; Generate stays this page's own button, with its price */}
+          <StepFooter
+            step={wizardStep + 1}
+            total={STEP_META.length}
+            name={STEP_META[wizardStep].label}
+            onBack={wizardStep > 0 ? goBack : undefined}
+            onContinue={wizardStep < LAST_STEP ? goNext : undefined}
+            continueVariant={canGenerateEarly ? "outline" : "default"}
+          >
+            {canGenerateEarly && (
+              <div className="flex flex-col items-end gap-0.5">
                 <Button
                   type="button"
-                  variant={canGenerateEarly ? "outline" : "default"}
-                  onClick={goNext}
-                  className="gap-1.5 [@media(pointer:coarse)]:h-11"
+                  onClick={() => void handleGenerate()}
+                  disabled={checkingIdea}
+                  className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 [@media(pointer:coarse)]:h-11"
                 >
-                  Next <CaretRightIcon className="h-4 w-4" />
+                  <SparkleIcon className="h-4 w-4" />
+                  {generateButtonLabel}
                 </Button>
-                {canGenerateEarly && (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <Button
-                      type="button"
-                      onClick={() => void handleGenerate()}
-                      disabled={checkingIdea}
-                      className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 [@media(pointer:coarse)]:h-11"
-                    >
-                      <SparkleIcon className="h-4 w-4" />
-                      {generateButtonLabel}
-                    </Button>
-                    {/* under the button, so the footer still fits at 390 px */}
-                    {!isStreaming && <PriceChip price={WRITE_PRICE} left={null} />}
-                  </div>
-                )}
+                {/* under the button, so the footer still fits at 390 px */}
+                {!isStreaming && <PriceChip price={WRITE_PRICE} left={null} />}
               </div>
-            ) : (
-              <span className="w-[74px]" aria-hidden />
             )}
-          </div>
+          </StepFooter>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">

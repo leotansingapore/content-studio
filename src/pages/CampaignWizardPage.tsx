@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CaretRightIcon } from "@phosphor-icons/react";
+import StepFooter from "@/components/StepFooter";
 import AnglesStep from "@/components/campaign/AnglesStep";
 import BudgetStep, { RunsStep } from "@/components/campaign/BudgetStep";
 import PaceStep from "@/components/campaign/PaceStep";
@@ -25,7 +26,7 @@ import {
 import {
   addedLine, adsCostLine, budgetLine, budgetReason, confirmed, costLine, countryName, defaultName, firstOpen, FORMAT_NAME, formatLine, freshAngles, listJoin,
   loadWizard, nearestPace, newWork, openStep, overRunLine, paceLabel, pickAudience, previewPosts, runsLabel, saveWizard, shortDay, STEP_LABEL, STEPS,
-  stepCount, stepsFor, successLine, summaryLines, toBudget, usd, whereLine, withAudience, withoutAudience, writeLimitLine, type WizardStep, type WizardWork,
+  stepsFor, successLine, summaryLines, toBudget, usd, whereLine, withAudience, withoutAudience, writeLimitLine, type WizardStep, type WizardWork,
 } from "@/lib/campaignWizard";
 import { loadBrand } from "@/lib/carousel";
 import { upcomingMonday } from "@/lib/contentPlan";
@@ -193,25 +194,22 @@ function Wizard({ userId }: { userId: string }) {
     </div>
   );
   /** reason: why Confirm waits, null when it can go ("" waits on the errors the fields show). */
-  const footer = (step: WizardStep, reason: string | null, onConfirm: () => void) => (
-    <div className="space-y-1 border-t border-border/60 pt-4">
-      <div className="flex items-center justify-between gap-2">
-        {steps.indexOf(step) > 0 ? <Button variant="outline" onClick={() => goTo(steps[steps.indexOf(step) - 1])}>Back</Button> : <span />}
-        <Button onClick={onConfirm} disabled={reason !== null}>Confirm</Button>
-      </div>
-      {reason && <p className="text-right text-xs text-muted-foreground">{reason}</p>}
-    </div>
-  );
+  /** What the shared step footer needs to know about a step: its place, its name and the way back. */
+  const at = (step: WizardStep) => {
+    const i = steps.indexOf(step);
+    return { step: i + 1, total: steps.length, name: STEP_LABEL[step], onBack: i > 0 ? () => goTo(steps[i - 1]) : undefined };
+  };
+  const footer = (step: WizardStep, reason: string | null, onConfirm: () => void) => <StepFooter {...at(step)} reason={reason} onContinue={onConfirm} />;
   const card = (step: WizardStep, body: ReactNode, foot: ReactNode) => (
     <section key={step} aria-labelledby="wizard-q" className="space-y-4 rounded-xl border border-border/60 bg-card p-4 shadow-card sm:p-5">
       <header className="space-y-1">
         {QUESTION[step] ? (
           <>
-            <p className={HEAD}>{TITLE[step]} | {stepCount(step, work.runs)}</p>
+            <p className={HEAD}>{TITLE[step]}</p>
             <h2 id="wizard-q" className="font-serif text-xl sm:text-2xl">{QUESTION[step]}</h2>
           </>
         ) : (
-          <h2 id="wizard-q" className={HEAD}>{TITLE[step]} | {stepCount(step, work.runs)}</h2>
+          <h2 id="wizard-q" className={HEAD}>{TITLE[step]}</h2>
         )}
       </header>
       {body}
@@ -234,6 +232,7 @@ function Wizard({ userId }: { userId: string }) {
           <AnglesStep
             audience={audience}
             value={work.angles}
+            at={at(step)}
             onChange={() => goTo("angles")}
             onConfirm={(angles) => confirm(confirmed({ ...work, angles, fresh: freshAngles(angles, anglesFor(userId, audience.id), work.fresh) }, "angles"))}
           />
@@ -314,7 +313,7 @@ function Wizard({ userId }: { userId: string }) {
           limitLine={writeLimitLine(posts, usesLeft("campaign-draft"))}
           blocked={full ? LIMIT_LINE : null}
           error={error}
-          onBack={() => goTo(steps[steps.length - 2])}
+          at={at(step)}
           onAdd={add}
         />,
         null,

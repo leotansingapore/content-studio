@@ -6,6 +6,7 @@
 import { useEffect, useReducer, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import ComplianceChips from "@/components/ComplianceChips";
 import PriceChip from "@/components/PriceChip";
+import StepFooter from "@/components/StepFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToastAction } from "@/components/ui/toast";
@@ -28,6 +29,7 @@ export default function AnglesStep({
   audience,
   value,
   collapsed = false,
+  at,
   onConfirm,
   onChange,
 }: {
@@ -35,6 +37,8 @@ export default function AnglesStep({
   /** The confirmed angles ([] before the first Confirm): ticked again when Change reopens the step. */
   value: Campaign["angles"];
   collapsed?: boolean;
+  /** Its place among the wizard's steps, and the way back (the open step only). */
+  at?: { step: number; total: number; name: string; onBack?: () => void };
   onConfirm: (angles: Campaign["angles"]) => void;
   onChange: () => void;
 }) {
@@ -231,7 +235,7 @@ export default function AnglesStep({
   return (
     <section aria-labelledby="angles-step-q" className="space-y-4">
       <header className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Angles | 2 of 5</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Angles</p>
         <h2 id="angles-step-q" className="font-serif text-xl sm:text-2xl">
           Which angles does this campaign push?
         </h2>
@@ -273,12 +277,7 @@ export default function AnglesStep({
         )}
       </div>
 
-      <div className="space-y-1 border-t border-border/60 pt-4">
-        <Button variant={empty ? "outline" : "default"} onClick={confirm} disabled={!!reason}>
-          Confirm
-        </Button>
-        {reason && <p className="text-xs text-muted-foreground">{reason}</p>}
-      </div>
+      {at && <StepFooter {...at} reason={reason} onContinue={confirm} continueVariant={empty ? "outline" : "default"} />}
     </section>
   );
 }

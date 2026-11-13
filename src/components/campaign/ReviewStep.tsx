@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import PriceChip from "@/components/PriceChip";
+import StepFooter from "@/components/StepFooter";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,8 @@ export default function ReviewStep(p: {
   /** Why Add can't go (12 campaigns already), or why it didn't (no room). */
   blocked: string | null;
   error: string | null;
-  onBack: () => void;
+  /** Its place among the wizard's steps, and the way back. */
+  at: { step: number; total: number; name: string; onBack?: () => void };
   onAdd: () => void;
 }) {
   return (
@@ -77,15 +79,14 @@ export default function ReviewStep(p: {
 
       <p className="text-sm">{p.cost}</p>
 
-      <div className="space-y-3 border-t border-border/60 pt-4">
+      <div className="space-y-3">
         <p className="text-sm text-muted-foreground">{p.note ?? "Adding this writes the words for every post. Nothing is posted, and no AI video is made, until you press Make on it."}</p>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {p.adding ? <span /> : <Button variant="outline" onClick={p.onBack}>Back</Button>}
+        <StepFooter {...p.at} backDisabled={p.adding}>
           <div className="flex flex-col items-end gap-1">
             <Button onClick={p.onAdd} disabled={p.adding || !!p.blocked}>{p.adding ? "Adding..." : "Add campaign"}</Button>
             {p.uses > 0 && <PriceChip price={writePrice(p.uses)} uses={p.uses} left={p.left} />}
           </div>
-        </div>
+        </StepFooter>
         {p.limitLine && <p className="text-right text-xs text-muted-foreground">{p.limitLine}</p>}
         {(p.blocked || p.error) && <p role="alert" className="text-right text-sm text-destructive">{p.blocked || p.error}</p>}
       </div>
