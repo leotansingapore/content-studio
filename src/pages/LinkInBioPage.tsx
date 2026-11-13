@@ -411,7 +411,8 @@ export default function LinkInBioPage() {
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <Button onClick={() => void save()} disabled={saving} className="h-11 w-full gap-1.5 sm:h-10 sm:w-auto [@media(pointer:coarse)]:h-11">
                     {saving && <CircleNotchIcon className="h-4 w-4 animate-spin" />}
-                    Save page
+                    {/* says when this press makes the page public (law 14): Page is live starts ticked on a new page */}
+                    {form.published && !mine?.published ? "Save and publish" : "Save page"}
                   </Button>
                   {unsaved && !saving && <span className="text-xs text-muted-foreground">Not saved yet</span>}
                 </div>
