@@ -1,8 +1,9 @@
 // The agent (docs/north-star/items/agent-chat.md; phase6-build-brief.md, "Agent engine API"): one turn at a time per
 // thread, run outside React like the makers' jobs, so leaving /agent loses nothing. A message goes to assistant-act
-// once (Jev picks the act and fills its slots; a "/" message never asks Jev), and the agent answers with a fixed line,
-// a card, or the feedback service's words. A card's press runs its plan (agentPlans.ts): every priced step waits for a
-// press on a card that shows its price, and a typed yes approves only the one proposed card, only under US$1.
+// once (Jev picks the act and fills its slots; a "/" message, and one sent with a static format's layout, never asks
+// Jev), and the agent answers with a fixed line, a card, or the feedback service's words. A card's press runs its plan
+// (agentPlans.ts): every priced step waits for a press on a card that shows its price, and a typed yes approves only
+// the one proposed card, only under US$1.
 // Stop aborts the Jev call only; after a press the make finishes. Turns, cards and receipts live in the thread
 // messages (agentThreads.ts), so a reload shows them and resumeAgent picks up what was running.
 
@@ -24,6 +25,7 @@ import { loadAutonomy, recordShadow } from "@/lib/autonomy";
 import { loadCompetitorAds } from "@/lib/competitorAds";
 import { EdgeError } from "@/lib/edgeFn";
 import { currentEditTarget } from "@/lib/editTarget";
+import { isStatic, type StaticLayoutId } from "@/lib/imageLayout";
 import { links } from "@/lib/links";
 import { priceText } from "@/lib/prices";
 import { speakerFor } from "@/lib/remixBrand";
@@ -162,11 +164,11 @@ function liveFor(thread: string, msg: string): Live & { steps: () => number; not
 // ---------- send ----------
 
 /** Sends a message: the user row and the agent's Starting row are written before this returns the thread id. */
-export function send(userId: string, threadId: string | null, text: string, o: { chip?: Chip; source?: string } = {}): string {
+export function send(userId: string, threadId: string | null, text: string, o: { chip?: Chip; source?: string; layout?: StaticLayoutId; topic?: string } = {}): string {
   const said = text.trim();
   if (threadId && running(turns.get(threadId)) && turns.get(threadId)!.state !== "making") return threadId;
   const at = new Date(clock());
-  const user = newMsg("user", { text: said, ...(o.source ? { source: o.source } : {}) }, at);
+  const user = newMsg("user", { text: said, ...(o.source ? { source: o.source } : {}), ...(o.layout ? { layout: o.layout, topic: o.topic } : {}) }, at);
   const agent = newMsg("agent", { turn: "starting" }, at);
   const saved = threadId ? appendMsg(userId, threadId, [user, agent], at) : newThread(userId, [user, agent], at);
   if (saved.ok === false) return "";
@@ -177,7 +179,7 @@ export function send(userId: string, threadId: string | null, text: string, o: {
   return id;
 }
 
-async function runTurn(userId: string, thread: string, msg: string, text: string, o: { chip?: Chip; source?: string }) {
+async function runTurn(userId: string, thread: string, msg: string, text: string, o: { chip?: Chip; source?: string; layout?: StaticLayoutId; topic?: string }) {
   const ctl = new AbortController();
   aborts.set(thread, ctl);
   const live = liveFor(thread, msg);
@@ -263,7 +265,8 @@ const writeDraft = () => (typeof location !== "undefined" && location.pathname =
 
 type Out = Reply & { turn?: TurnState };
 
-async function decide(userId: string, thread: string, msg: string, text: string, o: { chip?: Chip; source?: string }, signal: AbortSignal, live: ReturnType<typeof liveFor>): Promise<Out> {
+async function decide(userId: string, thread: string, msg: string, text: string, o: { chip?: Chip; source?: string; layout?: StaticLayoutId; topic?: string }, signal: AbortSignal, live: ReturnType<typeof liveFor>): Promise<Out> {
+  if (o.layout) return layoutReply(userId, o.layout, o.topic || text, live);
   const messages = (threadOf(userId, thread)?.messages ?? []).filter((m) => m.id !== msg);
   const api = skillsApi();
   if (text.startsWith("/")) return slash(userId, text, api, live);
@@ -382,10 +385,17 @@ async function makeReply(
   const from = again ? (again.source ? resolveSource(again.source, userId) : null) : src;
   const link = again ? (again.link ?? null) : src ? null : linkIn(text);
   if (act === "remix" && !from && !link) return { text: LINES.noSource, go: [OPEN_SWIPE, OPEN_ANALYTICS] };
+  const layout = again?.layout && (!cp.format || cp.format === "image") ? again.layout : undefined;
   const format = again ? (cp.format ?? again.format) : formatFor(cp.format, chip, src);
   const subject = again ? again.subject : cp.subject;
-  const c = makeCard(userId, { plan: planOf(format, link), format, act, p, topic: again ? again.topic || again.subject : text, subject, source: from?.key, link: link ?? undefined, speaker, length: cp.length });
+  const c = makeCard(userId, { plan: layout ? "layout" : planOf(format, link), format, act, p, topic: again ? again.topic || again.subject : text, subject, source: from?.key, link: link ?? undefined, speaker, length: cp.length, ...(layout ? { layout } : {}) });
   return (await makeCheck(userId, c, topicOf(text))) ?? { text: LINES.lead, card: c };
+}
+
+async function layoutReply(userId: string, layout: StaticLayoutId, topic: string, live: ReturnType<typeof liveFor>): Promise<Reply> {
+  live.note(STEP.uses);
+  const c = makeCard(userId, { plan: "layout", format: "image", act: "make", p: {}, topic, layout });
+  return (await makeCheck(userId, c, topicOf(topic))) ?? { text: LINES.lead, card: c };
 }
 
 /** A pressed composer chip with no act from Jev: a card in that format (or the campaign), with no Jev at all. */
@@ -488,7 +498,7 @@ export async function press(userId: string, threadId: string, msgId: string, but
     // a failed or interrupted turn: the message before it, sent again
     const msgs = threadOf(userId, threadId)?.messages ?? [];
     const before = msgs.slice(0, msgs.findIndex((x) => x.id === msgId)).reverse().find((x) => x.role === "user");
-    if (before?.text) send(userId, threadId, before.text, before.source ? { source: before.source } : {});
+    if (before?.text) send(userId, threadId, before.text, { ...(before.source ? { source: before.source } : {}), ...(before.layout && isStatic(before.layout) ? { layout: before.layout, topic: before.topic } : {}) });
     return;
   }
   if (button === "remember" || button === "no-thanks") {
@@ -717,7 +727,7 @@ export function agentNow(userId: string): { kind: "idle" | "running" | "waiting"
     for (const m of [...t.messages].reverse()) {
       const j = m.job;
       if (j?.state === "done" && j.endedAt && clock() - Date.parse(j.endedAt) < READY_FOR) {
-        const noun = j.kind === "remix" && m.card ? ({ post: "post", carousel: "carousel", script: "script" } as Record<string, string>)[fieldsOf(m.card).format ?? "post"] ?? "post" : JOB_NOUN[j.kind];
+        const noun = j.kind === "remix" && m.card ? ({ post: "post", carousel: "carousel", script: "script" } as Record<string, string>)[fieldsOf(m.card).format ?? "post"] ?? "post" : j.kind === "image" && j.open?.startsWith("/image") ? "static ad" : JOB_NOUN[j.kind];
         return { kind: "ready", line: `Your ${noun} is ready`, to: links.agent({ thread: t.id, m: m.id }) };
       }
     }

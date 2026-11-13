@@ -23,7 +23,7 @@ const VIDEO_KINDS = new Set<Job["kind"]>(["talk", "video"]);
 export function madeNoun(job: Job): string {
   if (job.kind === "remix") return job.open?.startsWith("/carousel") ? "carousel" : "post";
   if (job.kind === "talk") return "talking video";
-  if (job.kind === "image") return "picture";
+  if (job.kind === "image") return job.open?.startsWith("/image") ? "static ad" : "picture";
   if (job.kind === "wall") return "wall of text";
   return job.kind;
 }

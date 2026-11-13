@@ -3,8 +3,8 @@
 // what it works with, an optional note (kept on this device, cs-static-note-<slug>), and two ways to make it, each with
 // its price. "Make it as a photo" (src/lib/photoAd.ts) writes the words for the brand with the note, then the picture
 // maker makes the format's scene with those words on it; it stays on this page, shows each step, and ends with a link to
-// the photo in Media. "Make it as a layout" opens /image on that layout and writes the words there (navigation state
-// { go, format }, as the Remix sheet's link does; a pasted link writes nothing), and the design lands in Your images.
+// the photo in Media. "Make it as a layout" hands the agent a request that sends on arrival (links.agent({ ask }) with
+// navigation state { send, from, layout, topic }), and the design the agent makes on that layout lands in Your images.
 // The photo is the dominant button, since the examples it matches are photos; the layout takes over when today's
 // pictures are used up. A format that needs a photo, with none on this brand yet, offers only "Add a photo", which opens
 // the picker. Leo's sign-ins only (useLeoUser, so ?asLeo=1 works on localhost); anyone else, and an unknown slug, gets NotFound.
@@ -16,7 +16,8 @@ import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { STATIC_SHOTS, staticFormatBySlug, staticShotSrc, type StaticFormat } from "@/data/staticFormats";
+import { STATIC_SHOTS, staticFormatBySlug, staticFormatHref, staticShotSrc, type StaticFormat } from "@/data/staticFormats";
+import type { ArrivedFrom } from "@/lib/agentStarters";
 import { AI_FOLDER, imageJob, onImageJob, resumeImage } from "@/lib/aiImage";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { staticExampleUrl } from "@/lib/staticExample";
@@ -24,7 +25,7 @@ import { isStatic } from "@/lib/imageLayout";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
 import { PHOTO_STEP, shownPhotoAd, startPhotoAd, usePhotoAd } from "@/lib/photoAd";
-import { loadProducts, type Products } from "@/lib/products";
+import { loadProducts, productBits } from "@/lib/products";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { brandName } from "@/lib/remixBrand";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -58,31 +59,27 @@ export function worksWith(f: Pick<StaticFormat, "best" | "needs">): string {
   return "No photo needed. The words carry it.";
 }
 
-/** The brand's product photo (a used product's first), and its first price. */
-export function productBits(p: Products): { picture?: string; price?: string } {
-  const items = [...p.items.filter((x) => x.use), ...p.items.filter((x) => !x.use)];
-  return { picture: items.find((x) => x.pictures[0])?.pictures[0], price: items.find((x) => x.price?.trim())?.price?.trim() };
-}
-
 /**
  * The page's one button: where it goes and what it carries. A format that needs a photo, with no product photo and
- * nothing in Media, adds a photo first; otherwise it writes at once, with the product photo in when the format uses
- * one, or the picker open beside the words when only Media has photos.
+ * nothing in Media, adds a photo first; otherwise it hands the agent the layout and the topic. The photo make takes
+ * `format`, with the product photo in when the format uses one.
  */
 export function staticMake(
-  f: Pick<StaticFormat, "slug" | "best" | "needs">,
+  f: Pick<StaticFormat, "slug" | "name" | "best" | "needs">,
   o: { note: string; brand: string; picture?: string; photos: number; price?: string },
-): { label: string; to: string; state: { go?: true; format: { topic: string; pictureKey?: string; price?: string } } } {
-  const topic = o.note.trim().slice(0, MAX_NOTE) || `What ${o.brand} does and who it's for`;
-  const page = links.image({ layout: f.slug as never });
+): {
+  label: string;
+  to: string;
+  state: { format: { topic: string } } | { send: true; from: ArrivedFrom; layout: string; topic: string };
+  format: { topic: string; pictureKey?: string; price?: string };
+} {
+  const note = o.note.trim().slice(0, MAX_NOTE);
+  const topic = note || `What ${o.brand} does and who it's for`;
   const usesPhoto = f.needs === "photo" || f.best === "photo";
-  if (f.needs === "photo" && !o.picture && !o.photos) return { label: "Add a photo", to: `${page}&pick=media`, state: { format: { topic } } };
-  const pick = f.needs === "photo" && !o.picture ? "&pick=media" : "";
-  return {
-    label: "Make it as a layout",
-    to: page + pick,
-    state: { go: true, format: { topic, ...(usesPhoto && o.picture ? { pictureKey: o.picture } : {}), ...(f.best === "price" && o.price ? { price: o.price } : {}) } },
-  };
+  const format = { topic, ...(usesPhoto && o.picture ? { pictureKey: o.picture } : {}), ...(f.best === "price" && o.price ? { price: o.price } : {}) };
+  if (f.needs === "photo" && !o.picture && !o.photos) return { label: "Add a photo", to: `${links.image({ layout: f.slug as never })}&pick=media`, state: { format: { topic } }, format };
+  const ask = `Make a "${f.name}" static ad about ${(note || `what ${o.brand} does and who it's for`).replace(/\s+/g, " ")}`;
+  return { label: "Make it as a layout", to: links.agent({ ask }), state: { send: true, from: { label: `Static ads > ${f.name}`, path: staticFormatHref(f.slug) }, layout: f.slug, topic }, format };
 }
 
 export default function StaticFormatPage() {
@@ -179,7 +176,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                 <div className="flex flex-wrap items-center gap-3">
                   <Button
                     variant={photoFirst ? "default" : "outline"}
-                    onClick={() => void startPhotoAd(userId, def, action.state.format)}
+                    onClick={() => void startPhotoAd(userId, def, action.format)}
                     disabled={own || picturing || photoLeft === 0}
                     className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${own ? "disabled:opacity-100" : ""}`}
                   >
@@ -230,7 +227,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {adding ? "It opens on the Image page and stays in " : "A photo goes to Photos and videos. A layout opens on the Image page and stays in "}
+                {adding ? "It opens on the Image page and stays in " : "A photo goes to Photos and videos. A layout is made by the agent and stays in "}
                 <Link to={links.image()} className="font-semibold text-primary hover:underline">
                   Your images
                 </Link>

@@ -68,4 +68,11 @@ describe("a page handing the agent a request", () => {
     // a long label is cut to fit the chip
     expect(handoff({ from: { label: "x".repeat(120), path: "/make" } }, null).from?.label).toHaveLength(80);
   });
+
+  it("takes a static format's layout only for a format we draw, with its topic", () => {
+    expect(handoff({ send: true, layout: "lofi-note", topic: "  Office workers who skip lunch  " }, "Make a lo-fi note").layout).toEqual({ layout: "lofi-note", topic: "Office workers who skip lunch" });
+    expect(handoff({ layout: "tear-off-flyer", topic: "x".repeat(300) }, null).layout?.topic).toHaveLength(200);
+    for (const s of [null, { layout: "headline", topic: "Lunch" }, { layout: "street-scene", topic: "Lunch" }, { layout: ["lofi-note"], topic: "Lunch" }, { layout: "lofi-note" }, { layout: "lofi-note", topic: "  " }, { layout: "lofi-note", topic: 3 }])
+      expect(handoff(s, "Make a lo-fi note").layout, JSON.stringify(s)).toBeNull();
+  });
 });

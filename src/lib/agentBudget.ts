@@ -17,7 +17,7 @@ export interface Need {
 }
 /** Every plan the agent runs (phase6-build-brief.md, "What each plan runs"). */
 export type Plan =
-  | "post" | "carousel" | "script" | "slideshow" | "wall" | "link" | "speaking" | "explainer" | "image"
+  | "post" | "carousel" | "script" | "slideshow" | "wall" | "link" | "speaking" | "explainer" | "image" | "layout"
   | "competitor" | "move" | "write" | "campaign" | "learning" | "edit" | "answer";
 
 const one = (...features: Cap[]): Need[] => features.map((feature) => ({ feature, n: 1 }));
@@ -35,6 +35,7 @@ export const NEEDS: Record<Plan, Need[]> = {
   speaking: talk({ write: true, presenter: false }),
   explainer: one("ai-video", "ai-voice", "ai-video-script"),
   image: one("ai-image"),
+  layout: one("remix-make"),
   competitor: one("competitor-read"),
   move: [],
   write: [], // Write's own writer has no cap here
@@ -147,6 +148,7 @@ const THING: Partial<Record<Plan, string>> = {
   speaking: "A talking video",
   explainer: "An explainer video",
   image: "A picture",
+  layout: "A static ad",
   competitor: "A competitor look-up",
   campaign: "A campaign",
   edit: "A change",

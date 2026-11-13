@@ -156,6 +156,12 @@ export function productBrief(p: Product): string {
 /** The product remixes use first: the first one with "Use in posts" on. */
 export const mainProduct = (list: Product[]): Product | null => list.find((p) => p.use) ?? null;
 
+/** The brand's product photo (a used product's first), and its first price. */
+export function productBits(p: Products): { picture?: string; price?: string } {
+  const items = [...p.items.filter((x) => x.use), ...p.items.filter((x) => !x.use)];
+  return { picture: items.find((x) => x.pictures[0])?.pictures[0], price: items.find((x) => x.price?.trim())?.price?.trim() };
+}
+
 const sameUrl = (a: string, b: string) => a.replace(/#.*$/, "").replace(/\/+$/, "").toLowerCase() === b.replace(/#.*$/, "").replace(/\/+$/, "").toLowerCase();
 
 /**

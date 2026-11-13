@@ -29,8 +29,11 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import StaticFormatPage, { loadNote, noteKey, productBits, staticMake, worksWith } from "./StaticFormatPage";
+import StaticFormatPage, { loadNote, noteKey, staticMake, worksWith } from "./StaticFormatPage";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
+import { handoff } from "@/lib/agentStarters";
+import { links } from "@/lib/links";
+import { productBits } from "@/lib/products";
 
 const U = "u1";
 const html = (slug: string) =>
@@ -81,6 +84,7 @@ describe("the static format page", () => {
     // the price before anything is spent: one write (US$0.007) and one picture (US$0.04)
     expect(page).toContain("About US$0.05");
     expect(page).toContain("A photo goes to Photos and videos.");
+    expect(page).toContain("A layout is made by the agent and stays in");
 
     as.left = { "remix-make": 20, "ai-image": 0 };
     page = html("street-poster");
@@ -137,36 +141,43 @@ describe("the static format page", () => {
 
 describe("the layout make", () => {
   const chat = staticFormatBySlug("text-chat")!;
-  const best = { slug: "ai-chat", best: "photo" as const };
-  const needs = { slug: "share-popup", needs: "photo" as const };
+  const best = staticFormatBySlug("ai-chat")!;
+  const needs = staticFormatBySlug("share-popup")!;
+  const FROM = { label: "Static ads > Text message chat", path: "/make/static/text-chat" };
+  const askOf = (to: string) => new URL(to, "https://app.postmosis.com").searchParams.get("ask");
 
-  it("writes at once for the brand, the note as the topic, else what the brand does", () => {
+  it("hands the agent the layout and the note as its topic, else what the brand does, to send on arrival with the way back", () => {
     expect(staticMake(chat, { note: "  For new parents  ", brand: "Hilltop", photos: 0 })).toEqual({
       label: "Make it as a layout",
-      to: "/image?layout=text-chat",
-      state: { go: true, format: { topic: "For new parents" } },
+      to: links.agent({ ask: 'Make a "Text message chat" static ad about For new parents' }),
+      state: { send: true, from: FROM, layout: "text-chat", topic: "For new parents" },
+      format: { topic: "For new parents" },
     });
-    expect(staticMake(chat, { note: "", brand: "Hilltop", photos: 0 }).state.format.topic).toBe("What Hilltop does and who it's for");
-    expect(staticMake(chat, { note: "x".repeat(300), brand: "Hilltop", photos: 0 }).state.format.topic).toHaveLength(200);
+    const plain = staticMake(chat, { note: "", brand: "Hilltop", photos: 0 });
+    expect(new URL(plain.to, "https://app.postmosis.com").pathname).toBe("/agent");
+    expect(askOf(plain.to)).toBe("Make a \"Text message chat\" static ad about what Hilltop does and who it's for");
+    expect(plain.state).toEqual({ send: true, from: FROM, layout: "text-chat", topic: "What Hilltop does and who it's for" });
+    expect(handoff(plain.state, askOf(plain.to))).toEqual({ send: true, from: FROM, layout: { layout: "text-chat", topic: "What Hilltop does and who it's for" } });
+    const long = staticMake(chat, { note: "x".repeat(300), brand: "Hilltop", photos: 0 });
+    expect([long.format.topic.length, (long.state as { topic: string }).topic.length]).toEqual([200, 200]);
+    expect(askOf(staticMake(chat, { note: "For new\n\nparents", brand: "Hilltop", photos: 0 }).to)).toBe('Make a "Text message chat" static ad about For new parents');
   });
 
-  it("puts the product photo in where the format uses one, and never where it doesn't", () => {
-    expect(staticMake(best, { note: "", brand: "B", picture: "cimg-bottle1", photos: 3 }).state.format.pictureKey).toBe("cimg-bottle1");
-    expect(staticMake(chat, { note: "", brand: "B", picture: "cimg-bottle1", photos: 3 }).state.format.pictureKey).toBeUndefined();
-    // best with a photo and none yet: it still writes
-    expect(staticMake(best, { note: "", brand: "B", photos: 0 })).toMatchObject({ label: "Make it as a layout", state: { go: true } });
+  it("gives the photo make the product photo where the format uses one, and never where it doesn't", () => {
+    expect(staticMake(best, { note: "", brand: "B", picture: "cimg-bottle1", photos: 3 }).format.pictureKey).toBe("cimg-bottle1");
+    expect(staticMake(chat, { note: "", brand: "B", picture: "cimg-bottle1", photos: 3 }).format.pictureKey).toBeUndefined();
+    expect(staticMake(best, { note: "", brand: "B", photos: 0 })).toMatchObject({ label: "Make it as a layout", state: { send: true, layout: "ai-chat" } });
   });
 
   it("adds a photo first when the format needs one and the brand has none, and opens the picker", () => {
-    expect(staticMake(needs, { note: "Hi", brand: "B", photos: 0 })).toEqual({ label: "Add a photo", to: "/image?layout=share-popup&pick=media", state: { format: { topic: "Hi" } } });
-    // photos in Media but no product photo: it writes, with the picker open beside it
-    expect(staticMake(needs, { note: "", brand: "B", photos: 2 })).toMatchObject({ label: "Make it as a layout", to: "/image?layout=share-popup&pick=media", state: { go: true } });
-    expect(staticMake(needs, { note: "", brand: "B", picture: "cimg-bottle1", photos: 0 })).toMatchObject({ to: "/image?layout=share-popup", state: { go: true, format: { pictureKey: "cimg-bottle1" } } });
+    expect(staticMake(needs, { note: "Hi", brand: "B", photos: 0 })).toEqual({ label: "Add a photo", to: "/image?layout=share-popup&pick=media", state: { format: { topic: "Hi" } }, format: { topic: "Hi" } });
+    expect(staticMake(needs, { note: "", brand: "B", photos: 2 })).toMatchObject({ label: "Make it as a layout", state: { send: true, layout: "share-popup" } });
+    expect(staticMake(needs, { note: "", brand: "B", picture: "cimg-bottle1", photos: 0 })).toMatchObject({ label: "Make it as a layout", state: { send: true, layout: "share-popup" }, format: { pictureKey: "cimg-bottle1" } });
   });
 
-  it("carries the brand's price to a format best with one", () => {
-    expect(staticMake({ slug: "tear-off-flyer", best: "price" }, { note: "", brand: "B", photos: 0, price: "$6" }).state.format.price).toBe("$6");
-    expect(staticMake(chat, { note: "", brand: "B", photos: 0, price: "$6" }).state.format.price).toBeUndefined();
+  it("carries the brand's price to the photo make of a format best with one", () => {
+    expect(staticMake(staticFormatBySlug("tear-off-flyer")!, { note: "", brand: "B", photos: 0, price: "$6" }).format.price).toBe("$6");
+    expect(staticMake(chat, { note: "", brand: "B", photos: 0, price: "$6" }).format.price).toBeUndefined();
   });
 
   it("reads the product photo and price from What you sell, a used product first", () => {

@@ -11,6 +11,7 @@ const JOB: Record<JobKind, string> = { remix: "Post", slideshow: "Slideshow", wa
 
 /** What a card makes or changes, in a word or two: the tag on the card and the row's type in Your work. */
 export function cardType(card: AgentCard): string {
+  if (fieldsOf(card).plan === "layout") return "Static ad";
   const f = card.kind === "make" ? fieldsOf(card).format : undefined;
   return (f && FORMAT[f]) || KIND[card.kind];
 }

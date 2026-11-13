@@ -4,6 +4,7 @@
 // that shows its price; a press writes its outcome (the card's state, the MADE block, the receipt) into the card's
 // own message, so leaving the page loses nothing. The engine (agentRun.ts) routes messages and presses here.
 
+import { staticFormatBySlug } from "@/data/staticFormats";
 import { leftOf, needsOf, refusal, shortOf, cheaperFor, unitOf, type Need, type Plan, type Short } from "@/lib/agentBudget";
 import { newCardId, nextCard, estimateScript, type AgentAct, type AgentCard, type AgentFormat, type CardStep, type Receipt } from "@/lib/agentCards";
 import { LEARNING_RECORDED, SEE_LEARNED, UNDO_LINE, correctionNudge, followingLine, scopeWords, type Correction, type Nudge } from "@/lib/agentMemory";
@@ -24,8 +25,11 @@ import { scanCompliance } from "@/lib/compliance";
 import { localDateKey } from "@/lib/dueDates";
 import { loadDrafts } from "@/lib/draftHistory";
 import { currentEditTarget, type EditTarget, type Proposal } from "@/lib/editTarget";
+import { IMAGE_FIELDS, isStatic, mainWords, staticPhoto } from "@/lib/imageLayout";
+import { blankImage, imageById, imageMention, imageWrite, imageWriteBusy, saveImage, startImageWrite } from "@/lib/images";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
+import { loadProducts, productBits } from "@/lib/products";
 import { loadProjects } from "@/lib/videoProjects";
 import { loadPositioning } from "@/lib/positioning";
 import { priceOf, priceText, sumPrices, WRITE_PRICE, type Price } from "@/lib/prices";
@@ -112,6 +116,8 @@ export interface PlanFields {
   kind?: EditTarget["kind"];
   correction?: Omit<Correction, "at" | "card">;
   nudge?: Nudge;
+  layout?: string;
+  design?: string;
 }
 export const fieldsOf = (c: AgentCard) => c.plan as unknown as PlanFields;
 const withFields = (f: PlanFields) => f as unknown as Record<string, unknown>;
@@ -124,6 +130,7 @@ export const LINES = {
   imageBusy: "Another picture is being made. Ask again when it's done.",
   showBusy: "Another slideshow is being made. Ask again when it's done.",
   wallBusy: "Another wall of text is being made. Ask again when it's done.",
+  layoutBusy: "Another static ad is being written. Try this again when it's done.",
   videoBusyCard: "Another video is being made. Approve this one when it's done.",
   imageBusyCard: "Another picture is being made. Approve this one when it's done.",
   lead: "Here's what I'd make. Nothing is made until you approve it.",
@@ -209,6 +216,7 @@ export function busyLine(plan: PlanName): string | null {
   if (plan === "wall" && wallBusy()) return LINES.wallBusy;
   if (isVideo(plan) && (aiBusy() || talkBusy() || talkWaiting())) return LINES.videoBusy;
   if (plan === "image" && imageBusy()) return LINES.imageBusy;
+  if (plan === "layout" && imageWriteBusy()) return LINES.layoutBusy;
   return null;
 }
 
@@ -252,7 +260,7 @@ export function offerChips(plan: PlanName, usage: Usage | null, topic: string): 
 
 /** What a make needs to be proposed (and proposed again on another format). */
 export interface MakeAsk {
-  plan: Extract<PlanName, "post" | "carousel" | "script" | "slideshow" | "wall" | "link" | "speaking" | "explainer" | "image">;
+  plan: Extract<PlanName, "post" | "carousel" | "script" | "slideshow" | "wall" | "link" | "speaking" | "explainer" | "image" | "layout">;
   format: AgentFormat;
   act: AgentAct;
   p: Record<string, number | null>;
@@ -265,6 +273,7 @@ export interface MakeAsk {
   correction?: PlanFields["correction"];
   /** Jev's subject: the title and the chips name it instead of the message. */
   subject?: string | null;
+  layout?: string;
 }
 
 const card = (kind: AgentCard["kind"], f: PlanFields, c: Partial<AgentCard> & Pick<AgentCard, "title" | "line" | "needs">, now = new Date()): AgentCard => ({
@@ -337,19 +346,21 @@ export function makeCard(userId: string, a: MakeAsk, now = new Date()): AgentCar
   }
   if (a.plan === "image")
     return card("image", f, { title: `Picture: ${cutAtWord(subject ?? a.topic, 40)}`, line: "One picture, 3:4, saved to Photos and videos, under AI images.", prompt: a.topic.trim(), price: price("ai-image") ?? undefined, needs: needsOf("image") }, now);
+  if (a.plan === "layout")
+    return card("make", { ...f, layout: a.layout }, { title: `${staticFormatBySlug(a.layout ?? "")?.name ?? "Static ad"}: "${about}"`, line: "A static ad in your colours, saved to Your images.", price: price("remix-make") ?? undefined, needs: needsOf("layout") }, now);
   return card("make", f, { title: `${cap(NOUN[a.format])}: "${about}"`, line: MAKE_LINE[a.format] ?? "", price: price("remix-make") ?? undefined, needs: needsOf(a.plan) }, now);
 }
 
 /** The newest make in a chat, for "another one" (replay D3): what it was, about what, and from which post or link. */
-export function lastMake(messages: AgentMsg[]): { format: AgentFormat; subject: string; topic: string; source?: string; link?: string } | null {
+export function lastMake(messages: AgentMsg[]): { format: AgentFormat; subject: string; topic: string; source?: string; link?: string; layout?: string } | null {
   for (const m of [...messages].reverse()) {
     const f = m.card ? fieldsOf(m.card) : null;
     if (!f?.format || !MAKES.includes(f.plan)) continue;
-    return { format: f.format, subject: clip(subjectOf(f), 120), topic: f.topic ?? "", ...(f.source ? { source: f.source } : {}), ...(f.link ? { link: f.link } : {}) };
+    return { format: f.format, subject: clip(subjectOf(f), 120), topic: f.topic ?? "", ...(f.source ? { source: f.source } : {}), ...(f.link ? { link: f.link } : {}), ...(f.layout ? { layout: f.layout } : {}) };
   }
   return null;
 }
-const MAKES: PlanName[] = ["post", "carousel", "script", "slideshow", "wall", "link", "speaking", "explainer", "image"];
+const MAKES: PlanName[] = ["post", "carousel", "script", "slideshow", "wall", "link", "speaking", "explainer", "image", "layout"];
 
 /** The plan a format runs, and the format a chip means. */
 export const planOf = (format: AgentFormat, link: string | null): MakeAsk["plan"] => (link && !["speaking", "explainer", "image"].includes(format) ? "link" : format);
@@ -674,6 +685,10 @@ function pressOf(userId: string, thread: string, msgId: string, card: AgentCard)
     log(kind: ActivityKind, title: string) {
       logActivity(userId, { who: "agent", kind, title, link: links.agent({ thread, m: msgId }) });
     },
+    remember(patch: Partial<PlanFields>) {
+      c = { ...c, plan: withFields({ ...fieldsOf(c), ...patch }) };
+      put({ card: c });
+    },
   };
   return self;
 }
@@ -738,6 +753,8 @@ export async function runPress(userId: string, thread: string, msgId: string, ca
         await makeImage(userId, prompt, clip(prompt, 40), undefined, x.agent);
         return settleImage(x, prompt);
       }
+      case "layout":
+        return await layoutPress(userId, x, src, live);
       case "competitor": {
         const parsed = parseInput(f.input ?? "");
         const row = rowOf(f.input ?? "");
@@ -981,6 +998,39 @@ function settleImage(x: Press, prompt: string): void {
   if (j?.state !== "done") return x.fail(j?.error ?? NOT_THROUGH);
   const open = links.media({ folder: AI_FOLDER });
   x.done({ title: "Picture made", line: "Saved to Photos and videos, under AI images.", button: { label: "Open Photos and videos", path: open }, undoText: LINES.paid }, { kind: "image", state: "done", open, title: clip(prompt, 60) });
+}
+
+async function layoutPress(userId: string, x: Press, src: RemixSource | null, live: Live): Promise<void> {
+  const { f } = x;
+  const def = staticFormatBySlug(f.layout ?? "");
+  if (!def || !isStatic(def.slug)) return x.fail(NOT_THROUGH);
+  if (imageWriteBusy()) return x.fail(LINES.layoutBusy);
+  const bits = productBits(loadProducts(userId));
+  const topic = f.topic ?? "";
+  const kept = imageById(userId, f.design);
+  const base = kept && kept.layout === def.slug && !mainWords(def.slug, kept.words) ? kept : blankImage({ layout: def.slug });
+  const design = {
+    ...base,
+    words: { ...base.words, topic, ...(def.best === "price" && bits.price && !base.words.price?.trim() ? { price: bits.price } : {}) },
+    ...(!base.pictureKey && staticPhoto(def.slug) && bits.picture ? { pictureKey: bits.picture } : {}),
+  };
+  saveImage(userId, design);
+  if (f.design !== design.id) x.remember({ design: design.id });
+  live.call();
+  live.step("Writing your words...", "writing");
+  x.started();
+  await startImageWrite(userId, { designId: design.id, source: src, topic, layout: def.slug, mention: imageMention(userId), note: "", size: design.size, read: false });
+  const w = imageWrite();
+  if (w?.designId !== design.id || w.state !== "done") return x.fail((w?.designId === design.id && w.error) || NOT_THROUGH);
+  const words = imageById(userId, design.id)?.words ?? {};
+  const main = clip(mainWords(def.slug, words) || def.name, 80);
+  const open = `${links.image({ image: design.id })}${def.needs === "photo" && !design.pictureKey ? "&pick=media" : ""}`;
+  x.log("make", `Made a "${def.name}" static ad`);
+  return x.done(
+    { title: "Static ad made", line: `${sentence(main)} It's in Your images.`, button: { label: "Open", path: open }, undoText: "Paid makes can't be undone." },
+    { kind: "image", state: "done", open, title: main },
+    { flags: flagsFor(userId, IMAGE_FIELDS[def.slug].map((field) => words[field.key] ?? "").filter((t) => t.trim()).join("\n"), w.flags?.mas) },
+  );
 }
 
 async function editPress(userId: string, msgId: string, x: Press, live: Live): Promise<void> {

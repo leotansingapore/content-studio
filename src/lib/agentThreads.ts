@@ -32,6 +32,8 @@ export interface AgentMsg {
   media?: { key: string; name: string }[];
   /** A remix source key. */
   source?: string;
+  layout?: string;
+  topic?: string;
   go?: { path: string; label: string }[];
   meta?: { steps: number; ms: number };
   turn?: TurnState;

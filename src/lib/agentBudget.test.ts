@@ -18,9 +18,10 @@ const shortCaps = (...a: Parameters<typeof shortOf>) => shortOf(...a).map((s) =>
 describe("NEEDS", () => {
   it("has a row for every plan, scarcest cap first", () => {
     expect(Object.keys(NEEDS).sort()).toEqual(
-      ["answer", "campaign", "carousel", "competitor", "edit", "explainer", "image", "learning", "link", "move", "post", "script", "slideshow", "speaking", "wall", "write"],
+      ["answer", "campaign", "carousel", "competitor", "edit", "explainer", "image", "layout", "learning", "link", "move", "post", "script", "slideshow", "speaking", "wall", "write"],
     );
     expect(caps("post")).toEqual(["remix-make"]);
+    expect(caps("layout")).toEqual(["remix-make"]);
     expect(caps("link")).toEqual(["remix-make", "remix-link"]);
     expect(caps("explainer")).toEqual(["ai-video", "ai-voice", "ai-video-script"]);
     expect(caps("image")).toEqual(["ai-image"]);
@@ -107,6 +108,9 @@ describe("refusal", () => {
     expect(refusal("campaign", short, [])).toBe("A campaign needs 4 campaign writes, and you have 3 left today. They come back at 8am Singapore time.");
     expect(refusal("image", [{ feature: "ai-image", needs: 1, left: 0 }], [])).toBe(
       "A picture needs 1 AI picture, and you have none left today. They come back at 8am Singapore time.",
+    );
+    expect(refusal("layout", [{ feature: "remix-make", needs: 1, left: 0 }], cheaperFor("layout", null))).toBe(
+      "A static ad needs 1 remix, and you have none left today. They come back at 8am Singapore time.",
     );
   });
   it("names the studio's limit when the across-everyone row is the short one, and leaves out offers with no name", () => {

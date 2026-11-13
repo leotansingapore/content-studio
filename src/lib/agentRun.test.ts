@@ -39,6 +39,9 @@ const fake = vi.hoisted(() => {
     explainerAsk: null as null | Record<string, unknown>,
     remixRow: null as null | Record<string, unknown>,
     remixFails: false,
+    writeAsk: null as null | { designId: string; source: unknown; topic: string; layout: string; mention: boolean; note: string; size: string; read: boolean },
+    writeError: null as string | null,
+    write: store(),
     remix: store(),
     show: store(),
     wall: store(),
@@ -169,6 +172,25 @@ vi.mock("@/lib/aiImage", async (orig) => ({
     fake.image.set({ prompt, state: "done" });
   },
 }));
+vi.mock("@/lib/images", async (orig) => {
+  const real = await orig<typeof import("./images")>();
+  return {
+    ...real,
+    imageWrite: () => fake.write.get(),
+    imageWriteBusy: () => ["reading", "writing"].includes(fake.write.get()?.state),
+    startImageWrite: async (userId: string, ask: NonNullable<typeof fake.writeAsk>) => {
+      fake.calls.push(`startImageWrite:${ask.layout}`);
+      fake.writeAsk = ask;
+      const run = { id: (fake.write.get()?.id ?? 0) + 1, designId: ask.designId };
+      fake.write.set({ ...run, state: "writing" });
+      await wait();
+      if (fake.writeError) return fake.write.set({ ...run, state: "failed", error: fake.writeError });
+      const d = real.loadImages(userId).find((x) => x.id === ask.designId);
+      if (d) real.saveImage(userId, { ...d, words: { ...d.words, title: "A confession about my lunches", body: "I skipped lunch for a year.", last: "Now I eat at noon." } });
+      fake.write.set({ ...run, state: "done", layout: ask.layout, layoutBy: "default", flags: { copied: [], claim: false, invented: false, mas: null } });
+    },
+  };
+});
 vi.mock("@/lib/remixLink", async (orig) => ({
   ...(await orig<typeof import("./remixLink")>()),
   linkRead: () => fake.link.get(),
@@ -181,7 +203,7 @@ vi.mock("@/lib/remixLink", async (orig) => ({
 vi.mock("@/lib/competitors", async (orig) => ({ ...(await orig<typeof import("./competitors")>()), runRead: async () => void fake.calls.push("runRead") }));
 vi.mock("@/lib/campaignJob", async (orig) => ({ ...(await orig<typeof import("./campaignJob")>()), startDrafting: () => void fake.calls.push("startDrafting") }));
 
-import { CAPABILITIES, CAP_LINE, INTERRUPTED, NOT_MADE, REFUSE, STOPPED, agentNow, choose, clientPick, editCard, onAgent, press, resumeAgent, send, setFeedback, setNavigate, setSkills, stop, turnOf, undoReceipt, waitingCards, type SkillsApi } from "@/lib/agentRun";
+import { CAPABILITIES, CAP_LINE, INTERRUPTED, NOT_MADE, REFUSE, STOPPED, agentNow, blockedReason, choose, clientPick, editCard, onAgent, press, resumeAgent, send, setFeedback, setNavigate, setSkills, stop, turnOf, undoReceipt, waitingCards, type SkillsApi } from "@/lib/agentRun";
 import { approveLabel, fieldsOf, LINES } from "@/lib/agentPlans";
 import { starterChips } from "@/lib/agentStarters";
 import { loadThreads, newMsg, newThread, type AgentMsg } from "@/lib/agentThreads";
@@ -197,10 +219,15 @@ import { loadDrafts, saveDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { registerEditTarget } from "@/lib/editTarget";
 import { priceOf, priceText, type Price } from "@/lib/prices";
 import { activeLearnings, loadLearnings } from "@/lib/voiceMemory";
+import { needsOf } from "@/lib/agentBudget";
+import { cardType } from "@/lib/agentWork";
+import type { StaticLayoutId } from "@/lib/imageLayout";
+import { imageById, loadImages, saveImage } from "@/lib/images";
+import { saveProducts } from "@/lib/products";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
-const PRICED = /^(startRemix|startSlideshow|startWall|writeTalk|writeScript|startTalk|goOnAtPrice|writeExplainer|makeExplainer|makeImage|startLinkRead|runRead|startDrafting|propose|apply|runSkill|navigate|fn:(?!assistant-act$|writing-judge$))/;
+const PRICED = /^(startRemix|startSlideshow|startWall|writeTalk|writeScript|startTalk|goOnAtPrice|writeExplainer|makeExplainer|makeImage|startImageWrite|startLinkRead|runRead|startDrafting|propose|apply|runSkill|navigate|fn:(?!assistant-act$|writing-judge$))/;
 const priced = () => fake.calls.filter((c) => PRICED.test(c));
 const pk = (o: Partial<ServerPick>): ServerPick => ({ act: null, format: null, length: null, who: null, audience: null, weeks: null, pace: null, slide: null, which: null, skill: null, post: null, day: null, time: null, scope: null, subject: null, name: null, ...o });
 const thread = (id: string) => loadThreads(UID).find((t) => t.id === id)!;
@@ -240,7 +267,9 @@ beforeEach(() => {
   fake.remixFails = false;
   fake.scriptThrows = null;
   fake.remixRow = null;
-  for (const s of [fake.remix, fake.show, fake.wall, fake.talk, fake.ai, fake.image, fake.link]) s.reset();
+  fake.writeAsk = null;
+  fake.writeError = null;
+  for (const s of [fake.remix, fake.show, fake.wall, fake.talk, fake.ai, fake.image, fake.link, fake.write]) s.reset();
   jev.pick = null;
   jev.p = {};
   jev.refuse = null;
@@ -1076,5 +1105,146 @@ describe("the 25 Oct replay: the explainer card (D14)", () => {
     kit("Financial adviser");
     await approve(await say("make an explainer video about first homes", { act: "make", format: "explainer" }));
     expect("profession" in JSON.parse(JSON.stringify(fake.explainerAsk))).toBe(false);
+  });
+});
+
+describe("a static format's layout, handed over by its page", () => {
+  const TOPIC = "Office workers who skip lunch";
+  const ASK = `Make a "Lo-fi note" static ad about ${TOPIC}`;
+  const product = (o: Record<string, unknown>) => ({ id: "pd-abcd1", name: "Cold brew", what: "Bottled", forWho: "Offices", pictures: ["cimg-bottle1"], sources: [""], use: true, from: "you", addedAt: "", ...o });
+  async function handed(layout: StaticLayoutId = "lofi-note", topic = TOPIC, text = ASK) {
+    const id = send(UID, null, text, { layout, topic });
+    await settled(id);
+    return id;
+  }
+
+  it("builds the layout card from the option, with no Jev call, no link read and nothing charged before the press", async () => {
+    jev.pick = pk({ act: "make", format: "image" });
+    const id = await handed("lofi-note", TOPIC, `${ASK}, like https://example.com/a`);
+    expect(jev.bodies).toEqual([]);
+    expect(fake.calls).toEqual([]);
+    const c = cardMsg(id).card!;
+    expect([c.kind, c.status, c.title, c.line, c.price, c.needs, approveLabel(c), cardType(c)]).toEqual([
+      "make", "proposed", `Lo-fi note: "${TOPIC}"`, "A static ad in your colours, saved to Your images.", priceOf("remix-make"), needsOf("layout"), "Make it", "Static ad",
+    ]);
+    expect(fieldsOf(c)).toEqual({ plan: "layout", act: "make", p: {}, format: "image", topic: TOPIC, layout: "lofi-note" });
+    expect(last(id).text).toBe(LINES.lead);
+    expect(thread(id).messages[0]).toMatchObject({ role: "user", text: `${ASK}, like https://example.com/a`, layout: "lofi-note", topic: TOPIC });
+  });
+
+  it("on the press, saves a design on that layout with the product photo, writes it as the Image page does, and opens it from the receipt", async () => {
+    saveProducts(UID, { items: [product({})] } as never);
+    const id = await handed();
+    await approve(id);
+    pricedAfterPress();
+    expect(priced()).toEqual(["startImageWrite:lofi-note"]);
+    const design = loadImages(UID)[0];
+    expect(fake.writeAsk).toMatchObject({ designId: design.id, source: null, topic: TOPIC, layout: "lofi-note", note: "", size: "4x5", read: false });
+    expect(design).toMatchObject({ layout: "lofi-note", size: "4x5", pictureKey: "cimg-bottle1", words: { topic: TOPIC, title: "A confession about my lunches" } });
+    const m = cardMsg(id);
+    expect(m.card?.status).toBe("approved");
+    expect(m.receipt).toEqual({ title: "Static ad made", line: "A confession about my lunches. It's in Your images.", button: { label: "Open", path: `/image?image=${design.id}` }, undoText: "Paid makes can't be undone." });
+    expect(m.job).toMatchObject({ kind: "image", state: "done", open: `/image?image=${design.id}`, title: "A confession about my lunches" });
+    expect(loadActivity(UID, [localDateKey().slice(0, 7)]).find((e) => e.title === 'Made a "Lo-fi note" static ad')).toMatchObject({ who: "agent", kind: "make" });
+  });
+
+  it("puts the brand's price on a flyer, and opens the picker after a format that needs a photo the brand hasn't added", async () => {
+    saveProducts(UID, { items: [product({ pictures: [], price: "$6" })] } as never);
+    await approve(await handed("tear-off-flyer", "Office deliveries"));
+    const flyer = loadImages(UID)[0];
+    expect([flyer.layout, flyer.words.topic, flyer.words.price, flyer.pictureKey]).toEqual(["tear-off-flyer", "Office deliveries", "$6", undefined]);
+    const share = await handed("share-popup", "Office deliveries");
+    await approve(share);
+    const d = loadImages(UID)[0];
+    expect([d.layout, d.words.price, d.pictureKey]).toEqual(["share-popup", undefined, undefined]);
+    expect(cardMsg(share).receipt?.button?.path).toBe(`/image?image=${d.id}&pick=media`);
+  });
+
+  it("says another static ad is being written instead of a card, and holds a card drawn before it started", async () => {
+    fake.write.set({ id: 9, designId: "img-other1", state: "writing" });
+    const id = await handed();
+    expect(last(id)).toMatchObject({ text: LINES.layoutBusy });
+    expect(last(id).card).toBeUndefined();
+    fake.write.reset();
+    const t2 = await handed();
+    fake.write.set({ id: 9, designId: "img-other1", state: "writing" });
+    expect(blockedReason(UID, cardMsg(t2).card!, null)).toBe(LINES.layoutBusy);
+    await approve(t2);
+    expect(cardMsg(t2).card).toMatchObject({ status: "proposed", error: LINES.layoutBusy });
+    expect(priced()).toEqual([]);
+  });
+
+  it("fails the card with the writer's line when the words don't come, and Try again writes into the same design", async () => {
+    fake.writeError = "Couldn't write it right now. Try again in a minute.";
+    const id = await handed();
+    await approve(id);
+    expect(cardMsg(id).card).toMatchObject({ status: "failed", error: "Couldn't write it right now. Try again in a minute." });
+    expect(cardMsg(id).receipt).toBeUndefined();
+    const first = loadImages(UID).filter((d) => d.layout === "lofi-note");
+    expect(first).toHaveLength(1);
+    expect(fieldsOf(cardMsg(id).card!).design).toBe(first[0].id);
+    await press(UID, id, cardMsg(id).id, "retry");
+    await approve(id);
+    expect(cardMsg(id).card?.status).toBe("failed");
+    expect(loadImages(UID).filter((d) => d.layout === "lofi-note").map((d) => d.id)).toEqual([first[0].id]);
+    fake.writeError = null;
+    await press(UID, id, cardMsg(id).id, "retry");
+    await approve(id);
+    expect(loadImages(UID).filter((d) => d.layout === "lofi-note").map((d) => d.id)).toEqual([first[0].id]);
+    expect(fake.writeAsk?.designId).toBe(first[0].id);
+    expect(cardMsg(id).job).toMatchObject({ kind: "image", state: "done", open: `/image?image=${first[0].id}` });
+    expect(agentNow(UID)).toMatchObject({ kind: "ready", line: "Your static ad is ready" });
+  });
+
+  it("leaves a design alone once someone wrote in it, and fills a reused design with a photo added since", async () => {
+    fake.writeError = "Couldn't write it right now. Try again in a minute.";
+    const id = await handed();
+    await approve(id);
+    const d = loadImages(UID).find((x) => x.layout === "lofi-note")!;
+    saveImage(UID, { ...d, words: { ...d.words, title: "My own title" } });
+    fake.writeError = null;
+    await press(UID, id, cardMsg(id).id, "retry");
+    await approve(id);
+    expect(imageById(UID, d.id)?.words.title).toBe("My own title");
+    expect(fake.writeAsk?.designId).not.toBe(d.id);
+    expect(fieldsOf(cardMsg(id).card!).design).toBe(fake.writeAsk?.designId);
+    fake.writeError = "Couldn't write it right now. Try again in a minute.";
+    const share = await handed("share-popup", "Office deliveries");
+    await approve(share);
+    const empty = imageById(UID, fieldsOf(cardMsg(share).card!).design)!;
+    expect(empty.pictureKey).toBeUndefined();
+    saveProducts(UID, { items: [product({})] } as never);
+    fake.writeError = null;
+    await press(UID, share, cardMsg(share).id, "retry");
+    await approve(share);
+    expect(fake.writeAsk?.designId).toBe(empty.id);
+    expect(imageById(UID, empty.id)?.pictureKey).toBe("cimg-bottle1");
+    expect(cardMsg(share).receipt?.button?.path).toBe(`/image?image=${empty.id}`);
+  });
+
+  it("makes another of the same layout for another one, also when Jev reads it as a picture, until the message names another format", async () => {
+    const id = await handed();
+    await say("another one", { act: "make", subject: "last" }, { thread: id });
+    expect(jev.bodies[0].last).toEqual({ format: "image", subject: TOPIC });
+    expect(["layout", "layouts", "topic"].filter((k) => k in jev.bodies[0])).toEqual([]);
+    let c = cardMsg(id).card!;
+    expect([c.title, fieldsOf(c)]).toEqual([`Lo-fi note: "${TOPIC}"`, { plan: "layout", act: "make", p: { act: 0.9 }, format: "image", topic: TOPIC, subject: TOPIC, layout: "lofi-note" }]);
+    await say("another one like that", { act: "make", format: "image", subject: "last" }, { thread: id });
+    expect(fieldsOf(cardMsg(id).card!)).toMatchObject({ plan: "layout", layout: "lofi-note" });
+    await say("another one as a carousel", { act: "make", format: "carousel", subject: "last" }, { thread: id });
+    c = cardMsg(id).card!;
+    expect([c.title, fieldsOf(c).plan, fieldsOf(c).layout]).toEqual([`Carousel: "${TOPIC}"`, "carousel", undefined]);
+    expect(priced()).toEqual([]);
+  });
+
+  it("sends an interrupted hand-off again with its layout on Send again, still with no Jev call", async () => {
+    const t = newThread(UID, [newMsg("user", { text: ASK, layout: "lofi-note", topic: TOPIC }), newMsg("agent", { turn: "thinking" })]);
+    if (t.ok === false) throw new Error(t.error);
+    resumeAgent(UID, () => Date.now());
+    expect(last(t.item.id)).toMatchObject({ text: INTERRUPTED, turn: "failed" });
+    await press(UID, t.item.id, last(t.item.id).id, "retry");
+    await settled(t.item.id);
+    expect(jev.bodies).toEqual([]);
+    expect(fieldsOf(cardMsg(t.item.id).card!)).toMatchObject({ plan: "layout", layout: "lofi-note", topic: TOPIC });
   });
 });

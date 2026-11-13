@@ -11,6 +11,7 @@ describe("Your work", () => {
   it("names a card by what it makes", () => {
     expect(cardType(card({}))).toBe("Carousel");
     expect(cardType(card({ kind: "image", plan: { plan: "image" } }))).toBe("Picture");
+    expect(cardType(card({ plan: { plan: "layout", format: "image", layout: "lofi-note" } }))).toBe("Static ad");
     expect(cardType(card({ kind: "campaign", plan: { plan: "campaign" } }))).toBe("Campaign");
   });
 

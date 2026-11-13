@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const fx = vi.hoisted(() => ({
   sent: [] as string[],
+  opts: [] as unknown[],
   id: "tmade1",
   thread: [] as { threadId: unknown; ask: unknown }[],
 }));
@@ -12,7 +13,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) }, from: () => ({}) },
 }));
 vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => ({ id: "u-leo", email: "leo@x.sg" }), useLeoOnly: () => true }));
-vi.mock("@/lib/agentRun", () => ({ send: (_u: string, _t: string | null, text: string) => (fx.sent.push(text), fx.id), turnOf: () => null }));
+vi.mock("@/lib/agentRun", () => ({ send: (_u: string, _t: string | null, text: string, o?: unknown) => (fx.sent.push(text), fx.opts.push(o), fx.id), turnOf: () => null }));
 vi.mock("@/lib/agentWork", () => ({ workOf: () => ({ waiting: [], making: [], made: [] }) }));
 vi.mock("@/components/agent/AgentThread", () => ({ default: (p: { threadId: unknown; ask: unknown }) => (fx.thread.push({ threadId: p.threadId, ask: p.ask }), null), useThreads: () => [] }));
 vi.mock("@/components/agent/WorkPanel", () => ({ default: () => null }));
@@ -185,6 +186,7 @@ const { flushSync } = await import("react-dom");
 const { BrowserRouter, Outlet, Route, Routes, useLocation, useNavigate } = await import("react-router-dom");
 const { useBrandAddress } = await import("@/lib/profiles");
 const { links } = await import("@/lib/links");
+const { STATIC_FORMATS } = await import("@/data/staticFormats");
 const { default: AgentPage } = await import("./AgentPage");
 
 const ASK = 'Make a "Lo-fi note" static ad about office workers who skip lunch';
@@ -242,6 +244,7 @@ async function arrive(o: { strict: boolean; transition: boolean; uid: string | n
 beforeEach(() => {
   store.clear();
   fx.sent.length = 0;
+  fx.opts.length = 0;
   fx.thread.length = 0;
   fx.id = "tmade1";
 });
@@ -271,5 +274,23 @@ describe("a page handing the agent a request (/agent?ask= with { send: true, fro
     expect(fx.sent).toEqual([]);
     expect(r.address).toBe("/agent");
     expect(r.shown).toEqual({ threadId: null, ask: ASK });
+  });
+
+  it("sends a static format's layout and topic with the words only for a format we draw", async () => {
+    const TOPIC = "Office workers who skip lunch";
+    const r = await arrive({ strict: true, transition: false, uid: null, state: { send: true, from: FROM, layout: "lofi-note", topic: `  ${TOPIC}  ` } });
+    expect([fx.sent, fx.opts]).toEqual([[ASK], [{ layout: "lofi-note", topic: TOPIC }]]);
+    expect(r.state).toEqual({ from: FROM });
+    STATIC_FORMATS.push({ slug: "future-format", name: "Future format", blurb: "Not drawn yet.", ready: false, scene: "A future scene." });
+    try {
+      for (const state of [{ layout: "headline", topic: TOPIC }, { layout: "future-format", topic: TOPIC }, { layout: "street-scene", topic: TOPIC }, { layout: 3, topic: TOPIC }, { layout: "lofi-note" }, { layout: "lofi-note", topic: " " }]) {
+        fx.sent.length = 0;
+        fx.opts.length = 0;
+        await arrive({ strict: true, transition: false, uid: null, state: { send: true, from: FROM, ...state } });
+        expect([fx.sent, fx.opts], JSON.stringify(state)).toEqual([[ASK], [undefined]]);
+      }
+    } finally {
+      STATIC_FORMATS.pop();
+    }
   });
 });

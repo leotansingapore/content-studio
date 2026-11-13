@@ -108,6 +108,8 @@ describe("MADE block", () => {
     expect(madeNoun({ kind: "remix", state: "done", startedAt: "", open: "/carousel?draft=d1" })).toBe("carousel");
     expect(madeNoun({ kind: "remix", state: "done", startedAt: "", open: "/generate?draft=d1" })).toBe("post");
     expect(madeNoun({ kind: "talk", state: "done", startedAt: "" })).toBe("talking video");
+    expect(madeNoun({ kind: "image", state: "done", startedAt: "", open: "/image?image=img-1" })).toBe("static ad");
+    expect(madeNoun({ kind: "image", state: "done", startedAt: "", open: "/media?folder=ai" })).toBe("picture");
     expect(tookWords({ startedAt: "2026-10-22T10:00:00Z", endedAt: "2026-10-22T10:00:14Z" })).toBe("14s");
     expect(tookWords({ startedAt: "2026-10-22T10:00:00Z", endedAt: "2026-10-22T10:03:43Z" })).toBe("3m 43s");
   });
