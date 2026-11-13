@@ -21,7 +21,7 @@ import { NEW_POST } from "@/lib/newPost";
 import { reviewRows, scanOf } from "@/lib/productScan";
 import { loadProducts, mergeScan, saveProducts, type Scan } from "@/lib/products";
 import { markOnboarded } from "@/lib/onboarding";
-import { ADDRESS_ERROR, APP_SECTIONS, DEFAULT_NETWORK, distinctColours, KEPT_SECTIONS, PRODUCT_SECTIONS, foundNetworks, networksAfterRead, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS, slideFontFor, STEPS, webAddress, type Answers, type Mode, type Network, type Section, type Step, prefilledProfession } from "@/lib/onboardingFlow";
+import { ADDRESS_ERROR, APP_SECTIONS, DEFAULT_NETWORK, holdForQuestions, distinctColours, KEPT_SECTIONS, PRODUCT_SECTIONS, foundNetworks, networksAfterRead, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS, slideFontFor, STEPS, webAddress, type Answers, type Mode, type Network, type Section, type Step, prefilledProfession } from "@/lib/onboardingFlow";
 import { goalChips } from "@/lib/positioning";
 import { reasonText } from "@/lib/prices";
 import { activeProfileId, DEFAULT_PROFILE_ID, renameProfile, setActiveProfile } from "@/lib/profiles";
@@ -178,6 +178,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
   const [now, setNow] = useState(() => Date.now());
   const [enteredReading, setEnteredReading] = useState(0);
   const [triedEmpty, setTriedEmpty] = useState(false);
+  const [movedOn, setMovedOn] = useState(false);
   const [doneElsewhere, setDoneElsewhere] = useState(false);
   const [canConnect, setCanConnect] = useState(() => first && socialConnectShown());
   const [status, setStatus] = useState<SocialStatus | null>(null);
@@ -418,6 +419,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     if (!link && !webAddress(address)) return false;
     clearRead();
     setNoSite(false);
+    setMovedOn(false);
     const myId = ++readId.current;
     setRead({ ...IDLE, status: "running", host: link ? "App Store" : hostOf(address), target: targetOf(address), started: Date.now() });
     if (next) setStep(next);
@@ -598,10 +600,10 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
   })();
 
   useEffect(() => {
-    if (step !== "reading" || read.status !== "done" || readingActive < steps.length) return;
+    if (step !== "reading" || read.status !== "done" || readingActive < steps.length || holdForQuestions(answers, movedOn)) return;
     const t = window.setTimeout(() => swapStep("review"), 650);
     return () => window.clearTimeout(t);
-  }, [step, read.status, readingActive, steps.length, swapStep]);
+  }, [step, read.status, readingActive, steps.length, swapStep, answers, movedOn]);
 
   const back =
     first && (step === "site" || step === "connect" || step === "finish")
@@ -683,6 +685,8 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
           failure={read.status === "failed" ? read.error : null}
           answers={answers}
           onAnswer={onAnswer}
+          done={read.status === "done" && readingActive >= steps.length}
+          onMoveOn={() => setMovedOn(true)}
           onRetry={() => {
             setAddressError(read.error);
             swapStep("site");

@@ -215,6 +215,9 @@ export const firstOpenQuestion = (a: Answers): number => {
   return i < 0 ? QUESTIONS.length : i;
 };
 
+/** A finished read waits on the reading screen while a question is open, unless the person chose to move on. */
+export const holdForQuestions = (a: Answers, movedOn: boolean): boolean => !movedOn && firstOpenQuestion(a) < QUESTIONS.length;
+
 export const READ_STEPS = ["Opening your site", "Finding your logo", "Picking up your colours", "Learning how you sound", "Working out who you help", "Spotting your social accounts"] as const;
 
 export function shownStep(elapsedMs: number, done: boolean, count: number, every = 2200): number {

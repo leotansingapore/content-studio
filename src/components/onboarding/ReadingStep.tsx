@@ -103,6 +103,8 @@ export function ReadingStep({
   onRetry,
   onByHand,
   titleId,
+  done = false,
+  onMoveOn,
 }: {
   title: string;
   steps: readonly string[];
@@ -113,6 +115,9 @@ export function ReadingStep({
   onRetry: () => void;
   onByHand: () => void;
   titleId: string;
+  /** the read is finished; the questions still open hold this screen until answered or onMoveOn */
+  done?: boolean;
+  onMoveOn?: () => void;
 }) {
   const [slow, setSlow] = useState(false);
   useEffect(() => {
@@ -144,7 +149,7 @@ export function ReadingStep({
   return (
     <div className="flex w-full max-w-[680px] flex-1 flex-col items-center gap-10">
       <div className="flex w-full flex-1 flex-col items-center gap-6 pt-[6vh]">
-        <StepTitle id={titleId} title={title} lead={slow ? "Still reading. Big sites take a little longer." : "Usually under a minute."} />
+        <StepTitle id={titleId} title={title} lead={done ? "Done reading." : slow ? "Still reading. Big sites take a little longer." : "Usually under a minute."} />
         <ol className="flex w-full max-w-[300px] flex-col gap-2.5" aria-label="What we're reading">
           {steps.map((s, i) => (
             <StepRow key={s} label={s} index={i} state={i < active ? "done" : i === active ? "active" : "waiting"} />
@@ -154,7 +159,10 @@ export function ReadingStep({
           {active >= steps.length ? "Done reading." : `${label}.`}
         </p>
       </div>
-      <Questions answers={answers} onAnswer={onAnswer} />
+      <div className="flex w-full flex-col items-center gap-5">
+        <Questions answers={answers} onAnswer={onAnswer} />
+        {done && onMoveOn && <PrimaryPill onClick={onMoveOn}>See my brand</PrimaryPill>}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  APP_SECTIONS, colourGap, confirmLabel, DEFAULT_NETWORK, distinctColours, firstOpenQuestion, flowKey, foundNetworks, networksAfterRead, hexOf, hostOf, isSerif, keptAnswers, keptNetworks, keptSaved, keptStep, mainPlatform, nextLine,
+  APP_SECTIONS, colourGap, confirmLabel, DEFAULT_NETWORK, holdForQuestions, distinctColours, firstOpenQuestion, flowKey, foundNetworks, networksAfterRead, hexOf, hostOf, isSerif, keptAnswers, keptNetworks, keptSaved, keptStep, mainPlatform, nextLine,
   nextSection, prefilledProfession, progressOf, QUESTIONS, readableInk, scoreOf, shouldSetUp, shownStep, SITE_SECTIONS, slideFontFor, webAddress, type Section,
 } from "./onboardingFlow";
 import { blankPixels, dominantColours, lightPixels } from "./logoImage";
@@ -129,6 +129,13 @@ describe("the questions while it reads", () => {
   it("asks three, each with its own answers, now that where you post has its own step", () => {
     expect(QUESTIONS.map((q) => q.key)).toEqual(["cadence", "goal", "audience"]);
     for (const q of QUESTIONS) expect(q.options.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("holds the finished read for the questions until each is answered or the person moves on", () => {
+    expect(holdForQuestions({}, false)).toBe(true);
+    expect(holdForQuestions({ cadence: 3 }, false)).toBe(true);
+    expect(holdForQuestions({ cadence: 3, goal: "time", audience: "parent" }, false)).toBe(false);
+    expect(holdForQuestions({}, true)).toBe(false);
   });
 
   it("keeps only answers it offered, and starts at the first one not given", () => {
