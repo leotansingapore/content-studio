@@ -2,13 +2,14 @@
 
 Item 3 of docs/handovers/2026-11-13-jilian-next.md.
 
-Result: 29 of the 40 functions that call `consumeUsage` now refuse a lapsed subscriber before a use is counted. Most answer 402 `subscription_lapsed`. Three answer differently:
+Result: all 40 functions that call `consumeUsage` now refuse a lapsed subscriber before a use is counted. 29 had it by midday; the last 11, whose redeploy also shipped code beyond `_shared/`, went out later the same day on Jilian's go. Most answer 402 `subscription_lapsed`. Four answer differently:
 
 - `social` treats a lapsed subscriber as switched off: 404 "Not enabled.", or 200 `{enabled:false}` on the bare status call. It still lets them remove a brand's accounts.
 - `remix`'s fit check returns its usual unknown fit (200).
 - `text-voice`'s music mood returns the default mood (200).
+- `slide-campaigns`' scheduled tick skips a lapsed owner's campaign post and records "Today's campaign posts are used up. It posts again tomorrow." (api.ts:410-411), with no word about billing.
 
-The other 11 wait for your call, because a redeploy would also ship code beyond `_shared/`. Nothing changes today for any account without a `cs_subscriptions` row.
+Nothing changes for any account without a `cs_subscriptions` row.
 
 ## How
 
@@ -43,11 +44,11 @@ Deployed from main after 557a0e9e (12 Nov, 2:46 PM), so their live code already 
 
 Some of these ran a usageCaps.ts from October, so they also took the caps added since then (My hooks, the script desk, Send to phone and others), as every function deployed this week did.
 
-## Waiting for your call (11)
+## Redeployed later the same day (11)
 
-Each one would also ship the code below, outside `_shared/`. Its `_shared/` changes come along too.
+Each also shipped the code below, outside `_shared/`, with its `_shared/` changes. Same checks as above, one at a time; `content-studio-mcp` and `notify` kept JWT verification off (they answered 404 and 403 to a call without their link or secret). Versions: carousel-fit 4 → 5, engage-picks 105 → 106, stock-media 109 → 110, track-accounts 105 → 106, engage-assist 116 → 117, assistant-act 105 → 106, ai-video 127 → 128, week-pick 104 → 105, telegram 6 → 7, content-studio-mcp 125 → 126, notify 118 → 119. Each one's live code now matches main file for file.
 
-| Function | Would also ship |
+| Function | Also shipped |
 | --- | --- |
 | ai-video | Its own index.ts: c039626d (a failed part gives the use back only when Higgsfield charged for no other part). ai-image/logic.ts: 15c99124 (GPT Image 2.6 Flare). brand-dna/logic.ts: 1788bf00 and 9993033c (brand read names). |
 | assistant-act | post-score/logic.ts: 268438fe (the LinkedIn check). jev.ts: 110ae005 (askJev with pictures). |
@@ -61,4 +62,3 @@ Each one would also ship the code below, outside `_shared/`. Its `_shared/` chan
 | track-accounts | Its own logic.ts: 26c0e5ba and 3c47ad6e (the shared Apify reader, 30 posts for Competitors). |
 | week-pick | notify/logic.ts: seven commits from 25 to 28 Oct (time zones on due-post alerts, the Postmosis name, app.postmosis.com links, the Monday email's counts). |
 
-Say which to redeploy and I will do them the same way, one at a time.

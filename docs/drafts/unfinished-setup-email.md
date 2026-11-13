@@ -1,12 +1,12 @@
-# Unfinished set-up email, draft for Leo's read
+# Unfinished set-up email, draft
 
-Item 5 of docs/handovers/2026-11-13-jilian-next.md. Nothing is built and no code sends it. It waits for your read of the words below and your go.
+Item 5 of docs/handovers/2026-11-13-jilian-next.md. Nothing is built and no code sends it. It writes to customers, so it goes out only on an explicit go to send it.
 
 ## Who gets it
 
 - A paying account: its `cs_subscriptions` row is `trialing` or `active`.
 - Made 24 to 72 hours ago. The upper bound stops a mass send to older accounts on the day it ships.
-- No saved brand on its main profile: no `content-studio-carousel-brand-<uid>` row in `cs_user_data`. That covers three groups: people who left set-up partway, people who tapped Skip set-up for now, and people who paid but never opened the app.
+- No named brand on its main profile: no `content-studio-carousel-brand-<uid>` row in `cs_user_data`, or one whose `name` is empty. That covers three groups: people who left set-up partway, people who tapped Skip set-up for now, and people who paid but never opened the app. The empty-name half matters: editing a Profile row, picking "What do you do?" on Getting started or setting posting times all save a brand with no name.
 - Once per account, ever.
 
 Why not the set-up marker (`content-studio-onboarded-<uid>`): it is written when someone leaves the first screen by any button. That includes Skip set-up for now, the finish step's buttons, Go to Home, the studio tour and every Getting started button. It marks "left the first screen", not "set up". Choosing on it would miss everyone who skipped.
