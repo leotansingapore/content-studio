@@ -198,6 +198,17 @@ async function poll(admin: Admin, uid: string, id: unknown, again = false): Prom
   return result ? json({ status: "done", result }) : json({ status: "failed", error: DESK_COPY.unreadable });
 }
 
+async function cancel(admin: Admin, uid: string, id: unknown): Promise<Response> {
+  if (typeof id !== "string" || !UUID.test(id)) return fail(400, "bad_request", "Which job?");
+  const { data: moved, error } = await admin
+    .from("cs_ai_jobs").update({ status: "failed", error: DESK_COPY.stopped, done_at: new Date().toISOString() }).eq("id", id).eq("owner_id", uid).eq("status", "queued").select("kind, created_at");
+  if (error) throw error;
+  const row = Array.isArray(moved) && moved.length === 1 ? moved[0] : null;
+  if (!row) return json({ stopped: false });
+  await refundUsage(admin, uid, isRead(row.kind) ? "research" : "script-desk", new Date(row.created_at).toISOString().slice(0, 10));
+  return json({ stopped: true });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -212,6 +223,7 @@ Deno.serve(async (req) => {
     const body = (await req.json().catch(() => ({}))) ?? {};
     const action = typeof body.action === "string" ? body.action : "";
     if (action === "job") return await poll(admin, uid, body.id);
+    if (action === "cancel") return await cancel(admin, uid, body.id);
     if (!(JOB_KINDS as readonly string[]).includes(action)) return fail(400, "bad_request", "Unknown action.");
 
     const plan = action === "claims" ? await claimsPlan(admin, uid, body.job) : await planOf(admin, action, body, sanitizeContext(body.context));

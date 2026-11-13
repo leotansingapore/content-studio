@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { scoped } from "@/lib/profiles";
-import { pollDesk, runDesk, runRescript, saveScriptDraft, type Breakdown, type ClaimCheck, type Rescript, type Script } from "@/lib/scriptDesk";
+import { pollDesk, runDesk, runRescript, saveScriptDraft, stopDesk, type Breakdown, type ClaimCheck, type Rescript, type Script } from "@/lib/scriptDesk";
 
 interface Kept {
   /** When it was last written, so the device keeps only the newest KEEP_REELS. */
@@ -113,7 +113,7 @@ export default function ScriptDeskCard({ userId, url, postId, hasWords }: { user
   return (
     <section aria-labelledby="desk-title" className="space-y-4 rounded-xl border border-border/60 p-4 shadow-card">
       <h2 id="desk-title" className="font-serif text-lg font-semibold">Script desk</h2>
-      {busy && <DeskWait busy={busy} onStop={() => (cancel(), keep({ pending: undefined }))} />}
+      {busy && <DeskWait busy={busy} onStop={() => (cancel(), stopDesk(kept.pending?.job), keep({ pending: undefined }))} />}
       <DeskError text={error} />
 
       <div className="space-y-2">

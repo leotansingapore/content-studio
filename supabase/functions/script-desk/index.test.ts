@@ -149,6 +149,7 @@ describe("script-desk", () => {
     expect(jobs()[0]).toMatchObject({ kind: "breakdown", request: { source: SOURCE, context: EMPTY_CONTEXT } });
     await call({ action: "rescript", url: REEL_URL, context: { product: { name: "TESTPRODUCT" } } });
     expect(jobs()[1]).toMatchObject({ kind: "rescript", request: { source: SOURCE, context: sanitizeContext({ product: { name: "TESTPRODUCT" } }) } });
+    jobs().forEach((j) => (j.status = "done"));
     await call({ action: "write", entry: "same-structure", url: REEL_URL, topic: "pricing", breakdown: { hook: { line: "I quit." }, extra: "dropped" } });
     expect(jobs()[2].request).toMatchObject({ entry: "same-structure", source: SOURCE, topic: "pricing", band: [60, 75], breakdown: { hook: { line: "I quit.", type: "" }, idea: "" } });
     jobs().forEach((j) => noPromptText(j.request));
@@ -165,11 +166,11 @@ describe("script-desk", () => {
     expect([db.spent, jobs()]).toEqual([[], []]);
   });
 
-  it("keeps at most four open jobs, stops at the daily cap, and sweeps the owner's week-old rows", async () => {
+  it("keeps at most two open jobs, as many as the Mac runs at once, stops at the daily cap, and sweeps the owner's week-old rows", async () => {
     jobs().push({ id: crypto.randomUUID(), owner_id: LEO, kind: "hooks", status: "done", created_at: new Date(Date.now() - 8 * 86_400_000).toISOString() });
-    for (let i = 0; i < 4; i++) expect((await call({ action: "hooks", topic: `t${i}` })).status).toBe(200);
-    expect(jobs()).toHaveLength(4);
-    expect(await call({ action: "hooks", topic: "t5" })).toEqual({ status: 429, body: { code: "too_many", error: "Four are already running. Wait for one to finish, then try again." } });
+    for (let i = 0; i < 2; i++) expect((await call({ action: "hooks", topic: `t${i}` })).status).toBe(200);
+    expect(jobs()).toHaveLength(2);
+    expect(await call({ action: "hooks", topic: "t5" })).toEqual({ status: 429, body: { code: "too_many", error: "Two are already running. Wait for one to finish, then try again." } });
     jobs().forEach((j) => (j.status = "done"));
     db.limit = true;
     expect((await call({ action: "hooks", topic: "t6" })).body.code).toBe("daily_limit");
@@ -197,6 +198,30 @@ describe("script-desk", () => {
     const third = (await call({ action: "hooks", topic: "z" })).body.job;
     done(third, "I can't help with that.");
     expect((await call({ action: "job", id: third })).body).toEqual({ status: "failed", error: "Claude's answer couldn't be read. Try again." });
+  });
+
+  it("takes the caller's own queued job off the queue on Stop and gives its use back, and leaves a claimed or someone else's job", async () => {
+    const OTHER = "00000000-0000-0000-0000-00000000c003";
+    env.NORTH_STAR_USERS = `${LEO},${OTHER}`;
+    const a = (await call({ action: "hooks", topic: "x" })).body.job;
+    expect(await call({ action: "cancel", id: a }, OTHER)).toEqual({ status: 200, body: { stopped: false } });
+    expect([jobs()[0].status, db.tables.cs_ai_usage[0].count]).toEqual(["queued", 1]);
+    expect(await call({ action: "cancel", id: a })).toEqual({ status: 200, body: { stopped: true } });
+    expect(jobs()[0]).toMatchObject({ status: "failed", error: "Stopped.", done_at: expect.any(String) });
+    expect(db.tables.cs_ai_usage[0].count).toBe(0);
+    expect((await call({ action: "job", id: a })).body).toEqual({ status: "failed", error: "Stopped." });
+    db.tables.cs_ai_usage[0].count = 1;
+    expect((await call({ action: "cancel", id: a })).body).toEqual({ stopped: false });
+    const b = (await call({ action: "hooks", topic: "y" })).body.job;
+    Object.assign(jobs().find((j) => j.id === b)!, { status: "claimed", worker: "mac", claimed_at: new Date().toISOString() });
+    expect((await call({ action: "cancel", id: b })).body).toEqual({ stopped: false });
+    expect(jobs().find((j) => j.id === b)!.status).toBe("claimed");
+    expect(db.tables.cs_ai_usage[0].count).toBe(1);
+    db.tables.cs_ai_usage.push({ user_id: LEO, feature: "research", day: new Date().toISOString().slice(0, 10), count: 3 });
+    const c = (await call({ action: "ig_reel", url: "DMadeUp0002" })).body.job;
+    expect((await call({ action: "cancel", id: c })).body).toEqual({ stopped: true });
+    expect(db.tables.cs_ai_usage.map((r) => [r.feature, r.count])).toEqual([["script-desk", 1], ["research", 2]]);
+    expect((await call({ action: "cancel", id: "nope" })).status).toBe(400);
   });
 
   it("never shows one owner's job to another", async () => {

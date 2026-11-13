@@ -198,7 +198,7 @@ export const RUN_LIMIT_MS = 4 * 60_000;
 export const READ_LIMIT_MS: Record<(typeof READ_KINDS)[number], number> = { ig_reels: 6 * 60_000, ig_reel: 4 * 60_000, discover: 10 * 60_000 };
 export const runLimitOf = (k: JobKind) => (isRead(k) ? READ_LIMIT_MS[k] : RUN_LIMIT_MS);
 /** At most this many of one owner's writing jobs queued or running at once, and of their reads. */
-export const MAX_OPEN = 4;
+export const MAX_OPEN = 2;
 // as many as the worker has read slots, so a search filed while the page reads never waits past the pickup window
 export const MAX_OPEN_READS = 2;
 /** How many embed pages an ig_reels read opens at most, and how many creators a search or a suggestion asks for. */
@@ -220,7 +220,7 @@ export const ownersOf = (list: string | undefined) =>
 
 export const DESK_COPY = {
   notAllowed: "This isn't switched on for your account yet.",
-  tooMany: "Four are already running. Wait for one to finish, then try again.",
+  tooMany: "Two are already running. Wait for one to finish, then try again.",
   notCloned: "Read this reel on Clone a reel first, then try again.",
   noWords: "This reel has no spoken words to re-script.",
   noWorker: "Your Mac didn't pick this up. Check the script worker is running on it, then try again.",
@@ -229,6 +229,7 @@ export const DESK_COPY = {
   notReady: "That re-script isn't finished yet.",
   tooBig: "That's too long to send in one go. Shorten Me, Product or the audience, or pick a shorter reel.",
   gone: "That job isn't there any more. Start it again.",
+  stopped: "Stopped.",
   tooManyReads: "Two reads are already running on your Mac. Wait for one to finish, then try again.",
   badHandle: "That doesn't look like an Instagram username.",
   badReel: "Paste an Instagram reel link.",

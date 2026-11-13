@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { scoped } from "@/lib/profiles";
 import { hasAvatar } from "@/lib/scriptContext";
 import {
-  BANDS, DEFAULT_BAND, DEFAULT_DIALS, DEFAULT_LENGTH, DIAL_META, SECONDS, WORDS, levelOf, pollDesk, runDesk, saveScriptDraft, secondsOf, wordsOf,
+  BANDS, DEFAULT_BAND, DEFAULT_DIALS, DEFAULT_LENGTH, DIAL_META, SECONDS, WORDS, levelOf, pollDesk, runDesk, saveScriptDraft, secondsOf, stopDesk, wordsOf,
   type Band, type DialId, type Dials, type HookIdea, type Script,
 } from "@/lib/scriptDesk";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -148,7 +148,7 @@ function Scriptwriter({ userId }: { userId: string }) {
   // the wait and any failure, right by the button that started it (on a phone the panel is below the editor)
   const status = (
     <>
-      {busy && <DeskWait busy={busy} onStop={() => (cancel(), setDesk({ pending: undefined }))} />}
+      {busy && <DeskWait busy={busy} onStop={() => (cancel(), stopDesk(deskRef.current.pending?.job), setDesk({ pending: undefined }))} />}
       <DeskError text={error} />
     </>
   );

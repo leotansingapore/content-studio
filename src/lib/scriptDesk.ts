@@ -102,6 +102,10 @@ export async function pollDesk<T>(job: string, opts: Omit<RunOpts, "userId" | "o
   throw blip ?? new EdgeError("Your Mac is taking too long. Try again.", 504, "timeout");
 }
 
+export const stopDesk = (job: string | undefined) => {
+  if (job) void callFn("script-desk", { action: "cancel", id: job }).catch(() => undefined);
+};
+
 /**
  * Re-script, then its claim check on the answer (the check runs by itself after every re-script). `onRescript` hears
  * the re-script and its job id as soon as it is in, so a check that fails loses nothing; `onFiled` hears each job.

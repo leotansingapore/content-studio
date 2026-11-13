@@ -12,7 +12,7 @@ vi.mock("@/lib/edgeFn", async (real) => ({
 }));
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_URL: "https://x.supabase.co" }));
 
-import { DEFAULT_DIALS, DIAL_META, deskPostId, levelOf, runDesk, runRescript, saveScriptDraft, secondsOf, wordsOf } from "./scriptDesk";
+import { DEFAULT_DIALS, DIAL_META, deskPostId, levelOf, runDesk, runRescript, saveScriptDraft, secondsOf, stopDesk, wordsOf } from "./scriptDesk";
 import { EdgeError } from "@/lib/edgeFn";
 import { deleteDraft, loadDrafts } from "./draftHistory";
 import { saveScriptContext } from "./scriptContext";
@@ -98,6 +98,14 @@ describe("runDesk", () => {
     calls.replies.push({ job: "j1" });
     const p = runDesk({ action: "hooks", topic: "t" }, opts({ signal: stop.signal, sleep: async () => stop.abort() }));
     await expect(p).rejects.toThrow("Stopped.");
+  });
+
+  it("asks the server to take a stopped job off the queue, and a refusal from a server without it changes nothing", async () => {
+    calls.replies.push(new EdgeError("Unknown action.", 400, "bad_request"));
+    stopDesk("j1");
+    stopDesk(undefined);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(calls.sent).toEqual([{ action: "cancel", id: "j1" }]);
   });
 
   it("runs the claim check on the re-script it just got, by that job's id", async () => {
