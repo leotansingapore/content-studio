@@ -74,7 +74,7 @@ describe("brandOverview", () => {
   it("edits the basics in place and links the rest: products, audiences, voice and what is on file open their own pages", () => {
     const edits = (o: Partial<OverviewInput>) => Object.fromEntries(brandOverview({ ...empty, ...o }).flatMap((g) => g.rows).map((r) => [r.id, r.edit ?? null]));
     expect(edits({})).toEqual({
-      name: "name", does: "does", sells: null, edge: "edge", who: "who", topics: "topics", logo: "logo", colours: "colours", voice: null, avoid: "avoid", signoff: "signoff",
+      name: "name", does: "does", sells: "offer", edge: "edge", who: "who", topics: "topics", logo: "logo", colours: "colours", voice: null, avoid: "avoid", signoff: "signoff",
     });
     const p = { id: "pd-a", name: "Tracker", what: "", forWho: "", price: "$9", pictures: [], sources: [], use: true, from: "you" as const, addedAt: "" };
     const leo = edits({ leo: true, products: [p] });

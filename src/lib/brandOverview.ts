@@ -11,7 +11,7 @@ import type { Product } from "@/lib/products";
 import type { VoiceProfile } from "@/lib/voiceProfile";
 
 /** The rows Profile edits in place, each against the store its page saves to. */
-export type ProfileEdit = "name" | "does" | "price" | "edge" | "who" | "topics" | "proof" | "logo" | "colours" | "avoid" | "signoff";
+export type ProfileEdit = "name" | "does" | "offer" | "price" | "edge" | "who" | "topics" | "proof" | "logo" | "colours" | "avoid" | "signoff";
 
 export interface OverviewRow {
   id: string;
@@ -98,7 +98,7 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       rows: [
         i.leo
           ? { id: "sells", label: "What you sell", value: "", chips: products.length ? products.map((p) => p.name) : offers, to: "/brand/products", add: "Add what you sell" }
-          : { id: "sells", label: "What you sell", value: "", chips: offers, to: "/brand#offers", add: "Add an offer" },
+          : { id: "sells", label: "What you sell", value: "", chips: offers, to: "/brand#offers", add: "Add an offer", edit: "offer" as const },
         ...(i.leo ? [{ id: "price", label: "Price point", value: t(main?.price), to: main ? `/brand/products?product=${main.id}` : "/brand/products", add: "Add a price", ...(main ? { edit: "price" as const } : {}) }] : []),
         { id: "edge", label: "Why they choose you", value: t(pos?.edge), to: "/plan", add: "Say why you", edit: "edge" },
       ],

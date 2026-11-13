@@ -18,7 +18,9 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { isSet, type OverviewGroup, type OverviewRow, type ProfileEdit } from "@/lib/brandOverview";
 import { kitOf, saveProfileField, type ProfileField } from "@/components/brand/profileSave";
-import { BRAND_PRESETS, MAX_AVOID_CHARS, MAX_IMAGE_CHARS, MAX_NAME_CHARS, MAX_SIGNOFF_CHARS, normalizeHex } from "@/lib/carousel";
+import { BRAND_PRESETS, MAX_AVOID_CHARS, MAX_IMAGE_CHARS, MAX_NAME_CHARS, MAX_OFFER_NAME, MAX_OFFER_URL, MAX_SIGNOFF_CHARS, normalizeHex } from "@/lib/carousel";
+import { isAdviser } from "@/lib/profession";
+import { offerUrl } from "@/lib/brandRules";
 import { EMPTY_POSITIONING, loadPositioning } from "@/lib/positioning";
 import { LIMITS, loadProducts, mainProduct } from "@/lib/products";
 import { FIELD_MAX, loadScriptContext } from "@/lib/scriptContext";
@@ -210,6 +212,8 @@ function Editor({ kind, uid, save }: { kind: ProfileEdit; uid: string; save: (er
           <ProfessionFieldEdit initial={kit.profession ?? ""} save={to("profession")} />
         </div>
       );
+    case "offer":
+      return <OfferEdit uid={uid} save={save} />;
     case "edge":
       return <TextEdit label="Why they choose you" initial={pos.edge} max={EDGE_MAX} rows={3} placeholder="A one-page plan every quarter, and a call after every big life change" save={to("edge")} />;
     case "who":
@@ -234,6 +238,37 @@ function Editor({ kind, uid, save }: { kind: ProfileEdit; uid: string; save: (er
     case "colours":
       return <ColourEdit uid={uid} save={save} />;
   }
+}
+
+/** The brand kit's first offer: what it is and its link, checked and tidied as Brand kit's offer rows are. */
+function OfferEdit({ uid, save }: { uid: string; save: (error: string | null) => void }) {
+  const kit = kitOf(uid);
+  const first = kit.offers?.[0];
+  const [url, setUrl] = useState(first?.url ?? "");
+  const link = (v: string) => {
+    setUrl(v);
+    save(saveProfileField(uid, "offerUrl", v));
+  };
+  return (
+    <div className="space-y-1.5">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TextEdit label="Your offer" initial={first?.name ?? ""} max={MAX_OFFER_NAME} placeholder={isAdviser(kit.profession) ? "Free retirement review" : "Free 20-minute call"}
+          save={(v) => save(saveProfileField(uid, "offerName", v))} />
+        <div className="min-w-0 space-y-1.5">
+          <Label htmlFor="pe-offer-link">Link</Label>
+          <Input id="pe-offer-link" value={url} maxLength={MAX_OFFER_URL} placeholder="https://yoursite.sg/review" inputMode="url" autoCapitalize="none" autoCorrect="off"
+            onChange={(e) => link(e.target.value)}
+            onBlur={() => {
+              const clean = offerUrl(url);
+              if (clean && clean !== url) link(clean);
+            }}
+            className="peer [@media(pointer:coarse)]:h-11" />
+          {url.trim() && !offerUrl(url) && <p className="text-[11px] font-medium text-warning peer-focus:hidden">Use a web link, like https://yoursite.sg/review</p>}
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">Posts link only to your offers.</p>
+    </div>
+  );
 }
 
 function ProfessionFieldEdit({ initial, save }: { initial: string; save: (v: string) => void }) {

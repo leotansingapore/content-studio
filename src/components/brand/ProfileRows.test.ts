@@ -39,6 +39,15 @@ describe("Profile's open row", () => {
     expect(draw("topics", byId("voice"))).toMatch(/<a[^>]*href="\/voice"[^>]*>Next: Paste past posts/);
   });
 
+  it("fills in the first offer in place: what it is and its link, as the brand kit keeps them", () => {
+    localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", offers: [{ name: "Free review", url: "https://a.sg/r" }] }));
+    const html = draw("sells");
+    expect(html).toMatch(/<label[^>]*>Your offer<\/label>/);
+    expect(html).toContain('value="Free review"');
+    expect(html).toContain('value="https://a.sg/r"');
+    expect(html).toContain("Posts link only to your offers.");
+  });
+
   it("shows no Next once nothing else is missing, and none while no row is open", () => {
     expect(draw("name")).not.toContain("Next:");
     expect(draw(null, byId("does"))).not.toContain("Next:");

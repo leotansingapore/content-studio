@@ -10,7 +10,7 @@ import { loadSocialAccounts } from "@/lib/socialAccounts";
 
 export const NO_ROOM = "This device is out of room, so that wasn't saved. Clear some space, then try again.";
 
-export type ProfileField = "name" | "oneLiner" | "profession" | "edge" | "who" | "topics" | "price" | "proof" | "avoid" | "signoff" | "logo" | "color";
+export type ProfileField = "name" | "oneLiner" | "profession" | "edge" | "who" | "topics" | "price" | "proof" | "avoid" | "signoff" | "logo" | "color" | "offerName" | "offerUrl";
 
 /** The kit as the brand kit page starts it: the saved one, else a new one with the handle of a connected account. */
 export function kitOf(uid: string): CarouselBrand {
@@ -23,6 +23,11 @@ export function kitOf(uid: string): CarouselBrand {
 const kit = (uid: string, patch: Partial<CarouselBrand>): string | null => {
   saveBrand(uid, { ...kitOf(uid), ...patch });
   return null;
+};
+/** The brand kit's first offer, started when there is none; any others stay as they are. */
+const firstOffer = (uid: string, patch: Partial<{ name: string; url: string }>): string | null => {
+  const [first = { name: "", url: "" }, ...rest] = kitOf(uid).offers ?? [];
+  return kit(uid, { offers: [{ ...first, ...patch }, ...rest] });
 };
 const positioning = (uid: string, patch: Partial<Positioning>): string | null => {
   try {
@@ -48,6 +53,10 @@ export function saveProfileField(uid: string, field: ProfileField, value: string
       return kit(uid, { logo: value || undefined });
     case "color":
       return kit(uid, { color: value });
+    case "offerName":
+      return firstOffer(uid, { name: value });
+    case "offerUrl":
+      return firstOffer(uid, { url: value });
     case "oneLiner":
       return positioning(uid, { oneLiner: value });
     case "edge":
