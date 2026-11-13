@@ -74,19 +74,19 @@ export const productLine = (p: { name: string; what: string }) => {
 
 /**
  * The picture maker's prompt for a static format made as a photo: its scene, the brand's name and colour, the product the
- * ad is about when there is one, what to show of what it sells (SUBJECT_LINES, on a format with room for a picture of
+ * ad is about when there is one and the format has room for it, what to show of what it sells (SUBJECT_LINES, on a format with room for a picture of
  * it, StaticFormat.room), every on-picture string of its layout in draw order (IMAGE_FIELDS, a typed price included), each labelled and in
  * double quotes, and the rule on what is written (ai-image adds the setting and who may be in it). Words the layout never draws (the topic,
  * the caption) stay out, and a brand with no name is given by its colour alone. Pure.
  */
-export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene" | "room">, brand: { name: string; color: string }, words: Record<string, string>, product?: { name: string; what: string }, subject?: Subject): string {
+export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene" | "room" | "flat">, brand: { name: string; color: string }, words: Record<string, string>, product?: { name: string; what: string }, subject?: Subject): string {
   const fields = isStatic(f.slug) ? IMAGE_FIELDS[f.slug] : [];
   const on = fields.filter((x) => words[x.key]?.trim()).map((x) => `${x.label}: ${quoted(words[x.key])}`);
   const name = brand.name.trim();
   return [
     f.scene,
     name ? `The brand is ${quoted(name)}, its colour ${brand.color}.` : `The brand colour is ${brand.color}.`,
-    product ? productLine(typedPrice(f.slug) ? product : { name: product.name.split(/\s+/).filter((w) => !PRICED.test(w)).join(" "), what: withoutPrices(product.what) }) : "",
+    product && f.room ? productLine(typedPrice(f.slug) ? product : { name: product.name.split(/\s+/).filter((w) => !PRICED.test(w)).join(" "), what: withoutPrices(product.what) }) : "",
     subject && f.room ? SUBJECT_LINES[subject] : "",
     on.length ? `The words on it, in order: ${on.join("; ")}.` : "",
     PHOTO_RULE,
@@ -292,9 +292,10 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   set({ ...made, state: "making" });
   // the kit's logo and the product's own picture go as pictures the model puts in (ai-image refs); with no logo the name
   // in the words is the mark, and with no picture the product line describes it
-  const picture = sold ? await productPicture(sold) : undefined;
+  // the product's picture only where the format pictures what is sold: never on a type-only card or a chat
+  const picture = sold && f.room ? await productPicture(sold) : undefined;
   const refs = { ...(kit.logo ? { logo: kit.logo } : {}), ...(picture ? { product: picture } : {}) };
-  await makeImage(userId, prompt, `${f.name}: ${mainWords(slug, words)}`, undefined, undefined, { words: true, ...(refs.logo || refs.product ? { refs } : {}) });
+  await makeImage(userId, prompt, `${f.name}: ${mainWords(slug, words)}`, undefined, undefined, { words: true, ...(refs.logo || refs.product ? { refs } : {}), ...(f.flat ? { flat: true as const } : {}) });
   const j = imageJob();
   if (j?.state !== "done" || !j.mediaKey) return set({ ...made, state: "failed", error: j?.error || NOT_MADE });
   set({ ...made, state: "done", mediaKey: j.mediaKey, preview: j.preview });

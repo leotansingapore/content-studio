@@ -1,4 +1,4 @@
-import { KEEP_RULE, PEOPLE_RULE, WORDS_PEOPLE_RULE, type Refs } from "./logic.ts";
+import { KEEP_RULE, PEOPLE_RULE, WORDS_FLAT_RULE, WORDS_PEOPLE_RULE, type Refs } from "./logic.ts";
 
 export const GPT_IMAGE_MODEL = "gpt-image-2.6-flare";
 export const OPENAI_IMAGES = "https://api.openai.com/v1/images";
@@ -14,10 +14,13 @@ export const WORDS_SIZE = "1152x1440";
 
 export const picturePath = (uid: string, id: string) => `${uid}/${id.toLowerCase()}.jpg`;
 
-/** words: a picture that prints the prompt's quoted lines gets the people rule without its "No text" clause. */
-export const gptImageBody = (prompt: string, uid: string, words = false): Record<string, unknown> => ({
+/** The rule after a picture's prompt: a photo ad's own (flat: a type-only format's), else every other picture's. */
+const ruleFor = (words: boolean, flat: boolean) => (!words ? PEOPLE_RULE : flat ? WORDS_FLAT_RULE : WORDS_PEOPLE_RULE);
+
+/** words: a picture that prints the prompt's quoted lines gets its own rule, with no "No text" clause; flat: no photo at all. */
+export const gptImageBody = (prompt: string, uid: string, words = false, flat = false): Record<string, unknown> => ({
   model: GPT_IMAGE_MODEL,
-  prompt: `${prompt}\n\n${words ? WORDS_PEOPLE_RULE : PEOPLE_RULE}`,
+  prompt: `${prompt}\n\n${ruleFor(words, flat)}`,
   ...OUTPUT,
   ...(words ? { size: WORDS_SIZE } : {}),
   safety_identifier: uid,
@@ -30,12 +33,12 @@ export const REF_LINES: Record<keyof Refs, string> = {
 };
 
 /** A photo ad with reference pictures: an edit that makes a whole new picture from the prompt, with each picture said once. */
-export const gptRefBody = (prompt: string, uid: string, refs: Refs): Record<string, unknown> => {
+export const gptRefBody = (prompt: string, uid: string, refs: Refs, flat = false): Record<string, unknown> => {
   const given = (Object.keys(REF_LINES) as (keyof Refs)[]).filter((k) => refs[k]);
   const lines = given.map((k, i) => `The ${given.length > 1 ? `${["first", "second"][i]} ` : ""}picture given ${REF_LINES[k]}`);
   return {
     model: GPT_IMAGE_MODEL,
-    prompt: [prompt, ...lines, WORDS_PEOPLE_RULE].join("\n\n"),
+    prompt: [prompt, ...lines, ruleFor(true, flat)].join("\n\n"),
     images: given.map((k) => ({ image_url: refs[k] })),
     ...OUTPUT,
     size: WORDS_SIZE,

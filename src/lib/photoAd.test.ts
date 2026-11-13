@@ -72,7 +72,8 @@ import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
 import { IMAGE_FIELDS, isStatic } from "@/lib/imageLayout";
 import { imageById } from "@/lib/images";
-import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic.ts";
+import { MAX_PROMPT, WORDS_FLAT_RULE } from "../../supabase/functions/ai-image/logic.ts";
+import { gptImageBody, gptRefBody } from "../../supabase/functions/ai-image/openai.ts";
 
 const U = "u1";
 const poster = staticFormatBySlug("street-poster")!;
@@ -383,6 +384,45 @@ describe("what the picture shows of what the brand sells", () => {
       expect([p.includes("The ad shows the brand's product"), p.includes(SUBJECT_LINES.software)], String(n)).toEqual([product, subject]);
       expect(p).toContain("word ".repeat(n).trim());
     }
+  });
+});
+
+describe("a type-only format and a format with no room for what is sold", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    Object.assign(fake, { write: null, writeFails: "", image: null, imageFails: "", calls: [], asks: [], files: {}, writeAngle: "", writeSubject: "", writeWords: { sorry: "Sorry, scattered follow-ups.", one: "a", two: "b", three: "c", fact: "d", signoff: "e" } });
+  });
+  const facts = { name: "ActivityTracker", what: "Logs each call as a streak, with a team leaderboard." };
+  // wording that asks the picture for a photo, a person or a product picture
+  const ASKS = /product itself|own screen|photo of|candid|adults|everyday moment|kopitiam|People only where|Show that exact product|setting it is Singapore/;
+
+  it("asks nothing of the picture on a type-only format: the app's prompt and ai-image's rule both, with or without the logo", () => {
+    const flat = STATIC_FORMATS.filter((f) => f.flat).map((f) => f.slug);
+    expect(flat.sort()).toEqual(["forum-thread", "friend-recommends", "playful-apology", "text-chat"]);
+    for (const f of STATIC_FORMATS.filter((x) => x.flat)) {
+      const prompt = photoAdPrompt(f, hilltop, { sorry: "We're sorry." }, facts, "software");
+      for (const full of [gptImageBody(prompt, "u1", true, true).prompt, gptRefBody(prompt, "u1", { logo: "data:image/png;base64,iVBORw0KGgo=" }, true).prompt] as string[]) {
+        expect(full, f.slug).not.toMatch(ASKS);
+        expect(full.endsWith(WORDS_FLAT_RULE), f.slug).toBe(true);
+      }
+    }
+    // a format with a photo keeps the setting and people rule
+    expect(gptImageBody(photoAdPrompt(poster, hilltop, {}), "u1", true).prompt).toMatch(/People only where/);
+  });
+
+  it("names the product, and sends its picture, only where the format pictures what is sold", async () => {
+    for (const f of STATIC_FORMATS) expect(photoAdPrompt(f, hilltop, {}, facts).includes("The ad shows the brand's product"), f.slug).toBe(!!f.room);
+    localStorage.setItem(`content-studio-products-${U}`, JSON.stringify({ items: [{ id: "pd-tracker1", name: "Activity Tracker", what: "Logs calls.", forWho: "", pictures: ["cimg-tracker1"], sources: [""], use: true, from: "you", addedAt: "" }] }));
+    fake.files["cimg-tracker1"] = new Blob(["tracker"]);
+    const apology = staticFormatBySlug("playful-apology")!;
+    await startPhotoAd(U, apology, { topic: "x" });
+    expect(fake.calls[0].o).toEqual({ words: true, flat: true });
+    expect(fake.calls[0].prompt).not.toContain("The ad shows the brand's product");
+    // the writer still writes about the product
+    expect(fake.asks[0].product).toMatchObject({ name: "Activity Tracker" });
+    fake.writeWords = { headline: "Still dark.", line: "Hilltop cold brew." };
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.calls[1].o).toEqual({ words: true, refs: { product: `data:image/jpeg;base64,${btoa("tracker")}` } });
   });
 });
 

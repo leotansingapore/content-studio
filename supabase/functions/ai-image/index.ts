@@ -5,7 +5,8 @@
 //        format made as a photo) prints the prompt's quoted lines: the people rule loses its "No text" clause, and when
 //        OpenAI can't make it the use comes back and it fails, never Soul v2, which can't print words. refs (with words
 //        only): the brand's logo and the product's picture as data URLs, sent to GPT Image's edits as references for a whole new picture; when
-//        that call fails the picture is made from the words alone, as before.
+//        that call fails the picture is made from the words alone, as before. flat (with words only): a type-only
+//        format, which gets a no-photo rule in place of the setting and people rule.
 //   POST {mode:"status", token} -> {state:"working"} | {state:"done", url} | {state:"failed", error}
 //   POST {mode:"fix", token, fix, words?} -> {token}: "Fix it" under a finished picture (words: a photo ad's, kept 4:5);
 //        GPT Image 2.6 Flare (Qwen Image 3 when OpenAI can't) edits the picture that token made (the link is read from
@@ -246,10 +247,11 @@ Deno.serve(async (req) => {
     }
     const words = parsed.request.words === true;
     const refs = parsed.request.refs;
-    let made = refs ? await gpt("edits", gptRefBody(parsed.request.prompt, uid, refs)) : null;
+    const flat = parsed.request.flat === true;
+    let made = refs ? await gpt("edits", gptRefBody(parsed.request.prompt, uid, refs, flat)) : null;
     // a model that won't take the references still makes the ad: the brand's name stays in the words
     if (refs && made === null) console.log("ai-image: made without its reference pictures");
-    made ??= await gpt("generations", gptImageBody(parsed.request.prompt, uid, words));
+    made ??= await gpt("generations", gptImageBody(parsed.request.prompt, uid, words, flat));
     if (made === "blocked") return json({ error: BLOCKED }, 422);
     if (made) return json({ token: await jobToken(signing, uid, made), usage: { used: usage.used, limit: usage.limit } });
     // Soul v2 can't print words: a picture that carries them stops here, nothing made, and its use comes back

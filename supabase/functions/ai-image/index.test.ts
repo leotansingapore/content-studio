@@ -215,6 +215,14 @@ describe("Make the image", () => {
     expect(hf.submits).toEqual([]);
   });
 
+  it("gives a type-only photo ad the no-photo rule, with its logo too", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    expect((await call({ prompt: 'A type-only apology. Headline: "Sorry."', words: true, flat: true })).status).toBe(200);
+    expect((await call({ prompt: 'A type-only apology. Headline: "Sorry."', words: true, flat: true, refs: { logo: "data:image/png;base64,iVBORw0KGgo=" } })).status).toBe(200);
+    expect(oa.calls.map((c) => [c.route, String(c.body.prompt).endsWith("A flat design: no photograph, no people and no product picture anywhere in it.")])).toEqual([["generations", true], ["edits", true]]);
+  });
+
   it("gives the use back when Higgsfield refuses the picture after OpenAI couldn't make it", async () => {
     env.OPENAI_API_KEY = "sk-test";
     hf.failAt = 1;

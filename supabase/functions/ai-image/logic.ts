@@ -18,6 +18,11 @@ export const PEOPLE_RULE =
  * Marina Bay Sands nearly every time, 14 Nov), and people only where its scene calls for them: PEOPLE_RULE's mixed,
  * good-looking group and "polished lifestyle photograph" put the same smiling group around a phone into 5 of 6 ads.
  */
+/**
+ * A photo ad on a type-only format (flat: true, a card or a screen with no photograph, src/data/staticFormats.ts): no
+ * setting or people wording at all, which put a strip photo of a woman under a type-only apology (14 Nov).
+ */
+export const WORDS_FLAT_RULE = "A flat design: no photograph, no people and no product picture anywhere in it.";
 export const WORDS_PEOPLE_RULE =
   "Where the scene has a setting it is Singapore, shown through ordinary cues: HDB blocks, void decks, kopitiam tables, covered walkways, greenery, " +
   "local shopfronts with no real names. No famous landmarks or skyline icons: no Marina Bay Sands, ArtScience Museum, Merlion, Gardens by the Bay, " +
@@ -41,9 +46,10 @@ const REF = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 export type ImageRequest =
   /**
    * words: the picture prints the prompt's quoted lines, so no "No text" rule and no Soul v2, which can't print them.
-   * refs (only with words): pictures GPT Image copies into the ad; one that isn't a picture is left out.
+   * refs (only with words): pictures GPT Image copies into the ad; one that isn't a picture is left out. flat (only with
+   * words): a type-only format, which gets WORDS_FLAT_RULE in place of the setting and people rule.
    */
-  | { mode: "start"; prompt: string; words?: true; refs?: Refs }
+  | { mode: "start"; prompt: string; words?: true; refs?: Refs; flat?: true }
   | { mode: "status"; token: string }
   /** words: the fix of a photo ad, which keeps its 4:5 (openai.ts WORDS_SIZE). */
   | { mode: "fix"; token: string; fix: string; words?: true };
@@ -69,7 +75,7 @@ export function parseImageRequest(raw: unknown): { ok: true; request: ImageReque
   if (b.words !== true) return { ok: true, request: { mode: "start", prompt } };
   const r = b.refs && typeof b.refs === "object" ? (b.refs as Record<string, unknown>) : {};
   const refs = Object.fromEntries((["logo", "product"] as const).flatMap((k) => (typeof r[k] === "string" && (r[k] as string).length <= MAX_REF_CHARS && REF.test(r[k] as string) ? [[k, r[k] as string]] : [])));
-  return { ok: true, request: { mode: "start", prompt, words: true, ...(Object.keys(refs).length ? { refs } : {}) } };
+  return { ok: true, request: { mode: "start", prompt, words: true, ...(Object.keys(refs).length ? { refs } : {}), ...(b.flat === true ? { flat: true as const } : {}) } };
 }
 
 /** The body for Soul v2: the post's prompt plus the people rule, 3:4 (the nearest to a 4:5 slide), 1080p. */

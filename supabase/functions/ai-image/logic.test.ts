@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_REF_CHARS, PEOPLE_RULE, WORDS_PEOPLE_RULE, buildFixBody, buildImageBody, pictureUrl, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic";
+import { MAX_REF_CHARS, PEOPLE_RULE, WORDS_FLAT_RULE, WORDS_PEOPLE_RULE, buildFixBody, buildImageBody, pictureUrl, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic";
 import { REF_LINES, WORDS_SIZE, gptFixBody, gptImageBody, gptRefBody } from "./openai";
 
 // The people rule every picture without words has always carried, pinned byte for byte before the words flag joined it.
@@ -103,6 +103,19 @@ describe("the setting of a picture that carries words", () => {
     for (const icon of ["Marina Bay Sands", "ArtScience Museum", "Merlion", "Gardens by the Bay", "Singapore Flyer", "CBD skyline"]) expect(WORDS_PEOPLE_RULE).toContain(icon);
     expect(WORDS_PEOPLE_RULE).toContain("No famous landmarks or skyline icons");
     expect(WORDS_PEOPLE_RULE).toContain("No real place names, transit, mall, bank or shop logos, or vehicle liveries.");
+  });
+});
+
+describe("a type-only photo ad (flat)", () => {
+  it("is read only with the words flag, and gets the no-photo rule in place of the setting and people rule, logo or not", () => {
+    expect(parseImageRequest({ mode: "start", prompt: "A type-only apology", words: true, flat: true })).toEqual({ ok: true, request: { mode: "start", prompt: "A type-only apology", words: true, flat: true } });
+    expect(parseImageRequest({ mode: "start", prompt: "A type-only apology", flat: true })).toEqual({ ok: true, request: { mode: "start", prompt: "A type-only apology" } });
+    expect(parseImageRequest({ mode: "start", prompt: "A type-only apology", words: true, flat: "yes" })).toEqual({ ok: true, request: { mode: "start", prompt: "A type-only apology", words: true } });
+    expect(gptImageBody("A card", "u1", true, true).prompt).toBe(`A card\n\n${WORDS_FLAT_RULE}`);
+    expect(gptRefBody("A card", "u1", { logo: "data:image/png;base64,iVBORw0KGgo=" }, true).prompt).toBe(`A card\n\nThe picture given ${REF_LINES.logo}\n\n${WORDS_FLAT_RULE}`);
+    expect(WORDS_FLAT_RULE).toBe("A flat design: no photograph, no people and no product picture anywhere in it.");
+    // flat means nothing without words: every other picture keeps its rule
+    expect(gptImageBody("A card", "u1", false, true).prompt).toBe(`A card\n\n${PEOPLE_RULE}`);
   });
 });
 

@@ -363,6 +363,16 @@ describe("a photo ad: words on it, made at 4:5 and kept whole", () => {
     expect(cuts()).toEqual([[], []]);
   });
 
+  it("tells ai-image a type-only photo ad is flat, and never a picture without words", async () => {
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "start" ? { token: "t1" } : done));
+    await settle(makeImage("u1", "A type-only apology", "Apology", undefined, undefined, { words: true, flat: true }));
+    await settle(makeImage("u1", "A laptop on a desk", "Laptop", undefined, undefined, { flat: true }));
+    expect(starts().map(([, b]) => b)).toEqual([
+      { mode: "start", prompt: "A type-only apology", words: true, flat: true },
+      { mode: "start", prompt: "A laptop on a desk" },
+    ]);
+  });
+
   it("keeps a picture picked up after a reload whole, words flag and all, even one asked for before photo ads stopped being cut", async () => {
     vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "fix" ? { token: "t2" } : done));
     store.set(KEY, JSON.stringify({ token: "t9", prompt: "A poster", name: "Poster", words: true }));
