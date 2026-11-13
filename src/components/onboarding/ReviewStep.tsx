@@ -232,49 +232,34 @@ function LogoField({ logo, name, colour, found, onLogo }: { logo: string | null;
   );
 }
 
-const OTHER_WORK = "other";
 const sameWork = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
-/** What you do, Required in Brand identity as Holo keeps every brand fact in its review; the read fills it when the site says. */
+/** What you do, Required in Brand identity: the six jobs as chips beside a box for anything else (an agency, a bakery),
+ *  the same shape as Who you help. */
 function WorkField({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
   const listed = PROFESSION_CHOICES.find((c) => sameWork(c, value) || (c === "Financial adviser" && sameWork(value, "financial advisor")));
-  const [other, setOther] = useState(() => !!value.trim() && !listed);
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <FieldLabel htmlFor={`${id}-work`}>What you do</FieldLabel>
-      <select
+      <div role="group" aria-label="What you do" className="flex flex-wrap gap-2">
+        {PROFESSION_CHOICES.map((c) => {
+          const on = listed === c;
+          return (
+            <button key={c} type="button" aria-pressed={on} onClick={() => onChange(c)} className={`rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${on ? "border-primary bg-primary text-primary-foreground" : "border-border/80 bg-muted/50 text-muted-foreground hover:text-foreground"}`}>
+              {c}
+            </button>
+          );
+        })}
+      </div>
+      <input
         id={`${id}-work`}
-        value={other ? OTHER_WORK : (listed ?? "")}
-        onChange={(e) => {
-          const v = e.target.value;
-          setOther(v === OTHER_WORK);
-          onChange(v === OTHER_WORK ? "" : v);
-        }}
+        value={value}
+        maxLength={MAX_PROFESSION_CHARS}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Or type it, like agency or bakery"
         aria-invalid={!value.trim()}
-        className={`${fieldClass} appearance-auto`}
-      >
-        <option value="" disabled>
-          Pick one
-        </option>
-        {PROFESSION_CHOICES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-        <option value={OTHER_WORK}>Something else</option>
-      </select>
-      {other && (
-        <input
-          autoFocus
-          aria-label="What you do, in a few words"
-          value={value}
-          maxLength={MAX_PROFESSION_CHARS}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Like photographer, dentist or bakery"
-          aria-invalid={!value.trim()}
-          className={fieldClass}
-        />
-      )}
+        className={fieldClass}
+      />
     </div>
   );
 }
@@ -368,7 +353,7 @@ export function ReviewStep(p: ReviewProps) {
             <WorkField id={id} value={p.profession} onChange={p.onProfession} />
             <div className="space-y-1.5">
               <FieldLabel htmlFor={`${id}-line`} hint={`${dna.oneLiner.length}/200`}>
-                What you do, in one line
+                Brand description
               </FieldLabel>
               <textarea id={`${id}-line`} rows={3} maxLength={200} value={dna.oneLiner} onChange={(e) => patch({ oneLiner: e.target.value })} placeholder="We help young families save so they can buy their first home." className={`${areaClass} resize-none`} />
             </div>
