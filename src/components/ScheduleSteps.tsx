@@ -1085,7 +1085,7 @@ export function ScheduleSteps({
               reason={busy ? null : reason || null}
             >
               {step === "caption" && (
-                <Button size="sm" disabled={!!reason || !!busy} onClick={() => void send()} className={`h-9 gap-1.5 ${TOUCH}`}>
+                <Button disabled={!!reason || !!busy} onClick={() => void send()} className={`gap-1.5 ${TOUCH}`}>
                   {busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <PaperPlaneTiltIcon className="h-3.5 w-3.5" />}
                   {busyLabel ?? (failed ? "Try again" : goesNow ? (allInbox ? "Send to inbox" : "Post now") : `Schedule for ${whenText}`)}
                 </Button>
