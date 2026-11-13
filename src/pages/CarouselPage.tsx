@@ -1600,7 +1600,8 @@ export default function CarouselPage() {
         </CardContent>
       </Card>
 
-      {tooShort && split && (
+      {/* about the post or pasted text: not shown over From a topic, where none is picked */}
+      {tooShort && split && mode !== "topic" && (
         <Card className="border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/10 shadow-card">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-5">
             <WarningIcon className="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />
