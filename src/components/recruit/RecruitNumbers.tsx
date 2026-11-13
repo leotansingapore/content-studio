@@ -9,7 +9,8 @@ import { loadDrafts } from "@/lib/draftHistory";
 import { recentWeeks, recruitPostsInWeek, stageMix, upsertWeek, weekOf, type WeekNumbers } from "@/lib/recruit";
 
 const FIELDS: { key: keyof Omit<WeekNumbers, "week">; label: string; hint: string }[] = [
-  { key: "posts", label: "Posts", hint: "What you published this week" },
+  // recruitment posts only: "what you published" read as the same count as This week's posts above, which holds every post
+  { key: "posts", label: "Posts", hint: "Recruitment posts you published" },
   { key: "conversations", label: "Conversations", hint: "New chats from content and Send 10" },
   { key: "inProgress", label: "Recruits in progress", hint: "Interview held or exams started" },
 ];
