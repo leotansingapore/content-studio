@@ -1,8 +1,9 @@
 import { CheckIcon } from "@phosphor-icons/react";
-import { Actions, PrimaryPill, QuietPill } from "@/components/onboarding/parts";
+import { Actions, PrimaryPill, QuietPill, useLogoTile } from "@/components/onboarding/parts";
 import { readableInk } from "@/lib/onboardingFlow";
 
 export function DoneStep({ id, name, logo, colours, line, titleId }: { id: string; name: string; logo: string | null; colours: string[]; line: string; titleId: string }) {
+  const tile = useLogoTile(logo);
   const open = (path: string) => window.location.assign(`${path}?profile=${encodeURIComponent(id)}`);
   const main = colours[0] ?? "#1E3A8A";
   return (
@@ -14,7 +15,7 @@ export function DoneStep({ id, name, logo, colours, line, titleId }: { id: strin
           </span>
         </div>
         <div className="relative z-10 -mt-10 space-y-3 px-5 pb-5">
-          <span className="onboard-checker grid h-20 w-20 place-items-center overflow-hidden rounded-2xl border-4 border-card shadow-card">
+          <span className={`${tile} grid h-20 w-20 place-items-center overflow-hidden rounded-2xl border-4 border-card shadow-card`}>
             {logo ? (
               <img src={logo} alt="" className="max-h-16 max-w-16 object-contain" />
             ) : (

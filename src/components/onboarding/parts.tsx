@@ -1,4 +1,5 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { logoIsLight } from "@/lib/logoImage";
 import { ArrowRightIcon, CaretLeftIcon, CheckIcon } from "@phosphor-icons/react";
 
 export function OnboardingCanvas({ progress, onBack, backLabel = "Back", children }: { progress: number | null; onBack?: () => void; backLabel?: string; children: ReactNode }) {
@@ -134,3 +135,16 @@ export function FieldLabel({ children, htmlFor, hint }: { children: ReactNode; h
 
 export const fieldClass =
   "w-full rounded-xl border border-transparent bg-muted/70 px-3 py-2.5 text-[15px] text-foreground outline-none transition-shadow focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_hsl(var(--primary)/0.18)] placeholder:text-muted-foreground/80 focus:border-border focus:bg-background focus:shadow-[inset_0_0_0_3px_hsl(var(--primary)/0.18)] [@media(pointer:coarse)]:min-h-11";
+
+export function useLogoTile(logo: string | null | undefined): string {
+  const [light, setLight] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setLight(false);
+    if (logo) void logoIsLight(logo).then((v) => alive && setLight(v));
+    return () => {
+      alive = false;
+    };
+  }, [logo]);
+  return light ? "onboard-checker-dark" : "onboard-checker";
+}

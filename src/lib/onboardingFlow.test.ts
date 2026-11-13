@@ -3,7 +3,7 @@ import {
   APP_SECTIONS, colourGap, confirmLabel, distinctColours, firstOpenQuestion, flowKey, foundNetworks, hexOf, hostOf, isSerif, keptAnswers, keptNetworks, keptSaved, keptStep, mainPlatform, nextLine,
   nextSection, progressOf, QUESTIONS, readableInk, scoreOf, shouldSetUp, shownStep, SITE_SECTIONS, slideFontFor, webAddress, type Section,
 } from "./onboardingFlow";
-import { blankPixels, dominantColours } from "./logoImage";
+import { blankPixels, dominantColours, lightPixels } from "./logoImage";
 
 describe("the website box", () => {
   it("takes a domain with a real ending, with or without https", () => {
@@ -162,6 +162,13 @@ describe("logo pixels", () => {
     expect(dominantColours(speck)).toEqual(["#2563EB"]);
     expect(dominantColours(pixels([[0, 0, 0, 255], [255, 255, 255, 255]], 50))).toEqual([]);
     expect(dominantColours(new Uint8ClampedArray(0))).toEqual([]);
+  });
+
+  it("calls a logo light when nearly all of what shows is near white, so it gets a dark tile", () => {
+    expect(lightPixels(pixels([...Array(300).fill([0, 0, 0, 0]), ...Array(100).fill([255, 255, 255, 255])] as [number, number, number, number][]))).toBe(true);
+    expect(lightPixels(pixels([...Array(80).fill([250, 250, 250, 255]), ...Array(20).fill([37, 99, 235, 255])] as [number, number, number, number][]))).toBe(false);
+    expect(lightPixels(pixels([[0, 0, 0, 0]], 100))).toBe(false);
+    expect(lightPixels(pixels([[17, 24, 39, 255]], 100))).toBe(false);
   });
 
   it("calls a drawing blank when almost nothing shows or one flat colour fills it all", () => {

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ArrowSquareOutIcon, CaretDownIcon, CircleNotchIcon, FacebookLogoIcon, InstagramLogoIcon, LinkedinLogoIcon, PlusIcon, StarIcon, TiktokLogoIcon, TrashIcon, UploadSimpleIcon, type Icon } from "@phosphor-icons/react";
-import { FieldLabel, PrimaryPill, ScoreRing, StatusPill, StepTitle, fieldClass } from "@/components/onboarding/parts";
+import { FieldLabel, PrimaryPill, ScoreRing, StatusPill, StepTitle, fieldClass, useLogoTile } from "@/components/onboarding/parts";
 import { AUDIENCE_NAMES, NETWORKS, parseTopics, shownTopics, type BrandDna } from "@/lib/addBrand";
 import { MAX_PAINS, proofLines, type AppRead } from "@/lib/appStore";
 import type { SlideFont } from "@/lib/carouselLayout";
@@ -169,6 +169,7 @@ function ColourField({ picked, suggested, presets, max, onChange }: { picked: st
 
 function LogoField({ logo, name, colour, found, onLogo }: { logo: string | null; name: string; colour: string | null; found: boolean; onLogo: (v: string | null) => void }) {
   const id = useId();
+  const tile = useLogoTile(logo);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
@@ -202,7 +203,7 @@ function LogoField({ logo, name, colour, found, onLogo }: { logo: string | null;
             setOver(false);
             void take(e.dataTransfer.files?.[0]);
           }}
-          className={`group relative grid h-[88px] w-[88px] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-2xl border transition-colors ${over ? "border-primary bg-primary/10" : logo ? "onboard-checker border-border/70" : "border-dashed border-border bg-muted/40 hover:border-muted-foreground"}`}
+          className={`group relative grid h-[88px] w-[88px] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-2xl border transition-colors ${over ? "border-primary bg-primary/10" : logo ? `${tile} border-border/70` : "border-dashed border-border bg-muted/40 hover:border-muted-foreground"}`}
         >
           {logo ? (
             <img src={logo} alt={`${name || "Brand"} logo`} className="max-h-[72px] max-w-[72px] object-contain" />
