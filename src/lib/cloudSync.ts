@@ -17,6 +17,7 @@
 // Callers never change: draftHistory, contentPlan, coach, savedItems, etc.
 // keep reading/writing localStorage as before.
 
+import { capDrafts, DRAFTS_PREFIX } from "@/lib/brandDrafts";
 import { supabase } from "@/lib/supabase";
 import { listMerger, type SyncBase, type SyncMerger } from "@/lib/syncMerge";
 
@@ -60,6 +61,8 @@ const pruneTombs = (list: Tomb[]) => {
 registerSyncMerge(TOMB_PREFIX, listMerger<Tomb>({ after: pruneTombs }));
 // The brand list (profiles.ts): a brand added on one device and removed on another both reach every device.
 registerSyncMerge("content-studio-profiles-", listMerger<{ id: string }>());
+// Add a brand's unfinished forms (brandDrafts.ts), the same way: the three newest, from every device.
+registerSyncMerge(DRAFTS_PREFIX, listMerger<{ id: string; updatedAt?: string }>({ after: capDrafts }));
 
 export type SyncDecision = "apply-cloud" | "push-local" | "noop";
 

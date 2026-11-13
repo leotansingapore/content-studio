@@ -1,5 +1,5 @@
-// Add a brand (/brands/new): what a site read gives back, and the half-done form kept for the tab so
-// leaving the page or reloading does not throw away the read and the cards already checked.
+// Add a brand (/brands/new): what a site read gives back, and the half-done form kept for the tab (and as a synced
+// draft, brandDrafts.ts) so leaving the page or reloading does not throw away the read and the cards already checked.
 import { DEFAULT_BRAND, loadBrand, MAX_PALETTE, normalizeHandle, saveBrand, type CarouselBrand } from "@/lib/carousel";
 import type { SlideFont } from "@/lib/carouselLayout";
 import type { PostLang } from "@/lib/links";
@@ -54,8 +54,8 @@ export interface KeptBrand {
   done: string[];
 }
 
-// sessionStorage, outside the synced prefix: nothing is saved until Create
-export const keptBrandKey = (userId: string) => `cs-addbrand-form-${userId}`;
+// the tab's copy of the form; the synced drafts beside it are in brandDrafts.ts
+export { keptBrandKey } from "@/lib/brandDrafts";
 
 export const isDna = (d: unknown): d is BrandDna => {
   if (!d || typeof d !== "object") return false;
