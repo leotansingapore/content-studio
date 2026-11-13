@@ -264,17 +264,18 @@ export default function CarouselsPage() {
             <Button variant={panel ? "secondary" : "outline"} size="sm" className="gap-1.5" onClick={() => setPanel(!panel)} aria-expanded={panel}>
               <SlidersHorizontalIcon className="h-3.5 w-3.5" /> Filters{activeCount(f) ? ` (${activeCount(f)})` : ""}
             </Button>
-            <Button
+            {/* only once there is a search or filter to keep: at rest it was a disabled pill with nothing to save (laws 1, 19) */}
+            {thisSearch && <Button
               variant="outline"
               size="sm"
-              disabled={searchSaved || !thisSearch}
+              disabled={searchSaved}
               onClick={() => {
                 setShelf(addSearch(shelf, searchName(f), thisSearch));
                 toast({ title: "Search saved", description: "It's in the row under the filters." });
               }}
             >
               {searchSaved ? "Search saved" : "Save search"}
-            </Button>
+            </Button>}
             {f.creator && f.view !== "tracked" && (
               <FilterChip active onClick={() => set("creator", null)}>
                 @{f.creator} <XIcon aria-label="Clear creator" className="h-3 w-3" />
