@@ -35,6 +35,7 @@ export const MAX_ANCHORS = 40;
 
 export interface SiteFacts {
   name: string;
+  named?: boolean;
   description: string;
   colour: string | null;
   /** Logo addresses, likeliest first. */
@@ -141,7 +142,8 @@ export function readSite(html: string, base: URL): SiteFacts {
   const late = html.length > 300_000 ? html.slice(-120_000) : "";
   const metaOf = (...keys: string[]) => meta(head, ...keys) || (late ? meta(late, ...keys) : "");
   const title = decode((head.match(/<title[^<>]{0,500}>([^<]{0,500})<\/title>/i)?.[1] ?? "").replace(/\s+/g, " ").trim());
-  const name = (metaOf("og:site_name", "application-name") || title.split(/\s[|\-–—:]\s/)[0] || base.hostname.replace(/^www\./, "")).slice(0, 60);
+  const pageName = metaOf("og:site_name", "application-name") || title.split(/\s[|\-–—:]\s/)[0];
+  const name = (pageName || base.hostname.replace(/^www\./, "")).slice(0, 60);
   const description = metaOf("description", "og:description").slice(0, 400);
 
   // likeliest logo first: a touch icon (square, usually the mark), an image that calls itself a logo, then the
@@ -169,7 +171,7 @@ export function readSite(html: string, base: URL): SiteFacts {
     .trim()
     .slice(0, 6000);
   const lang = (attr(tagsOf(head, "html")[0] ?? "", "lang").toLowerCase().match(/^(zh|ms|ta)\b/)?.[1] ?? null) as PostLang | null;
-  return { name, description, colour: pickColour(meta(head, "theme-color"), body), logos, handles, text, anchors: anchorsOf(body, base), lang };
+  return { name, named: !!pageName, description, colour: pickColour(meta(head, "theme-color"), body), logos, handles, text, anchors: anchorsOf(body, base), lang };
 }
 
 const siteHost = (u: URL) => u.hostname.toLowerCase().replace(/^www\./, "");
@@ -275,6 +277,8 @@ const FIELDS = [
 ];
 
 /** The messages for the brand writer: today's single <page> for a plain read, or the deep read's fenced pages. */
+const nameLine = (site: SiteFacts) => (site.named === false ? "" : `Name on the page: ${site.name}`);
+
 export function writeMessages(site: SiteFacts, url: string, fenced?: string) {
   if (fenced) return deepMessages(site, url, fenced);
   return [
@@ -289,7 +293,7 @@ export function writeMessages(site: SiteFacts, url: string, fenced?: string) {
       role: "user",
       content: [
         `Website: ${url}`,
-        `Name on the page: ${site.name}`,
+        nameLine(site),
         site.description ? `Its description: ${site.description}` : "",
         "",
         "<page>",
@@ -313,7 +317,7 @@ function deepMessages(site: SiteFacts, url: string, fenced: string) {
     },
     {
       role: "user",
-      content: [`Website: ${url}`, `Name on the page: ${site.name}`, site.description ? `Its description: ${site.description}` : "", fenced, ...FIELDS].filter(Boolean).join("\n"),
+      content: [`Website: ${url}`, nameLine(site), site.description ? `Its description: ${site.description}` : "", fenced, ...FIELDS].filter(Boolean).join("\n"),
     },
   ];
 }
@@ -464,7 +468,7 @@ export function productMessages(site: SiteFacts, url: string, fenced: string) {
       role: "user",
       content: [
         `Website: ${url}`,
-        `Name on the page: ${site.name}`,
+        nameLine(site),
         fenced,
         `List up to ${MAX_PRODUCTS} products, plans, packages or services this business sells or offers its clients. Leave out blog posts, people, events and pages about the company. If the pages list nothing, return an empty list.`,
         "name: as the page writes it, under 60 characters.",
@@ -642,7 +646,7 @@ const PROFILE_LABELS: AudienceProfile = {
  */
 export function audienceMessages(source: { site: SiteFacts; url: string; fenced: string } | { profile: AudienceProfile }, saved: { name: string; who: string }[]) {
   const from = "site" in source
-    ? [`Website: ${source.url}`, `Name on the page: ${source.site.name}`, source.site.description ? `Its description: ${source.site.description}` : "", source.fenced]
+    ? [`Website: ${source.url}`, nameLine(source.site), source.site.description ? `Its description: ${source.site.description}` : "", source.fenced]
     : ["<profile>", ...PROFILE_FIELDS.filter((k) => source.profile[k]).map((k) => `${PROFILE_LABELS[k]}: ${source.profile[k].replace(/<\/?profile>/gi, "")}`), "</profile>"];
   return [
     {

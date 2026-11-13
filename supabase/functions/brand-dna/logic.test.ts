@@ -77,6 +77,15 @@ describe("reading a brand's home page", () => {
     expect(readSite("<p>hi</p>", BASE).name).toBe("acme.sg");
   });
 
+  it("never tells the writer a bare address is the name on the page", () => {
+    const bare = readSite("<p>Tony Robbins coaching</p>", BASE);
+    expect(bare.named).toBe(false);
+    expect(JSON.stringify(writeMessages(bare, BASE.href))).not.toContain("Name on the page");
+    const named = readSite("<title>Bee Clinic - Family GP</title>", BASE);
+    expect(named.named).toBe(true);
+    expect(JSON.stringify(writeMessages(named, BASE.href))).toContain("Name on the page: Bee Clinic");
+  });
+
   it("uses a theme-color that is a colour, and finds none on a grey page", () => {
     expect(pickColour("#E91E63", "")).toBe("#e91e63");
     expect(pickColour("", "<style>a{color:#333}b{color:#eeeeee}</style>")).toBeNull();
