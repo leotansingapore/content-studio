@@ -188,14 +188,15 @@ export function brandAddress(pathname: string, search: string, hash: string, ope
 
 /** Keeps the open brand in the address of every brand page, after every move inside the app too (brandAddress). */
 export function useBrandAddress(userId: string | null) {
-  const { pathname, search, hash, state } = useLocation();
+  const { pathname, search, hash, state, key } = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
     // no user yet: the sign-in, and with it an arriving ?profile= link, hasn't been read
     if (!userId) return;
+    if ((window.history.state?.key ?? "default") !== key) return;
     const next = brandAddress(pathname, search, hash, activeProfileId(userId), loadProfiles(userId).map((p) => p.id));
     if (next) navigate(next, { replace: true, state });
-  }, [userId, pathname, search, hash, state, navigate]);
+  }, [userId, pathname, search, hash, state, key, navigate]);
 }
 
 // The signed-in user, known once the studio has loaded, so a copied link can name the open brand.

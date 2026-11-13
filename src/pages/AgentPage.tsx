@@ -81,8 +81,9 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
   // once per arrival: a second effect run, or New chat on this same page, never sends it again
   const sent = useRef(false);
   useLayoutEffect(() => {
+    if (sent.current) return;
     // a page handed over its request: it sends once and the chat opens, with the way back to that page
-    if (sends && !sent.current && !threadId && handover.ask) {
+    if (sends && !threadId && handover.ask) {
       sent.current = true;
       const id = send(userId, null, handover.ask);
       if (id) return navigate(links.agent({ thread: id }), { replace: true, state: from ? { from } : null });
