@@ -35,6 +35,45 @@ describe("today's image, meme and ad version prompts", () => {
   });
 });
 
+// Every static layout's prompt and response shape as a request without a product or angles builds it (the drawn make,
+// the agent's layout make and a photo make from an older app), pinned before those joined the image make.
+describe("today's static layout prompts", () => {
+  it("stay byte for byte", async () => {
+    const prompts = STATIC_LAYOUTS.flatMap((layout) => [
+      both({ as: "image", layout, topic: "Afternoon coffee", brand: BIZ }),
+      both({ as: "image", layout, topic: "Why a hospital plan has a co-pay" }),
+      both({ as: "image", layout, source: SOURCE, brand: BIZ }),
+    ]);
+    await expect(JSON.stringify(prompts, null, 2)).toMatchFileSnapshot("./__pins__/static-prompts.json");
+  });
+});
+
+describe("a static ad about one product", () => {
+  const PRODUCT = { name: "Activity Tracker", what: "Logs daily sales activities as streaks, with a leaderboard.", forWho: "Sales agents" };
+
+  it("puts the product's facts first among the brand's and tells the writer to name it and one thing it does", () => {
+    const r = req({ as: "image", layout: "street-poster", topic: "Prospecting", brand: BIZ, product: PRODUCT });
+    expect(r.product).toEqual(PRODUCT);
+    expect(r.brand.facts).toBe("- The product this ad is about: Activity Tracker\n- What Activity Tracker is: Logs daily sales activities as streaks, with a leaderboard.\n- Who Activity Tracker is for: Sales agents\n- Ten years advising");
+    const { system } = buildMakePrompt(r);
+    expect(system).toContain("- The ad is about Activity Tracker, from the facts given. Where the words say what the brand does, they name Activity Tracker and one concrete thing it does, never a general line about the brand.");
+    expect(system).toContain("- What Activity Tracker is: Logs daily sales activities as streaks");
+  });
+
+  it("is only for a static layout, needs a name, and is never named when the make doesn't name the brand", () => {
+    for (const b of [{ as: "image", layout: "headline", topic: "x" }, { as: "meme", layout: "pov", topic: "x" }, { as: "image", layout: "street-poster", topic: "x", product: { what: "no name" } }]) {
+      const r = req({ ...b, product: "product" in b ? b.product : PRODUCT });
+      expect(r.product, JSON.stringify(b)).toBeUndefined();
+      expect(r.brand.facts).toBe(BRAND.facts);
+    }
+    const quiet = req({ as: "image", layout: "street-poster", topic: "x", brand: { ...BIZ, mention: false }, product: PRODUCT });
+    expect(buildMakePrompt(quiet).system).not.toContain("The ad is about Activity Tracker");
+    expect(quiet.brand.facts).toContain("The product this ad is about: Activity Tracker");
+    const long = req({ as: "image", layout: "street-poster", topic: "x", product: { name: "n".repeat(90), what: "w".repeat(300), forWho: "f".repeat(200) } }).product!;
+    expect([long.name.length, long.what.length, long.forWho.length]).toEqual([60, 200, 120]);
+  });
+});
+
 describe("static ad formats as image layouts", () => {
   const CAP = { caption: "Afternoons drag. A cold brew in the fridge fixes that.", cta: "Save this for Monday.", hashtags: ["coffee"] };
   // letters, not digits: a digit in the words is the number check's to catch

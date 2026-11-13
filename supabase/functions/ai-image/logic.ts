@@ -25,8 +25,8 @@ export const MIN_FIX = 3;
 export const MAX_FIX = 300;
 export const KEEP_RULE = "Change only what is asked and keep everything else in the picture exactly as it is. Anyone added is Singaporean or other Asian.";
 
-/** A photo ad's reference pictures (openai.ts REF_LINES): the brand kit's logo. */
-export type Refs = { logo?: string };
+/** A photo ad's reference pictures (openai.ts REF_LINES): the brand kit's logo and the product the ad is about. */
+export type Refs = { logo?: string; product?: string };
 /** A reference picture: a PNG, JPEG or WebP data URL, at most this long (remix-link's own limit for a picture). */
 export const MAX_REF_CHARS = 1_500_000;
 const REF = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
@@ -60,7 +60,7 @@ export function parseImageRequest(raw: unknown): { ok: true; request: ImageReque
   if (prompt.length > MAX_PROMPT) return { ok: false, error: `Keep the image prompt under ${MAX_PROMPT} characters.` };
   if (b.words !== true) return { ok: true, request: { mode: "start", prompt } };
   const r = b.refs && typeof b.refs === "object" ? (b.refs as Record<string, unknown>) : {};
-  const refs = Object.fromEntries((["logo"] as const).flatMap((k) => (typeof r[k] === "string" && (r[k] as string).length <= MAX_REF_CHARS && REF.test(r[k] as string) ? [[k, r[k] as string]] : [])));
+  const refs = Object.fromEntries((["logo", "product"] as const).flatMap((k) => (typeof r[k] === "string" && (r[k] as string).length <= MAX_REF_CHARS && REF.test(r[k] as string) ? [[k, r[k] as string]] : [])));
   return { ok: true, request: { mode: "start", prompt, words: true, ...(Object.keys(refs).length ? { refs } : {}) } };
 }
 

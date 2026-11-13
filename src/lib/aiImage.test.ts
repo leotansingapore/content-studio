@@ -537,6 +537,15 @@ describe("Logo on AI pictures (brand-kit)", () => {
     expect(drawn).toEqual([]);
   });
 
+  it("sends a product's picture alone too, and still stamps the logo the model wasn't given", async () => {
+    kit(true);
+    vi.mocked(callFn).mockImplementation(async (_fn, body) =>
+      (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8, refs: { product: "data:image/jpeg;base64,UFJPRA==" } }));
+    expect(starts()[0][1]).toEqual({ mode: "start", prompt: "A poster at a bus shelter", words: true, refs: { product: "data:image/jpeg;base64,UFJPRA==" } });
+    expect(await Promise.all(vi.mocked(storePicture).mock.calls.map(([b]) => (b as Blob).text()))).toEqual(["stamped"]);
+  });
+
   it("keeps the picture as made with the switch off or no logo", async () => {
     kit(false);
     expect(await run()).toEqual(["png", "png"]);

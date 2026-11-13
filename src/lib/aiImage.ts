@@ -130,13 +130,14 @@ async function withLogo(userId: string, pic: Blob, ratio?: number): Promise<Blob
 
 /**
  * o.words: the picture prints the prompt's quoted lines (ai-image's words flag); o.ratio: kept cut to that shape (width /
- * height); o.refs (with words): pictures the model puts in the ad, the brand's logo, which then is never stamped on too.
+ * height); o.refs (with words): pictures the model puts in the ad, the brand's logo (then never stamped on too) and the
+ * product's picture.
  */
-export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"], o: { words?: true; ratio?: number; refs?: { logo?: string } } = {}): Promise<void> =>
+export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"], o: { words?: true; ratio?: number; refs?: { logo?: string; product?: string } } = {}): Promise<void> =>
   run(
     userId,
     { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}), ...(o.ratio ? { ratio: o.ratio } : {}), ...(o.words && o.refs?.logo ? { bare: true as const } : {}) },
-    { mode: "start", prompt: withMemory(userId, prompt), ...(o.words ? { words: true, ...(o.refs?.logo ? { refs: o.refs } : {}) } : {}) },
+    { mode: "start", prompt: withMemory(userId, prompt), ...(o.words ? { words: true, ...(o.refs?.logo || o.refs?.product ? { refs: o.refs } : {}) } : {}) },
   );
 
 export const brandLine = (kit: { color?: string; palette?: { hex?: string }[] } | null): string => {

@@ -139,11 +139,13 @@ export const productLabel = (p: Pick<Product, "name" | "generic" | "namedProduct
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/** A sentence about a named product with its plan name read as the general kind (the page's own sentence may repeat it). */
+const plainOf = (p: Product) => (s: string) => (p.namedProduct && p.generic ? s.replace(new RegExp(escape(p.name), "gi"), p.generic) : s);
+
 /** The brief Write gets for "Write a post about it": a named product is described only in general terms. */
 export function productBrief(p: Product): string {
   const label = productLabel(p);
-  // the page's own sentence may repeat the plan name: it reads the general kind there too
-  const plain = (s: string) => (p.namedProduct && p.generic ? s.replace(new RegExp(escape(p.name), "gi"), p.generic) : s);
+  const plain = plainOf(p);
   return [
     `Write a post about what I offer: ${label}.`,
     p.what && `What it is: ${plain(p.what)}`,
@@ -155,6 +157,16 @@ export function productBrief(p: Product): string {
 
 /** The product remixes use first: the first one with "Use in posts" on. */
 export const mainProduct = (list: Product[]): Product | null => list.find((p) => p.use) ?? null;
+
+/** The product an ad is about: the one its note names (as a whole word, any case), else the main product. */
+export const adProduct = (list: Product[], note: string): Product | null =>
+  list.find((p) => new RegExp(`(^|[^\\p{L}\\p{N}])${escape(p.name.trim())}($|[^\\p{L}\\p{N}])`, "iu").test(note)) ?? mainProduct(list);
+
+/** A product as an ad make sends it to the writer: a named product in general terms only, as productBrief. */
+export function adFacts(p: Product): { name: string; what: string; forWho: string } {
+  const plain = plainOf(p);
+  return { name: productLabel(p), what: plain(p.what), forWho: plain(p.forWho) };
+}
 
 /** The brand's product photo (a used product's first), and its first price. */
 export function productBits(p: Products): { picture?: string; price?: string } {

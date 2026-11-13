@@ -272,6 +272,13 @@ export interface BrandPack {
   profession?: string;
 }
 
+/** A product as an ad make sends it: what the app calls it (productLabel), what it is and who it's for. */
+export interface AdProduct {
+  name: string;
+  what: string;
+  forWho: string;
+}
+
 export interface MakeRequest {
   mode: "make";
   as: MakeAs;
@@ -305,6 +312,11 @@ export interface MakeRequest {
   versions?: string[];
   /** image only: the source ad's picture in one sentence (remix-link image mode), at most 300. */
   shows?: string;
+  /**
+   * image with a static layout only: the brand's product the ad is about (a photo make), whose facts join the brand's
+   * facts first; the words name it and one thing it does.
+   */
+  product?: AdProduct;
   /** Every format but hooks: a HOOK_FORMULA_COPY id the opening line follows (remix-variations); an unknown id is dropped. */
   formula?: string;
   /** edit only, and always sent there. */
@@ -502,6 +514,7 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
   if (typeof shape === "string") return { ok: false, error: shape };
   // hooks and ad versions write formulas of their own
   const formula = as !== "hooks" && as !== "ads" && formulaRule(r.formula) ? (r.formula as string) : undefined;
+  const product = as === "image" && isStaticLayout(shape.layout) ? parseProduct(r.product) : undefined;
   return {
     ok: true,
     value: {
@@ -518,7 +531,7 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
         oneLiner: line(b.oneLiner, 300),
         audience: line(b.audience, 300),
         topics: list(b.topics, 12, 60),
-        facts: blockText(b.facts, 2000),
+        facts: blockText([product && productFacts(product), b.facts].filter(Boolean).join("\n"), 2000),
         mention,
         offer: mention && line(offer.name, 60) ? { name: line(offer.name, 60), ...(line(offer.brief, 300) ? { brief: line(offer.brief, 300) } : {}) } : null,
         rules: line(b.rules, 1500),
@@ -529,9 +542,20 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
       fit: verdict ? { verdict, reasons: (Array.isArray(f.reasons) ? f.reasons : []).filter((x): x is FitReason => FIT_REASONS.includes(x as FitReason)) } : undefined,
       ...shape,
       ...(formula ? { formula } : {}),
+      ...(product ? { product } : {}),
     },
   };
 }
+
+/** An ad make's product, cleaned, or undefined when it has no name. */
+function parseProduct(raw: unknown): AdProduct | undefined {
+  const p = obj(raw);
+  const name = line(p.name, 60);
+  return name ? { name, what: line(p.what, 200), forWho: line(p.forWho, 120) } : undefined;
+}
+
+/** The product's facts, ahead of the brand's own so the 2000-character cut never takes them. */
+const productFacts = (p: AdProduct) => [`- The product this ad is about: ${p.name}`, p.what && `- What ${p.name} is: ${p.what}`, p.forWho && `- Who ${p.name} is for: ${p.forWho}`].filter(Boolean).join("\n");
 
 /** The original's words, then its on-screen text, one line each (at most 24). */
 function withOverlays(s: SourceIn, raw: unknown): SourceIn {
@@ -1088,6 +1112,9 @@ function staticRules(req: MakeRequest, layout: StaticLayout): string[] {
           "- Nobody in the picture is the adviser's client or speaks as one: nobody says they used, hired or were helped by the adviser, nobody praises or rates the adviser, and nobody reports a result. Others may only say what the adviser does, from the facts given, and suggest asking the adviser.",
           "- Made-up people have a first name or a username only, never a full name, a job title or a company.",
         ]
+      : []),
+    ...(req.product && req.brand.mention
+      ? [`- The ad is about ${req.product.name}, from the facts given. Where the words say what the brand does, they name ${req.product.name} and one concrete thing it does, never a general line about the brand.`]
       : []),
     // Post choices' Never (or Sometimes' flip): the brand rule below says not to name the brand, and it wins
     ...(req.brand.mention ? [] : ["- This picture does not name the brand: where a line above says to name it, leave the name out and keep the words on the problem and what helps."]),

@@ -26,7 +26,7 @@ import type { RemixSource } from "@/lib/remixSource";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import type { LinkedSource } from "@/lib/resolveSource";
-import { AD_VERSIONS, AD_WORDS, STATIC_FIELDS, VERSION_LAYOUTS, isStaticLayout, type AdLayout, type AdVersion, type StaticLayout } from "../../supabase/functions/remix/logic.ts";
+import { AD_VERSIONS, AD_WORDS, STATIC_FIELDS, VERSION_LAYOUTS, isStaticLayout, type AdLayout, type AdProduct, type AdVersion, type StaticLayout } from "../../supabase/functions/remix/logic.ts";
 
 export type VersionLayout = (typeof VERSION_LAYOUTS)[number];
 export const isVersionLayout = (l: string): l is VersionLayout => (VERSION_LAYOUTS as readonly string[]).includes(l);
@@ -301,6 +301,8 @@ export interface ImageWriteAsk {
   size: ImageSize;
   /** Read a swipe ad's picture first (the page says no when remix-image has no uses left). */
   read: boolean;
+  /** A static format's photo make: the brand's product the ad is about (products.ts adFacts). */
+  product?: AdProduct;
 }
 
 export interface ImageWrite {
@@ -356,6 +358,7 @@ export async function startImageWrite(userId: string, ask: ImageWriteAsk): Promi
     const body = makeBody(userId, { source: s, topic: ask.topic, mention: ask.mention, note: ask.note, size: ask.size === "9x16" ? "9x16" : "4x5" }, "image", {
       ...(ask.layout ? { layout: ask.layout } : {}),
       ...(shows ? { shows } : {}),
+      ...(ask.product ? { product: ask.product } : {}),
     });
     const res = await requestMake(body);
     if (res?.result?.as !== "image") throw new Error(WRITE_FAILED);

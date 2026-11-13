@@ -23,6 +23,8 @@ const fake = vi.hoisted(() => {
     image: null as null | Record<string, unknown>,
     imageFails: "",
     calls: [] as { prompt: string; name: string; o?: unknown }[],
+    asks: [] as Record<string, unknown>[],
+    files: {} as Record<string, Blob>,
   };
 });
 vi.mock("@/lib/supabase", () => ({
@@ -37,6 +39,7 @@ vi.mock("@/lib/images", async (actual) => {
     imageWrite: () => fake.write,
     imageWriteBusy: () => false,
     startImageWrite: async (userId: string, ask: { designId: string }) => {
+      fake.asks.push(ask);
       fake.write = { id: 1, designId: ask.designId, state: "writing" };
       await Promise.resolve();
       if (fake.writeFails) return void (fake.write = { ...fake.write, state: "failed", error: fake.writeFails });
@@ -46,6 +49,9 @@ vi.mock("@/lib/images", async (actual) => {
     },
   };
 });
+// the product's picture on this device, and the scale to ai-image's limit (a canvas in the browser)
+vi.mock("@/lib/deviceFiles", async (actual) => ({ ...(await actual<typeof import("@/lib/deviceFiles")>()), getFile: async (k: string) => fake.files[k] }));
+vi.mock("@/lib/remixLink", async (actual) => ({ ...(await actual<typeof import("@/lib/remixLink")>()), scalePicture: async (b: Blob) => `data:image/jpeg;base64,${btoa(await b.text())}` }));
 // the paid picture: never called for real
 vi.mock("@/lib/aiImage", async (actual) => ({
   ...(await actual<typeof import("@/lib/aiImage")>()),
@@ -58,7 +64,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { PHOTO_EDGES, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, photoAd, photoAdPrompt, shownPhotoAd, startPhotoAd } from "./photoAd";
+import { PHOTO_EDGES, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, photoAd, photoAdPrompt, productLine, shownPhotoAd, startPhotoAd } from "./photoAd";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
 import { IMAGE_FIELDS, isStatic } from "@/lib/imageLayout";
@@ -135,7 +141,7 @@ describe("each format's scene", () => {
 describe("the photo run", () => {
   beforeEach(() => {
     localStorage.clear();
-    Object.assign(fake, { write: null, writeFails: "", image: null, imageFails: "", calls: [], writeWords: { headline: "Still dark, still raining.", line: "Hilltop cold brew." } });
+    Object.assign(fake, { write: null, writeFails: "", image: null, imageFails: "", calls: [], asks: [], files: {}, writeWords: { headline: "Still dark, still raining.", line: "Hilltop cold brew." } });
   });
 
   it("shows its first step at once, writes the words into a layout design, then makes one photo from those words", async () => {
@@ -160,6 +166,62 @@ describe("the photo run", () => {
     localStorage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#F26B1D", name: "ActivityTracker", handle: "" }));
     await startPhotoAd(U, poster, { topic: "x" });
     expect(fake.calls[1].o).toEqual({ words: true, ratio: 0.8 });
+  });
+
+  describe("about the brand's product", () => {
+    const tracker = { id: "pd-tracker1", name: "Activity Tracker", what: "Logs daily sales activities as streaks, with a leaderboard.", forWho: "Sales agents", pictures: ["cimg-tracker1"], sources: [""], use: true, from: "you", addedAt: "" };
+    const corgi = { ...tracker, id: "pd-corgi11", name: "Corgi Coach", what: "A virtual corgi that grows with your streak.", pictures: [], sources: [] };
+    const keep = (...items: object[]) => localStorage.setItem(`content-studio-products-${U}`, JSON.stringify({ items }));
+
+    it("writes for the first product in use and shows it: its line in the prompt, its own picture as a reference", async () => {
+      keep({ ...corgi, use: false }, tracker);
+      fake.files["cimg-tracker1"] = new Blob(["tracker"]);
+      await startPhotoAd(U, poster, { topic: "What ActivityTracker does and who it's for" });
+      expect(fake.asks[0].product).toEqual({ name: "Activity Tracker", what: tracker.what, forWho: "Sales agents" });
+      const design = imageById(U, photoAd()!.designId)!;
+      expect(fake.calls[0].prompt).toBe(photoAdPrompt(poster, { name: "", color: DEFAULT_BRAND.color }, design.words, { name: "Activity Tracker", what: tracker.what }));
+      expect(fake.calls[0].prompt).toContain("The ad shows the brand's product itself: Activity Tracker, Logs daily sales activities as streaks, with a leaderboard.");
+      expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8, refs: { product: `data:image/jpeg;base64,${btoa("tracker")}` } });
+    });
+
+    it("takes the product the note names, and describes one with no picture on this device in words alone", async () => {
+      keep(tracker, corgi);
+      await startPhotoAd(U, poster, { topic: "Make it about corgi coach" });
+      expect(fake.asks[0].product).toMatchObject({ name: "Corgi Coach" });
+      expect(fake.calls[0].prompt).toContain("The ad shows the brand's product itself: Corgi Coach, A virtual corgi that grows with your streak.");
+      expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8 });
+      // the tracker's picture key is known but not on this device: still words alone
+      await startPhotoAd(U, poster, { topic: "x" });
+      expect(fake.asks[1].product).toMatchObject({ name: "Activity Tracker" });
+      expect(fake.calls[1].o).toEqual({ words: true, ratio: 0.8 });
+    });
+
+    it("sends a named insurer product's general kind and never its picture, and leaves the product out with none saved", async () => {
+      keep({ ...tracker, name: "AIA Pro Achiever 3.0", what: "AIA Pro Achiever 3.0 grows your money.", generic: "an investment-linked plan", namedProduct: true });
+      fake.files["cimg-tracker1"] = new Blob(["brochure"]);
+      await startPhotoAd(U, poster, { topic: "x" });
+      expect(fake.asks[0].product).toMatchObject({ name: "an investment-linked plan" });
+      expect(fake.calls[0].prompt).not.toMatch(/Pro Achiever|AIA/);
+      expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8 });
+      localStorage.removeItem(`content-studio-products-${U}`);
+      await startPhotoAd(U, poster, { topic: "x" });
+      expect(fake.asks[1]).not.toHaveProperty("product");
+      expect(fake.calls[1].prompt).not.toContain("product");
+    });
+
+    it("drops the product line, never the words, when both would run past ai-image's prompt cap", async () => {
+      keep({ ...tracker, what: "w".repeat(200) });
+      fake.writeWords = { headline: "word ".repeat(150).trim(), line: "Hilltop cold brew." };
+      await startPhotoAd(U, poster, { topic: "x" });
+      expect(photoAd()).toMatchObject({ state: "done" });
+      expect(fake.calls[0].prompt).not.toContain("The ad shows the brand's product");
+      expect(fake.calls[0].prompt.length).toBeLessThanOrEqual(MAX_PROMPT);
+    });
+  });
+
+  it("names the product in one plain sentence with no double quote, so it is never printed as words", () => {
+    expect(productLine({ name: 'The "Pro" plan', what: "  Logs daily\nactivities.  " })).toBe("The ad shows the brand's product itself: The 'Pro' plan, Logs daily activities.");
+    expect(productLine({ name: "Corgi Coach", what: "" })).toBe("The ad shows the brand's product itself: Corgi Coach.");
   });
 
   it("spends nothing on a picture when the words fail or come back empty, and says why", async () => {

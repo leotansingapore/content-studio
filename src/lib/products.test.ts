@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  alreadyAdded, loadProducts, mainProduct, MAX_PRODUCTS, mergeScan, type Product, productBrief, productLabel, PRODUCTS_CHANGED, sanitizeProducts,
+  adFacts, adProduct, alreadyAdded, loadProducts, mainProduct, MAX_PRODUCTS, mergeScan, type Product, productBrief, productLabel, PRODUCTS_CHANGED, sanitizeProducts,
   saveProducts, type Scan,
 } from "./products";
 import type { ScannedProduct } from "../../supabase/functions/brand-dna/logic.ts";
@@ -107,6 +107,25 @@ describe("mainProduct", () => {
   it("is the first item with Use in posts on", () => {
     expect(mainProduct([item({ id: "pd-first1", use: false }), item({ id: "pd-second", use: true }), item({ id: "pd-third1" })])?.id).toBe("pd-second");
     expect(mainProduct([item({ use: false })])).toBeNull();
+  });
+});
+
+describe("the product an ad is about", () => {
+  const list = [item({ id: "pd-off111", name: "Pro", use: false }), item({ id: "pd-main11", name: "Activity Tracker" }), item({ id: "pd-corgi1", name: "Corgi Coach" })];
+
+  it("is the one the note names as a whole word in any case, used or not, else the first in use", () => {
+    expect(adProduct(list, "A poster about corgi coach for new agents")?.id).toBe("pd-corgi1");
+    expect(adProduct(list, "pro tips. Make it about PRO")?.id).toBe("pd-off111");
+    // a name inside another word is no name
+    expect(adProduct(list, "for professionals who prospect daily")?.id).toBe("pd-main11");
+    expect(adProduct(list, "")?.id).toBe("pd-main11");
+    expect(adProduct([item({ use: false })], "anything")).toBeNull();
+  });
+
+  it("goes to the writer as its name, line and buyer, a named insurer product in general terms only", () => {
+    expect(adFacts(item())).toEqual({ name: "Retirement review", what: "A one-hour look at your CPF and savings.", forWho: "People in their 50s" });
+    const named = item({ name: "AIA Pro Achiever 3.0", what: "AIA Pro Achiever 3.0 grows your money.", forWho: "AIA Pro Achiever 3.0 savers", generic: "an investment-linked plan", namedProduct: true });
+    expect(adFacts(named)).toEqual({ name: "an investment-linked plan", what: "an investment-linked plan grows your money.", forWho: "an investment-linked plan savers" });
   });
 });
 

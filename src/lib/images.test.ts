@@ -245,6 +245,17 @@ describe("Write it for me", () => {
     expect(make.mock.calls[1][0]).toMatchObject({ layout: "stat", shows: "A big number on an orange block." });
   });
 
+  it("sends a static format's product to the writer, which the server takes, and sends none when there isn't one", async () => {
+    make.mockResolvedValue(reply({ layout: "street-poster", layoutBy: "default", words: { headline: "Still dark.", line: "Logs your streak." } }));
+    const product = { name: "Activity Tracker", what: "Logs daily sales activities as streaks.", forWho: "Sales agents" };
+    await startImageWrite(U, ask({ source: null, topic: "Prospecting", layout: "street-poster", read: false, product }));
+    const body = make.mock.calls[0][0];
+    expect(body.product).toEqual(product);
+    expect(parseMakeRequest(body)).toMatchObject({ ok: true, value: { product } });
+    await startImageWrite(U, ask({ source: null, topic: "Prospecting", layout: "street-poster", read: false }));
+    expect("product" in make.mock.calls[1][0]).toBe(false);
+  });
+
   it("passes the picture's own words to the writer, cut at a word to the server's 800 characters", async () => {
     // the WATI ad: its numbered steps are only in the picture, the ad's text just says "Swipe for the steps."
     const steps = "1. Connect your WhatsApp number 2. Import your contacts 3. Send your first broadcast Book a Demo";

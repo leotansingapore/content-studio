@@ -3,7 +3,7 @@
 //   POST {mode:"start", prompt, words?, refs?} -> {token}: counts against the "ai-image" daily cap. words: true (a static
 //        format made as a photo) prints the prompt's quoted lines: the people rule loses its "No text" clause, and when
 //        OpenAI can't make it the use comes back and it fails, never Soul v2, which can't print words. refs (with words
-//        only): the brand's logo as a data URL, sent to GPT Image's edits as a reference for a whole new picture; when
+//        only): the brand's logo and the product's picture as data URLs, sent to GPT Image's edits as references for a whole new picture; when
 //        that call fails the picture is made from the words alone, as before.
 //   POST {mode:"status", token} -> {state:"working"} | {state:"done", url} | {state:"failed", error}
 //   POST {mode:"fix", token, fix} -> {token}: "Fix it" under a finished picture; GPT Image 2.6 Flare (Qwen Image 3

@@ -151,6 +151,16 @@ describe("a photo ad's reference pictures", () => {
     expect(ask("logo")).toEqual({ ok: true, request: { mode: "start", prompt: "A poster at a bus shelter", words: true } });
   });
 
+  it("takes the product's picture beside the logo, the logo first and each said by its place", () => {
+    const PIC = "data:image/jpeg;base64,/9j/4AAQ";
+    expect(ask({ product: PIC, logo: LOGO, other: PIC })).toMatchObject({ request: { refs: { logo: LOGO, product: PIC } } });
+    expect(Object.keys((ask({ product: PIC, other: PIC }) as { request: { refs: object } }).request.refs)).toEqual(["product"]);
+    const both = gptRefBody("A poster at a bus shelter", "u1", { product: PIC, logo: LOGO });
+    expect(both.images).toEqual([{ image_url: LOGO }, { image_url: PIC }]);
+    expect(both.prompt).toBe(`A poster at a bus shelter\n\nThe first picture given ${REF_LINES.logo}\n\nThe second picture given ${REF_LINES.product}\n\n${WORDS_PEOPLE_RULE}`);
+    expect(gptRefBody("A poster at a bus shelter", "u1", { product: PIC }).prompt).toBe(`A poster at a bus shelter\n\nThe picture given ${REF_LINES.product}\n\n${WORDS_PEOPLE_RULE}`);
+  });
+
   it("goes to GPT Image as an edit's one picture, said once after the prompt, before the people rule without No text", () => {
     const body = gptRefBody("A poster at a bus shelter", "u1", { logo: LOGO });
     expect(body).toEqual({ ...gptImageBody("A poster at a bus shelter", "u1", true), prompt: body.prompt, images: [{ image_url: LOGO }] });

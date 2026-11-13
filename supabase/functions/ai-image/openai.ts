@@ -20,6 +20,7 @@ export const gptImageBody = (prompt: string, uid: string, words = false): Record
 /** What each reference picture is, after "The picture given": GPT Image keeps them in the order sent. */
 export const REF_LINES: Record<keyof Refs, string> = {
   logo: "is the brand's logo. Put that exact logo on the ad once, unaltered: the same shape, colours and lettering, never redrawn or restyled. Place it where this kind of ad carries its brand mark: a poster's footer bar, a page's header or masthead, or a corner.",
+  product: "is the product the ad is about. Show that exact product in the scene as it really looks, never a look-alike or a stand-in.",
 };
 
 /** A photo ad with reference pictures: an edit that makes a whole new picture from the prompt, with each picture said once. */
