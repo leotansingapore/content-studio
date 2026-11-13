@@ -1480,14 +1480,18 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
     [words, plan],
   );
 
-  const runVibe = async (frames?: string[], preset?: string, label?: string) => {
+  const runVibe = async (frames?: string[], preset?: string, label?: string, from = settingsRef.current) => {
     const instruction = preset ?? ask.trim();
     if (!instruction && !frames) return;
     setThinking(true);
     try {
-      const res = await vibeEdit({ instruction, settings, transcript, duration, frames }, userId);
-      const { next, changed } = applyPatch(settings, res.patch);
-      if (changed.length) change(next);
+      const res = await vibeEdit({ instruction, settings: from, transcript, duration, frames }, userId);
+      const cur = settingsRef.current;
+      const { next, changed } = applyPatch(cur, res.patch);
+      if (changed.length) {
+        setHistory((h) => [...h.slice(-19), cur]);
+        setSettings(next);
+      }
       setLog((l) => [...l, { me: label ?? (preset ? "Suggest a hook" : instruction || "Match my reference video"), it: changed.length ? res.reply : `${res.reply} (nothing changed)` }]);
       if (!preset) setAsk("");
     } catch (e) {
@@ -1499,8 +1503,9 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
 
   // skills: apply a saved look at once, then run its instructions on this video's words
   const applySkill = (sk: VideoSkill) => {
-    change(withLook(settings, sk.look));
-    if (sk.prompt && words.length) void runVibe(undefined, sk.prompt, `Skill: ${sk.name}`);
+    const looked = withLook(settings, sk.look);
+    change(looked);
+    if (sk.prompt && words.length) void runVibe(undefined, sk.prompt, `Skill: ${sk.name}`, looked);
     else toast({ title: `${sk.name} applied` });
   };
   const openSkillForm = () => {
@@ -1690,7 +1695,9 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
     try {
       const lines = await translateCaptions(userId, lang, keys);
       setSubs((prev) => ({ ...prev, [lang]: { ...(prev[lang] ?? {}), ...Object.fromEntries(keys.map((k, i) => [k, lines[i]])) } }));
-      patch({ subLang: lang });
+      const cur = settingsRef.current;
+      setHistory((h) => [...h.slice(-19), cur]);
+      setSettings({ ...cur, subLang: lang });
     } catch (e) {
       toast({ title: "Couldn't translate the captions", description: (e as Error).message, variant: "destructive" });
     } finally {
