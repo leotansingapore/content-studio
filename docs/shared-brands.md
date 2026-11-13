@@ -386,7 +386,17 @@ free, open Postmosis account for good.
    `supabase functions deploy brand-team --project-ref hgdbflprrficdoyxmdxe --use-api`. It needs `RESEND_API_KEY`,
    which `notify` already uses.
 3. Redeploy every function that calls `consumeUsage`, so member accounts are covered (until then their metered AI is
-   refused, which is safe).
+   refused, which is safe). Three of them must keep `--no-verify-jwt`; the rest deploy with JWT verification on:
+
+   ```
+   for f in content-studio-mcp notify slide-campaigns; do
+     supabase functions deploy $f --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt; done
+   for f in ai-image ai-video assistant-act brand-dna carousel-copy carousel-fit clone-reel competitors engage-assist \
+     engage-picks feed-ideas generate-social-content hook-writer idea-dump linkedin-strategy market media-sort mentions \
+     post-score reel-visuals remix remix-link remix-patterns script-desk social social-plays stock-media storyboard \
+     team-board telegram text-voice track-accounts video-assist viral-search week-pick writing-judge youtube-captions; do
+     supabase functions deploy $f --project-ref hgdbflprrficdoyxmdxe --use-api; done
+   ```
 4. Give Leo's accounts a `comp` row if he wants to invite from them.
 5. Push the client once the steps above are done.
 
