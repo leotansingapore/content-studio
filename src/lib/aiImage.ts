@@ -6,7 +6,7 @@
 // reload picks it up again at no cost (resumeImage, as presentersJob does).
 
 import { callFn } from "@/lib/edgeFn";
-import { deleteFile } from "@/lib/deviceFiles";
+import { deleteFile, getFile } from "@/lib/deviceFiles";
 import { getDraftById, loadDrafts, setDraftAttached } from "@/lib/draftHistory";
 import { loadBrand } from "@/lib/carousel";
 import { addMedia, centerCrop, storePicture } from "@/lib/mediaLibrary";
@@ -64,6 +64,7 @@ function keepPending(scope: string, p: Pending | null) {
 }
 
 let job: ImageJob | null = null;
+let attachNext: string | undefined;
 /** Who started the make now going (one runs at a time): every state it emits carries it, and its end clears it. */
 let by: ImageJob["agent"];
 const listeners = new Set<(j: ImageJob | null) => void>();
@@ -133,8 +134,35 @@ export const makeImage = async (userId: string, prompt: string, name: string, de
     { mode: "start", prompt: withMemory(userId, prompt), ...(o.words ? { words: true } : {}) },
   );
 
+export const brandLine = (kit: { color?: string; palette?: { hex?: string }[] } | null): string => {
+  const hexes = [kit?.color, ...(kit?.palette ?? []).map((p) => p.hex)].filter((h): h is string => typeof h === "string" && /^#[0-9a-f]{6}$/i.test(h));
+  const colours = [...new Set(hexes.map((h) => h.toUpperCase()))];
+  return colours.length ? `Where it suits the scene, use the brand's colours as accents: ${colours.join(", ")}.` : "";
+};
+
+const withBrand = (userId: string, prompt: string): string => {
+  const line = brandLine(loadBrand(userId));
+  return line && prompt.length + line.length + 2 <= MAX_PROMPT ? `${prompt}\n\n${line}` : prompt;
+};
+
 export const autoImage = async (userId: string, prompt: string, name: string, attachTo?: string): Promise<void> =>
-  run(userId, { prompt, name: name.slice(0, 80) || "AI image", ...(attachTo ? { attachTo } : {}) }, { mode: "start", prompt: withMemory(userId, prompt) });
+  run(userId, { prompt, name: name.slice(0, 80) || "AI image", ...(attachTo ? { attachTo } : {}) }, { mode: "start", prompt: withMemory(userId, withBrand(userId, prompt)) });
+
+export const attachImageTo = async (userId: string, draft: string, prompt: string): Promise<void> => {
+  const j = job;
+  if (!j || j.prompt !== prompt || j.fix) return;
+  if (imageBusy()) {
+    attachNext = draft;
+    const scope = scoped(userId);
+    const p = readPending(scope);
+    if (p && p.prompt === prompt) keepPending(scope, { ...p, attachTo: draft });
+    return;
+  }
+  if (j.state !== "done" || !j.mediaKey || j.attached?.draft === draft) return;
+  const pic = await getFile(j.mediaKey).catch(() => undefined);
+  const attached = pic ? await attachPicture(userId, draft, pic) : undefined;
+  if (attached && job === j) set({ ...j, attached });
+};
 
 /** "Fix it": GPT Image 2.6 Flare edits the finished picture; the fixed one is saved to Media beside the original. */
 export function fixImage(userId: string, fix: string): Promise<void> {
@@ -157,6 +185,7 @@ const attachPicture = async (userId: string, draft: string, pic: Blob, replace?:
 async function run(userId: string, ask: Ask, body: Record<string, unknown>, before?: ImageJob): Promise<void> {
   if (imageBusy()) return;
   by = ask.agent;
+  attachNext = undefined;
   set({ prompt: ask.prompt, state: "working", fix: ask.fix, designId: ask.designId });
   let token: string;
   try {
@@ -166,8 +195,9 @@ async function run(userId: string, ask: Ask, body: Record<string, unknown>, befo
   }
   // kept under the brand open now, and cleared from it whichever brand is open when the picture lands
   const scope = scoped(userId);
-  keepPending(scope, { ...ask, token });
-  await finish(userId, scope, { ...ask, token }, before);
+  const p = { ...ask, token, ...(attachNext ? { attachTo: attachNext } : {}) };
+  keepPending(scope, p);
+  await finish(userId, scope, p, before);
 }
 
 /** After a reload: picks up a make or fix whose use was spent and whose picture was never kept. */
@@ -176,6 +206,7 @@ export function resumeImage(userId: string): void {
   const p = imageBusy() ? null : readPending(scope);
   if (!p) return;
   by = p.agent && typeof p.agent.thread === "string" && typeof p.agent.msg === "string" ? { thread: p.agent.thread, msg: p.agent.msg } : undefined;
+  attachNext = undefined;
   set({ prompt: p.prompt, state: "working", fix: p.fix, designId: p.designId });
   void finish(userId, scope, p);
 }
@@ -209,7 +240,9 @@ async function finish(userId: string, scope: string, { token, prompt, name, fix,
       key: pic.key, name: saved, folder: AI_FOLDER, alt: (fix ? `${prompt} Fixed: ${fix}` : prompt).slice(0, 250),
       width: pic.width, height: pic.height, addedAt: new Date().toISOString(),
     });
-    const attached = attachTo ? await attachPicture(userId, attachTo, blob, replace) : undefined;
+    const target = attachNext ?? attachTo;
+    attachNext = undefined;
+    const attached = target ? await attachPicture(userId, target, blob, replace) : undefined;
     keepPending(scope, null);
     set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name, designId, ...(ratio ? { ratio } : {}), ...(attached ? { attached } : {}) });
   } catch (e) {

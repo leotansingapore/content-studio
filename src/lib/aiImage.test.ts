@@ -9,7 +9,7 @@ vi.mock("@/lib/draftHistory", () => ({
   loadDrafts: () => drafts.list,
   setDraftAttached: (_u: string, id: string, keys: string[]) => (drafts.list = drafts.list.map((d) => (d.id === id ? { ...d, attached: keys } : d))),
 }));
-vi.mock("@/lib/deviceFiles", () => ({ deleteFile: vi.fn(async () => {}) }));
+vi.mock("@/lib/deviceFiles", () => ({ deleteFile: vi.fn(async () => {}), getFile: vi.fn(async () => new Blob(["kept"])) }));
 vi.mock("@/lib/mediaLibrary", async (actual) => ({
   centerCrop: (await actual<typeof import("@/lib/mediaLibrary")>()).centerCrop,
   addMedia: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock("@/lib/mediaLibrary", async (actual) => ({
 import { callFn } from "@/lib/edgeFn";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
 import { deleteFile } from "@/lib/deviceFiles";
-import { autoImage, fixImage, imageJob, logoBox, makeImage, onImageJob, resumeImage } from "./aiImage";
+import { attachImageTo, autoImage, brandLine, fixImage, imageJob, logoBox, makeImage, onImageJob, resumeImage } from "./aiImage";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic";
 
 type Body = { mode: string };
@@ -127,6 +127,81 @@ describe("a picture Write makes on its own for a post", () => {
     await settle(autoImage("u1", "A family picnic at East Coast Park", "Picnic"));
     expect(drafts.list).toEqual([{ id: "d1" }]);
     expect(imageJob()?.attached).toBeUndefined();
+  });
+});
+
+describe("a picture made while the post is still being written", () => {
+  const done = async (_fn: string, body: unknown) => ((body as Body).mode === "status" ? { state: "done", url: "https://db/sign/cs-ai-images/u1/a.jpg" } : { token: "t1" });
+  const keys = (...k: string[]) => k.forEach((key) => vi.mocked(storePicture).mockResolvedValueOnce({ key, url: "data:image/jpeg;base64,x", width: 1152, height: 1536 }));
+
+  it("goes on the post picked while it was being made, when it lands", async () => {
+    drafts.list = [{ id: "d1" }];
+    vi.mocked(callFn).mockImplementation(done);
+    keys("pic-1", "pic-2");
+    const making = autoImage("u1", "A laptop on a desk", "Portfolio");
+    await attachImageTo("u1", "d1", "A laptop on a desk");
+    await settle(making);
+    expect(drafts.list).toEqual([{ id: "d1", attached: ["pic-2"] }]);
+    expect(imageJob()).toMatchObject({ state: "done", mediaKey: "pic-1", attached: { draft: "d1", key: "pic-2" } });
+  });
+
+  it("goes on a post picked after it landed, as its own copy of the Media picture", async () => {
+    drafts.list = [{ id: "d1" }, { id: "d2" }];
+    vi.mocked(callFn).mockImplementation(done);
+    keys("pic-1", "pic-2", "pic-3");
+    await settle(autoImage("u1", "A laptop on a desk", "Portfolio"));
+    await attachImageTo("u1", "d1", "A laptop on a desk");
+    await attachImageTo("u1", "d2", "A laptop on a desk");
+    expect(drafts.list).toEqual([{ id: "d1", attached: ["pic-2"] }, { id: "d2", attached: ["pic-3"] }]);
+    expect(imageJob()?.attached).toEqual({ draft: "d2", key: "pic-3" });
+  });
+
+  it("leaves the post alone for a picture from another prompt, or when it already has one", async () => {
+    drafts.list = [{ id: "d1" }, { id: "d2", attached: ["mine"] }];
+    vi.mocked(callFn).mockImplementation(done);
+    keys("pic-1");
+    await settle(autoImage("u1", "A laptop on a desk", "Portfolio"));
+    await attachImageTo("u1", "d1", "A hawker centre at lunchtime");
+    await attachImageTo("u1", "d2", "A laptop on a desk");
+    expect(drafts.list).toEqual([{ id: "d1" }, { id: "d2", attached: ["mine"] }]);
+  });
+
+  it("forgets a post picked for the last picture when the next one starts", async () => {
+    drafts.list = [{ id: "d1" }];
+    vi.mocked(callFn).mockImplementation(done);
+    keys("pic-1", "pic-2", "pic-3");
+    const first = autoImage("u1", "A laptop on a desk", "Portfolio");
+    await attachImageTo("u1", "d1", "A laptop on a desk");
+    await settle(first);
+    drafts.list = [{ id: "d1" }];
+    await settle(autoImage("u1", "A hawker centre at lunchtime", "Hawker"));
+    expect(drafts.list).toEqual([{ id: "d1" }]);
+  });
+});
+
+describe("the brand's colours on a post's own picture", () => {
+  it("names the kit colour and its palette once each, and nothing without a kit", () => {
+    expect(brandLine({ color: "#1e3a8a", palette: [{ hex: "#F59E0B" }, { hex: "#1E3A8A" }, { hex: "red" }] })).toBe(
+      "Where it suits the scene, use the brand's colours as accents: #1E3A8A, #F59E0B.",
+    );
+    expect(brandLine(null)).toBe("");
+    expect(brandLine({ color: "" })).toBe("");
+  });
+
+  it("goes after Write's picture prompt, and Make the image elsewhere sends the prompt as typed", async () => {
+    const store = new Map<string, string>([["content-studio-carousel-brand-u1", JSON.stringify({ color: "#0F766E", name: "Ada", handle: "@ada" })]]);
+    const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", localStorage);
+    vi.stubGlobal("window", { localStorage, location: { search: "" } });
+    vi.mocked(callFn).mockImplementation(async (_fn, body) =>
+      (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
+    await settle(autoImage("u1", "A laptop on a desk", "Portfolio"));
+    await settle(makeImage("u1", "A laptop on a desk", "Portfolio"));
+    expect(starts().map(([, b]) => (b as { prompt: string }).prompt)).toEqual([
+      "A laptop on a desk\n\nWhere it suits the scene, use the brand's colours as accents: #0F766E.",
+      "A laptop on a desk",
+    ]);
+    expect(imageJob()?.prompt).toBe("A laptop on a desk");
   });
 });
 
