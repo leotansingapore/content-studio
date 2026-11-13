@@ -62,6 +62,17 @@ describe("nav", () => {
     vi.unstubAllGlobals();
   });
 
+  it("folds makers into the agent for its sign-ins only, never their address or Jump to", () => {
+    const folded = SECTIONS.flatMap((s) => s.pages.filter((p) => p.agentFolds));
+    expect(folded.map((p) => p.to).sort()).toEqual(["/carousel", "/clone", "/design", "/design/campaigns", "/design/libraries", "/generate", "/generate/answer", "/generate/batch", "/generate/vsl", "/hooks", "/image", "/make/hook-demo", "/script", "/slideshow"]);
+    for (const p of folded) {
+      expect(pageFor(p.to)?.page.to, p.to).toBe(p.to);
+      // visiblePages is what Jump to and the sidebar read: still there for Leo
+      expect(visiblePages(section("write").pages, LEO).some((x) => x.to === p.to), p.to).toBe(true);
+    }
+    for (const p of visiblePages(section("write").pages, ANYONE)) expect(labels(sectionTabs(p.to, ANYONE).picker)).not.toContain("Ask the agent");
+  });
+
   it("names pages in one or two plain words, three at most", () => {
     for (const s of SECTIONS) for (const p of s.pages) expect(p.label.split(" ").length, p.label).toBeLessThanOrEqual(4);
     const names = SECTIONS.flatMap((s) => s.pages.flatMap((p) => [p.label, p.group ?? ""])).join(" | ");
@@ -167,11 +178,16 @@ describe("nav", () => {
       expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Blitz", "Influencers"]);
       expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/make", "/library", "/blitz", "/people"]);
       expect(leo.tabs.find((t) => t.active)?.label).toBe("Create");
-      expect(labels(leo.picker)).toEqual([
-        "All formats", "Post", "Weekly batch", "Answer", "Sales script", "Hooks", "Script",
-        "Carousel", "Slideshow", "Design", "Auto slideshows", "Picture sets", "Image", "Video editor", "Hook + demo", "Remix a post",
+      // the agent's sign-ins: every maker folded into the agent (Leo, 13 Nov), the open one kept while it is open
+      expect(labels(leo.picker)).toEqual(["All formats", "Carousel", "Video editor", "Ask the agent"]);
+      expect(leo.picker.filter((t) => t.head)).toEqual([]);
+      expect(leo.picker.at(-1)).toMatchObject({ to: "/agent?make=open", active: false });
+      expect(labels(sectionTabs("/make", LEO).picker)).toEqual(["All formats", "Video editor", "Ask the agent"]);
+      // everyone else keeps every maker under its kind
+      expect(labels(sectionTabs("/carousel", ANYONE).picker)).toEqual([
+        "Post", "Weekly batch", "Answer", "Sales script", "Hooks", "Carousel", "Slideshow", "Design", "Auto slideshows", "Picture sets", "Video editor", "Hook + demo", "Clone a reel",
       ]);
-      expect(leo.picker.filter((t) => t.head).map((t) => [t.head, t.label])).toEqual([["Words", "Post"], ["Slides and pictures", "Carousel"], ["Video", "Video editor"]]);
+      expect(sectionTabs("/carousel", ANYONE).picker.filter((t) => t.head).map((t) => [t.head, t.label])).toEqual([["Words", "Post"], ["Slides and pictures", "Carousel"], ["Video", "Video editor"]]);
       // everyone else's Create opens on Post, the first maker they reach; their Studio is three tabs
       const anyone = sectionTabs("/generate/batch", ANYONE);
       expect(labels(anyone.tabs)).toEqual(["Overview", "Create", "Library"]);

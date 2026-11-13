@@ -78,6 +78,12 @@ export type NavPage = {
   hint?: string;
   /** What it was called before, and other words people look for it by: Jump to finds it by these. */
   was?: string;
+  /**
+   * Folded into the agent's Make for the agent's sign-ins (Leo, 13 Nov: "fold all of these into the ai"): out of its
+   * tab's picker there, which offers Ask the agent instead. Its address, Jump to, Studio's Overview and everyone else's
+   * picker keep it, and it stays in the picker while it is the page open.
+   */
+  agentFolds?: true;
 };
 
 export type NavSection = {
@@ -150,26 +156,26 @@ export const SECTIONS: NavSection[] = [
       { to: "/studio", label: "Overview", title: "Studio", group: "Overview", was: "Create start what to make" },
       // every maker, Leo's opening on the whole catalogue as Fastlane's Create does, everyone else's on Post
       { to: "/make", label: "All formats", title: "Formats", owners: LEO_EMAILS, group: "Create" },
-      { to: "/generate", label: "Post", end: true, title: "Write a post", head: "Words" },
-      { to: "/generate/batch", label: "Weekly batch", was: "Batch" },
-      { to: "/generate/answer", label: "Answer", title: "Answer a question" },
-      { to: "/generate/vsl", label: "Sales script", title: "Write a VSL", was: "VSL video sales letter" },
+      { to: "/generate", label: "Post", end: true, title: "Write a post", head: "Words", agentFolds: true },
+      { to: "/generate/batch", label: "Weekly batch", was: "Batch", agentFolds: true },
+      { to: "/generate/answer", label: "Answer", title: "Answer a question", agentFolds: true },
+      { to: "/generate/vsl", label: "Sales script", title: "Write a VSL", was: "VSL video sales letter", agentFolds: true },
       // write hooks in bulk, keep or say Not this (BuilderCult's My hooks, folded in 6 Nov)
-      { to: "/hooks", label: "Hooks", title: "My hooks" },
+      { to: "/hooks", label: "Hooks", title: "My hooks", agentFolds: true },
       // Scriptwriter: 12 dials, hook ideas and a topic, written on Leo's own Claude Code (script desk)
-      { to: "/script", label: "Script", title: "Scriptwriter", owners: LEO_EMAILS },
-      { to: "/carousel", label: "Carousel", head: "Slides and pictures" },
-      { to: "/slideshow", label: "Slideshow" },
+      { to: "/script", label: "Script", title: "Scriptwriter", owners: LEO_EMAILS, hint: "A script to film, written with 12 dials.", agentFolds: true },
+      { to: "/carousel", label: "Carousel", head: "Slides and pictures", agentFolds: true },
+      { to: "/slideshow", label: "Slideshow", agentFolds: true },
       // the layer editor and its templates (Volume, folded in 31 Oct)
-      { to: "/design", label: "Design", title: "Design slides", end: true },
+      { to: "/design", label: "Design", title: "Design slides", end: true, agentFolds: true },
       // a new slideshow on a schedule, sent to TikTok, and the pictures it draws from (Volume)
-      { to: "/design/campaigns", label: "Auto slideshows", title: "Slideshow campaigns", was: "Campaigns", hint: "A new slideshow on a schedule." },
-      { to: "/design/libraries", label: "Picture sets", title: "Image libraries", was: "Libraries", hint: "The pictures auto slideshows draw from." },
-      { to: "/image", label: "Image", owners: LEO_EMAILS },
+      { to: "/design/campaigns", label: "Auto slideshows", title: "Slideshow campaigns", was: "Campaigns", hint: "A new slideshow on a schedule.", agentFolds: true },
+      { to: "/design/libraries", label: "Picture sets", title: "Image libraries", was: "Libraries", hint: "The pictures auto slideshows draw from.", agentFolds: true },
+      { to: "/image", label: "Image", owners: LEO_EMAILS, hint: "One designed picture with your words.", agentFolds: true },
       { to: "/edit", label: "Video editor", title: "Edit a video", head: "Video", was: "Video" },
       // a hook that stops the scroll, then the app's demo (BuilderCult's Reaction UGC, folded in 6 Nov)
-      { to: "/make/hook-demo", label: "Hook + demo", title: "Hook plus demo" },
-      { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", was: "Radar remix" },
+      { to: "/make/hook-demo", label: "Hook + demo", title: "Hook plus demo", agentFolds: true },
+      { to: "/clone", label: "Clone a reel", leoLabel: "Remix a post", was: "Radar remix", agentFolds: true },
       // what you made, with four views switched on the page itself (LibraryViews)
       { to: "/library", label: "Everything", title: "Library", group: "Library" },
       { to: "/drafts", label: "All posts", was: "My posts drafts history" },
@@ -339,6 +345,11 @@ export const pageTitle = (pathname: string) => {
 };
 
 export type Tab = { to: string; label: string; end?: boolean; active: boolean; hint?: string; head?: string };
+
+/** Whether this sign-in has the agent's chat (the agent is Leo's: nav gates /agent). */
+export const hasAgent = (email: string) => visiblePages(section("home").pages, email).some((p) => p.to === "/agent");
+/** Where a picker whose pages folded into the agent sends you instead: the agent's Make picker. */
+export const ASK_THE_AGENT: Tab = { to: "/agent?make=open", label: "Ask the agent", active: false, hint: "Every format, made in the chat." };
 export type SectionTabs = { tabs: Tab[]; picker: Tab[]; back?: Tab };
 
 /**
@@ -356,13 +367,18 @@ export function sectionTabs(pathname: string, email: string): SectionTabs {
   const index = hit.section.index ? hit.section.pages[0] : null;
   if (index) return { tabs: [], picker: [], back: { to: index.to, label: hit.section.label, active: false } };
   const all = groupedPages(hit.section.pages);
-  const pages = visiblePages(all, email).filter((p) => !p.inTabs || p.inTabs());
+  // the agent's sign-ins: pages folded into the agent leave the picker, unless open now
+  const folding = hasAgent(email);
+  const shown = visiblePages(all, email).filter((p) => !p.inTabs || p.inTabs());
+  const pages = shown.filter((p) => !(folding && p.agentFolds && p.to !== hit.page.to));
   const tab = (p: NavPage, label = p.label, active = p.to === hit.page.to): Tab => ({ to: p.to, label, end: p.end, active, hint: p.hint, head: p.head });
   const atLeastTwo = (t: Tab[]) => (t.length > 1 ? t : []);
   const open = all.find((p) => p.to === hit.page.to)?.group;
   const of = (g: string | undefined) => pages.filter((p) => p.group === g);
   const groups = [...new Set(pages.map((p) => p.group))];
-  const picker = atLeastTwo(of(open).map((p) => tab(p)));
+  const folded = shown.some((p) => p.group === open && p.agentFolds && !pages.includes(p));
+  // a folded picker holds one kind of thing less than a heading's worth: no headings, and Ask the agent at its end
+  const picker = atLeastTwo([...of(open).map((p) => (folded ? { ...tab(p), head: undefined } : tab(p))), ...(folded ? [ASK_THE_AGENT] : [])]);
   const tabs = groups.map((g) => tab(of(g)[0], of(g).length > 1 ? g : of(g)[0].label, g === open));
   // a lone tab still shows when it is the only way to its other pages
   return { tabs: tabs.length > 1 || picker.length ? tabs : [], picker };
