@@ -6,6 +6,8 @@
 // reload picks it up again at no cost (resumeImage, as presentersJob does).
 
 import { callFn } from "@/lib/edgeFn";
+import { deleteFile } from "@/lib/deviceFiles";
+import { getDraftById, loadDrafts, setDraftAttached } from "@/lib/draftHistory";
 import { loadBrand } from "@/lib/carousel";
 import { addMedia, centerCrop, storePicture } from "@/lib/mediaLibrary";
 import { leoUser } from "@/lib/useLeoOnly";
@@ -32,6 +34,7 @@ export interface ImageJob {
   agent?: { thread: string; msg: string };
   /** The shape it is kept in (width / height), cut from the middle: a photo ad's 4:5. A fix keeps it too. */
   ratio?: number;
+  attached?: { draft: string; key: string };
 }
 
 export const AI_FOLDER = "AI images";
@@ -40,7 +43,7 @@ const GIVE_UP_MS = 4 * 60_000;
 const PENDING = "cs-ai-image-making-"; // this device only, on purpose: the token is no use elsewhere
 
 /** A make or fix whose use is spent and whose picture isn't kept yet. */
-type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string; agent?: ImageJob["agent"]; ratio?: number };
+type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string; agent?: ImageJob["agent"]; ratio?: number; attachTo?: string; replace?: string };
 type Ask = Omit<Pending, "token">;
 
 function readPending(scope: string): Pending | null {
@@ -130,12 +133,26 @@ export const makeImage = async (userId: string, prompt: string, name: string, de
     { mode: "start", prompt: withMemory(userId, prompt), ...(o.words ? { words: true } : {}) },
   );
 
+export const autoImage = async (userId: string, prompt: string, name: string, attachTo?: string): Promise<void> =>
+  run(userId, { prompt, name: name.slice(0, 80) || "AI image", ...(attachTo ? { attachTo } : {}) }, { mode: "start", prompt: withMemory(userId, prompt) });
+
 /** "Fix it": GPT Image 2.6 Flare edits the finished picture; the fixed one is saved to Media beside the original. */
 export function fixImage(userId: string, fix: string): Promise<void> {
   const j = job;
   if (!j?.token || j.state !== "done" || imageBusy()) return Promise.resolve();
-  return run(userId, { prompt: j.prompt, name: j.name ?? "AI image", fix, ...(j.ratio ? { ratio: j.ratio } : {}) }, { mode: "fix", token: j.token, fix }, j);
+  const swap = j.attached ? { attachTo: j.attached.draft, replace: j.attached.key } : {};
+  return run(userId, { prompt: j.prompt, name: j.name ?? "AI image", fix, ...(j.ratio ? { ratio: j.ratio } : {}), ...swap }, { mode: "fix", token: j.token, fix }, j);
 }
+
+const attachPicture = async (userId: string, draft: string, pic: Blob, replace?: string): Promise<ImageJob["attached"]> => {
+  const entry = getDraftById(userId, draft);
+  const now = entry?.attached ?? [];
+  if (!entry || (replace ? !now.includes(replace) : now.length > 0)) return undefined;
+  const { key } = await storePicture(pic);
+  setDraftAttached(userId, draft, replace ? now.map((k) => (k === replace ? key : k)) : [key]);
+  if (replace && !loadDrafts(userId).some((d) => d.attached?.includes(replace))) void deleteFile(replace).catch(() => {});
+  return { draft, key };
+};
 
 async function run(userId: string, ask: Ask, body: Record<string, unknown>, before?: ImageJob): Promise<void> {
   if (imageBusy()) return;
@@ -169,7 +186,7 @@ function failed(prompt: string, e: unknown, before?: ImageJob) {
   set(before ? { ...before, fixError: error } : { prompt, state: "failed", error });
 }
 
-async function finish(userId: string, scope: string, { token, prompt, name, fix, designId, ratio: asked }: Pending, before?: ImageJob): Promise<void> {
+async function finish(userId: string, scope: string, { token, prompt, name, fix, designId, ratio: asked, attachTo, replace }: Pending, before?: ImageJob): Promise<void> {
   // read back from this device after a reload, so only a real shape counts
   const ratio = typeof asked === "number" && asked > 0 ? asked : undefined;
   try {
@@ -185,14 +202,16 @@ async function finish(userId: string, scope: string, { token, prompt, name, fix,
     set({ prompt, state: "saving", fix, designId });
     const res = await fetch(url).catch(() => null);
     if (!res?.ok) throw new Error("The image was made but didn't download. Try again.");
-    const pic = await storePicture(await withLogo(userId, await res.blob(), ratio), undefined, ratio);
+    const blob = await withLogo(userId, await res.blob(), ratio);
+    const pic = await storePicture(blob, undefined, ratio);
     const saved = fix ? `${name} (fixed)`.slice(0, 80) : name;
     addMedia(userId, {
       key: pic.key, name: saved, folder: AI_FOLDER, alt: (fix ? `${prompt} Fixed: ${fix}` : prompt).slice(0, 250),
       width: pic.width, height: pic.height, addedAt: new Date().toISOString(),
     });
+    const attached = attachTo ? await attachPicture(userId, attachTo, blob, replace) : undefined;
     keepPending(scope, null);
-    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name, designId, ...(ratio ? { ratio } : {}) });
+    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name, designId, ...(ratio ? { ratio } : {}), ...(attached ? { attached } : {}) });
   } catch (e) {
     keepPending(scope, null);
     failed(prompt, e, before);

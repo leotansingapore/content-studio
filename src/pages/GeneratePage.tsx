@@ -40,7 +40,7 @@ import { VIDEO_FORMAT_GROUPS, VIDEO_FORMATS, videoFormatById, videoFormatRule } 
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { formatLines } from "@/lib/workingLibrary";
-import { fixImage, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
+import { autoImage, fixImage, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
 import { currentScore, labelFor, loadScores, saveScore, scoreFix, scorePost, textKey, tipFor, type FactorId, type PostScore, type ScoreFormat } from "@/lib/postScore";
 import { otherFormulas, splitHook } from "@/lib/variants";
 import { seriesSlots, slotTimesFor } from "@/lib/postingSlots";
@@ -1087,6 +1087,7 @@ function Writer() {
   const [imagePromptLoading, setImagePromptLoading] = useState<boolean>(false);
   // "Make the image": one job at a time, kept outside React so it survives leaving the page
   const [imgJob, setImgJob] = useState<ImageJob | null>(imageJob);
+  const autoImaged = useRef(new Set<string>());
   const [fixText, setFixText] = useState("");
   useEffect(() => {
     const off = onImageJob(setImgJob);
@@ -2219,7 +2220,7 @@ function Writer() {
   };
 
   const fetchAuxForDraft = useCallback(
-    async (text: string) => {
+    async (text: string, id?: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
       const url = `${SUPABASE_URL}/functions/v1/generate-social-content`;
@@ -2284,6 +2285,10 @@ function Writer() {
         .then((data) => {
           if (typeof data?.prompt === "string") {
             setImagePrompt(data.prompt);
+            if (userId && id && data.prompt.trim() && format !== "short-video" && !imageBusy() && !autoImaged.current.has(id) && !getDraftById(userId, id)?.attached?.length) {
+              autoImaged.current.add(id);
+              void autoImage(userId, data.prompt, (chosenHook || trimmed.split("\n")[0] || "AI image").slice(0, 80), format === "text-post" ? id : undefined);
+            }
           }
         })
         .catch((err) => {
@@ -2300,6 +2305,7 @@ function Writer() {
     },
     [
       audience,
+      chosenHook,
       ctaType,
       format,
       ideaLine,
@@ -2308,6 +2314,7 @@ function Writer() {
       platform,
       singlish,
       toast,
+      userId,
       voiceSummary,
     ],
   );
@@ -2401,7 +2408,7 @@ function Writer() {
     if (makeLang && id) setAutoTranslate({ id, lang: makeLang });
     // Fire hashtags + image-prompt in parallel; failures don't block. The
     // draft card's saved line confirms the pick, so no toast over the editor.
-    void fetchAuxForDraft(v.text);
+    void fetchAuxForDraft(v.text, id);
   };
 
   // Everything copied from here is headed for a social platform, none of which
@@ -2996,6 +3003,9 @@ function Writer() {
   useEffect(() => {
     setAttachedKeys(userId && currentDraftId ? (getDraftById(userId, currentDraftId)?.attached ?? []) : []);
   }, [userId, currentDraftId]);
+  useEffect(() => {
+    if (userId && currentDraftId && imgJob?.state === "done" && imgJob.attached?.draft === currentDraftId) setAttachedKeys(getDraftById(userId, currentDraftId)?.attached ?? []);
+  }, [imgJob, userId, currentDraftId]);
   useEffect(() => {
     let live = true;
     const urls: string[] = [];
@@ -5551,8 +5561,8 @@ function Writer() {
                           : imgJob.state === "saving"
                             ? "Saving it to Media..."
                             : imgJob.fix
-                              ? "Fixing the picture, about 30 seconds. You can keep working."
-                              : "Making the image, about 30 seconds. You can keep working."}
+                              ? "Fixing the picture, about 15 seconds. You can keep working."
+                              : "Making the image, about 15 seconds. You can keep working."}
                       </div>
                     ) : imgJob.state === "failed" ? (
                       <p className="text-xs text-destructive" role="alert">{imgJob.error}</p>
@@ -5567,7 +5577,7 @@ function Writer() {
                         )}
                         <div className="space-y-1.5 text-xs">
                           <p className="flex items-center gap-1 font-semibold">
-                            <CheckIcon className="h-3.5 w-3.5 text-success" /> Saved to Media, in AI images
+                            <CheckIcon className="h-3.5 w-3.5 text-success" /> {imgJob.attached?.draft === currentDraftId ? "On your post, and saved to Media" : "Saved to Media, in AI images"}
                           </p>
                           <Link to="/carousel" className="font-semibold text-primary hover:underline">
                             Use it on a carousel slide

@@ -3,6 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
 const as = vi.hoisted(() => ({ user: null as null | { id: string; email: string } }));
 vi.mock("@/lib/useLeoOnly", () => ({ leoUser: async () => as.user }));
+const drafts = vi.hoisted(() => ({ list: [] as { id: string; attached?: string[] }[] }));
+vi.mock("@/lib/draftHistory", () => ({
+  getDraftById: (_u: string, id: string) => drafts.list.find((d) => d.id === id) ?? null,
+  loadDrafts: () => drafts.list,
+  setDraftAttached: (_u: string, id: string, keys: string[]) => (drafts.list = drafts.list.map((d) => (d.id === id ? { ...d, attached: keys } : d))),
+}));
+vi.mock("@/lib/deviceFiles", () => ({ deleteFile: vi.fn(async () => {}) }));
 vi.mock("@/lib/mediaLibrary", async (actual) => ({
   centerCrop: (await actual<typeof import("@/lib/mediaLibrary")>()).centerCrop,
   addMedia: vi.fn(),
@@ -11,7 +18,8 @@ vi.mock("@/lib/mediaLibrary", async (actual) => ({
 
 import { callFn } from "@/lib/edgeFn";
 import { addMedia, storePicture } from "@/lib/mediaLibrary";
-import { fixImage, imageJob, logoBox, makeImage, onImageJob, resumeImage } from "./aiImage";
+import { deleteFile } from "@/lib/deviceFiles";
+import { autoImage, fixImage, imageJob, logoBox, makeImage, onImageJob, resumeImage } from "./aiImage";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic";
 
 type Body = { mode: string };
@@ -78,6 +86,50 @@ describe("Make the image", () => {
 
 // The picture request with nothing for pictures saved, pinned before learnings joined it (brand-voice-memory): the
 // prompt as typed, whatever else /voice and /coach hold for the account.
+describe("a picture Write makes on its own for a post", () => {
+  const done = async (_fn: string, body: unknown) => ((body as Body).mode === "status" ? { state: "done", url: "https://db/sign/cs-ai-images/u1/a.jpg" } : { token: "t1" });
+  const keys = (...k: string[]) => k.forEach((key) => vi.mocked(storePicture).mockResolvedValueOnce({ key, url: "data:image/jpeg;base64,x", width: 1152, height: 1536 }));
+
+  it("goes on the post as its own copy when nothing is attached, and into AI images", async () => {
+    drafts.list = [{ id: "d1" }];
+    vi.mocked(callFn).mockImplementation(done);
+    keys("pic-1", "pic-2");
+    await settle(autoImage("u1", "A family picnic at East Coast Park", "Picnic", "d1"));
+    expect(addMedia).toHaveBeenCalledWith("u1", expect.objectContaining({ key: "pic-1", folder: "AI images" }));
+    expect(drafts.list).toEqual([{ id: "d1", attached: ["pic-2"] }]);
+    expect(imageJob()).toMatchObject({ state: "done", mediaKey: "pic-1", attached: { draft: "d1", key: "pic-2" } });
+  });
+
+  it("swaps the post's picture for the fixed one and drops the old copy", async () => {
+    drafts.list = [{ id: "d1" }];
+    vi.mocked(callFn).mockImplementation(done);
+    keys("pic-1", "pic-2", "pic-3", "pic-4");
+    await settle(autoImage("u1", "A family picnic at East Coast Park", "Picnic", "d1"));
+    await settle(fixImage("u1", "make the sky bluer"));
+    expect(drafts.list).toEqual([{ id: "d1", attached: ["pic-4"] }]);
+    expect(deleteFile).toHaveBeenCalledWith("pic-2");
+    expect(imageJob()).toMatchObject({ state: "done", mediaKey: "pic-3", attached: { draft: "d1", key: "pic-4" } });
+  });
+
+  it("leaves the post alone when the adviser attached something while it was made", async () => {
+    drafts.list = [{ id: "d1", attached: ["mine"] }];
+    vi.mocked(callFn).mockImplementation(done);
+    keys("pic-1");
+    await settle(autoImage("u1", "A family picnic at East Coast Park", "Picnic", "d1"));
+    expect(drafts.list).toEqual([{ id: "d1", attached: ["mine"] }]);
+    expect(imageJob()?.attached).toBeUndefined();
+    expect(storePicture).toHaveBeenCalledTimes(1);
+  });
+
+  it("only goes to AI images when no post is named", async () => {
+    drafts.list = [{ id: "d1" }];
+    vi.mocked(callFn).mockImplementation(done);
+    await settle(autoImage("u1", "A family picnic at East Coast Park", "Picnic"));
+    expect(drafts.list).toEqual([{ id: "d1" }]);
+    expect(imageJob()?.attached).toBeUndefined();
+  });
+});
+
 describe("the prompt sent for everyone else", () => {
   it("is the prompt as typed", async () => {
     const store = new Map<string, string>([
