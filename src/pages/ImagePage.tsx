@@ -948,7 +948,7 @@ function PicturePicker(p: {
           </FilterChip>
         )}
         <FilterChip active={p.pick === "media"} disabled={p.disabled} onClick={() => p.onOpen("media")}>
-          <ImageSquareIcon className="h-3.5 w-3.5" aria-hidden /> From Media
+          <ImageSquareIcon className="h-3.5 w-3.5" aria-hidden /> From Photos and videos
         </FilterChip>
         <FilterChip active={p.pick === "make"} disabled={p.disabled} onClick={() => p.onOpen("make")}>
           <SparkleIcon className="h-3.5 w-3.5" aria-hidden /> Make one
@@ -963,7 +963,7 @@ function PicturePicker(p: {
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">
-            <Link to={links.media()} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-3">Add photos in Media</Link> to use your own.
+            <Link to={links.media()} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-3">Add photos to Photos and videos</Link> to use your own.
           </p>
         ))}
       {p.pick === "make" && (

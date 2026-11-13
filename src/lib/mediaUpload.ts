@@ -17,7 +17,7 @@ export const MAX_AT_ONCE = 20;
 export const ACCEPT = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime,.jpg,.jpeg,.png,.webp,.mp4,.mov";
 
 export const PICK_LINE = `Pick up to ${MAX_AT_ONCE} at a time. Added the first ${MAX_AT_ONCE}.`;
-export const FULL_LINE = `Media holds ${MAX_MEDIA} files. Remove some to add more.`;
+export const FULL_LINE = `Photos and videos is full at ${MAX_MEDIA} files. Remove some to add more.`;
 export const SPACE_LINE = "This device is out of space for media. Remove some, or free up space on the device.";
 
 type Picked = { name: string; type: string; size: number };

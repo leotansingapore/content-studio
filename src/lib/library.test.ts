@@ -340,7 +340,7 @@ describe("job mappers", () => {
   });
 
   it("counts an image that is saving as making", () => {
-    expect(imageJobs({ prompt: "p", state: "saving" })[0]).toMatchObject({ state: "working", step: "Saving it to Media", format: "image", href: links.generate() });
+    expect(imageJobs({ prompt: "p", state: "saving" })[0]).toMatchObject({ state: "working", step: "Saving it to Photos and videos", format: "image", href: links.generate() });
     expect(imageJobs({ prompt: "p", state: "working" })[0].step).toBe("Making the picture");
     expect(imageJobs({ prompt: "p", state: "failed", error: "Nope" })[0]).toMatchObject({ state: "failed", error: "Nope" });
     expect(imageJobs({ prompt: "p", state: "done" })).toEqual([]);

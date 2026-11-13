@@ -40,7 +40,7 @@ describe("SlideFields' From media picker for everyone else", () => {
     );
   });
   it("says the library is empty as before, and draws nothing while closed", () => {
-    expect(html([])).toContain('<p class="text-xs text-muted-foreground">No photos in Media yet. <a class="font-semibold text-primary hover:underline" href="/media">Add some</a></p>');
+    expect(html([])).toContain('<p class="text-xs text-muted-foreground">Nothing in Photos and videos yet. <a class="font-semibold text-primary hover:underline" href="/media">Add some</a></p>');
     expect(html(null)).not.toContain("grid-cols-4");
   });
 });

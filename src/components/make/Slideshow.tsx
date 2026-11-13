@@ -189,7 +189,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const reason =
     remix && !source ? "Pick a slideshow to remix first."
     : !remix && words.topic.trim().length < 3 ? "Type a topic first."
-    : pictures === "mine" && !hasMedia ? "Add photos in Media first."
+    : pictures === "mine" && !hasMedia ? "Add photos to Photos and videos first."
     : words.note.trim().length > STEER_MAX ? `Cut the steer to ${STEER_MAX} characters.`
     : null;
 
@@ -381,7 +381,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
           )}
           {pictures === "mine" && !hasMedia && (
             <p className="text-xs text-muted-foreground">
-              <Link to={links.media()} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-3">Add photos in Media</Link> to use your own.
+              <Link to={links.media()} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-3">Add photos to Photos and videos</Link> to use your own.
             </p>
           )}
         </CardContent>

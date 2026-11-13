@@ -336,7 +336,7 @@ export function makeCard(userId: string, a: MakeAsk, now = new Date()): AgentCar
     return card("explainer", g, { step: "script", title: `Explainer video: "${about}"`, line: "The script and its scenes come first, then the video's price.", price: price("ai-video-script") ?? undefined, needs: needsOf("explainer") }, now);
   }
   if (a.plan === "image")
-    return card("image", f, { title: `Picture: ${cutAtWord(subject ?? a.topic, 40)}`, line: "One picture, 3:4, saved to Media under AI images.", prompt: a.topic.trim(), price: price("ai-image") ?? undefined, needs: needsOf("image") }, now);
+    return card("image", f, { title: `Picture: ${cutAtWord(subject ?? a.topic, 40)}`, line: "One picture, 3:4, saved to Photos and videos, under AI images.", prompt: a.topic.trim(), price: price("ai-image") ?? undefined, needs: needsOf("image") }, now);
   return card("make", f, { title: `${cap(NOUN[a.format])}: "${about}"`, line: MAKE_LINE[a.format] ?? "", price: price("remix-make") ?? undefined, needs: needsOf(a.plan) }, now);
 }
 
@@ -980,7 +980,7 @@ function settleImage(x: Press, prompt: string): void {
   const j = imageJob();
   if (j?.state !== "done") return x.fail(j?.error ?? NOT_THROUGH);
   const open = links.media({ folder: AI_FOLDER });
-  x.done({ title: "Picture made", line: "Saved to Media under AI images.", button: { label: "Open Media", path: open }, undoText: LINES.paid }, { kind: "image", state: "done", open, title: clip(prompt, 60) });
+  x.done({ title: "Picture made", line: "Saved to Photos and videos, under AI images.", button: { label: "Open Photos and videos", path: open }, undoText: LINES.paid }, { kind: "image", state: "done", open, title: clip(prompt, 60) });
 }
 
 async function editPress(userId: string, msgId: string, x: Press, live: Live): Promise<void> {

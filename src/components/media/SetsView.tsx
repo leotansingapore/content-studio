@@ -65,7 +65,7 @@ export default function SetsView(p: { userId: string; sets: SetWith[]; urls: Rec
     if (!r) return;
     p.onChange();
     toast({
-      title: `Set removed. The ${s.kind === "clips" ? "clips" : "photos"} stay in Media.`,
+      title: `Set removed. The ${s.kind === "clips" ? "clips" : "photos"} stay in Photos and videos.`,
       action: (
         <ToastAction altText="Undo" onClick={() => (restoreSet(p.userId, r), p.onChange())}>
           Undo
@@ -229,7 +229,7 @@ export function SetBar({ userId, set, items, urls, onChange }: { userId: string;
       {set.count < MIN_SET_ITEMS && <p className="text-xs text-amber-800 dark:text-amber-200">Add at least 3 to use it in a video.</p>}
       {picking &&
         (offer.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No other {set.kind === "clips" ? "clips" : "photos"} in Media yet.</p>
+          <p className="text-xs text-muted-foreground">No other {set.kind === "clips" ? "clips" : "photos"} in Photos and videos yet.</p>
         ) : (
           <div className="space-y-2">
             <ul className="grid max-h-72 grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-6">

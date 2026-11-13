@@ -347,7 +347,7 @@ export default function SlideInspector({
               <div className="rounded-lg border border-border/60 p-2">
                 {media.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    No photos in Media yet. <Link to={links.media()} className="font-semibold text-primary hover:underline">Add some</Link>
+                    Nothing in Photos and videos yet. <Link to={links.media()} className="font-semibold text-primary hover:underline">Add some</Link>
                   </p>
                 ) : (
                   <ul className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto">

@@ -252,7 +252,7 @@ export default function LibraryDialog({ profileId, library, onClose, onSaved }: 
                   {making ? (making.of > 1 ? `Making ${making.n} of ${making.of}` : "Making the picture") : count === "3" ? "Generate 3 into the library" : "Generate into the library"}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">{!canPost ? "Posting isn't switched on for your account yet." : left === null ? "Also saved to Media under AI images." : `${left} left today. Also saved to Media under AI images.`}</p>
+              <p className="text-xs text-muted-foreground">{!canPost ? "Posting isn't switched on for your account yet." : left === null ? "Also saved to Photos and videos, under AI images." : `${left} left today. Also saved to Photos and videos, under AI images.`}</p>
             </div>
           )}
           {source === "app" && (

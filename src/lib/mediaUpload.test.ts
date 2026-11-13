@@ -78,7 +78,7 @@ describe("media upload checks", () => {
     const plan = planUpload(three, 2);
     expect(plan.take.map((f) => f.name)).toEqual(["a.jpg", "c.png"]);
     expect(plan.lines).toEqual(["b.gif isn't a photo or video we can use.", FULL_LINE]);
-    expect(FULL_LINE).toBe("Media holds 300 files. Remove some to add more.");
+    expect(FULL_LINE).toBe("Photos and videos is full at 300 files. Remove some to add more.");
     expect(PICK_LINE).toBe("Pick up to 20 at a time. Added the first 20.");
   });
 });

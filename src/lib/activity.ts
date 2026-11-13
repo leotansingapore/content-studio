@@ -422,7 +422,7 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "ai-presenter-global": "AI presenters, everyone",
   "brand-products": "Products read",
   "brand-image": "Brand pictures fetched",
-  "media-sort": "Media sorted",
+  "media-sort": "Photos and videos sorted",
   "post-translate": "Post translations",
   "audience-suggest": "Audience suggestions",
   "campaign-angles": "Campaign angles",

@@ -263,7 +263,7 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
             )}
             {room > 0 && (
               <div className="flex flex-wrap gap-2">
-                <Button type="button" size="sm" variant="outline" className={`h-9 ${TOUCH}`} aria-expanded={picking} onClick={() => setPicking(!picking)}>Add from Media</Button>
+                <Button type="button" size="sm" variant="outline" className={`h-9 ${TOUCH}`} aria-expanded={picking} onClick={() => setPicking(!picking)}>Add from Photos and videos</Button>
                 <label className={`inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent ${TOUCH}`}>
                   {busy && <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" />} Upload
                   <input type="file" accept="image/*" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void upload(f); }} />
@@ -288,9 +288,9 @@ export default function ProductEditor({ userId, id, onClose }: { userId: string;
 /** Media's photos on this device to pick one from. */
 function MediaGrid({ userId, skip, onPick }: { userId: string; skip: string[]; onPick: (m: MediaItem) => void }) {
   const [media] = useState(() => loadMedia(userId).filter((m) => !skip.includes(m.key)));
-  if (media.length === 0) return <p className="text-xs text-muted-foreground">No photos in Media yet.</p>;
+  if (media.length === 0) return <p className="text-xs text-muted-foreground">Nothing in Photos and videos yet.</p>;
   return (
-    <ul className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto rounded-lg border border-border/60 p-2 sm:grid-cols-6" aria-label="Your Media">
+    <ul className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto rounded-lg border border-border/60 p-2 sm:grid-cols-6" aria-label="Your photos and videos">
       {media.map((m) => (
         <li key={m.key}>
           <button type="button" onClick={() => onPick(m)} aria-label={`Use ${m.name}`} title={m.name} className="block w-full rounded-lg hover:ring-2 hover:ring-primary">

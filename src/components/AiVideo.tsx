@@ -686,7 +686,7 @@ function Avatar({ job, busy, left: panelLeft, fill }: { job: AiJob | null; busy:
     const sent = speaker ? await speakerFace(speaker).catch(() => null) : shown;
     setStarting(false);
     // a saved picture that no longer reads: nothing is sent or spent
-    if (!sent) return setVoError(speaker?.person === "mine" ? "Your saved face didn't open. Record it again on Faces and voices." : "That presenter's picture didn't open. Pick who speaks again.");
+    if (!sent) return setVoError(speaker?.person === "mine" ? "Your saved face didn't open. Record it again on Influencers." : "That presenter's picture didn't open. Pick who speaks again.");
     // a premade voice says the box word for word, so the editor captions it from the script with no transcribe
     void makeAvatar(name, sent, vo!, { ...extra, ai: aiMark("avatar", speaker ?? "generated", voice), ...(own ? {} : { said: script.trim() }) });
   };

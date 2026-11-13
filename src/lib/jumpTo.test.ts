@@ -167,16 +167,17 @@ describe("the format gallery", () => {
   });
 });
 
-describe("Faces and voices", () => {
+describe("Influencers", () => {
   it("finds it for Leo by face, voice and presenter, and for nobody else", () => {
     const leo = [...CREATE_ITEMS, ...pageItems("tanjunsing@gmail.com")];
     expect(searchJump(leo, "face")[0].to).toBe("/people");
     expect(searchJump(leo, "faces and voices")[0].to).toBe("/people");
+    expect(searchJump(leo, "influencers")[0].to).toBe("/people");
     expect(searchJump(leo, "presenter")[0].to).toBe("/people");
     expect(searchJump(leo, "voice").map((i) => i.to)).toEqual(expect.arrayContaining(["/voice", "/people"]));
     const other = [...CREATE_ITEMS, ...pageItems("someone@example.com")];
     expect(other.map((i) => i.to)).not.toContain("/people");
-    // "face" still reaches Facebook on Connections, never Faces and voices
+    // "face" still reaches Facebook on Connections, never Influencers
     expect(searchJump(other, "face").map((i) => i.to)).toEqual(["/accounts"]);
   });
 });

@@ -5559,7 +5559,7 @@ function Writer() {
                         {imgJob.prompt !== imagePrompt
                           ? "Making the image for your earlier draft..."
                           : imgJob.state === "saving"
-                            ? "Saving it to Media..."
+                            ? "Saving it to Photos and videos..."
                             : imgJob.fix
                               ? "Fixing the picture, about 15 seconds. You can keep working."
                               : "Making the image, about 15 seconds. You can keep working."}
@@ -5577,7 +5577,7 @@ function Writer() {
                         )}
                         <div className="space-y-1.5 text-xs">
                           <p className="flex items-center gap-1 font-semibold">
-                            <CheckIcon className="h-3.5 w-3.5 text-success" /> {imgJob.attached?.draft === currentDraftId ? "On your post, and saved to Media" : "Saved to Media, in AI images"}
+                            <CheckIcon className="h-3.5 w-3.5 text-success" /> {imgJob.attached?.draft === currentDraftId ? "On your post, and saved to Photos and videos" : "Saved to Photos and videos, in AI images"}
                           </p>
                           <Link to="/carousel" className="font-semibold text-primary hover:underline">
                             Use it on a carousel slide

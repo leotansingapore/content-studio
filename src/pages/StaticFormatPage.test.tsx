@@ -80,7 +80,7 @@ describe("the static format page", () => {
     expect(button(page, "Make it as a layout")).not.toContain(PRIMARY);
     // the price before anything is spent: one write (US$0.007) and one picture (US$0.04)
     expect(page).toContain("About US$0.05");
-    expect(page).toContain("A photo goes to Media.");
+    expect(page).toContain("A photo goes to Photos and videos.");
 
     as.left = { "remix-make": 20, "ai-image": 0 };
     page = html("street-poster");

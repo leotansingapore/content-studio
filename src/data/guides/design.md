@@ -29,7 +29,7 @@ Pick an image layer, then choose where the picture comes from:
 
 - `Search`: free photos from Pexels.
 - `Upload`: a picture from your computer or phone.
-- `Media`: pictures saved in Media on this device, including your uploads and AI pictures.
+- `Photos and videos`: pictures saved in Photos and videos on this device, including your uploads and AI pictures.
 - `Generate`: an AI picture from a description. You can make **5** a day.
 - `Link`: a picture on the web. Note that some sites don't let their pictures be used, and Design tells you when that happens.
 

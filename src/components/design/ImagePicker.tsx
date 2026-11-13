@@ -17,7 +17,7 @@ type Source = "search" | "upload" | "media" | "generate" | "link";
 const SOURCES = [
   { value: "search", label: "Search" },
   { value: "upload", label: "Upload" },
-  { value: "media", label: "Media" },
+  { value: "media", label: "Photos and videos" },
   { value: "generate", label: "Generate" },
   { value: "link", label: "Link" },
 ] as const;
@@ -150,7 +150,7 @@ export default function ImagePicker({ userId, format, tag, onPick }: { userId: s
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => file.current?.click()} className="w-full gap-1.5">
             {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <UploadSimpleIcon className="h-4 w-4" />} Choose a picture
           </Button>
-          <p className="text-[11px] text-muted-foreground">PNG, JPEG, WebP or AVIF, up to 10 MB. Kept in Media on this device.</p>
+          <p className="text-[11px] text-muted-foreground">PNG, JPEG, WebP or AVIF, up to 10 MB. Kept in Photos and videos on this device.</p>
         </>
       )}
       {source === "media" && (
@@ -171,7 +171,7 @@ export default function ImagePicker({ userId, format, tag, onPick }: { userId: s
           <Button type="button" size="sm" disabled={making || !prompt.trim() || left === 0} onClick={() => void makeImage(userId, prompt, prompt.slice(0, 60), tag)} className="w-full gap-1.5">
             {making && <CircleNotchIcon className="h-4 w-4 animate-spin" />} {making ? "Making the picture" : "Generate"}
           </Button>
-          <p className="text-[11px] text-muted-foreground">{left === null ? "Saved to Media under AI images." : `${left} left today. Saved to Media under AI images.`}</p>
+          <p className="text-[11px] text-muted-foreground">{left === null ? "Saved to Photos and videos, under AI images." : `${left} left today. Saved to Photos and videos, under AI images.`}</p>
         </>
       )}
       {note && (

@@ -292,13 +292,13 @@ function Setup({ userId, source }: { userId: string; source: RemixSource | null 
             ) : (
               <p className="text-sm text-muted-foreground">
                 No app screens yet. The film will use words and your logo.{" "}
-                <a href={links.media({ type: "screen" })} className="text-primary hover:underline">Add screens in Media</a>
+                <a href={links.media({ type: "screen" })} className="text-primary hover:underline">Add screens to Photos and videos</a>
               </p>
             )}
             {adding && others.length > 0 && <ul className="flex flex-wrap gap-2 border-t border-border/60 pt-2">{others.map(screenButton)}</ul>}
             <div className="flex flex-wrap items-center gap-2">
               {others.length > 0 && (
-                <Button size="sm" variant="outline" onClick={() => setAdding(!adding)} aria-expanded={adding} className={BIG}>Add from Media</Button>
+                <Button size="sm" variant="outline" onClick={() => setAdding(!adding)} aria-expanded={adding} className={BIG}>Add from Photos and videos</Button>
               )}
               <span key={toggled} className={cn("text-xs text-muted-foreground", toggled > 0 && "font-medium text-foreground")}>Pick up to 8.</span>
             </div>

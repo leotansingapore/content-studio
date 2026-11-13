@@ -38,7 +38,7 @@ under kind headings where one tab holds several kinds. Filters stay on the pages
 |---|---|---|
 | Home | no tabs | no tabs |
 | Campaigns | Campaigns, Calendar, Plans (Weekly plan, Launch plan, LinkedIn, Social north star), Ideas, Approvals (Posts board, Leader approvals) | Calendar, Plans (Weekly plan, Launch plan, LinkedIn), Leader approvals (Approvals when on the posts board) |
-| Studio | Overview, Create (All formats; Words: Post, Weekly batch, Answer, Sales script, Hooks, Script; Slides and pictures: Carousel, Slideshow, Design, Auto slideshows, Picture sets, Image; Video: Video editor, Hook + demo, Remix a post), Library (Everything, All posts, Board, Grid, switched on the page), Blitz, Faces and voices | Overview, Create (opening on Post; the same makers without All formats, Script and Image), Library |
+| Studio | Overview, Create (All formats; Words: Post, Weekly batch, Answer, Sales script, Hooks, Script; Slides and pictures: Carousel, Slideshow, Design, Auto slideshows, Picture sets, Image; Video: Video editor, Hook + demo, Remix a post), Library (Everything, All posts, Board, Grid, switched on the page), Blitz, Influencers | Overview, Create (opening on Post; the same makers without All formats, Script and Image), Library |
 | Brand | Profile (Profile, Your voice, Brand kit, Audiences, Positioning), Products, Competitors, Demo videos, Media | Profile (Profile, Your voice, Brand kit, Positioning on an adviser brand), Media |
 | Competitor Radar | Find posts (Top posts or Swipe file, Carousels, What's working, Trends, Inspiration), Creators (Following, Creators to follow, Research), Saved, Your market when on | Find posts (Top posts or News, Carousels, What's working, Trends and Inspiration on an adviser brand), Creators (Following, Creators to follow on an adviser brand), Your market when on |
 | Analytics | Results, Coach, Recruit on an adviser brand (Recruit kit, Conversations, Reply agent, Reply drafts, Auto-DM) | Results, Coach, Recruit on an adviser brand |
@@ -91,7 +91,7 @@ as buttons over the chat.
 | /board | Board | Studio > Library > Board | everyone |
 | /grid | Grid | Studio > Library > Grid | everyone |
 | /blitz | Blitz | Studio > Blitz | Leo |
-| /people | Faces and voices | Studio > Faces and voices (Fastlane's Influencers tab) | Leo |
+| /people | Influencers | Studio > Influencers (was Faces and voices) | Leo |
 | /playbook | Profile | Brand > Profile | everyone |
 | /voice | Your voice | Brand > Profile > Your voice | everyone |
 | /brand | Brand kit | Brand > Profile > Brand kit | everyone |
@@ -100,7 +100,7 @@ as buttons over the chat.
 | /brand/products | Products | Brand > Products | Leo |
 | /competitors | Competitors | Brand > Competitors | Leo |
 | /brand/demo-videos | Demo videos | Brand > Demo videos | Leo |
-| /media | Media | Brand > Media | everyone |
+| /media | Photos and videos | Brand > Photos and videos (was Media) | everyone |
 | /swipe | Top posts | Competitor Radar > Find posts > Top posts | everyone |
 | /carousels | Carousels | Competitor Radar > Find posts > Carousels | everyone |
 | /working | What's working | Competitor Radar > Find posts > What's working | everyone |
@@ -167,8 +167,7 @@ section's ranked below the page's own words.
 
 - Fastlane puts the section's name over its tabs ("Studio", then Overview, Create...). Ours shows the tabs, then each
   page's own heading; adding the section name would put a third heading on every page.
-- The Influencers tab is called Faces and voices, as its page heading is.
-- Media keeps its name (Fastlane's Photos and videos): about 25 lines across the app say "Saved to Media".
+- Faces and voices is called Influencers, and Media is called Photos and videos, as Fastlane names them. Renamed on 13 Nov in one sweep, every line a person reads, "Saved to Media" included; the old names stay searchable in Jump to.
 - Everyone else's Campaigns has no page called Campaigns (that page is Leo's): it opens on the calendar.
 - Home for everyone else shows two filled buttons at once: New post in the sidebar and the page's own Finish your
   post or Write a post. Home is not part of the shell.

@@ -475,7 +475,7 @@ export default function CampaignQueue({ userId, campaign: c, angle, ads }: { use
           : p.state !== "made" && making(
             <>
               {p.format === "slideshow"
-                ? `A slideshow from this hook and brief, with ${c.pictures === "mine" ? "photos from your Media" : "stock photos"}. The slides are written when you press Make.`
+                ? `A slideshow from this hook and brief, with ${c.pictures === "mine" ? "your own photos" : "stock photos"}. The slides are written when you press Make.`
                 : "A wall of text on a stock clip, from this hook and brief. The words are written when you press Make."}{" "}
               <PriceChip feature="remix-make" left={left("remix-make")} />
             </>,

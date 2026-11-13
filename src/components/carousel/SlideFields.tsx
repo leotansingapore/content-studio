@@ -157,7 +157,7 @@ export default function SlideFields(p: {
           <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; p.onPicture(f); }} />
         </label>
         <Button type="button" size="sm" variant="outline" className="h-8 text-xs" aria-expanded={p.media !== null} onClick={p.onMedia} disabled={busy}>
-          From media
+          From Photos and videos
         </Button>
         {s.image && (
           <Button type="button" size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground"
@@ -187,7 +187,7 @@ function MediaPicker({ media, onPick }: { media: MediaItem[]; onPick: (key: stri
   return (
     <div className="rounded-lg border border-border/60 p-2">
       {media.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No photos in Media yet. <Link to="/media" className="font-semibold text-primary hover:underline">Add some</Link></p>
+        <p className="text-xs text-muted-foreground">Nothing in Photos and videos yet. <Link to="/media" className="font-semibold text-primary hover:underline">Add some</Link></p>
       ) : (
         <>
           {sets.length > 0 && (

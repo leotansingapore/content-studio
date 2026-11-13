@@ -60,7 +60,7 @@ export default function MediaPage() {
   const [sets, setSets] = useState<MediaSet[]>([]);
 
   useEffect(() => {
-    document.title = "Media - Postmosis";
+    document.title = "Photos and videos - Postmosis";
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUserId(id);
@@ -151,7 +151,7 @@ export default function MediaPage() {
     if (!userId) return;
     setItems(removeMedia(userId, m.key));
     toast({
-      title: m.kind === "video" ? "Video removed from Media" : "Photo removed from Media",
+      title: m.kind === "video" ? "Video removed from Photos and videos" : "Photo removed from Photos and videos",
       action: (
         <ToastAction altText="Undo" onClick={() => setItems(addMedia(userId, m))}>
           Undo
@@ -185,7 +185,7 @@ export default function MediaPage() {
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-center gap-3">
-        <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Media</h1>
+        <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Photos and videos</h1>
         {!leo && (
           <label className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 [@media(pointer:coarse)]:h-11 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-95 ${adding ? "pointer-events-none opacity-70" : ""}`}>
             <ImageSquareIcon className="h-4 w-4" /> {adding ? `Adding ${adding}...` : "Add photos"}
@@ -199,7 +199,7 @@ export default function MediaPage() {
         )}
       </header>
       {leo && (
-        <div role="tablist" aria-label="Media" className="inline-flex gap-1 rounded-lg border border-border/60 bg-muted/40 p-1">
+        <div role="tablist" aria-label="Photos and videos" className="inline-flex gap-1 rounded-lg border border-border/60 bg-muted/40 p-1">
           {([["", "Library"], ["sets", "Sets"]] as const).map(([id, label]) => (
             <button key={id || "library"} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}
               className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${view === id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -211,7 +211,7 @@ export default function MediaPage() {
       {leo ? (
         used !== null && <p className="text-xs text-muted-foreground">Using {space(used)} on this device</p>
       ) : (
-        <p className="text-xs text-muted-foreground">Photos stay on this device. Use them on carousel slides with From media.</p>
+        <p className="text-xs text-muted-foreground">Photos stay on this device. Use them on carousel slides with From Photos and videos.</p>
       )}
       {view === "sets" ? (
         userId && <SetsView userId={userId} sets={counted} urls={urls} onChange={reload} />

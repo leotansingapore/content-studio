@@ -24,9 +24,9 @@ function People({ userId }: { userId: string }) {
   const setTab = (id: Tab) => update({ tab: id === "face" ? null : id, record: null, make: null, presenter: null });
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Faces and voices</h1>
+      <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Influencers</h1>
       {TABS.length > 1 && (
-        <div role="tablist" aria-label="Faces and voices" className="flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto">
+        <div role="tablist" aria-label="Influencers" className="flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto">
           {TABS.map((t) => (
             <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
               className={`flex-1 rounded-md px-2 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 [@media(pointer:coarse)]:min-h-11 ${

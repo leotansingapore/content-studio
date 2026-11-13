@@ -175,7 +175,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/grid", label: "Grid", title: "Instagram grid" },
       // a deck of ready drafts to keep or skip (Fastlane's Blitz) and the AI people who appear in videos
       { to: "/blitz", label: "Blitz", owners: LEO_EMAILS, group: "Blitz", hint: "Swipe through ready drafts." },
-      { to: "/people", label: "Faces and voices", owners: LEO_EMAILS, group: "Influencers", was: "Influencers presenters" },
+      { to: "/people", label: "Influencers", owners: LEO_EMAILS, group: "Influencers", was: "Faces and voices presenters" },
     ],
   },
   {
@@ -198,7 +198,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/brand/demo-videos", label: "Demo videos", owners: LEO_EMAILS, group: "Demo videos", was: "Brand kit clips" },
       // Fastlane's Photos and videos: the logo, product photos, past posts and footage the makers draw from. Named Media,
       // as every "Saved to Media" and "Add from Media" in the app names it (moved from Library, 12 Nov)
-      { to: "/media", label: "Media", group: "Media", was: "Photos and videos uploads Library pictures" },
+      { to: "/media", label: "Photos and videos", group: "Photos and videos", was: "Media uploads Library pictures" },
     ],
   },
   {

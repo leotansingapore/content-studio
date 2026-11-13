@@ -72,7 +72,7 @@ export default function PaceStep(p: {
               {(["stock", "mine"] as const).map((v) => (
                 <button key={v} type="button" role="radio" aria-checked={p.pictures === v} onClick={() => p.onPictures(v)} className={`${CHIP} ${rowOn(p.pictures === v)}`}>
                   <span aria-hidden className={dot(p.pictures === v)} />
-                  {v === "stock" ? "Stock photos" : "Your Media"}
+                  {v === "stock" ? "Stock photos" : "Your photos and videos"}
                 </button>
               ))}
             </div>

@@ -107,7 +107,7 @@ describe("nav", () => {
     expect(pageTitle("/board")).toBe("Board - Postmosis");
     expect(pageTitle("/generate")).toBe("Write a post - Postmosis");
     expect(pageTitle("/library")).toBe("Library - Postmosis");
-    for (const [to, title] of [["/agent", "Agent"], ["/skills", "Skills"], ["/campaigns", "Campaigns"], ["/people", "Faces and voices"], ["/make", "Formats"], ["/blitz", "Blitz"], ["/studio", "Studio"], ["/analytics", "Analytics"]]) {
+    for (const [to, title] of [["/agent", "Agent"], ["/skills", "Skills"], ["/campaigns", "Campaigns"], ["/people", "Influencers"], ["/make", "Formats"], ["/blitz", "Blitz"], ["/studio", "Studio"], ["/analytics", "Analytics"]]) {
       expect(pageTitle(to), to).toBe(`${title} - Postmosis`);
     }
     expect(pageTitle("/nope")).toBe("Postmosis");
@@ -163,7 +163,7 @@ describe("nav", () => {
   describe("tab row", () => {
     it("gives Studio Fastlane's tabs, every maker in Create's picker under its kind", () => {
       const leo = sectionTabs("/carousel", LEO);
-      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Blitz", "Faces and voices"]);
+      expect(labels(leo.tabs)).toEqual(["Overview", "Create", "Library", "Blitz", "Influencers"]);
       expect(leo.tabs.map((t) => t.to)).toEqual(["/studio", "/make", "/library", "/blitz", "/people"]);
       expect(leo.tabs.find((t) => t.active)?.label).toBe("Create");
       expect(labels(leo.picker)).toEqual([
@@ -201,14 +201,14 @@ describe("nav", () => {
       expect(labels(sectionTabs("/coach", ANYONE).tabs)).toEqual(["Results", "Coach", "Recruit"]);
       expect(labels(sectionTabs("/recruit/engage", ANYONE).picker)).toEqual(["Recruit kit", "Conversations", "Reply agent", "Reply drafts"]);
       // Brand: Fastlane's tabs. Profile holds what sets it (Voice, Brand kit, Audiences, Positioning) in its picker
-      expect(labels(sectionTabs("/voice", LEO).tabs)).toEqual(["Profile", "Products", "Competitors", "Demo videos", "Media"]);
+      expect(labels(sectionTabs("/voice", LEO).tabs)).toEqual(["Profile", "Products", "Competitors", "Demo videos", "Photos and videos"]);
       expect(sectionTabs("/voice", LEO).tabs.map((t) => t.to)).toEqual(["/playbook", "/brand/products", "/competitors", "/brand/demo-videos", "/media"]);
       expect(labels(sectionTabs("/audiences", LEO).picker)).toEqual(["Profile", "Your voice", "Brand kit", "Audiences", "Positioning"]);
       expect(sectionTabs("/brand/products", LEO).tabs.find((t) => t.active)?.label).toBe("Products");
       expect(sectionTabs("/brand/products", LEO).picker).toEqual([]);
       // everyone else: Profile, with every page they can open in its picker, and Media
-      expect(labels(sectionTabs("/voice", ANYONE).tabs)).toEqual(["Profile", "Media"]);
-      expect(labels(sectionTabs("/media", ANYONE).tabs)).toEqual(["Profile", "Media"]);
+      expect(labels(sectionTabs("/voice", ANYONE).tabs)).toEqual(["Profile", "Photos and videos"]);
+      expect(labels(sectionTabs("/media", ANYONE).tabs)).toEqual(["Profile", "Photos and videos"]);
       expect(sectionTabs("/media", ANYONE).picker).toEqual([]);
       expect(labels(sectionTabs("/brand", ANYONE).picker)).toEqual(["Profile", "Your voice", "Brand kit", "Positioning"]);
       // a page of Positioning's own tabs keeps the row, its picker ticking Positioning

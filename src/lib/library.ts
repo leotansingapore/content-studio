@@ -381,7 +381,7 @@ export function imageJobs(j: ImageJob | null): LibraryJob[] {
   if (!j || j.state === "done") return [];
   const base = { kind: "image", label: "AI picture", format: "image" as const, href: links.generate() };
   if (j.state === "failed") return [{ ...base, state: "failed", error: j.error }];
-  return [{ ...base, state: "working", step: j.state === "saving" ? "Saving it to Media" : j.fix ? "Fixing the picture" : "Making the picture" }];
+  return [{ ...base, state: "working", step: j.state === "saving" ? "Saving it to Photos and videos" : j.fix ? "Fixing the picture" : "Making the picture" }];
 }
 
 /** Links the editor the export was started from, as ExportPill does. */

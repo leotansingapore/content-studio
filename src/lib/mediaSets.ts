@@ -30,7 +30,7 @@ export const MIN_SET_ITEMS = 3;
 const PREFIX = "cs-media-sets-";
 export const SETS_CHANGED = "content-studio-media-sets-changed";
 // the same line as mediaUpload's FULL_LINE, kept here so the carousel picker never loads the upload code
-const FULL = `Media holds ${MAX_MEDIA} files. Remove some to add more.`;
+const FULL = `Photos and videos is full at ${MAX_MEDIA} files. Remove some to add more.`;
 
 const store = (): Storage | null => {
   try {

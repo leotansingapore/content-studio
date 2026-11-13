@@ -91,7 +91,7 @@ export default function BlitzConfigure({ userId, onClose }: { userId: string; on
         </Slider>
         <Slider id="bz-own" label="Own-media mix" value={media ? mix.own : 0} disabled={!media} onChange={(v) => change({ own: v })}>
           <p className="text-sm text-muted-foreground">
-            {media ? `Slideshow pictures from your Media ${mix.own}%, stock ${100 - mix.own}%` : "Your Media has no pictures yet. "}
+            {media ? `Slideshow pictures from your photos and videos ${mix.own}%, stock ${100 - mix.own}%` : "You have no photos in Photos and videos yet. "}
             {!media && <Link to={links.media()} className="text-primary hover:underline">Add some</Link>}
           </p>
         </Slider>

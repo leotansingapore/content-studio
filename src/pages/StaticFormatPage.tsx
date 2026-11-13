@@ -206,7 +206,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                     <div className="space-y-1">
                       <p className="font-semibold text-foreground">Your photo ad is ready.</p>
                       <Link to={links.media({ folder: AI_FOLDER, item: mine.mediaKey })} className="inline-flex font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
-                        Open it in Media
+                        Open it in Photos and videos
                       </Link>
                       {mine.designId && (
                         <p className="text-xs text-muted-foreground">
@@ -222,7 +222,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {adding ? "It opens on the Image page and stays in " : "A photo goes to Media. A layout opens on the Image page and stays in "}
+                {adding ? "It opens on the Image page and stays in " : "A photo goes to Photos and videos. A layout opens on the Image page and stays in "}
                 <Link to={links.image()} className="font-semibold text-primary hover:underline">
                   Your images
                 </Link>

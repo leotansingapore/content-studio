@@ -4,6 +4,7 @@
 // equals the old one byte for byte. Updated again 1 Nov: one sentence of the campaigns guide (sources show on examples
 // and drafts only), nothing else. Again 1 Nov: the Design and campaigns guides' three directions gain the new
 // Slideshows tab (Studio -> Slideshows -> ...), nothing else.
+// Again 13 Nov: the Design guide's picture source is named Photos and videos instead of Media, nothing else.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";

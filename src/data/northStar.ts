@@ -46,7 +46,7 @@ export const NS_AREAS: Record<NsArea, { label: string; hint: string }> = {
   find: { label: "Find what works", hint: "Proven posts and ads from your competitors and your niche, ranked by how far they beat normal." },
   remix: { label: "Remix", hint: "Press Remix on anything and get your own version, in any format." },
   formats: { label: "Formats", hint: "Every kind of post the AI can make, each with a preview and a price." },
-  people: { label: "Faces and voices", hint: "You, or an AI presenter, on camera without filming." },
+  people: { label: "Influencers", hint: "You, or an AI presenter, on camera without filming." },
   brand: { label: "Brand brain", hint: "What the AI knows about you, your offer and your look." },
   plan: { label: "Plans and campaigns", hint: "A goal, a campaign and a week of posts made for you to approve." },
   edit: { label: "Editors", hint: "Fix anything the AI made, by hand or by asking." },
