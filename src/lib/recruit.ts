@@ -344,6 +344,13 @@ export function upsertWeek(weeks: WeekNumbers[], row: WeekNumbers): WeekNumbers[
   return [row, ...weeks.filter((w) => w.week !== row.week)].sort((a, b) => b.week.localeCompare(a.week));
 }
 
+/** The logged weeks among the `n` calendar weeks ending with `week` (a Monday, YYYY-MM-DD), in their order. */
+export function recentWeeks(weeks: WeekNumbers[], week: string, n = 4): WeekNumbers[] {
+  const [y, m, d] = week.split("-").map(Number);
+  const from = weekOf(new Date(y, m - 1, d - 7 * (n - 1)));
+  return weeks.filter((w) => w.week >= from && w.week <= week);
+}
+
 /** Recruitment drafts carry their stage in pillarDetail ("Recruitment - TOFU - Myth Bust"). */
 export function recruitStageOf(pillarDetail: string | undefined): RecruitStage | null {
   const m = /^Recruitment - (TOFU|MOFU|BOFU)\b/.exec(pillarDetail ?? "");

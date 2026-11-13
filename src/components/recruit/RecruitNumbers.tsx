@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { COHORT_BENCHMARK, SPRINT } from "@/data/recruitKit";
 import { useRecruitBrain } from "@/hooks/useRecruitBrain";
 import { loadDrafts } from "@/lib/draftHistory";
-import { recruitPostsInWeek, stageMix, upsertWeek, weekOf, type WeekNumbers } from "@/lib/recruit";
+import { recentWeeks, recruitPostsInWeek, stageMix, upsertWeek, weekOf, type WeekNumbers } from "@/lib/recruit";
 
 const FIELDS: { key: keyof Omit<WeekNumbers, "week">; label: string; hint: string }[] = [
   { key: "posts", label: "Posts", hint: "What you published this week" },
@@ -43,7 +43,7 @@ export default function RecruitNumbers() {
     update((b) => ({ ...b, weeks: upsertWeek(b.weeks, { ...row, [key]: n }) }));
   };
 
-  const last4 = brain.weeks.slice(0, 4);
+  const last4 = recentWeeks(brain.weeks, thisWeek);
   const totals = last4.reduce(
     (t, w) => ({ posts: t.posts + w.posts, conversations: t.conversations + w.conversations, inProgress: t.inProgress + w.inProgress }),
     { posts: 0, conversations: 0, inProgress: 0 },

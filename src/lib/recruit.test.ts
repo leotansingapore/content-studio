@@ -10,6 +10,7 @@ import {
   scanRecruitCompliance,
   upsertWeek,
   weekOf,
+  recentWeeks,
   recruitPostsInWeek,
   stageMix,
   stripDashes,
@@ -93,6 +94,12 @@ describe("helpers", () => {
       week: "2026-10-05", posts: 3, conversations: 2, inProgress: 1,
     });
     expect(w).toEqual([{ week: "2026-10-05", posts: 3, conversations: 2, inProgress: 1 }]);
+  });
+  it("counts only the weeks logged in the last four, so a month-old week is never last week's", () => {
+    const row = (week: string) => ({ week, posts: 1, conversations: 1, inProgress: 0 });
+    const weeks = [row("2026-11-09"), row("2026-10-26"), row("2026-10-19"), row("2026-10-12"), row("2026-10-05")];
+    expect(recentWeeks(weeks, "2026-11-09").map((w) => w.week)).toEqual(["2026-11-09", "2026-10-26", "2026-10-19"]);
+    expect(recentWeeks([row("2026-10-05")], "2026-11-09")).toEqual([]);
   });
   it("marks the five parts done from real content", () => {
     const b = emptyBrain();
