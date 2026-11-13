@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { CheckIcon } from "@phosphor-icons/react";
-import { Actions, PrimaryPill, QuietPill, useLogoTile } from "@/components/onboarding/parts";
+import { Actions, PrimaryPill, QuietPill, RoundLogo, useLogoTile } from "@/components/onboarding/parts";
 import { readableInk } from "@/lib/onboardingFlow";
 
 export interface FinishFacts {
@@ -31,9 +31,9 @@ export function FinishStep({ facts, firstTopic, busy, onWrite, onHome, titleId }
   return (
     <div className="flex w-full max-w-[560px] flex-1 flex-col justify-center gap-8 pb-[6vh]">
       <div className="flex flex-col items-center gap-4 text-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-500">
-        <span className={`${tile} grid h-20 w-20 place-items-center overflow-hidden rounded-2xl border-4 border-card shadow-card`}>
+        <span className={`${tile} grid h-20 w-20 place-items-center overflow-hidden rounded-full border-4 border-card shadow-card`}>
           {facts.logo ? (
-            <img src={facts.logo} alt="" className="max-h-16 max-w-16 object-contain" />
+            <RoundLogo src={facts.logo} />
           ) : (
             <span className="grid h-full w-full place-items-center text-3xl font-bold" style={{ backgroundColor: main, color: readableInk(main) }}>
               {facts.name.trim().charAt(0).toUpperCase() || "?"}

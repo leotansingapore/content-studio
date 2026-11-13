@@ -150,6 +150,21 @@ export function useLogoTile(logo: string | null | undefined): string {
   return light ? "onboard-checker-dark" : "onboard-checker";
 }
 
+export const RoundLogo = ({ src }: { src: string }) => {
+  const [square, setSquare] = useState(true);
+  return (
+    <img
+      src={src}
+      alt=""
+      onLoad={(e) => {
+        const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+        setSquare(h > 0 && w / h > 0.8 && w / h < 1.25);
+      }}
+      className={square ? "h-full w-full object-cover" : "max-h-12 max-w-12 object-contain"}
+    />
+  );
+};
+
 export function LogoTile({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
   const tile = useLogoTile(src);
   return (

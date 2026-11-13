@@ -1,5 +1,5 @@
 import { CheckIcon } from "@phosphor-icons/react";
-import { Actions, PrimaryPill, QuietPill, useLogoTile } from "@/components/onboarding/parts";
+import { Actions, PrimaryPill, QuietPill, RoundLogo, useLogoTile } from "@/components/onboarding/parts";
 import { readableInk } from "@/lib/onboardingFlow";
 
 export function DoneStep({ id, name, logo, colours, line, titleId }: { id: string; name: string; logo: string | null; colours: string[]; line: string; titleId: string }) {
@@ -15,9 +15,9 @@ export function DoneStep({ id, name, logo, colours, line, titleId }: { id: strin
           </span>
         </div>
         <div className="relative z-10 -mt-10 space-y-3 px-5 pb-5">
-          <span className={`${tile} grid h-20 w-20 place-items-center overflow-hidden rounded-2xl border-4 border-card shadow-card`}>
+          <span className={`${tile} grid h-20 w-20 place-items-center overflow-hidden rounded-full border-4 border-card shadow-card`}>
             {logo ? (
-              <img src={logo} alt="" className="max-h-16 max-w-16 object-contain" />
+              <RoundLogo src={logo} />
             ) : (
               <span className="grid h-full w-full place-items-center text-3xl font-bold" style={{ backgroundColor: main, color: readableInk(main) }}>
                 {name.trim().charAt(0).toUpperCase() || "?"}
