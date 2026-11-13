@@ -809,7 +809,8 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
         </div>
 
         {leo ? (
-          <aside className="space-y-2 lg:sticky lg:top-4">
+          // above the form on a phone (one column), so the slide is in view while the name, handle and photo are typed
+          <aside className="space-y-2 max-lg:order-first lg:sticky lg:top-4">
             <div role="group" aria-label="Preview" className="flex w-fit rounded-lg border border-border/60 bg-muted/30 p-1">
               {([["slide", "Slide"], ["end", "End card"]] as const).map(([v, label]) => (
                 <button key={v} type="button" aria-pressed={previewTab === v} onClick={() => setPreviewTab(v)}
@@ -819,15 +820,15 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
               ))}
             </div>
             {previewTab === "end" ? (
-              <canvas ref={endCanvas} width={540} height={960} aria-label="The end card on your videos" className="block w-full max-w-[270px] rounded-xl border border-border/60 bg-muted shadow-card" />
+              <canvas ref={endCanvas} width={540} height={960} aria-label="The end card on your videos" className="block w-full max-w-[120px] lg:max-w-[270px] rounded-xl border border-border/60 bg-muted shadow-card" />
             ) : (
-              <img src={preview} alt="A carousel slide with your brand" className="w-full max-w-[320px] rounded-xl border border-border/60 shadow-card" />
+              <img src={preview} alt="A carousel slide with your brand" className="w-full max-w-[160px] rounded-xl border border-border/60 shadow-card lg:max-w-[320px]" />
             )}
           </aside>
         ) : (
-          <aside className="space-y-2 lg:sticky lg:top-4">
+          <aside className="space-y-2 max-lg:order-first lg:sticky lg:top-4">
             <p className="text-sm font-semibold">On your carousels</p>
-            <img src={preview} alt="A carousel slide with your brand" className="w-full max-w-[320px] rounded-xl border border-border/60 shadow-card" />
+            <img src={preview} alt="A carousel slide with your brand" className="w-full max-w-[160px] rounded-xl border border-border/60 shadow-card lg:max-w-[320px]" />
           </aside>
         )}
       </div>
