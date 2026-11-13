@@ -18,6 +18,7 @@ import {
   NEXT,
   accessChanged,
   aspectOf,
+  boardBrandName,
   brandForProfile,
   brandOf,
   cardsIn,
@@ -223,7 +224,7 @@ export default function ReelsPage() {
   const openCard = board ? findCard(board.cards, openId) : undefined;
   // Leo on a brand with no posts board linked yet: ask which one, instead of showing every brand's posts
   const needsLink = !!me?.owner && ownBrand === "" && !unlinked;
-  const brandName = (id: string) => board?.brands.find((b) => b.id === id)?.name ?? id;
+  const brandName = (id: string) => boardBrandName(uid, board?.brands ?? [], id);
   // Leo's other brands with posts waiting, from the board already loaded. Each is a full page load, since ?brand= is
   // read on arrival only; the brand that owns it opens first, so it lands without the switcher's second reload.
   const elsewhere = board && me?.owner ? waitingByBrand(board, brand ?? "") : [];
@@ -234,10 +235,11 @@ export default function ReelsPage() {
     if (p) setActiveProfile(uid, p.id);
   };
   const link = (boardBrand: string) => {
+    const name = brandName(boardBrand); // before linking, or it reads as the brand it now belongs to
     linkBoardBrand(uid, activeProfile(uid).id, boardBrand);
     setOwnBrand(boardBrand);
     setUnlinked("");
-    toast({ title: `${brandName(boardBrand)} posts now belong to ${profileName}` });
+    toast({ title: `${name} posts now belong to ${profileName}` });
   };
   const ownBrandFor = (boardBrand: string) => {
     const p = addProfile(uid, brandName(boardBrand));
@@ -375,7 +377,7 @@ export default function ReelsPage() {
               <div className="flex flex-wrap justify-center gap-2">
                 {elsewhere.map((w) => (
                   <Button key={w.id} asChild size="sm" variant="outline" className="[@media(pointer:coarse)]:h-11">
-                    <a href={hrefFor(w)} onClick={(e) => openBrand(e, w.id)}>{w.name} {w.n} to review</a>
+                    <a href={hrefFor(w)} onClick={(e) => openBrand(e, w.id)}>{brandName(w.id)} {w.n} to review</a>
                   </Button>
                 ))}
               </div>

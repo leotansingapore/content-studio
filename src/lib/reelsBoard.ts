@@ -7,7 +7,7 @@
 // not the boundary.
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
-import { loadProfiles } from "@/lib/profiles";
+import { loadProfiles, profileForBoardBrand } from "@/lib/profiles";
 import { checkSocialConnect, socialStatus, type AccountView } from "@/lib/socialConnect";
 
 /** Leo's sign-in. Still gates the channel feeds (public data, every business) and nothing on the board. */
@@ -167,6 +167,10 @@ export function brandForProfile(brands: Board["brands"], profileName: string): s
   const n = profileName.trim().toLowerCase();
   return brands.find((b) => b.name.toLowerCase() === n || b.id === n)?.id ?? "";
 }
+
+/** A board brand's name on screen: the brand it belongs to here (a demo brand's board has no entry), else the board's, else its id. */
+export const boardBrandName = (userId: string | null | undefined, brands: Board["brands"], boardBrand: string) =>
+  (userId && profileForBoardBrand(userId, boardBrand)?.name) || brands.find((b) => b.id === boardBrand)?.name || boardBrand;
 
 /** Soonest slot first, undated last, then by title. (localeCompare put a "~" placeholder BEFORE digits.) */
 const byDate = (a: ReelCard, b: ReelCard) =>

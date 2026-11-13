@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: vi.fn() }));
 import { callFn } from "@/lib/edgeFn";
-import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, perms, seesBoard, setConnectedIg, sharedBoard, scheduleToSave, stageForLink, checkMe, forgetMe, waitsOnMe, teamNotes, updateCard, type Me, type ReelCard, type ReelComment, type Role } from "./reelsBoard";
+import { addProfile, linkBoardBrand } from "@/lib/profiles";
+import { aspectOf, boardBrandName, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, perms, seesBoard, setConnectedIg, sharedBoard, scheduleToSave, stageForLink, checkMe, forgetMe, waitsOnMe, teamNotes, updateCard, type Me, type ReelCard, type ReelComment, type Role } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -32,6 +33,20 @@ describe("reels board helpers", () => {
   it("formats a timestamp as m:ss", () => {
     expect(mmss(75.9)).toBe("1:15");
     expect(mmss(null)).toBe("0:00");
+  });
+  it("names a board brand as the brand it belongs to here, else the board's name, and the slug only as a last resort", () => {
+    const uid = "u-names";
+    const m = new Map<string, string>();
+    (globalThis as { window?: unknown }).window = { localStorage: { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) } };
+    try {
+      linkBoardBrand(uid, addProfile(uid, "Tok Tok Kueh").id, "dma-tok-tok-kueh");
+      // 13 Nov: the board has no entry for a demo brand, so its tab read "dma-tok-tok-kueh posts to review"
+      expect(boardBrandName(uid, brands, "dma-tok-tok-kueh")).toBe("Tok Tok Kueh");
+      expect(boardBrandName(uid, brands, "moneybees")).toBe("MoneyBees");
+      expect(boardBrandName("", brands, "dma-tok-tok-kueh")).toBe("dma-tok-tok-kueh");
+    } finally {
+      delete (globalThis as { window?: unknown }).window;
+    }
   });
 });
 

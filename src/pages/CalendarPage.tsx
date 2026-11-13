@@ -19,14 +19,14 @@ import PostPreview from "@/components/PostPreview";
 import { PostItForMePanel, ZernioChipLabel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
-import { brandOf, checkMe, igHandle, isCarousel, loadConnectedIg, seesBoard, sharedBoard } from "@/lib/reelsBoard";
+import { boardBrandName, brandOf, checkMe, igHandle, isCarousel, loadConnectedIg, seesBoard, sharedBoard } from "@/lib/reelsBoard";
 import { COVER_DAYS, dueByHand, runsOut, weekGlance, type DatedItem } from "@/lib/calendarCoverage";
 import { fillSlots, openSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
 import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
 import { loadGoals, saveGoals, setPlatformGoal, weekProgress } from "@/lib/goals";
 import { getTrackedPosts, postingTimeOn, suggestPostingTime, suggestedLabel } from "@/lib/analytics";
 import { loadPositioning } from "@/lib/positioning";
-import { activeProfile, applyBrandLink, profileForBoardBrand, type Profile } from "@/lib/profiles";
+import { activeProfile, applyBrandLink, type Profile } from "@/lib/profiles";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import { commentChannelPost, readChannelReviews, shownStatus, skipChannelPost, type ChannelReviews } from "@/lib/channelReviews";
 import CopyLinkButton from "@/components/CopyLinkButton";
@@ -307,7 +307,7 @@ export default function CalendarPage() {
             if (!active) return;
             // Every brand's reels; the calendar keeps the open brand's (showsBiz).
             // a board brand linked to one of the brands goes under that brand's name, so it shares its chip
-            const label = (brand: string) => (id && profileForBoardBrand(id, brand)?.name) || b.brands.find((x) => x.id === brand)?.name || brand;
+            const label = (brand: string) => boardBrandName(id, b.brands, brand);
             setReels(
               b.cards
                 .filter((c) => c.schedule && ["approved", "scheduled", "posted"].includes(c.stage))
