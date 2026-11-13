@@ -3,7 +3,9 @@ import { pauseBrandCampaigns, stopBrandTelegram } from "@/lib/brandRemoval";
 import { deleteBrandLinks } from "@/lib/trackedLinks";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckIcon, CaretUpDownIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlusIcon, SquaresFourIcon, TrashIcon } from "@phosphor-icons/react";
+import { CheckIcon, CaretUpDownIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlusIcon, SignOutIcon, SquaresFourIcon, TrashIcon } from "@phosphor-icons/react";
+import { dropSharedBrand } from "@/lib/cloudSync";
+import { forgetBrand, leaveBrand } from "@/lib/sharedBrands";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { socialConnectShown } from "@/lib/socialConnect";
@@ -99,6 +101,8 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
     try {
       // its link-in-bio page and tracked links go too (docs/brand-isolation.md)
       setProfiles(await removeProfile(userId, p.id, async (id) => {
+        // members lose the brand before anything of it is deleted (docs/shared-brands.md)
+        await forgetBrand(id);
         await stopBrandTelegram(id);
         await pauseBrandCampaigns(id);
         await deleteBioPage(id);
@@ -112,6 +116,27 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
       setRemoving(null);
     }
     if (wasActive) window.location.reload();
+  };
+
+  // a brand shared with this account: leaving takes it off the account and off this device
+  const leave = async (p: Profile) => {
+    if (!p.shared || !window.confirm(`Leave ${p.name}? Its posts, plan and calendar leave this account.`)) return;
+    const wasActive = p.id === activeId;
+    setEditing(null);
+    setRemoving(p.id);
+    try {
+      await leaveBrand(p.shared.brand);
+      dropSharedBrand(userId, p.shared.brand);
+    } catch (e) {
+      toast({ title: `Couldn't leave ${p.name}`, description: e instanceof Error ? e.message : "Try again in a minute.", variant: "destructive" });
+      return;
+    } finally {
+      setRemoving(null);
+    }
+    if (wasActive) {
+      setActiveProfile(userId, DEFAULT_PROFILE_ID);
+      window.location.reload();
+    } else setProfiles(loadProfiles(userId));
   };
 
   return (
@@ -148,7 +173,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
         >
           <BrandMenu
             profiles={profiles} activeId={activeId} logos={logos} switching={switching} removing={removing} editing={editing}
-            onEdit={setEditing} onSwitch={switchTo} onRename={saveRename} onRemove={(p) => void remove(p)}
+            onEdit={setEditing} onSwitch={switchTo} onRename={saveRename} onRemove={(p) => void remove(p)} onLeave={(p) => void leave(p)}
           />
           {/* from its website (docs/brand-isolation.md), or just a name, on its own page */}
           <a
@@ -178,7 +203,7 @@ export const SEARCH_PAST = 8;
  * The open menu's rows: a search box past SEARCH_PAST brands (Enter opens the first match), your brands then the demo
  * ones, and Remove only inside a brand's edit form, so a live demo can't lose a brand to one mis-click.
  */
-export function BrandMenu({ profiles, activeId, logos, switching, removing, editing, onEdit, onSwitch, onRename, onRemove }: {
+export function BrandMenu({ profiles, activeId, logos, switching, removing, editing, onEdit, onSwitch, onRename, onRemove, onLeave }: {
   profiles: Profile[];
   activeId: string;
   logos: Record<string, string | null>;
@@ -189,6 +214,7 @@ export function BrandMenu({ profiles, activeId, logos, switching, removing, edit
   onSwitch: (id: string) => void;
   onRename: (id: string, name: string) => void;
   onRemove: (p: Profile) => void;
+  onLeave?: (p: Profile) => void;
 }) {
   const [query, setQuery] = useState("");
   const [editName, setEditName] = useState("");
@@ -223,7 +249,19 @@ export function BrandMenu({ profiles, activeId, logos, switching, removing, edit
             <ul className="space-y-0.5" aria-label={g.name ?? "Brands"}>
               {g.rows.map((p) => (
                 <li key={p.id} className="flex items-center gap-1">
-                  {editing === p.id ? (
+                  {editing === p.id && p.shared ? (
+                    // named by its owner: a member can only leave it
+                    <div className="flex-1 p-1">
+                      <button
+                        type="button"
+                        onClick={() => onLeave?.(p)}
+                        disabled={!!removing}
+                        className="flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-xs font-medium text-destructive hover:bg-destructive/10 [@media(pointer:coarse)]:h-11"
+                      >
+                        <SignOutIcon className="h-3.5 w-3.5" /> Leave {p.name}
+                      </button>
+                    </div>
+                  ) : editing === p.id ? (
                     <form
                       className="flex-1 space-y-1 p-1"
                       onSubmit={(e) => {
@@ -264,7 +302,7 @@ export function BrandMenu({ profiles, activeId, logos, switching, removing, edit
                       >
                         <BrandMark logo={logos[p.id] ?? null} name={p.name} />
                         <span className="min-w-0 flex-1 truncate">
-                          {switching === p.id ? `Opening ${p.name}...` : removing === p.id ? `Removing ${p.name}...` : p.name}
+                          {switching === p.id ? `Opening ${p.name}...` : removing === p.id ? `${p.shared ? "Leaving" : "Removing"} ${p.name}...` : p.name}
                         </span>
                         {p.id === activeId && <CheckIcon className="h-4 w-4 shrink-0 text-primary" />}
                       </button>

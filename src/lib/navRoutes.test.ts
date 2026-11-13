@@ -9,6 +9,7 @@ import { SECTIONS } from "./nav";
 const EXCEPTIONS: Record<string, string> = {
   "/": "redirects to /home",
   "/auth": "sign-in page, outside the studio",
+  "/brands/join": "where an invite to a shared brand lands, outside the studio (docs/shared-brands.md)",
   "/roadmap": "public roadmap, linked from Feedback",
   "/marketing-north-star": "Leo's app marketing hub, reached from the tabs on /north-star",
   "/marketing-north-star/postmosis": "postmosis.com's marketing plan, reached from the north star tabs and the hub",

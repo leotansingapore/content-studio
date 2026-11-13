@@ -103,6 +103,8 @@ const ReelsPage = lazy(() => import("@/pages/ReelsPage"));
 const ReelsTeamPage = lazy(() => import("@/pages/ReelsTeamPage"));
 const AddBrandPage = lazy(() => import("@/pages/AddBrandPage"));
 const BrandsPage = lazy(() => import("@/pages/BrandsPage"));
+const JoinBrandPage = lazy(() => import("@/pages/JoinBrandPage"));
+const BrandTeamPage = lazy(() => import("@/pages/BrandTeamPage"));
 const VideoEditPage = lazy(() => import("@/pages/VideoEditPage"));
 // Public pages (no sign-in), each in its own chunk.
 const PreviewReviewPage = lazy(() => import("@/pages/PreviewReviewPage"));
@@ -171,6 +173,15 @@ export default function App() {
           element={
             <Suspense fallback={null}>
               <TrackedReportPublicPage />
+            </Suspense>
+          }
+        />
+        {/* an invite to a shared brand (docs/shared-brands.md): public, the invitee may have no account yet */}
+        <Route
+          path="/brands/join"
+          element={
+            <Suspense fallback={null}>
+              <JoinBrandPage />
             </Suspense>
           }
         />
@@ -252,6 +263,7 @@ export default function App() {
           <Route path="/create-guide" element={<CreateGuidePage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/brand" element={<BrandPage />} />
+          <Route path="/brand/members" element={<BrandTeamPage />} />
           <Route path="/brand/products" element={<BrandPage part="products" />} />
           <Route path="/brand/demo-videos" element={<BrandPage part="demo-videos" />} />
           <Route path="/audiences" element={<AudiencesPage />} />

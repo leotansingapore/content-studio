@@ -8,6 +8,7 @@ import { OnboardingCanvas } from "@/components/onboarding/parts";
 import { ReadingStep } from "@/components/onboarding/ReadingStep";
 import { ReviewStep } from "@/components/onboarding/ReviewStep";
 import { SiteStep } from "@/components/onboarding/SiteStep";
+import { TeamStep } from "@/components/onboarding/TeamStep";
 import { blankDna, createBrand, fillBrand, keptBrand, PROFESSION_NEEDED, readBody, type BrandDna as Dna } from "@/lib/addBrand";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { appDna, appFacts, appProfession, appStoreLink, isAppRead, proofLines, readComplaints, readListing, readRivals, type AppRead } from "@/lib/appStore";
@@ -24,7 +25,7 @@ import { markOnboarded } from "@/lib/onboarding";
 import { ADDRESS_ERROR, APP_SECTIONS, DEFAULT_NETWORK, holdForQuestions, distinctColours, KEPT_SECTIONS, PRODUCT_SECTIONS, foundNetworks, networksAfterRead, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS, slideFontFor, STEPS, webAddress, type Answers, type Mode, type Network, type Section, type Step, prefilledProfession } from "@/lib/onboardingFlow";
 import { goalChips } from "@/lib/positioning";
 import { reasonText } from "@/lib/prices";
-import { activeProfileId, DEFAULT_PROFILE_ID, renameProfile, setActiveProfile } from "@/lib/profiles";
+import { activeProfile, activeProfileId, DEFAULT_PROFILE_ID, loadProfiles, renameProfile, setActiveProfile } from "@/lib/profiles";
 import { speakerFor } from "@/lib/remixBrand";
 import { checkSocialConnect, clearConnectReturn, connectLink, PLATFORM_NAME, platformName, readRedirect, saveConnectReturn, socialConnectShown, socialStatus, type SocialStatus } from "@/lib/socialConnect";
 import { asPostLang } from "@/lib/translate";
@@ -298,13 +299,22 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     };
   }, [first, step, canConnect]);
 
+  // Invite your team (docs/shared-brands.md) is for a brand that exists: /welcome's own once saved, /brands/new's new
+  // one (open since createBrand, so a reload on this step finds it too). A brand shared with this account isn't its to share.
+  const teamBrand = ((): { id: string; name: string } | null => {
+    if (first) return saved ? { id: DEFAULT_PROFILE_ID, name: loadProfiles(uid).find((p) => p.id === DEFAULT_PROFILE_ID)?.name ?? "Your brand" } : null;
+    const open = activeProfile(uid);
+    return open.id !== DEFAULT_PROFILE_ID && !open.shared ? { id: open.id, name: open.name } : null;
+  })();
+
   useEffect(() => {
     if (step === "review" && !dna) swapStep("site");
     else if (step === "work") swapStep(dna ? "review" : address.trim() || noSite ? "networks" : "site");
     else if (step === "reading" && read.status === "idle" && !start.resumeRead) swapStep(address.trim() || noSite ? "networks" : "site");
+    else if (step === "team" && !teamBrand) swapStep(dna ? "review" : "site");
     else if ((step === "connect" || step === "finish") && (!first || !saved)) swapStep(dna ? "review" : "site");
-    else if (first && saved && step !== "connect" && step !== "finish") swapStep(canConnect ? "connect" : "finish");
-  }, [step, dna, read.status, address, noSite, first, saved, canConnect, swapStep, start.resumeRead]);
+    else if (first && saved && step !== "team" && step !== "connect" && step !== "finish") swapStep("team");
+  }, [step, dna, read.status, address, noSite, first, saved, canConnect, swapStep, start.resumeRead, teamBrand?.id]);
 
   useEffect(() => {
     if (step === "networks" && !networks.length && !networksTouched.current) setNetworks([DEFAULT_NETWORK]);
@@ -545,7 +555,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
       renameProfile(uid, DEFAULT_PROFILE_ID, title);
       keepProducts();
       setSaved(true);
-      setStep(canConnect ? "connect" : "finish");
+      setStep("team");
       return;
     }
     const result = createBrand(uid, title, brand, profession, leo ? lang : null, facts, extras());
@@ -555,11 +565,19 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     }
     keepProducts();
     createdOnce.current = true;
-    setLeaving(true);
     markOnboarded(uid);
     persist(null);
-    // as Holo, a new brand lands on its calendar; ?made= says so there once
-    window.location.assign(`/calendar?profile=${encodeURIComponent(result.id)}&made=1`);
+    // Invite your team next; Continue there lands where a new brand always has (leaveTeam)
+    setStep("team");
+  };
+
+  // Continue on Invite your team: /welcome goes on to Connect (or the finish); /brands/new lands, as Holo does, on the
+  // new brand's calendar, where ?made= says so once
+  const leaveTeam = () => {
+    if (first) return setStep(canConnect ? "connect" : "finish");
+    if (!teamBrand) return;
+    setLeaving(true);
+    window.location.assign(`/calendar?profile=${encodeURIComponent(teamBrand.id)}&made=1`);
   };
 
   const leaveTo = (to: string, topic = "") => {
@@ -607,7 +625,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
   }, [step, read.status, readingActive, steps.length, swapStep, answers, movedOn]);
 
   const back =
-    first && (step === "site" || step === "connect" || step === "finish")
+    (first && (step === "site" || step === "connect" || step === "finish")) || step === "team"
       ? undefined
       : () => {
           if (step === "site") {
@@ -756,6 +774,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
           onTick={(key, v, on) => setApp((a) => a && { ...a, [key]: on ? [...a[key], v] : a[key].filter((x) => x !== v) })}
         />
       )}
+      {step === "team" && teamBrand && <TeamStep titleId={TITLE_ID} profileId={teamBrand.id} brandName={teamBrand.name} busy={leaving} onContinue={leaveTeam} />}
       {first && step === "connect" && saved && (
         <ConnectStep titleId={TITLE_ID} networks={networks} status={status} statusError={statusError} justConnected={justConnected} note={note} error={connectError} busy={busy} onConnect={(n) => void connect(n)} onContinue={() => setStep("finish")} />
       )}

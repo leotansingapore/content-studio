@@ -199,6 +199,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/brand", label: "Brand kit", was: "logo colours" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS, was: "personas" },
       { to: "/fads", label: "Positioning", subTabs: true, show: () => adviserBrand(), was: "F.A.D.S. fads differentiation" },
+      // who works on the brand with you: invites, members, leaving (docs/shared-brands.md)
+      { to: "/brand/members", label: "Members", was: "brand team collaborators share people join leave" },
       // sections of the brand kit drawn alone (BrandPage `part`); /brand#products and #demo-videos move here
       { to: "/brand/products", label: "Products", owners: LEO_EMAILS, group: "Products", was: "Brand kit sell services" },
       // who the brand is up against (moved back from Insights, 12 Nov); their ads stay in Insights > Find posts

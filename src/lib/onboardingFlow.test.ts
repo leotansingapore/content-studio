@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   APP_SECTIONS, colourGap, confirmLabel, DEFAULT_NETWORK, holdForQuestions, distinctColours, firstOpenQuestion, flowKey, foundNetworks, networksAfterRead, hexOf, hostOf, isSerif, keptAnswers, keptNetworks, keptSaved, keptStep, mainPlatform, nextLine,
-  nextSection, prefilledProfession, progressOf, QUESTIONS, readableInk, scoreOf, shouldSetUp, shownStep, SITE_SECTIONS, slideFontFor, webAddress, type Section,
+  nextSection, prefilledProfession, progressOf, STEPS, QUESTIONS, readableInk, scoreOf, shouldSetUp, shownStep, SITE_SECTIONS, slideFontFor, webAddress, type Section,
 } from "./onboardingFlow";
 import { blankPixels, dominantColours, lightPixels } from "./logoImage";
 
@@ -32,6 +32,9 @@ describe("progress and the brand set up score", () => {
     expect(progressOf("review", 2, 4)).toBe(88);
     expect(progressOf("review", 4, 4)).toBe(100);
     expect(progressOf("review", 9, 4)).toBe(100);
+    // Invite your team comes once the brand is made, last on /brands/new
+    expect(progressOf("team", 4, 4)).toBe(100);
+    expect(STEPS.indexOf("team")).toBe(STEPS.indexOf("review") + 1);
   });
 
   it("leaves room for connecting and finishing when it sets up a new account's own brand", () => {
@@ -40,6 +43,7 @@ describe("progress and the brand set up score", () => {
     expect(progressOf("work", 0, 4, "first")).toBe(35);
     expect(progressOf("review", 0, 4, "first")).toBe(50);
     expect(progressOf("review", 4, 4, "first")).toBe(80);
+    expect(progressOf("team", 4, 4, "first")).toBe(84);
     expect(progressOf("connect", 4, 4, "first")).toBe(88);
     expect(progressOf("finish", 4, 4, "first")).toBe(100);
     expect(confirmLabel("social", true, "Acme", false, "first")).toBe("Save my brand");

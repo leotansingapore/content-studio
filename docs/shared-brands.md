@@ -254,7 +254,7 @@ The owner's engine (`createCloudSync`) keeps its rules. A member's device adds o
 
 ### Create (owner)
 
-From the Team step in onboarding or the brand's Team page the owner types one email and presses Invite. The app
+From the Team step in onboarding or the brand's Members page the owner types one email and presses Invite. The app
 calls `brand-team` `{action: "invite", profileId, name, email}`:
 
 1. `getUser(jwt)`. The user id is all that is trusted.
@@ -300,7 +300,7 @@ membership is keyed by user id.
 
 ### Expire, revoke, re-send
 
-- An invite lasts 7 days, after which the accept refuses it and the owner's Team page shows it as expired, with
+- An invite lasts 7 days, after which the accept refuses it and the owner's Members page shows it as expired, with
   Invite again beside it.
 - Invite again, or inviting the same email a second time, revokes the open invite for that email and sends a new
   token, so only the newest link works.
@@ -310,7 +310,7 @@ membership is keyed by user id.
 
 - Removing a member is the owner's action: `cs_brand_remove` deletes the membership, their next call is refused,
   and their device drops its copy at the next refresh. What they already saw can't be taken back.
-- A member leaves with `cs_brand_leave`, from the Team page or the brand menu, with the same effect.
+- A member leaves with `cs_brand_leave`, from the Members page or the brand menu, with the same effect.
 - Deleting a brand runs its server clean-up before anything local goes, as today, and `cs_brand_forget(profile)`
   is added first, so members lose access before the data is deleted. If it fails, nothing is removed and the owner is
   told to try again. Even without it, members lose access once the profile leaves the owner's brand list.
@@ -351,7 +351,7 @@ free, open Postmosis account for good.
   the step is skipped with Continue alone. Continue lands where the flow lands today (`/brands/new` on the new
   brand's calendar, `/welcome` on Connect or the finish screen). Holo's layout; no Holo words, pictures or mascot.
   An owner without an active plan sees the reason under the box, and Continue.
-- Team page `/brand/team`, in the Brand section's Profile group (no new section or tab): the same box and list for
+- Members page `/brand/members` (Brand > Members), in the Brand section's Profile group (no new section or tab): the same box and list for
   the owner, with Remove beside each member, Revoke beside each open invite and Invite again beside an expired one.
   A member sees who owns the brand and a Leave button.
 - Brand switcher: brands shared with you under "Shared with you", whose edit form offers Leave in place of rename and

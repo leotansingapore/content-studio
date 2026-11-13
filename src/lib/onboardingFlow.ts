@@ -1,8 +1,9 @@
 import type { SlideFont } from "@/lib/carouselLayout";
 import type { GoalKind, PlanAudience, PlanPlatform } from "@/lib/positioning";
 
-export type Step = "site" | "work" | "networks" | "reading" | "review" | "connect" | "finish";
-export const STEPS: readonly Step[] = ["site", "work", "networks", "reading", "review", "connect", "finish"];
+// "team": Invite your team, once the brand is made (docs/shared-brands.md)
+export type Step = "site" | "work" | "networks" | "reading" | "review" | "team" | "connect" | "finish";
+export const STEPS: readonly Step[] = ["site", "work", "networks", "reading", "review", "team", "connect", "finish"];
 export type Mode = "add" | "first";
 
 export const NETWORK_KEYS = ["instagram", "facebook", "tiktok", "linkedin", "youtube", "threads"] as const;
@@ -93,11 +94,11 @@ export const hostOf = (raw: string): string => {
 export function progressOf(step: Step, done: number, total: number, mode: Mode = "add"): number {
   const share = Math.min(done, total) / Math.max(1, total);
   if (mode === "first") {
-    const at: Record<Step, number> = { site: 15, work: 35, networks: 35, reading: 44, review: 50, connect: 88, finish: 100 };
+    const at: Record<Step, number> = { site: 15, work: 35, networks: 35, reading: 44, review: 50, team: 84, connect: 88, finish: 100 };
     return step === "review" ? Math.round(50 + 30 * share) : at[step];
   }
   // "work" is no longer a step of its own (What you do sits in Brand identity); old ?step=work links land on networks
-  const at: Record<Step, number> = { site: 25, work: 50, networks: 50, reading: 50, review: 75, connect: 100, finish: 100 };
+  const at: Record<Step, number> = { site: 25, work: 50, networks: 50, reading: 50, review: 75, team: 100, connect: 100, finish: 100 };
   return step === "review" ? Math.round(75 + 25 * share) : at[step];
 }
 
