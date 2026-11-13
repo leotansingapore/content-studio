@@ -50,13 +50,11 @@ import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts
 import { editorTemplates } from "../../supabase/functions/ai-video/templates.ts";
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
-import { professionFor } from "@/lib/profession";
+import { professionFor, topicExample } from "@/lib/profession";
 import { storedUserId } from "@/lib/socialConnect";
-import { aOrAn } from "../../supabase/functions/_shared/profession.ts";
 const secs = (t: number) => `${Math.round(t)} seconds`;
 /** The topic box's example: an adviser's (or nothing set) keeps the co-pay one, any other work gets its own name in it. */
-export const topicPlaceholder = (profession: string) =>
-  profession ? `What it explains, like the question ${aOrAn(profession)} gets asked most` : "What it explains, like why a hospital plan has a co-pay";
+export const topicPlaceholder = (profession: string) => `What it explains, like ${topicExample(profession)}`;
 const cost = (credits: number) => `${credits} Higgsfield credits (about US$${creditsUsd(credits).toFixed(2)})`;
 
 const KINDS = ["template", "montage", "avatar", "explainer"] as const;

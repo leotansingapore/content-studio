@@ -970,7 +970,7 @@ function PicturePicker(p: {
       {p.pick === "make" && (
         <div className="space-y-2 rounded-lg border border-border/60 p-3">
           <Label htmlFor="image-prompt" className={FIELD_LABEL}>What the picture shows</Label>
-          <Textarea id="image-prompt" rows={2} value={prompt} maxLength={1200} disabled={making} placeholder="One person reading a hospital bill at the kitchen table" onChange={(e) => setPrompt(e.target.value)} />
+          <Textarea id="image-prompt" rows={2} value={prompt} maxLength={1200} disabled={making} placeholder={adviserBrand(p.userId) ? "One person reading a hospital bill at the kitchen table" : "One person reading a letter at the kitchen table"} onChange={(e) => setPrompt(e.target.value)} />
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" onClick={() => p.onMake(prompt.trim())} disabled={making || imageBusy() || prompt.trim().length < 10 || p.left === 0} className={cn("gap-1.5", TOUCH)}>
               {making ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />} {making ? "Making your picture..." : "Make it"}

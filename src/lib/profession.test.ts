@@ -7,7 +7,7 @@ vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_URL: "", SUPABASE_ANON
 import ProfessionField from "@/components/ProfessionField";
 import { DEFAULT_BRAND, loadBrand, sanitizeBrand, saveBrand } from "./carousel";
 import { createCloudSync, type SyncBackend, type SyncRow } from "./cloudSync";
-import { professionFor } from "./profession";
+import { professionFor, topicExample } from "./profession";
 import { addProfile, setActiveProfile } from "./profiles";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -48,6 +48,13 @@ describe("the brand kit's profession", () => {
     expect(professionFor(UID)).toBe("real estate agent");
     saveBrand(UID, { ...DEFAULT_BRAND, profession: "CPA" });
     expect(professionFor(UID)).toBe("CPA");
+  });
+
+  it("gives a topic box the adviser's example for an adviser or nothing set, and any other work its own", () => {
+    expect(topicExample("")).toBe("why a hospital plan has a co-pay");
+    expect(topicExample("", "5 things to check before you buy a hospital plan")).toBe("5 things to check before you buy a hospital plan");
+    expect(topicExample("kueh shop")).toBe("the question a kueh shop gets asked most");
+    expect(topicExample("accountant", "anything")).toBe("the question an accountant gets asked most");
   });
 
   it("belongs to one brand, and reaches another device through the sync with each brand's own", async () => {

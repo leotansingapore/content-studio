@@ -2,7 +2,7 @@
 
 import { loadBrand } from "@/lib/carousel";
 import { storedUserId } from "@/lib/socialConnect";
-import { professionOf } from "../../supabase/functions/_shared/profession.ts";
+import { aOrAn, professionOf } from "../../supabase/functions/_shared/profession.ts";
 
 export { ADVISER, MAX_PROFESSION_CHARS, PROFESSION_CHOICES, isAdviser } from "../../supabase/functions/_shared/profession.ts";
 
@@ -15,3 +15,7 @@ export const professionFor = (userId: string | null | undefined): string => prof
  * so a first frame (before getUser answers) is already right.
  */
 export const adviserBrand = (userId?: string | null): boolean => !professionFor(userId || storedUserId());
+
+/** A topic box's example after "like": an adviser's or nothing set keeps the page's adviser example, any other work gets its own name in it. */
+export const topicExample = (profession: string, adviser = "why a hospital plan has a co-pay") =>
+  profession ? `the question ${aOrAn(profession)} gets asked most` : adviser;
