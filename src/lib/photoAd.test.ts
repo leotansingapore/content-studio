@@ -248,6 +248,16 @@ describe("the photo run", () => {
     });
   });
 
+  it("takes the angle and the product the person picked, over the rotation and the note", async () => {
+    const tracker = { id: "pd-tracker1", name: "Activity Tracker", what: "Logs daily sales activities.", forWho: "Sales agents", pictures: [], sources: [], use: true, from: "you", addedAt: "" };
+    localStorage.setItem(`content-studio-products-${U}`, JSON.stringify({ items: [tracker, { ...tracker, id: "pd-corgi11", name: "Corgi Coach", use: false }] }));
+    await startPhotoAd(U, poster, { topic: "Make it about the tracker", angle: "Bust a myth", product: "pd-corgi11" });
+    expect(fake.asks[0]).toMatchObject({ angles: ["Bust a myth"], product: { name: "Corgi Coach" } });
+    // an angle that isn't one of the twelve keeps the rotation
+    await startPhotoAd(U, poster, { topic: "x", angle: "Shout louder" });
+    expect(fake.asks[1].angles).toEqual(angleOrder(poster.slug, usedAngles(U, poster.slug)).slice(0, ANGLE_POOL));
+  });
+
   it("names the product in one plain sentence with no double quote, so it is never printed as words", () => {
     expect(productLine({ name: 'The "Pro" plan', what: "  Logs daily\nactivities.  " })).toBe("The ad shows the brand's product itself: The 'Pro' plan, Logs daily activities.");
     expect(productLine({ name: "Corgi Coach", what: "" })).toBe("The ad shows the brand's product itself: Corgi Coach.");

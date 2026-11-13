@@ -211,7 +211,8 @@ async function productPicture(p: Product): Promise<string | undefined> {
   return blob ? scalePicture(blob).catch(() => undefined) : undefined;
 }
 
-export async function startPhotoAd(userId: string, f: StaticFormat, format: { topic: string; pictureKey?: string; price?: string }): Promise<void> {
+/** `angle` (one of STATIC_ANGLES) and `product` (a saved product's id), when the person picked them: that angle, that product. */
+export async function startPhotoAd(userId: string, f: StaticFormat, format: { topic: string; pictureKey?: string; price?: string; angle?: string; product?: string }): Promise<void> {
   const slug = f.slug;
   if (photoAdBusy() || imageWriteBusy() || imageBusy() || !isStatic(slug)) return;
   const design = {
@@ -222,10 +223,11 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   saveImage(userId, design);
   const base = { seq: ++seq, slug, designId: design.id };
   set({ ...base, state: "writing" });
-  const sold = adProduct(loadProducts(userId).items, format.topic);
+  const items = loadProducts(userId).items;
+  const sold = items.find((p) => p.id === format.product) ?? adProduct(items, format.topic);
   // no product in use: the brand's most concrete saved facts, so the words still name one thing it does
   const product = sold ? adFacts(sold) : (brandAdFacts(userId) ?? undefined);
-  const angles = angleOrder(slug, usedAngles(userId, slug)).slice(0, ANGLE_POOL);
+  const angles = format.angle && format.angle in STATIC_ANGLES ? [format.angle] : angleOrder(slug, usedAngles(userId, slug)).slice(0, ANGLE_POOL);
   const avoid = sampleOpening(f);
   await startImageWrite(userId, { designId: design.id, source: null, topic: format.topic, layout: slug, mention: imageMention(userId), note: "", size: design.size, read: false, angles, ...(avoid ? { avoid } : {}), ...(product ? { product } : {}) });
   const w = imageWrite();

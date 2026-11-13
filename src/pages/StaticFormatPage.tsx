@@ -8,11 +8,13 @@
 // navigation state { send, from, layout, topic }), and the design the agent makes on that layout lands in Your images.
 // The photo is the dominant button, since the examples it matches are photos; the layout takes over when today's
 // pictures are used up. A format that needs a photo, with none on this brand yet, offers only "Add a photo", which opens
-// the picker. Leo's sign-ins only (useLeoUser, so ?asLeo=1 works on localhost); anyone else, and an unknown slug, gets NotFound.
+// the picker. The agent's make skill (makeSkills.ts) opens it with its answers: ?note= fills the note once, ?angle= (one
+// of the twelve) and ?product= (a saved product's id) stay in the address as picks the photo make takes, each removable.
+// Leo's sign-ins only (useLeoUser, so ?asLeo=1 works on localhost); anyone else, and an unknown slug, gets NotFound.
 
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { CameraIcon, CaretLeftIcon, CaretRightIcon, CircleNotchIcon, ImageSquareIcon, ShuffleIcon, SparkleIcon } from "@phosphor-icons/react";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { CameraIcon, CaretLeftIcon, CaretRightIcon, CircleNotchIcon, ImageSquareIcon, ShuffleIcon, SparkleIcon, XIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -26,10 +28,12 @@ import { isStatic } from "@/lib/imageLayout";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
 import { PHOTO_STEP, shownPhotoAd, startPhotoAd, usePhotoAd } from "@/lib/photoAd";
-import { loadProducts, productBits } from "@/lib/products";
+import { loadProducts, productBits, productLabel } from "@/lib/products";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { brandName } from "@/lib/remixBrand";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const LABEL = "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
@@ -98,9 +102,26 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
   const fromGallery = (useLocation().state as { back?: boolean } | null)?.back === true;
   const drawn = isStatic(def.slug);
   const example = useMemo(() => staticExampleUrl(def), [def]);
-  const [note, setNote] = useState(() => loadNote(def.slug));
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  const linkNote = params.get("note");
+  const [note, setNote] = useState(() => linkNote?.slice(0, MAX_NOTE) ?? loadNote(def.slug));
+  // ?note= fills the note once, kept on this device as a typed one is, then leaves the address
+  useEffect(() => {
+    if (linkNote === null) return;
+    saveNote(def.slug, linkNote.slice(0, MAX_NOTE));
+    update({ note: null });
+  }, [linkNote, def.slug, update]);
+  const [angle, setAngle] = useUrlState<string>("angle", "", { allowed: Object.keys(STATIC_ANGLES) });
+  const items = useMemo(() => loadProducts(userId).items, [userId]);
+  const [productId, setProduct] = useUrlState<string>("product", "", { allowed: items.map((p) => p.id) });
+  const picked = items.find((p) => p.id === productId);
   const brand = useMemo(() => brandName(userId), [userId]);
-  const bits = useMemo(() => productBits(loadProducts(userId)), [userId]);
+  const bits = useMemo(
+    () => (picked ? { ...(picked.pictures[0] ? { picture: picked.pictures[0] } : {}), ...(picked.price?.trim() ? { price: picked.price.trim() } : {}) } : productBits(loadProducts(userId))),
+    [userId, picked],
+  );
+  const picks = { ...(angle ? { angle } : {}), ...(picked ? { product: picked.id } : {}) };
   const photos = useMemo(() => loadMedia(userId).filter((m) => m.kind !== "video").length, [userId]);
   const photo = usePhotoAd();
   const [picture, setPicture] = useState(imageJob);
@@ -170,6 +191,12 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
               }}
             />
           </div>
+          {(angle || picked) && (
+            <ul className="flex flex-wrap gap-2" aria-label="Your picks">
+              {angle && <Pick label={`Angle: ${angle}`} clear="Remove the angle" onClear={() => setAngle("")} />}
+              {picked && <Pick label={`Product: ${productLabel(picked)}`} clear="Remove the product" onClear={() => setProduct("")} />}
+            </ul>
+          )}
           {drawn && (
             <div className="space-y-2">
               {adding && <p className="text-sm text-muted-foreground">This one shows what you sell, so it needs a photo of it first.</p>}
@@ -177,7 +204,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                 <div className="flex flex-wrap items-center gap-3">
                   <Button
                     variant={photoFirst ? "default" : "outline"}
-                    onClick={() => void startPhotoAd(userId, def, action.format)}
+                    onClick={() => void startPhotoAd(userId, def, { ...action.format, ...picks })}
                     disabled={own || picturing || photoLeft === 0}
                     className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${own ? "disabled:opacity-100" : ""}`}
                   >
@@ -229,7 +256,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => void startPhotoAd(userId, def, action.format)}
+                          onClick={() => void startPhotoAd(userId, def, { ...action.format, ...picks })}
                           disabled={picturing || photoLeft === 0}
                           className="gap-1.5 [@media(pointer:coarse)]:min-h-11"
                         >
@@ -253,6 +280,18 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
         </div>
       </div>
     </div>
+  );
+}
+
+/** One of the picks the agent carried in (an angle, a product): its words and a way to drop it. */
+function Pick({ label, clear, onClear }: { label: string; clear: string; onClear: () => void }) {
+  return (
+    <li className="inline-flex min-h-9 items-center gap-1 rounded-full border border-border bg-card py-0.5 pl-3 pr-0.5 text-xs font-medium text-foreground [@media(pointer:coarse)]:min-h-11">
+      {label}
+      <button type="button" onClick={onClear} aria-label={clear} className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10">
+        <XIcon className="h-3.5 w-3.5" />
+      </button>
+    </li>
   );
 }
 

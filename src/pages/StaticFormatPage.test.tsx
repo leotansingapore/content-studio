@@ -51,8 +51,8 @@ import { links } from "@/lib/links";
 import { productBits } from "@/lib/products";
 
 const U = "u1";
-const html = (slug: string) =>
-  renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/make/static/${slug}`] }, createElement(Routes, null, createElement(Route, { path: "/make/static/:slug", element: createElement(StaticFormatPage) }))));
+const html = (slug: string, search = "") =>
+  renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/make/static/${slug}${search}`] }, createElement(Routes, null, createElement(Route, { path: "/make/static/:slug", element: createElement(StaticFormatPage) }))));
 /** A button's markup, by the label it ends with. */
 const button = (page: string, label: string) => page.match(new RegExp(`<button[^>]*>(?:(?!</button>).)*${label}</button>`))?.[0] ?? "";
 const PRIMARY = "bg-primary text-primary-foreground";
@@ -171,6 +171,20 @@ describe("the static format page", () => {
     expect(page).toContain("Add a photo");
     expect(page).not.toContain("Make it as a photo");
     expect(page).toContain("It opens on the Image page");
+  });
+
+  it("opens with the agent's answers: the note filled, the angle and the product shown and sent with the photo make", () => {
+    as.user = { id: U, email: "leo@x.sg" };
+    localStorage.setItem(`content-studio-products-${U}`, JSON.stringify({ items: [product(), product({ id: "pd-mug22", name: "Mugs", pictures: ["cimg-mugs01"], price: "$12", use: false })] }));
+    const page = html("street-poster", "?note=Office%20lunches&angle=Bust%20a%20myth&product=pd-mug22");
+    expect(page).toContain("Office lunches</textarea>");
+    expect(page).toContain("Angle: Bust a myth");
+    expect(page).toContain("Product: Mugs");
+    as.buttons.find((b) => JSON.stringify(b.children).includes("Make it as a photo"))!.onClick!();
+    expect(as.starts.at(-1)).toEqual([U, staticFormatBySlug("street-poster"), { topic: "Office lunches", pictureKey: "cimg-mugs01", angle: "Bust a myth", product: "pd-mug22" }]);
+    // an angle that isn't one of the twelve, or a product this brand doesn't have, is no pick at all
+    const odd = html("street-poster", "?angle=Shout&product=pd-gone");
+    expect(odd).not.toContain('aria-label="Your picks"');
   });
 
   it("keeps the note on this device across a reload", () => {
