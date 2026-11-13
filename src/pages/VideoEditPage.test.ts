@@ -87,6 +87,14 @@ describe("Recent on the start screen", () => {
     const trimmed = { ...plain, id: "v3", settings: { ...defaultSettings("bold"), trimStart: 1.5, trimEnd: 0.5 } };
     expect(lengths([plain, clip, trimmed])).toEqual(["0:12.0", "0:18.5", "0:10.0"]);
   });
+
+  it("draws a film mark, not an empty black box, for a project with no picture yet", () => {
+    const markup = (projects: (typeof plain)[]) => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/edit"] }, createElement(Start, { userId: "u1", leo: false, busy: "", projects, onUpload: () => {}, onOpen: () => {}, onRemove: () => {} })));
+    const bare = markup([{ ...plain, thumb: "" }]);
+    expect(bare).toContain('data-testid="no-thumb"');
+    expect(bare).not.toContain("bg-black");
+    expect(markup([{ ...plain, thumb: "data:image/jpeg;base64,AAAA" }])).not.toContain('data-testid="no-thumb"');
+  });
 });
 
 describe("the page's first frame for everyone else (pinned on today's code at 4403dedf)", () => {

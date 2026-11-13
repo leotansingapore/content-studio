@@ -573,9 +573,16 @@ export function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove 
               <li key={p.id} className="group relative">
                 {/* a real link to the video, so a new tab and a long-press Copy link work */}
                 <Link to={links.edit({ p: p.id })} className="block w-full text-left">
-                  <span className="block aspect-[9/16] overflow-hidden rounded-xl bg-black">
-                    {p.thumb && <img src={p.thumb} alt="" className="h-full w-full object-cover" />}
-                  </span>
+                  {/* a project made without a frame to grab (Chart) has no picture: a film mark, not an empty black box */}
+                  {p.thumb ? (
+                    <span className="block aspect-[9/16] overflow-hidden rounded-xl bg-black">
+                      <img src={p.thumb} alt="" className="h-full w-full object-cover" />
+                    </span>
+                  ) : (
+                    <span data-testid="no-thumb" className="flex aspect-[9/16] items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                      <FilmStripIcon className="h-6 w-6" aria-hidden />
+                    </span>
+                  )}
                   <span className="mt-1 block truncate text-xs font-semibold">{p.name}</span>
                   {/* the length it plays: a clip keeps its recording's duration, with the clip in its trims */}
                   <span className="block text-[11px] text-muted-foreground">{fmtTime(p.duration - (p.settings?.trimStart || 0) - (p.settings?.trimEnd || 0))}</span>
