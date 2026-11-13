@@ -66,7 +66,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { AD_FACTS_MAX, ANGLE_POOL, OPENINGS_KEPT, closingOf, openingOf, recentClosings, recentOpenings, rememberClosing, rememberOpening, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_RULE, TOO_LONG, unquoted, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { AD_FACTS_MAX, ANGLE_POOL, leadOrder, recentLeads, rememberLead, OPENINGS_KEPT, closingOf, openingOf, recentClosings, recentOpenings, rememberClosing, rememberOpening, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_RULE, TOO_LONG, unquoted, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -286,6 +286,22 @@ describe("the photo run", () => {
       expect(line.length).toBeLessThanOrEqual("The ad shows the brand's product itself: ActivityTracker, .".length + 160);
     });
 
+    it("leads each photo make with the brand's next fact, least recently led first, and never sends the rotation to the writer", async () => {
+      localStorage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#F26B1D", name: "ActivityTracker", handle: "" }));
+      localStorage.setItem(`content-studio-positioning-${U}`, JSON.stringify({ oneLiner: "Chats and follow-ups in one app.", edge: "Logs each day's calls as a streak.", audience: "working-adult", audienceDetail: "", topics: [] }));
+      await startPhotoAd(U, poster, { topic: "x" });
+      await startPhotoAd(U, poster, { topic: "x" });
+      await startPhotoAd(U, poster, { topic: "x" });
+      expect(fake.asks.map((a) => (a.product as { what: string }).what.split(". ")[0])).toEqual(["Logs each day's calls as a streak", "Chats and follow-ups in one app", "Logs each day's calls as a streak"]);
+      expect(fake.asks[0].product).not.toHaveProperty("lead");
+      // the picture's product line leads with the same fact
+      expect(fake.calls[1].prompt).toContain("The ad shows the brand's product itself: ActivityTracker, Chats and follow-ups in one app.");
+      // a write that failed leads with nothing
+      fake.writeFails = "Couldn't write it.";
+      await startPhotoAd(U, poster, { topic: "x" });
+      expect(recentLeads(U)[0]).toBe("logs each day's calls as a");
+    });
+
     it("never hands the picture a price from the brand's saved facts, while the writer still reads them all", async () => {
       localStorage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#F26B1D", name: "ActivityTracker", handle: "" }));
       localStorage.setItem(`content-studio-positioning-${U}`, JSON.stringify({ oneLiner: "A phone app for your selling week.", edge: "SGD 34 per person a month, logs each day's calls as a streak.", audience: "working-adult", audienceDetail: "", topics: [] }));
@@ -455,7 +471,26 @@ describe("a brand's saved facts, for an ad with no product in use", () => {
       name: "Activity Tracker",
       what: "Logs daily sales activities. Tap after each call, Watch the streak grow. A streak and a virtual corgi. Agents keep 3x more streak days. A phone app for your selling week. Rated by agents on the App Store.",
       forWho: "Agents",
+      lead: "Logs daily sales activities",
     });
+  });
+
+  it("leads with each fact in turn, the least recently led first, so ads in a row lead with different things", () => {
+    expect(leadOrder(["A one", "B two", "C three"], [])).toEqual(["A one", "B two", "C three"]);
+    expect(leadOrder(["A one", "B two", "C three"], ["a one"])).toEqual(["B two", "C three", "A one"]);
+    expect(leadOrder(["A one", "B two", "C three"], ["b two", "a one", "c three"])).toEqual(["C three", "A one", "B two"]);
+    brand();
+    put("positioning", { oneLiner: "Chats and follow-ups in one app.", edge: "Logs each day's calls as a streak.", audienceDetail: "", topics: [] });
+    put("facts", [{ id: "f1", text: "A team leaderboard shows who called most.", createdAt: "2026-11-01T00:00:00Z" }]);
+    const leads: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      const f = brandAdFacts(U)!;
+      leads.push(f.lead);
+      expect(f.what.startsWith(f.lead)).toBe(true);
+      rememberLead(U, f.lead);
+    }
+    expect(leads).toEqual(["Logs each day's calls as a streak", "Chats and follow-ups in one app", "A team leaderboard shows who called most", "Logs each day's calls as a streak"]);
+    expect(recentLeads(U)[0]).toBe("logs each day's calls as a");
   });
 
   it("skips a Product that is switched off, names the brand then, cuts at a word, and is nothing with no name or no facts", () => {

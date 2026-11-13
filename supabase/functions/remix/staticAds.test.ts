@@ -57,7 +57,7 @@ describe("a static ad about one product", () => {
     expect(r.product).toEqual(PRODUCT);
     expect(r.brand.facts).toBe("- The product this ad is about: Activity Tracker\n- What Activity Tracker is: Logs daily sales activities as streaks, with a leaderboard.\n- Who Activity Tracker is for: Sales agents\n- Ten years advising");
     const { system } = buildMakePrompt(r);
-    expect(system).toContain("- The ad is about Activity Tracker, from the facts given. Name it once, in the line that says what the brand does, with one concrete thing it does, never a general line about the brand. Every field keeps its word limit: use the product's shortest name, and leave the brand's name out of that line before going over.");
+    expect(system).toContain("- The ad is about Activity Tracker, from the facts given. Name it once, in the line that says what the brand does, with one concrete thing it does, the first its facts give, never a general line about the brand. Every field keeps its word limit: use the product's shortest name, and leave the brand's name out of that line before going over.");
     expect(system).toContain("- What Activity Tracker is: Logs daily sales activities as streaks");
   });
 

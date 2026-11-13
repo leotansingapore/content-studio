@@ -1173,7 +1173,7 @@ function staticRules(req: MakeRequest, layout: StaticLayout): string[] {
     ...(req.angle ? [`- The ad's angle is ${req.angle}: ${STATIC_ANGLES[req.angle]}. The headline and every line take this angle, over any angle a line above suggests.`] : []),
     ...openingRule(req),
     ...(req.product && req.brand.mention
-      ? [`- The ad is about ${req.product.name}, from the facts given. Name it once, in the line that says what the brand does, with one concrete thing it does, never a general line about the brand. Every field keeps its word limit: use the product's shortest name, and leave the brand's name out of that line before going over.`]
+      ? [`- The ad is about ${req.product.name}, from the facts given. Name it once, in the line that says what the brand does, with one concrete thing it does, the first its facts give, never a general line about the brand. Every field keeps its word limit: use the product's shortest name, and leave the brand's name out of that line before going over.`]
       : []),
     // Post choices' Never (or Sometimes' flip): the brand rule below says not to name the brand, and it wins
     ...(req.brand.mention ? [] : ["- This picture does not name the brand: where a line above says to name it, leave the name out and keep the words on the problem and what helps."]),

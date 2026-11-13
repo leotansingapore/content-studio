@@ -243,30 +243,58 @@ export function usePhotoAd(): PhotoAd | null {
   return p;
 }
 
-/**
- * Writes the format's words for the brand into a new drawn design, then makes them into one photo. `format` is what
- * the drawn make carries (staticMake: the topic, and the product photo or price where the format uses them). Nothing
- * is spent on a picture when the words didn't come, or came too long for ai-image's prompt.
- */
 /** The most an ad make's product line carries (remix parseProduct's limit for `what`). */
 export const AD_FACTS_MAX = 400;
 
+/** A fact as the lead rotation knows it: its first six words, any case. */
+export const factKey = (fact: string) => fact.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6).join(" ");
+
+/** The facts that led the brand's last ads, by factKey, the latest first, kept beside its angles in the same synced key. */
+export function recentLeads(userId: string): string[] {
+  try {
+    const kept = JSON.parse(localStorage.getItem(ANGLES + scoped(userId)) ?? "{}")?.leads;
+    return Array.isArray(kept) ? kept.filter((k): k is string => typeof k === "string" && !!k) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function rememberLead(userId: string, fact: string): void {
+  const key = factKey(fact);
+  if (!key) return;
+  try {
+    const raw = JSON.parse(localStorage.getItem(ANGLES + scoped(userId)) ?? "{}");
+    const all = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    localStorage.setItem(ANGLES + scoped(userId), JSON.stringify({ ...all, leads: [key, ...recentLeads(userId).filter((k) => k !== key)].slice(0, 20) }));
+  } catch {
+    // storage full: the next ad may lead with the same fact
+  }
+}
+
+/** Facts in the order to lead with them: the never led first, as saved, then the led ones, the least recently first. Pure. */
+export function leadOrder(facts: string[], leads: string[]): string[] {
+  const at = (f: string) => leads.indexOf(factKey(f));
+  return [...facts.filter((f) => at(f) < 0), ...facts.filter((f) => at(f) >= 0).sort((a, b) => at(b) - at(a))];
+}
+
 /**
- * What the ad is about when the brand has no product in use: its most concrete saved facts, in this order, each once:
- * the script desk's Product while it is on (what it is, how it works, what you get, its proof line), the positioning's
- * edge and one-liner (typed, or filled in by the website read), then the brand's own saved facts (Your memory, where an
- * App Store read's proof lines land). Named by that Product, else the brand; null with no name or nothing saved.
+ * What the ad is about when the brand has no product in use: its most concrete saved facts, each once: the script
+ * desk's Product while it is on (what it is, how it works, what you get, its proof line), the positioning's edge and
+ * one-liner (typed, or filled in by the website read), then the brand's own saved facts (Your memory, where an App Store
+ * read's proof lines land). They lead in turn, the least recently led first (leadOrder), so one ad after another leads
+ * with a different concrete thing; `lead` is the one this ad leads with. Named by that Product, else the brand; null with
+ * no name or nothing saved.
  */
-export function brandAdFacts(userId: string): AdProduct | null {
+export function brandAdFacts(userId: string): (AdProduct & { lead: string }) | null {
   const { product: desk } = loadScriptContext(userId);
   const pos = loadPositioning(userId);
   const sentence = (t: string | undefined) => (t ?? "").replace(/\s+/g, " ").trim().replace(/[.\s]+$/, "");
   const own = desk.on ? [desk.what, desk.how.split("\n").map(sentence).filter(Boolean).join(", "), desk.gets, desk.proof] : [];
   const facts = [...own, pos?.edge, pos?.oneLiner, ...loadFacts(userId).filter(isOn).map((f) => f.text)].map(sentence).filter(Boolean);
-  const unique = facts.filter((f, i) => facts.findIndex((x) => x.toLowerCase() === f.toLowerCase()) === i);
+  const unique = leadOrder(facts.filter((f, i) => facts.findIndex((x) => x.toLowerCase() === f.toLowerCase()) === i), recentLeads(userId));
   const name = (desk.on && desk.name.trim()) || ownBrandName(userId);
   if (!name || !unique.length) return null;
-  return { name: name.slice(0, 60), what: cutAtWord(`${unique.join(". ")}.`, AD_FACTS_MAX), forWho: cutAtWord((desk.on && desk.who.trim()) || pos?.audienceDetail.trim() || "", 120) };
+  return { name: name.slice(0, 60), what: cutAtWord(`${unique.join(". ")}.`, AD_FACTS_MAX), forWho: cutAtWord((desk.on && desk.who.trim()) || pos?.audienceDetail.trim() || "", 120), lead: unique[0] };
 }
 
 /**
@@ -280,7 +308,12 @@ async function productPicture(p: Product): Promise<string | undefined> {
   return blob ? scalePicture(blob).catch(() => undefined) : undefined;
 }
 
-/** `angle` (one of STATIC_ANGLES) and `product` (a saved product's id), when the person picked them: that angle, that product. */
+/**
+ * Writes the format's words for the brand into a new drawn design, then makes them into one photo. `format` is what
+ * the drawn make carries (staticMake: the topic, and the product photo or price where the format uses them), with
+ * `angle` (one of STATIC_ANGLES) and `product` (a saved product's id) when the person picked them. Nothing is spent on
+ * a picture when the words didn't come, or came too long for ai-image's prompt.
+ */
 export async function startPhotoAd(userId: string, f: StaticFormat, format: { topic: string; pictureKey?: string; price?: string; angle?: string; product?: string }): Promise<void> {
   const slug = f.slug;
   if (photoAdBusy() || imageWriteBusy() || imageBusy() || !isStatic(slug)) return;
@@ -295,7 +328,8 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   const items = loadProducts(userId).items;
   const sold = items.find((p) => p.id === format.product) ?? adProduct(items, format.topic);
   // no product in use: the brand's most concrete saved facts, so the words still name one thing it does
-  const product = sold ? adFacts(sold) : (brandAdFacts(userId) ?? undefined);
+  const facts = sold ? null : brandAdFacts(userId);
+  const product = sold ? adFacts(sold) : facts ? { name: facts.name, what: facts.what, forWho: facts.forWho } : undefined;
   const angles = format.angle && format.angle in STATIC_ANGLES ? [format.angle] : angleOrder(slug, usedAngles(userId, slug)).slice(0, ANGLE_POOL);
   const avoid = sampleOpening(f);
   const openings = recentOpenings(userId);
@@ -308,6 +342,7 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   if (w.angle) rememberAngle(userId, slug, w.angle);
   rememberOpening(userId, mainWords(slug, words));
   rememberClosing(userId, closingOf(slug, words));
+  if (facts) rememberLead(userId, facts.lead);
   const made = { ...base, ...(w.angle ? { angle: w.angle } : {}) };
   const kit = loadBrand(userId) ?? DEFAULT_BRAND;
   const brand = { name: ownBrandName(userId), color: kit.color };
