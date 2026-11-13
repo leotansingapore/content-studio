@@ -1880,12 +1880,14 @@ export default function CalendarPage() {
               </p>
               {progress.goal > 0 && (
                 <>
+                  {/* no brand name ("Me: 3 of 3" read as broken, as on the line below); planned is not posted, so
+                      "goal met" waits until the posts are out */}
                   <span className="font-medium text-foreground">
-                    {profileName}: {progress.planned} of {progress.goal} planned
+                    Goal: {progress.planned} of {progress.goal} planned
                   </span>
                   <span
                     role="progressbar"
-                    aria-label={`${profileName} weekly goal`}
+                    aria-label="Weekly goal"
                     aria-valuemin={0}
                     aria-valuemax={progress.goal}
                     aria-valuenow={progress.planned}
@@ -1900,7 +1902,7 @@ export default function CalendarPage() {
                       }}
                     />
                   </span>
-                  <span>{progress.toDo > 0 ? `${progress.toDo} to go` : "goal met"}</span>
+                  {progress.toDo > 0 ? <span>{progress.toDo} to go</span> : progress.met >= progress.goal && <span>goal met</span>}
                   {progress.toDo > 0 && (
                     // the week's one next step is a button, not a link in a line of small print
                     <Button asChild size="sm" className="h-9 sm:h-8 [@media(pointer:coarse)]:h-11">
