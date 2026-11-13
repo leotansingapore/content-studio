@@ -295,10 +295,12 @@ function AdvisorCard({
           Details
         </Link>
       </Button>
+      {/* outlined: a filled one on every card was the grid's loudest call, and it leaves the app (law 7) */}
       <Button
         asChild
+        variant="outline"
         size="sm"
-        className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
+        className="w-full gap-1.5 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
       >
         <a
           href={entry.platform_url}
