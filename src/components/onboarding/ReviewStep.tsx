@@ -69,19 +69,14 @@ function ColourField({ picked, suggested, presets, max, onChange }: { picked: st
           <Swatch key={`${hex}-${i}`} hex={hex} label={`${i === 0 ? "Main colour" : `Colour ${i + 1}`} ${hex}, change it`} selected={editing === i} onClick={() => (editing === i ? setEditing(null) : open(i, hex))} />
         ))}
         {picked.length < max && (
-          <div className="flex flex-col items-center gap-1">
-            <button
-              type="button"
-              onClick={() => open(picked.length, others[0] ?? "#2563EB")}
-              aria-label="Add a colour"
-              className="grid h-[51px] w-[51px] place-items-center rounded-full border-2 border-dashed border-border bg-card text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
-            >
-              <PlusIcon size={20} />
-            </button>
-            <span className="text-[11px] font-medium text-transparent" aria-hidden="true">
-              add
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => open(picked.length, others[0] ?? "#2563EB")}
+            aria-label="Add a colour"
+            className="grid h-[51px] w-[51px] place-items-center rounded-full border-2 border-dashed border-border bg-card text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
+          >
+            <PlusIcon size={20} />
+          </button>
         )}
       </div>
       {editing !== null && (
