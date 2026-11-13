@@ -636,6 +636,11 @@ export function versionOf(parent: DraftEntry, text: string, hook: string, formul
   for (const k of ["scheduledFor", "postedAt", "repeat", "metrics", "zernio", "live", "score", "versions", "thread", "storyboard", "titles", "cover", "agent"] as const) delete v[k];
   return v;
 }
+/** The toast a post opened by ?draft= gets: a board idea's, or Draft restored over written text; an unwritten plan slot, none. */
+export function openedToast(entry: Pick<DraftEntry, "draft" | "pillar">): { title: string; description: string } | null {
+  if (!entry.draft && !entry.pillar) return { title: "Idea loaded", description: "Your board idea is the topic. Pick a format and generate." };
+  return entry.draft.trim() ? { title: "Draft restored", description: "Form repopulated. Edit and re-roll, or copy as-is." } : null;
+}
 // set ids sync inside the drafts key, so never uuid-shaped
 const newSetId = () => `vs-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
@@ -1409,12 +1414,8 @@ function Writer() {
       if (note) toast(note);
       return;
     }
-    toast({
-      title: isBareIdea ? "Idea loaded" : "Draft restored",
-      description: isBareIdea
-        ? "Your board idea is the topic. Pick a format and generate."
-        : "Form repopulated. Edit and re-roll, or copy as-is.",
-    });
+    const opened = openedToast(entry);
+    if (opened) toast(opened);
     // a compare= link scrolls to the compare strip instead, and Leo's #score to the score panel
     if (!searchParams.has("compare") && !(leo && window.location.hash === "#score"))
       setTimeout(() => {

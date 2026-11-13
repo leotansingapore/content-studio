@@ -251,3 +251,13 @@ describe("the short video's format picker (loop-format-library)", () => {
     expect(draw("not-a-format")).not.toContain("text-[11px]");
   });
 });
+
+describe("the toast a post opened by link gets", () => {
+  it("says Draft restored only over written text; an unwritten plan slot opens with none", async () => {
+    const { openedToast } = await import("./GeneratePage");
+    expect(openedToast({ draft: "Most people pay twice.", pillar: "topic" })?.title).toBe("Draft restored");
+    expect(openedToast({ draft: "", pillar: "topic" })).toBeNull();
+    expect(openedToast({ draft: "  \n", pillar: "topic" })).toBeNull();
+    expect(openedToast({ draft: "", pillar: "" })?.title).toBe("Idea loaded");
+  });
+});
