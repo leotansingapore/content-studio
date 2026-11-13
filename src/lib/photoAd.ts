@@ -5,13 +5,12 @@
 // the words into a new drawn design first (startImageWrite, the drawn make's own write, so that design stays in Your
 // images too), then one ai-image make with its words flag (no "No text" rule, no Soul v2 fallback) and the brand kit's
 // logo and the product's own picture as pictures for the model to put in (the logo where the format carries a brand
-// mark) keeps the photo in Media under AI images, cut from the model's 3:4 to the examples' 4:5 (makeImage's ratio; the
-// prompt keeps words clear of the cut edges). Each make takes an ad angle: the brand's four least recently used for the
-// format go to the writer, Jev picks one (the first when it can't), and the one taken is remembered for next time. The run lives outside React, as MemeOptions' pictures do, so leaving the
-// page keeps it, and it mirrors its step into formatJob for /library's Making now. A reload forgets the run; the
-// picture's paid token is picked up by resumeImage, still lands in Media, and the page shows it again from the picture
-// job (shownPhotoAd).
-
+// mark) keeps the photo in Media under AI images, made at the examples' 4:5 by ai-image and kept whole, so no edge is
+// ever cut off. Each make takes an ad angle: the brand's four least recently used for the format go to the writer, Jev
+// picks one (the first when it can't), and the one taken is remembered for next time. The run lives outside React, as
+// MemeOptions' pictures do, so leaving the page keeps it, and it mirrors its step into formatJob for /library's Making
+// now. A reload forgets the run; the picture's paid token is picked up by resumeImage, still lands in Media, and the
+// page shows it again from the picture job (shownPhotoAd).
 import { useEffect, useState } from "react";
 import { STATIC_SHOTS, staticFormatHref, type StaticFormat } from "@/data/staticFormats";
 import { AI_FOLDER, imageBusy, imageJob, makeImage, type ImageJob } from "@/lib/aiImage";
@@ -32,9 +31,6 @@ import { isOn, loadFacts } from "@/lib/voiceMemory";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic.ts";
 import { STATIC_ANGLES, type AdProduct, type Subject } from "../../supabase/functions/remix/logic.ts";
 
-/** ai-image makes 3:4 and the photo is kept 4:5, cut from the middle: a little goes off the top and the bottom. */
-export const PHOTO_RATIO = 4 / 5;
-export const PHOTO_EDGES = "Keep all text well clear of the top and bottom edges.";
 export const PHOTO_PEOPLE = "People, when the scene shows any, are Singaporean adults.";
 /** A real Singapore look without a real business or place on it (a 13 Nov poster drew a real station's sign and operator mark). */
 export const PHOTO_MARKS = "Singapore by its look alone: no real place names on signs, and no real transit, mall, bank or shop logos or vehicle liveries.";
@@ -67,9 +63,8 @@ export const productLine = (p: { name: string; what: string }) => {
  * The picture maker's prompt for a static format made as a photo: its scene, the brand's name and colour, the product the
  * ad is about when there is one, what to show of what it sells (SUBJECT_LINES, on a format with room for a picture of
  * it), every on-picture string of its layout in draw order (IMAGE_FIELDS, a typed price included), each labelled and in
- * double quotes, the edge line (the 4:5 cut must not clip a word), the people line, the real-marks line and the spelling
- * rule. Words the layout never draws (the topic, the caption) stay out, and a brand with no name is given by its colour
- * alone. Pure.
+ * double quotes, the people line, the real-marks line and the spelling rule. Words the layout never draws (the topic,
+ * the caption) stay out, and a brand with no name is given by its colour alone. Pure.
  */
 export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { name: string; color: string }, words: Record<string, string>, product?: { name: string; what: string }, subject?: Subject): string {
   const fields = isStatic(f.slug) ? IMAGE_FIELDS[f.slug] : [];
@@ -81,7 +76,6 @@ export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { 
     product ? productLine(product) : "",
     subject && staticPhoto(f.slug) ? SUBJECT_LINES[subject] : "",
     on.length ? `The words on it, in order: ${on.join("; ")}.` : "",
-    PHOTO_EDGES,
     PHOTO_PEOPLE,
     PHOTO_MARKS,
     PHOTO_RULE,
@@ -253,7 +247,7 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   // in the words is the mark, and with no picture the product line describes it
   const picture = sold ? await productPicture(sold) : undefined;
   const refs = { ...(kit.logo ? { logo: kit.logo } : {}), ...(picture ? { product: picture } : {}) };
-  await makeImage(userId, prompt, `${f.name}: ${mainWords(slug, words)}`, undefined, undefined, { words: true, ratio: PHOTO_RATIO, ...(refs.logo || refs.product ? { refs } : {}) });
+  await makeImage(userId, prompt, `${f.name}: ${mainWords(slug, words)}`, undefined, undefined, { words: true, ...(refs.logo || refs.product ? { refs } : {}) });
   const j = imageJob();
   if (j?.state !== "done" || !j.mediaKey) return set({ ...made, state: "failed", error: j?.error || NOT_MADE });
   set({ ...made, state: "done", mediaKey: j.mediaKey, preview: j.preview });

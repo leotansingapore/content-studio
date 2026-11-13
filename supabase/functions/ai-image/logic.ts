@@ -38,7 +38,8 @@ export type ImageRequest =
    */
   | { mode: "start"; prompt: string; words?: true; refs?: Refs }
   | { mode: "status"; token: string }
-  | { mode: "fix"; token: string; fix: string };
+  /** words: the fix of a photo ad, which keeps its 4:5 (openai.ts WORDS_SIZE). */
+  | { mode: "fix"; token: string; fix: string; words?: true };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -53,7 +54,7 @@ export function parseImageRequest(raw: unknown): { ok: true; request: ImageReque
     const fix = typeof b.fix === "string" ? b.fix.replace(/\s+/g, " ").trim() : "";
     if (fix.length < MIN_FIX) return { ok: false, error: "Say what to fix." };
     if (fix.length > MAX_FIX) return { ok: false, error: `Keep it under ${MAX_FIX} characters.` };
-    return { ok: true, request: { mode: "fix", token: b.token, fix } };
+    return { ok: true, request: { mode: "fix", token: b.token, fix, ...(b.words === true ? { words: true as const } : {}) } };
   }
   const prompt = typeof b.prompt === "string" ? b.prompt.replace(/\s+/g, " ").trim() : "";
   if (prompt.length < MIN_PROMPT) return { ok: false, error: "Write a longer image prompt first." };

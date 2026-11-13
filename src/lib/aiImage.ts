@@ -9,7 +9,7 @@ import { callFn } from "@/lib/edgeFn";
 import { deleteFile, getFile } from "@/lib/deviceFiles";
 import { getDraftById, loadDrafts, setDraftAttached } from "@/lib/draftHistory";
 import { loadBrand } from "@/lib/carousel";
-import { addMedia, centerCrop, storePicture } from "@/lib/mediaLibrary";
+import { addMedia, storePicture } from "@/lib/mediaLibrary";
 import { leoUser } from "@/lib/useLeoOnly";
 import { memoryLine } from "@/lib/voiceMemory";
 import { scoped } from "@/lib/profiles";
@@ -32,8 +32,8 @@ export interface ImageJob {
   designId?: string;
   /** The agent's chat that asked for it: Activity logs it as the agent's (live-p6replay D6). */
   agent?: { thread: string; msg: string };
-  /** The shape it is kept in (width / height), cut from the middle: a photo ad's 4:5. A fix keeps it too. */
-  ratio?: number;
+  /** A picture that prints its words (a photo ad): made at 4:5 by ai-image and kept whole; its fix asks for the same shape. */
+  words?: true;
   /** The model was handed the brand's logo to place itself, so the logo stamp stays off it and its fixes. */
   bare?: true;
   attached?: { draft: string; key: string };
@@ -45,7 +45,7 @@ const GIVE_UP_MS = 4 * 60_000;
 const PENDING = "cs-ai-image-making-"; // this device only, on purpose: the token is no use elsewhere
 
 /** A make or fix whose use is spent and whose picture isn't kept yet. */
-type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string; agent?: ImageJob["agent"]; ratio?: number; bare?: true; attachTo?: string; replace?: string };
+type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string; agent?: ImageJob["agent"]; words?: true; bare?: true; attachTo?: string; replace?: string };
 type Ask = Omit<Pending, "token">;
 
 function readPending(scope: string): Pending | null {
@@ -92,16 +92,15 @@ function withMemory(userId: string, prompt: string): string {
   return memory ? `${prompt}\n\n${memory}` : prompt;
 }
 
-/** Where the logo sits on a picture: 12% of its width, bottom right, 3% in from the edges; of the part kept, when a ratio cuts it. */
-export function logoBox(w: number, h: number, logoW: number, logoH: number, ratio?: number) {
-  const area = ratio ? centerCrop(w, h, ratio) : { x: 0, y: 0, w, h };
-  const width = Math.round(area.w * 0.12);
+/** Where the logo sits on a picture: 12% of its width, bottom right, 3% in from the edges. */
+export function logoBox(w: number, h: number, logoW: number, logoH: number) {
+  const width = Math.round(w * 0.12);
   const height = Math.round((width * logoH) / Math.max(1, logoW));
-  const margin = Math.round(area.w * 0.03);
-  return { x: area.x + area.w - margin - width, y: area.y + area.h - margin - height, width, height };
+  const margin = Math.round(w * 0.03);
+  return { x: w - margin - width, y: h - margin - height, width, height };
 }
 
-async function stampLogo(pic: Blob, logo: string, ratio?: number): Promise<Blob> {
+async function stampLogo(pic: Blob, logo: string): Promise<Blob> {
   const [img, mark] = await Promise.all([createImageBitmap(pic), fetch(logo).then((r) => r.blob()).then((b) => createImageBitmap(b))]);
   const c = document.createElement("canvas");
   c.width = img.width;
@@ -109,7 +108,7 @@ async function stampLogo(pic: Blob, logo: string, ratio?: number): Promise<Blob>
   const g = c.getContext("2d");
   if (!g) return pic;
   g.drawImage(img, 0, 0);
-  const box = logoBox(img.width, img.height, mark.width, mark.height, ratio);
+  const box = logoBox(img.width, img.height, mark.width, mark.height);
   g.drawImage(mark, box.x, box.y, box.width, box.height);
   return new Promise((resolve) => c.toBlob((out) => resolve(out ?? pic), "image/png"));
 }
@@ -118,25 +117,25 @@ async function stampLogo(pic: Blob, logo: string, ratio?: number): Promise<Blob>
  * "Logo on AI pictures" (brand-kit, Leo only): the kit's logo on the picture before it is kept, a fix's result
  * included (Fix it edits the unstamped original). Anyone else's picture, or one the stamp fails on, as it came.
  */
-async function withLogo(userId: string, pic: Blob, ratio?: number): Promise<Blob> {
+async function withLogo(userId: string, pic: Blob): Promise<Blob> {
   try {
     if (!(await leoUser())) return pic;
     const kit = loadBrand(userId);
-    return kit?.logo && kit.stamp?.pictureLogo ? await stampLogo(pic, kit.logo, ratio) : pic;
+    return kit?.logo && kit.stamp?.pictureLogo ? await stampLogo(pic, kit.logo) : pic;
   } catch {
     return pic;
   }
 }
 
 /**
- * o.words: the picture prints the prompt's quoted lines (ai-image's words flag); o.ratio: kept cut to that shape (width /
- * height); o.refs (with words): pictures the model puts in the ad, the brand's logo (then never stamped on too) and the
- * product's picture.
+ * o.words: the picture prints the prompt's quoted lines (ai-image's words flag), made at 4:5 and kept whole, never cut;
+ * o.refs (with words): pictures the model puts in the ad, the brand's logo (then never stamped on too) and the product's
+ * picture.
  */
-export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"], o: { words?: true; ratio?: number; refs?: { logo?: string; product?: string } } = {}): Promise<void> =>
+export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"], o: { words?: true; refs?: { logo?: string; product?: string } } = {}): Promise<void> =>
   run(
     userId,
-    { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}), ...(o.ratio ? { ratio: o.ratio } : {}), ...(o.words && o.refs?.logo ? { bare: true as const } : {}) },
+    { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}), ...(o.words ? { words: true as const } : {}), ...(o.words && o.refs?.logo ? { bare: true as const } : {}) },
     { mode: "start", prompt: withMemory(userId, prompt), ...(o.words ? { words: true, ...(o.refs?.logo || o.refs?.product ? { refs: o.refs } : {}) } : {}) },
   );
 
@@ -175,7 +174,7 @@ export function fixImage(userId: string, fix: string): Promise<void> {
   const j = job;
   if (!j?.token || j.state !== "done" || imageBusy()) return Promise.resolve();
   const swap = j.attached ? { attachTo: j.attached.draft, replace: j.attached.key } : {};
-  return run(userId, { prompt: j.prompt, name: j.name ?? "AI image", fix, ...(j.ratio ? { ratio: j.ratio } : {}), ...(j.bare ? { bare: true as const } : {}), ...swap }, { mode: "fix", token: j.token, fix }, j);
+  return run(userId, { prompt: j.prompt, name: j.name ?? "AI image", fix, ...(j.words ? { words: true as const } : {}), ...(j.bare ? { bare: true as const } : {}), ...swap }, { mode: "fix", token: j.token, fix, ...(j.words ? { words: true } : {}) }, j);
 }
 
 const attachPicture = async (userId: string, draft: string, pic: Blob, replace?: string): Promise<ImageJob["attached"]> => {
@@ -223,9 +222,7 @@ function failed(prompt: string, e: unknown, before?: ImageJob) {
   set(before ? { ...before, fixError: error } : { prompt, state: "failed", error });
 }
 
-async function finish(userId: string, scope: string, { token, prompt, name, fix, designId, ratio: asked, bare, attachTo, replace }: Pending, before?: ImageJob): Promise<void> {
-  // read back from this device after a reload, so only a real shape counts
-  const ratio = typeof asked === "number" && asked > 0 ? asked : undefined;
+async function finish(userId: string, scope: string, { token, prompt, name, fix, designId, words, bare, attachTo, replace }: Pending, before?: ImageJob): Promise<void> {
   try {
     let url = "";
     for (const until = Date.now() + GIVE_UP_MS; !url && Date.now() < until; ) {
@@ -240,8 +237,9 @@ async function finish(userId: string, scope: string, { token, prompt, name, fix,
     const res = await fetch(url).catch(() => null);
     if (!res?.ok) throw new Error("The image was made but didn't download. Try again.");
     const raw = await res.blob();
-    const blob = bare === true ? raw : await withLogo(userId, raw, ratio);
-    const pic = await storePicture(blob, undefined, ratio);
+    const blob = bare === true ? raw : await withLogo(userId, raw);
+    // kept whole, never cut: a photo ad comes from ai-image at its 4:5 already
+    const pic = await storePicture(blob);
     const saved = fix ? `${name} (fixed)`.slice(0, 80) : name;
     addMedia(userId, {
       key: pic.key, name: saved, folder: AI_FOLDER, alt: (fix ? `${prompt} Fixed: ${fix}` : prompt).slice(0, 250),
@@ -251,7 +249,7 @@ async function finish(userId: string, scope: string, { token, prompt, name, fix,
     attachNext = undefined;
     const attached = target ? await attachPicture(userId, target, blob, replace) : undefined;
     keepPending(scope, null);
-    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name, designId, ...(ratio ? { ratio } : {}), ...(bare === true ? { bare } : {}), ...(attached ? { attached } : {}) });
+    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name, designId, ...(words === true ? { words } : {}), ...(bare === true ? { bare } : {}), ...(attached ? { attached } : {}) });
   } catch (e) {
     keepPending(scope, null);
     failed(prompt, e, before);

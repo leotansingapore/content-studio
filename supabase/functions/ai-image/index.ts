@@ -1,5 +1,5 @@
 // "Make the image" on Write: one picture from the post's image prompt, with
-// GPT Image 2.6 Flare (about USD 0.04 each at 3:4, openai.ts), or Higgsfield Soul v2 when OpenAI can't.
+// GPT Image 2.6 Flare (about USD 0.04 each at 3:4, a photo ad at 4:5, openai.ts), or Higgsfield Soul v2 when OpenAI can't.
 //   POST {mode:"start", prompt, words?, refs?} -> {token}: counts against the "ai-image" daily cap (OWNER_AI_IMAGE_LIMIT
 //        for an id in NORTH_STAR_USERS). words: true (a static
 //        format made as a photo) prints the prompt's quoted lines: the people rule loses its "No text" clause, and when
@@ -7,9 +7,9 @@
 //        only): the brand's logo and the product's picture as data URLs, sent to GPT Image's edits as references for a whole new picture; when
 //        that call fails the picture is made from the words alone, as before.
 //   POST {mode:"status", token} -> {state:"working"} | {state:"done", url} | {state:"failed", error}
-//   POST {mode:"fix", token, fix} -> {token}: "Fix it" under a finished picture; GPT Image 2.6 Flare (Qwen Image 3
-//        when OpenAI can't) edits the picture that token made (the link is read from the cs-ai-images bucket or
-//        Higgsfield, so only the adviser's own pictures). Counts against
+//   POST {mode:"fix", token, fix, words?} -> {token}: "Fix it" under a finished picture (words: a photo ad's, kept 4:5);
+//        GPT Image 2.6 Flare (Qwen Image 3 when OpenAI can't) edits the picture that token made (the link is read from
+//        the cs-ai-images bucket or Higgsfield, so only the adviser's own pictures). Counts against
 //        "ai-image-fix" and "ai-image-fix-global".
 //   POST {mode:"broll", search, line, aspect} -> {token}: an AI B-roll clip for a line stock had nothing
 //        for (broll.ts): a Soul v2 picture, waited for here, then DoP lite moves it; the token is the
@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
         const refusal = usageRefusal(everyone);
         return json(refusal.body, refusal.status);
       }
-      const redone = await gpt("edits", gptFixBody(url, parsed.request.fix, uid));
+      const redone = await gpt("edits", gptFixBody(url, parsed.request.fix, uid, parsed.request.words === true));
       if (redone === "blocked") return json({ error: BLOCKED }, 422);
       if (redone) return json({ token: await jobToken(signing, uid, redone), usage: { used: mine.used, limit: mine.limit } });
       const fixed = await submit(FIX_MODEL, buildFixBody(url, parsed.request.fix));

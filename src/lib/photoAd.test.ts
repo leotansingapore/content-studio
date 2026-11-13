@@ -66,7 +66,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { AD_FACTS_MAX, ANGLE_POOL, SUBJECT_LINES, subjectOf, PHOTO_EDGES, brandAdFacts, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { AD_FACTS_MAX, ANGLE_POOL, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -95,10 +95,10 @@ describe("the photo prompt", () => {
     expect(photoAdPrompt(flyer, hilltop, { headline: "Cold brew, delivered.", price: "$6 a bottle" })).toContain('Headline: "Cold brew, delivered."; Price: "$6 a bottle".');
   });
 
-  it("keeps every word clear of the top and bottom edges, which the 4:5 cut takes off", () => {
+  it("asks for no edge margin: nothing is cut off the picture any more, so the words run straight into the closing lines", () => {
     const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." });
-    expect(PHOTO_EDGES).toBe("Keep all text well clear of the top and bottom edges.");
-    expect(p).toContain(`"Still dark.". ${PHOTO_EDGES} ${PHOTO_PEOPLE}`);
+    expect(p).toContain(`"Still dark.". ${PHOTO_PEOPLE}`);
+    expect(p).not.toMatch(/edges?\b|cut/i);
   });
 
   it("ends on the people line, the real-marks line and the spelling rule, word for word", () => {
@@ -164,19 +164,19 @@ describe("the photo run", () => {
     const design = imageById(U, p.designId)!;
     expect(design).toMatchObject({ layout: "street-poster", words: { topic: "Rainy mornings", headline: "Still dark, still raining." } });
     // the words flag (no "No text" rule, no Soul v2) and kept cut to the examples' 4:5
-    expect(fake.calls).toEqual([{ prompt: photoAdPrompt(poster, { name: "", color: DEFAULT_BRAND.color }, design.words), name: "Poster in the street: Still dark, still raining.", o: { words: true, ratio: 0.8 } }]);
+    expect(fake.calls).toEqual([{ prompt: photoAdPrompt(poster, { name: "", color: DEFAULT_BRAND.color }, design.words), name: "Poster in the street: Still dark, still raining.", o: { words: true } }]);
   });
 
   it("hands the model the brand kit's logo to place, and no picture at all for a kit without one", async () => {
     const LOGO = "data:image/png;base64,iVBORw0KGgo=";
     localStorage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#F26B1D", name: "ActivityTracker", handle: "", logo: LOGO }));
     await startPhotoAd(U, poster, { topic: "x" });
-    expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8, refs: { logo: LOGO } });
+    expect(fake.calls[0].o).toEqual({ words: true, refs: { logo: LOGO } });
     // the name and colour still go in the words, so the picture reads the same when the model can't take the logo
     expect(fake.calls[0].prompt).toContain('The brand is "ActivityTracker", its colour #F26B1D.');
     localStorage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#F26B1D", name: "ActivityTracker", handle: "" }));
     await startPhotoAd(U, poster, { topic: "x" });
-    expect(fake.calls[1].o).toEqual({ words: true, ratio: 0.8 });
+    expect(fake.calls[1].o).toEqual({ words: true });
   });
 
   describe("about the brand's product", () => {
@@ -192,7 +192,7 @@ describe("the photo run", () => {
       const design = imageById(U, photoAd()!.designId)!;
       expect(fake.calls[0].prompt).toBe(photoAdPrompt(poster, { name: "", color: DEFAULT_BRAND.color }, design.words, { name: "Activity Tracker", what: tracker.what }));
       expect(fake.calls[0].prompt).toContain("The ad shows the brand's product itself: Activity Tracker, Logs daily sales activities as streaks, with a leaderboard.");
-      expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8, refs: { product: `data:image/jpeg;base64,${btoa("tracker")}` } });
+      expect(fake.calls[0].o).toEqual({ words: true, refs: { product: `data:image/jpeg;base64,${btoa("tracker")}` } });
     });
 
     it("takes the product the note names, and describes one with no picture on this device in words alone", async () => {
@@ -200,11 +200,11 @@ describe("the photo run", () => {
       await startPhotoAd(U, poster, { topic: "Make it about corgi coach" });
       expect(fake.asks[0].product).toMatchObject({ name: "Corgi Coach" });
       expect(fake.calls[0].prompt).toContain("The ad shows the brand's product itself: Corgi Coach, A virtual corgi that grows with your streak.");
-      expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8 });
+      expect(fake.calls[0].o).toEqual({ words: true });
       // the tracker's picture key is known but not on this device: still words alone
       await startPhotoAd(U, poster, { topic: "x" });
       expect(fake.asks[1].product).toMatchObject({ name: "Activity Tracker" });
-      expect(fake.calls[1].o).toEqual({ words: true, ratio: 0.8 });
+      expect(fake.calls[1].o).toEqual({ words: true });
     });
 
     it("sends a named insurer product's general kind and never its picture, and leaves the product out with none saved", async () => {
@@ -213,7 +213,7 @@ describe("the photo run", () => {
       await startPhotoAd(U, poster, { topic: "x" });
       expect(fake.asks[0].product).toMatchObject({ name: "an investment-linked plan" });
       expect(fake.calls[0].prompt).not.toMatch(/Pro Achiever|AIA/);
-      expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8 });
+      expect(fake.calls[0].o).toEqual({ words: true });
       localStorage.removeItem(`content-studio-products-${U}`);
       await startPhotoAd(U, poster, { topic: "x" });
       expect(fake.asks[1]).not.toHaveProperty("product");
@@ -228,7 +228,7 @@ describe("the photo run", () => {
       expect(fake.asks[0].product).toEqual({ name: "ActivityTracker", what: "Logs each day's calls as a streak, with a team leaderboard. A phone app for your selling week.", forWho: "Insurance agents" });
       expect(fake.calls[0].prompt).toContain("The ad shows the brand's product itself: ActivityTracker, Logs each day's calls as a streak, with a team leaderboard. A phone app for your selling week.");
       // no product of its own, so no product picture
-      expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8 });
+      expect(fake.calls[0].o).toEqual({ words: true });
       // the writer reads every fact; the picture gets the first 160 characters, cut at a word
       const long = `Logs each day's calls as a streak, with a team leaderboard and a virtual corgi that grows as you keep going. ${"Every call counts toward the week. ".repeat(6)}`;
       localStorage.setItem(`content-studio-positioning-${U}`, JSON.stringify({ oneLiner: "", edge: long, audience: "working-adult", audienceDetail: "", topics: [] }));

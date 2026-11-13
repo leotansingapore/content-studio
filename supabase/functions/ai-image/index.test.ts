@@ -195,7 +195,7 @@ describe("Make the image", () => {
     oa.reply = picture;
     expect((await call(ad)).status).toBe(200);
     expect(oa.calls).toHaveLength(1);
-    expect(oa.calls[0]).toMatchObject({ route: "edits", body: { images: [{ image_url: LOGO }], size: "1152x1536" } });
+    expect(oa.calls[0]).toMatchObject({ route: "edits", body: { images: [{ image_url: LOGO }], size: "1152x1440" } });
     expect(oa.calls[0].body.prompt).toMatch(/^A poster at a bus shelter\. Headline: "Still dark\."\n\nThe picture given is the brand's logo\./);
     expect(used(UID, "ai-image")).toBe(1);
     // the edit refused: one more call, today's words picture, and still one use
@@ -256,6 +256,15 @@ describe("Fix it", () => {
     expect(hf.submits).toEqual([]);
     expect(await statusOf((await res.json()).token)).toMatchObject({ state: "done" });
     expect([used(UID, "ai-image-fix"), used(GLOBAL_COUNTER_USER, "ai-image-fix-global")]).toEqual([1, 1]);
+  });
+
+  it("fixes a photo ad at its own 4:5, asked for by the app, and every other picture at 3:4 as before", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    db.kept.set(`${UID}/${PICTURE}.jpg`, new Date().toISOString());
+    expect((await call({ ...(await fixBody()), words: true })).status).toBe(200);
+    expect((await call(await fixBody())).status).toBe(200);
+    expect(oa.calls.map((c) => c.body.size)).toEqual(["1152x1440", "1152x1536"]);
   });
 
   it("edits a Higgsfield picture on GPT Image 2.6 Flare, and on Qwen Image 3 when OpenAI can't", async () => {

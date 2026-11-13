@@ -6,6 +6,11 @@ export const IMAGE_BUCKET = "cs-ai-images";
 export const KEEP_DAYS = 7;
 
 const OUTPUT = { size: "1152x1536", quality: "medium", output_format: "jpeg", output_compression: 90, n: 1 };
+/**
+ * A photo ad (words: true) is made at 4:5, the feed's shape and its examples', and kept whole: it was made at 3:4 and cut
+ * to 4:5 from the middle, which cut headlines and logos at the edges (13 Nov). Multiples of 16, inside the docs' limits.
+ */
+export const WORDS_SIZE = "1152x1440";
 
 export const picturePath = (uid: string, id: string) => `${uid}/${id.toLowerCase()}.jpg`;
 
@@ -14,6 +19,7 @@ export const gptImageBody = (prompt: string, uid: string, words = false): Record
   model: GPT_IMAGE_MODEL,
   prompt: `${prompt}\n\n${words ? WORDS_PEOPLE_RULE : PEOPLE_RULE}`,
   ...OUTPUT,
+  ...(words ? { size: WORDS_SIZE } : {}),
   safety_identifier: uid,
 });
 
@@ -32,15 +38,18 @@ export const gptRefBody = (prompt: string, uid: string, refs: Refs): Record<stri
     prompt: [prompt, ...lines, WORDS_PEOPLE_RULE].join("\n\n"),
     images: given.map((k) => ({ image_url: refs[k] })),
     ...OUTPUT,
+    size: WORDS_SIZE,
     safety_identifier: uid,
   };
 };
 
-export const gptFixBody = (imageUrl: string, fix: string, uid: string): Record<string, unknown> => ({
+/** words: the fix of a photo ad keeps its 4:5. */
+export const gptFixBody = (imageUrl: string, fix: string, uid: string, words = false): Record<string, unknown> => ({
   model: GPT_IMAGE_MODEL,
   prompt: `${fix}\n\n${KEEP_RULE}`,
   images: [{ image_url: imageUrl }],
   ...OUTPUT,
+  ...(words ? { size: WORDS_SIZE } : {}),
   safety_identifier: uid,
 });
 

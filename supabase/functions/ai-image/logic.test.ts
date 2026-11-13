@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_REF_CHARS, PEOPLE_RULE, WORDS_PEOPLE_RULE, buildFixBody, buildImageBody, pictureUrl, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic";
-import { REF_LINES, gptImageBody, gptRefBody } from "./openai";
+import { REF_LINES, WORDS_SIZE, gptFixBody, gptImageBody, gptRefBody } from "./openai";
 
 // The people rule every picture without words has always carried, pinned byte for byte before the words flag joined it.
 const RULE_BEFORE_WORDS =
@@ -59,7 +59,7 @@ describe("buildImageBody", () => {
 });
 
 describe("a picture that carries words", () => {
-  it("gets the people rule without its No text clause, and nothing else changes", () => {
+  it("gets the people rule without its No text clause and the native 4:5 size, and nothing else changes", () => {
     const body = gptImageBody("A poster at a bus shelter", "u1", true);
     expect(body.prompt).toBe(`A poster at a bus shelter\n\n${WORDS_PEOPLE_RULE}`);
     expect(body.prompt).not.toMatch(/No text|no words|no logos/);
@@ -67,7 +67,23 @@ describe("a picture that carries words", () => {
     expect(`${WORDS_PEOPLE_RULE} No text, no words, no logos, no watermarks.`).toBe(RULE_BEFORE_WORDS);
     const { prompt: _a, ...rest } = body;
     const { prompt: _b, ...plain } = gptImageBody("A poster at a bus shelter", "u1");
-    expect(rest).toEqual(plain);
+    expect(rest).toEqual({ ...plain, size: "1152x1440" });
+    expect(plain.size).toBe("1152x1536");
+  });
+
+  it("asks for a 4:5 size the docs allow: both edges multiples of 16, inside 1:3 to 3:1, 655,360 to 8,294,400 pixels, under 2560x1440", () => {
+    const [w, h] = WORDS_SIZE.split("x").map(Number);
+    expect(w / h).toBe(4 / 5);
+    expect([w % 16, h % 16]).toEqual([0, 0]);
+    expect(w * h).toBeGreaterThanOrEqual(655_360);
+    expect(w * h).toBeLessThanOrEqual(2560 * 1440);
+  });
+
+  it("keeps a photo ad's fix at 4:5 too, and every other fix as it was", () => {
+    expect(parseImageRequest({ mode: "fix", token: "t", fix: "make the sky bluer", words: true })).toEqual({ ok: true, request: { mode: "fix", token: "t", fix: "make the sky bluer", words: true } });
+    expect(parseImageRequest({ mode: "fix", token: "t", fix: "make the sky bluer", words: "yes" })).toEqual({ ok: true, request: { mode: "fix", token: "t", fix: "make the sky bluer" } });
+    expect(gptFixBody("https://x/p.jpg", "make the sky bluer", "u1", true)).toEqual({ ...gptFixBody("https://x/p.jpg", "make the sky bluer", "u1"), size: "1152x1440" });
+    expect(gptRefBody("A poster", "u1", { logo: "data:image/png;base64,iVBORw0KGgo=" }).size).toBe("1152x1440");
   });
 });
 

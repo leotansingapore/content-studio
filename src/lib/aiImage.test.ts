@@ -332,11 +332,12 @@ describe("a reload while a picture is made (D4)", () => {
   });
 });
 
-describe("a photo ad: words on it, kept 4:5", () => {
+describe("a photo ad: words on it, made at 4:5 and kept whole", () => {
   const KEY = "cs-ai-image-making-u1";
   const store = new Map<string, string>();
   const done = { state: "done", url: "https://db/storage/v1/object/sign/cs-ai-images/u1/p.jpg" };
-  const shapes = () => vi.mocked(storePicture).mock.calls.map(([, , ratio]) => ratio);
+  // what storePicture was asked for beyond the picture itself: a width or a shape would cut or shrink it
+  const cuts = () => vi.mocked(storePicture).mock.calls.map((c) => c.slice(1));
   beforeEach(() => {
     store.clear();
     const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
@@ -344,7 +345,7 @@ describe("a photo ad: words on it, kept 4:5", () => {
     vi.stubGlobal("window", { localStorage, location: { search: "" } });
   });
 
-  it("asks for the words, keeps the shape on this device until it lands, and cuts the made and the fixed picture to it", async () => {
+  it("asks for the words, keeps the flag on this device until it lands, keeps the made and the fixed picture whole, and the fix asks for 4:5 too", async () => {
     let waiting: unknown = null;
     vi.mocked(callFn).mockImplementation(async (_fn, body) => {
       const b = body as Body;
@@ -353,23 +354,27 @@ describe("a photo ad: words on it, kept 4:5", () => {
       waiting ??= JSON.parse(store.get(KEY) ?? "null");
       return done;
     });
-    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8 }));
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true }));
     expect(starts()[0][1]).toEqual({ mode: "start", prompt: "A poster at a bus shelter", words: true });
-    expect(waiting).toEqual({ prompt: "A poster at a bus shelter", name: "Poster", ratio: 0.8, token: "t1" });
-    expect(imageJob()).toMatchObject({ state: "done", ratio: 0.8 });
+    expect(waiting).toEqual({ prompt: "A poster at a bus shelter", name: "Poster", words: true, token: "t1" });
+    expect(imageJob()).toMatchObject({ state: "done", words: true });
     await settle(fixImage("u1", "make the sky bluer"));
-    expect(shapes()).toEqual([0.8, 0.8]);
+    expect(starts()[1][1]).toEqual({ mode: "fix", token: "t1", fix: "make the sky bluer", words: true });
+    expect(cuts()).toEqual([[], []]);
   });
 
-  it("cuts a picture picked up after a reload to its shape, and ignores a shape that isn't one", async () => {
-    vi.mocked(callFn).mockImplementation(async () => done);
-    store.set(KEY, JSON.stringify({ token: "t9", prompt: "A poster", name: "Poster", ratio: 0.8 }));
+  it("keeps a picture picked up after a reload whole, words flag and all, even one asked for before photo ads stopped being cut", async () => {
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as Body).mode === "fix" ? { token: "t2" } : done));
+    store.set(KEY, JSON.stringify({ token: "t9", prompt: "A poster", name: "Poster", words: true }));
     resumeImage("u1");
     await settle(Promise.resolve());
-    store.set(KEY, JSON.stringify({ token: "t8", prompt: "A poster", name: "Poster", ratio: "wide" }));
+    expect(imageJob()).toMatchObject({ state: "done", words: true });
+    await settle(fixImage("u1", "make the sky bluer"));
+    expect(starts().at(-1)![1]).toEqual({ mode: "fix", token: "t9", fix: "make the sky bluer", words: true });
+    store.set(KEY, JSON.stringify({ token: "t8", prompt: "A poster", name: "Poster", ratio: 0.8 }));
     resumeImage("u1");
     await settle(Promise.resolve());
-    expect(shapes()).toEqual([0.8, undefined]);
+    expect(cuts()).toEqual([[], [], []]);
   });
 });
 
@@ -505,16 +510,13 @@ describe("Logo on AI pictures (brand-kit)", () => {
     expect(drawn[1]).toEqual([{ width: 1080, height: 1440 }, ...Object.values(logoBox(1080, 1440, 1080, 1440))]);
   });
 
-  it("keeps a photo ad's logo inside the 4:5 part it keeps, clear of the cut", async () => {
-    // GPT Image's 1152x1536 cut to 1152x1440 loses 48 px top and bottom
-    const box = logoBox(1152, 1536, 400, 200, 0.8);
-    expect(box).toEqual({ x: 979, y: 1384, width: 138, height: 69 });
-    expect(box.y + box.height).toBeLessThanOrEqual(48 + 1440);
+  it("stamps a photo ad the model wasn't given a logo for inside the whole picture, which nothing cuts", async () => {
     kit(true);
     vi.mocked(callFn).mockImplementation(async (_fn, body) =>
       (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
-    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8 }));
-    expect(drawn[1]).toEqual([{ width: 1080, height: 1440 }, ...Object.values(logoBox(1080, 1440, 1080, 1440, 0.8))]);
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true }));
+    expect(drawn[1]).toEqual([{ width: 1080, height: 1440 }, ...Object.values(logoBox(1080, 1440, 1080, 1440))]);
+    expect(vi.mocked(storePicture).mock.calls.map((c) => c.length)).toEqual([1]);
   });
 
   it("never stamps a photo ad, or its fix, whose logo the model was given to place itself, and sends the logo once", async () => {
@@ -525,14 +527,14 @@ describe("Logo on AI pictures (brand-kit)", () => {
       kept ??= JSON.parse(store.get("cs-ai-image-making-u1") ?? "null");
       return { state: "done", url: "https://cdn.higgsfield.ai/pic.png" };
     });
-    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8, refs: { logo: LOGO } }));
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, refs: { logo: LOGO } }));
     await settle(fixImage("u1", "make the sky bluer"));
     expect(starts().map(([, b]) => b)).toEqual([
       { mode: "start", prompt: "A poster at a bus shelter", words: true, refs: { logo: LOGO } },
-      { mode: "fix", token: "t1", fix: "make the sky bluer" },
+      { mode: "fix", token: "t1", fix: "make the sky bluer", words: true },
     ]);
     // the logo never sits in this device's pending token
-    expect(kept).toEqual({ prompt: "A poster at a bus shelter", name: "Poster", ratio: 0.8, bare: true, token: "t1" });
+    expect(kept).toEqual({ prompt: "A poster at a bus shelter", name: "Poster", words: true, bare: true, token: "t1" });
     expect(await Promise.all(vi.mocked(storePicture).mock.calls.map(([b]) => (b as Blob).text()))).toEqual(["png", "png"]);
     expect(drawn).toEqual([]);
   });
@@ -541,7 +543,7 @@ describe("Logo on AI pictures (brand-kit)", () => {
     kit(true);
     vi.mocked(callFn).mockImplementation(async (_fn, body) =>
       (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
-    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8, refs: { product: "data:image/jpeg;base64,UFJPRA==" } }));
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, refs: { product: "data:image/jpeg;base64,UFJPRA==" } }));
     expect(starts()[0][1]).toEqual({ mode: "start", prompt: "A poster at a bus shelter", words: true, refs: { product: "data:image/jpeg;base64,UFJPRA==" } });
     expect(await Promise.all(vi.mocked(storePicture).mock.calls.map(([b]) => (b as Blob).text()))).toEqual(["stamped"]);
   });
@@ -575,7 +577,7 @@ describe("existing callers, pinned", () => {
     });
     await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic", "img-1", { thread: "th1", msg: "m1" }));
     await settle(fixImage("u1", "make the sky bluer"));
-    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8 }));
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true }));
     await settle(autoImage("u1", "A laptop on a desk", "Portfolio", "d1"));
     expect(JSON.stringify(starts().map(([fn, b]) => [fn, b]))).toBe(
       '[["ai-image",{"mode":"start","prompt":"A family picnic at East Coast Park"}],["ai-image",{"mode":"fix","token":"t1","fix":"make the sky bluer"}],["ai-image",{"mode":"start","prompt":"A poster at a bus shelter","words":true}],["ai-image",{"mode":"start","prompt":"A laptop on a desk"}]]',
@@ -583,7 +585,8 @@ describe("existing callers, pinned", () => {
     expect([...new Set(kept)]).toEqual([
       '{"prompt":"A family picnic at East Coast Park","name":"Picnic","designId":"img-1","agent":{"thread":"th1","msg":"m1"},"token":"t1"}',
       '{"prompt":"A family picnic at East Coast Park","name":"Picnic","fix":"make the sky bluer","token":"t1"}',
-      '{"prompt":"A poster at a bus shelter","name":"Poster","ratio":0.8,"token":"t1"}',
+      // the photo ad's own entry: kept 4:5 by ai-image now, so a words flag in place of the shape it was cut to
+      '{"prompt":"A poster at a bus shelter","name":"Poster","words":true,"token":"t1"}',
       '{"prompt":"A laptop on a desk","name":"Portfolio","attachTo":"d1","token":"t1"}',
     ]);
   });
