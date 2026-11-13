@@ -25,8 +25,9 @@
 //        600 characters, printed after the topic for a listed account; anyone else's are ignored, never refused.
 //   POST {mode:"explainer", pictures, look?} up to 10 pictures, or 1 or 2 beside stock clips; look ignored for anyone else
 //   POST {mode:"move", tokens, look?} -> {tokens: (token | null)[], credits}  DoP lite moves each finished picture
-//        5 s in the look's motion (ai-image/broll.ts); no new use, once per video (claimOnce on its first picture),
-//        polled by status without a refund ticket, so a failed move keeps the use and its scene stays a still
+//        5 s in the look's motion (ai-image/broll.ts); one "scene-move" and one "scene-move-global" use a picture, given back
+//        for a picture not moved; once ever per picture (claimForever on its first picture), polled by status without a
+//        refund ticket, so a move Higgsfield fails later keeps its uses and its scene stays a still
 //   POST {mode:"read", url} -> {title, site, text}  a public page's article, at most 300 KB read and 6,000 characters
 //        kept (_shared/safeFetch.ts), passed when Jev finds a clear point ("page-read" cap; the use comes back only
 //        when the page never answered)
@@ -63,7 +64,7 @@
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GLOBAL_COUNTER_USER, claimOnce, consumeUsage, refundUsage, usageRefusal, type UsageFeature } from "../_shared/usageCaps.ts";
+import { GLOBAL_COUNTER_USER, claimForever, claimOnce, consumeUsage, refundUsage, usageRefusal, type UsageFeature } from "../_shared/usageCaps.ts";
 import { HF_BASE, jobToken, openJobToken, tokenSecret } from "../ai-image/logic.ts";
 import { MOTION_MODEL, motionBody } from "../ai-image/broll.ts";
 import { fetchCapped } from "../_shared/safeFetch.ts";
@@ -441,7 +442,7 @@ Deno.serve(async (req) => {
     }
 
     if (r.mode === "move") {
-      // no new use: the explainer took its ai-video use; the pictures must be this caller's and finished
+      // the pictures must be this caller's and finished
       const ids = await Promise.all(r.tokens.map((token) => openJobToken(signing, uid, token)));
       if (!ids.every(Boolean)) return json({ code: "bad_request", error: "Those pictures aren't known." }, 400);
       const urls = await Promise.all(ids.map(async (id) => {
@@ -450,14 +451,40 @@ Deno.serve(async (req) => {
         return m?.state === "done" ? m.url : null;
       }));
       if (urls.some((u) => !u)) return json({ code: "not_ready", error: "The pictures aren't ready yet. Try again in a minute." }, 409);
+      const give = async (user: string, feature: UsageFeature, n: number) => {
+        for (let k = 0; k < n; k++) await refundUsage(admin, user, feature, day);
+      };
+      for (let i = 0; i < ids.length; i++) {
+        const mine = await consumeUsage(admin, uid, "scene-move");
+        if (!mine.allowed) {
+          await give(uid, "scene-move", i);
+          const refusal = usageRefusal(mine);
+          return json(refusal.body, refusal.status);
+        }
+      }
+      for (let i = 0; i < ids.length; i++) {
+        const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "scene-move-global");
+        if (!everyone.allowed) {
+          await Promise.all([give(GLOBAL_COUNTER_USER, "scene-move-global", i), give(uid, "scene-move", ids.length)]);
+          if (everyone.reason === "limit") return json({ code: "global_limit", error: "Today's moving scenes for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+          const refusal = usageRefusal(everyone);
+          return json(refusal.body, refusal.status);
+        }
+      }
+      const back = (n: number) => Promise.all([give(uid, "scene-move", n), give(GLOBAL_COUNTER_USER, "scene-move-global", n)]);
       // each picture moves once: the video's first picture says whether it already has, and a picture sent again later is skipped
-      if (!(await claimOnce(admin, uid, moveClaimKey(ids[0]!)))) return json({ code: "already_moving", error: "These scenes are already moving." }, 409);
-      const fresh = [true, ...(await Promise.all(ids.slice(1).map((id) => claimOnce(admin, uid, moveClaimKey(id!)))))];
+      if (!(await claimForever(admin, uid, moveClaimKey(ids[0]!)))) {
+        await back(ids.length);
+        return json({ code: "already_moving", error: "These scenes are already moving." }, 409);
+      }
+      const fresh = [true, ...(await Promise.all(ids.slice(1).map((id) => claimForever(admin, uid, moveClaimKey(id!)))))];
       const prompt = motionPrompt(r.look);
       // a scene Higgsfield won't take stays a still; the rest move
       const moved = await Promise.all(urls.map((u, i) => (fresh[i] ? submit(MOTION_MODEL, motionBody(u!, prompt)).then((id) => jobToken(signing, uid, id), () => null) : null)));
-      const credits = moveCredits(moved.filter(Boolean).length);
-      console.log("ai-video move", moved.filter(Boolean).length, "of", moved.length, "scenes,", credits, "credits");
+      const made = moved.filter(Boolean).length;
+      await back(ids.length - made);
+      const credits = moveCredits(made);
+      console.log("ai-video move", made, "of", moved.length, "scenes,", credits, "credits");
       return json({ tokens: moved, credits });
     }
 

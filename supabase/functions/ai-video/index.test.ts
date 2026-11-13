@@ -30,6 +30,7 @@ const db = vi.hoisted(() => {
       return { data: n + 1, error: null };
     },
     from: () => ({
+      insert: async (v: Record<string, unknown>) => (rows.has(key(v)) ? { error: { code: "23505" } } : (rows.set(key(v), Number(v.count)), { error: null })),
       select: () => ({ match: async (q: Record<string, unknown>) => ({ data: rows.has(key(q)) ? [{ count: rows.get(key(q)) }] : [], error: null }) }),
       update: (v: { count: number }) => ({
         match: (q: Record<string, unknown>) => ({
@@ -434,7 +435,7 @@ describe("the narrated video (NORTH_STAR_USERS only)", () => {
     expect((await send(LEO, { mode: "status", tokens: Array(10).fill("a.b") })).status).toBe(200);
   });
 
-  it("moves each finished picture once with DoP lite in the look's motion, taking no new use", async () => {
+  it("moves each finished picture once with DoP lite in the look's motion, one scene-move use a picture on each cap", async () => {
     const tokens = await tokensOf(LEO);
     const res = await send(LEO, { mode: "move", tokens, look: "paper" });
     expect(res.status).toBe(200);
@@ -445,16 +446,51 @@ describe("the narrated video (NORTH_STAR_USERS only)", () => {
     expect(moves).toHaveLength(3);
     expect(hf.bodies).toEqual(IDS.map((id) => ({ prompt: "Paper layers slide and bob slightly, stop-motion steps. No text, no cuts.", image_url: `https://cdn.example/${id}.png`, duration: 5 })));
     expect([used(LEO, "ai-video"), used(GLOBAL_COUNTER_USER, "ai-video-global")]).toEqual([0, 0]);
-    expect(db.rows.get(`${LEO}|move:${IDS[0]}|${db.today()}`)).toBe(1);
+    expect([used(LEO, "scene-move"), used(GLOBAL_COUNTER_USER, "scene-move-global")]).toEqual([3, 3]);
+    expect(db.rows.get(`${LEO}|move:${IDS[0]}|1970-01-01`)).toBe(1);
 
     const again = await send(LEO, { mode: "move", tokens, look: "paper" });
     expect(again.status).toBe(409);
     expect(await again.json()).toEqual({ code: "already_moving", error: "These scenes are already moving." });
+    expect([used(LEO, "scene-move"), used(GLOBAL_COUNTER_USER, "scene-move-global")]).toEqual([3, 3]);
     // a later call that starts on a fresh picture skips the ones already moving
     hf.calls.length = 0;
     const later = await send(LEO, { mode: "move", tokens: await tokensOf(LEO, ["88888888-7777-4888-9999-cccccccccccc", IDS[1]]) });
     expect((await later.json()).tokens).toEqual([expect.any(String), null]);
     expect(hf.calls.filter((u) => u.endsWith("/dop/lite"))).toHaveLength(1);
+    expect([used(LEO, "scene-move"), used(GLOBAL_COUNTER_USER, "scene-move-global")]).toEqual([4, 4]);
+  });
+
+  it("keeps a moved picture moved on the next day", async () => {
+    const tokens = await tokensOf(LEO);
+    expect((await send(LEO, { mode: "move", tokens })).status).toBe(200);
+    const now = Date.now();
+    try {
+      vi.setSystemTime(now + 86_400_000);
+      hf.calls.length = 0;
+      const again = await send(LEO, { mode: "move", tokens });
+      expect(again.status).toBe(409);
+      expect(hf.calls.some((u) => u.includes("dop"))).toBe(false);
+      expect([used(LEO, "scene-move"), used(GLOBAL_COUNTER_USER, "scene-move-global")]).toEqual([0, 0]);
+    } finally {
+      vi.setSystemTime(now);
+    }
+  });
+
+  it("refuses a move over the adviser's cap or the studio's, with nothing moved and nothing kept", async () => {
+    db.rows.set(`${LEO}|scene-move|${db.today()}`, 19);
+    const mine = await send(LEO, { mode: "move", tokens: await tokensOf(LEO) });
+    expect(mine.status).toBe(429);
+    expect(await mine.json()).toMatchObject({ code: "daily_limit" });
+    expect(used(LEO, "scene-move")).toBe(19);
+    db.rows.clear();
+    db.rows.set(`${GLOBAL_COUNTER_USER}|scene-move-global|${db.today()}`, 39);
+    const everyone = await send(LEO, { mode: "move", tokens: await tokensOf(LEO) });
+    expect(everyone.status).toBe(429);
+    expect(await everyone.json()).toMatchObject({ code: "global_limit" });
+    expect([used(LEO, "scene-move"), used(GLOBAL_COUNTER_USER, "scene-move-global")]).toEqual([0, 39]);
+    expect(hf.calls.some((u) => u.includes("dop"))).toBe(false);
+    expect([...db.rows.keys()].some((k) => k.includes("move:"))).toBe(false);
   });
 
   it("refuses a move before any claim when a picture isn't finished or isn't the caller's, and leaves a scene Higgsfield won't take still", async () => {
@@ -474,6 +510,7 @@ describe("the narrated video (NORTH_STAR_USERS only)", () => {
     const out = await res.json();
     expect(out.tokens.map((t: string | null) => t === null)).toEqual([false, true, false]);
     expect(out.credits).toBe(4);
+    expect([used(LEO, "scene-move"), used(GLOBAL_COUNTER_USER, "scene-move-global")]).toEqual([2, 2]);
   });
 
   it("reads a public page's article for one page use, kept when the page answered and given back when it never did", async () => {

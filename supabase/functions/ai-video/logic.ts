@@ -630,7 +630,7 @@ export function pictureBody(picture: string, look: LookId = "photo"): Record<str
 /** DoP lite's prompt for a scene in this look. */
 export const motionPrompt = (look: LookId = "photo") => `${EXPLAINER_LOOKS[look].motion} No text, no cuts.`;
 
-/** A video's scenes move once: the claim (claimOnce) is keyed on its first picture's job id. */
+/** A video's scenes move once: the claim (claimForever) is keyed on its first picture's job id. */
 export const moveClaimKey = (firstPictureId: string) => `move:${firstPictureId.toLowerCase()}`;
 
 /** The Seedance request for a template clip, by its photo (uploaded, so a link): none, a product or a person. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
-import { claimOnce, consumeUsage, DAILY_LIMITS, refundUsage, usageRefusal, type RpcClient, type UsageClient } from "./usageCaps";
+import { claimForever, claimOnce, consumeUsage, DAILY_LIMITS, refundUsage, usageRefusal, type RpcClient, type UsageClient } from "./usageCaps";
 
 const client = (result: { data: unknown; error: unknown } | Error): RpcClient & { calls: unknown[] } => {
   const calls: unknown[] = [];
@@ -102,6 +102,17 @@ describe("giving a use back", () => {
     const admin = client({ data: 1, error: null });
     await claimOnce(admin, "u1", "refund:abc");
     expect(admin.calls).toEqual([{ fn: "cs_consume_ai_usage", args: { p_user: "u1", p_feature: "refund:abc", p_limit: 1 } }]);
+  });
+});
+
+describe("claimForever", () => {
+  it("claims a key once ever on a fixed day, and refuses when the row is there or the insert fails", async () => {
+    const sent: unknown[] = [];
+    const insert = (error: unknown) => ({ from: (table: string) => ({ insert: async (v: Record<string, unknown>) => (sent.push({ table, v }), { error }) }) });
+    expect(await claimForever(insert(null), "u1", "move:abc")).toBe(true);
+    expect(sent).toEqual([{ table: "cs_ai_usage", v: { user_id: "u1", feature: "move:abc", day: "1970-01-01", count: 1 } }]);
+    expect(await claimForever(insert({ code: "23505" }), "u1", "move:abc")).toBe(false);
+    expect(await claimForever({ from: () => ({ insert: () => Promise.reject(new Error("network")) }) }, "u1", "move:abc")).toBe(false);
   });
 });
 

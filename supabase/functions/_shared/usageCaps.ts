@@ -115,6 +115,8 @@ export const DAILY_LIMITS = {
   // 720p, so per adviser, and across everyone on GLOBAL_COUNTER_USER at 8 a day (under US$30, like the AI videos).
   "ai-clip": 2,
   "ai-clip-global": 8,
+  "scene-move": 20,
+  "scene-move-global": 40,
   // Social accounts through Zernio (social): a sign-in link to connect one, and the reads and disconnects.
   "social-connect": 3,
   "social-read": 300,
@@ -346,6 +348,21 @@ export async function claimOnce(admin: RpcClient, userId: string, key: string): 
   try {
     const { data, error } = await admin.rpc("cs_consume_ai_usage", { p_user: userId, p_feature: key, p_limit: 1 });
     return !error && data === 1;
+  } catch {
+    return false;
+  }
+}
+
+export const FOREVER_DAY = "1970-01-01";
+
+export interface InsertClient {
+  from(table: string): { insert(values: Record<string, unknown>): PromiseLike<{ error: unknown }> };
+}
+
+export async function claimForever(admin: InsertClient, userId: string, key: string): Promise<boolean> {
+  try {
+    const { error } = await admin.from("cs_ai_usage").insert({ user_id: userId, feature: key, day: FOREVER_DAY, count: 1 });
+    return !error;
   } catch {
     return false;
   }

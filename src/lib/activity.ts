@@ -364,6 +364,8 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "ai-video-script": "Explainer scripts",
   "ai-clip": "Template clips",
   "ai-clip-global": "Template clips, everyone",
+  "scene-move": "Moving scenes",
+  "scene-move-global": "Moving scenes, everyone",
   "social-connect": "Account connections",
   "social-read": "Social account reads",
   "social-automation-write": "Auto-DM changes",

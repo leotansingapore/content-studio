@@ -57,6 +57,7 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   // GPT Image 2.6 Flare edit, 3:4 at medium: US$0.052 measured 2026-11-13; Qwen Image 3 edit at 2k is US$0.075 when OpenAI can't
   "ai-image-fix": about(0.05),
   "ai-broll": about(0.13), // Soul v2 picture + DoP lite 5 s (ai-image/broll.ts)
+  "scene-move": about(creditsUsd(DOP_LITE_CREDITS)),
   "slide-pictures": about(0.06), // up to 10 Soul v2 pictures at 0.09 credits each (ai-image/slides.ts)
   // Eleven Music at about US$0.15 a minute, and tracks stop at 2 minutes (usageCaps.ts, text-voice MAX_MUSIC_SECONDS).
   "ai-music": (o) => (o.minutes && o.minutes > 0 ? about(0.15 * Math.min(2, o.minutes)) : null),
@@ -183,7 +184,7 @@ export const NO_PRICE: UsageFeature[] = [
   // across everyone
   "market-check-global", "ai-image-fix-global", "ai-broll-global", "slide-pictures-global", "ai-music-global", "ai-video-global", "ai-clip-global",
   "competitor-ads-global", "competitor-posts-global", "space-ads-global", "similar-find-global", "similar-posts-global", "social-plays-global", "viral-search-global", "search-topics-global",
-  "ai-presenter-global",
+  "ai-presenter-global", "scene-move-global",
   // social reads and writes, team comments
   "social-connect", "social-read", "social-automation-write", "social-schedule", "social-presign", "team-comment",
   // slideshow campaign saves and reads, and Send to phone's upload links (slide-campaigns)
