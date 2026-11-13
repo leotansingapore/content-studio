@@ -83,6 +83,7 @@ vi.stubGlobal("window", { localStorage: local, location: new URL("http://localho
 const { ScheduleSteps } = await import("./ScheduleSteps");
 const { NetworkCaptions } = await import("./NetworkCaptions");
 const { TikTokMode } = await import("./TikTokMode");
+const { default: StepFooter } = await import("./StepFooter");
 const { TIKTOK_BUSY, whenLabel } = await import("@/lib/autoPost");
 // at collection, not inside a timed test: a cold transform of PostItForMe's module graph took 7 s in a loaded full run
 const { PostItForMePanel } = await import("./PostItForMe");
@@ -111,12 +112,14 @@ const view = (status: string, platforms: { platform: string; accountId: string; 
 
 type El = { type: unknown; props: Record<string, unknown> & { children?: unknown } };
 const kids = (n: unknown): unknown[] => (n == null || typeof n === "boolean" ? [] : Array.isArray(n) ? n.flatMap(kids) : [n]);
-const text = (n: unknown): string => (typeof n === "string" || typeof n === "number" ? String(n) : isValidElement(n) ? kids((n as El).props.children).map(text).join("") : "");
+// the step footer has no hooks, so it is drawn in place: its step line, reason, Back (Cancel) and Continue are walked like the rest
+const inside = (el: El): unknown[] => kids(el.type === StepFooter ? StepFooter(el.props as Parameters<typeof StepFooter>[0]) : el.props.children);
+const text = (n: unknown): string => (typeof n === "string" || typeof n === "number" ? String(n) : isValidElement(n) ? inside(n as El).map(text).join("") : "");
 function find(tree: unknown, ok: (el: El) => boolean): El | null {
   if (!isValidElement(tree)) return null;
   const el = tree as El;
   if (ok(el)) return el;
-  for (const c of kids(el.props.children)) {
+  for (const c of inside(el)) {
     const hit = find(c, ok);
     if (hit) return hit;
   }
@@ -170,7 +173,7 @@ function mount(d: DraftEntry, search = "") {
 const actions = () => fn.calls.map((c) => String(c.action ?? c.name));
 const sendButton = (tree: unknown) => buttonOf(tree, /^(Schedule for|Post now|Send to inbox|Try again)/);
 const reasonLine = (tree: unknown) => {
-  const next = buttonOf(tree, /^(Next|Schedule for|Post now|Send to inbox|Try again)/);
+  const next = buttonOf(tree, /^(Continue|Schedule for|Post now|Send to inbox|Try again)/);
   return { disabled: !!next?.props.disabled, text: text(tree) };
 };
 
@@ -182,11 +185,13 @@ beforeEach(() => {
 });
 
 describe("step 1, Where", () => {
-  it("an Instagram post with no Instagram account blocks Next with one line, and a tick changes the line on the next draw", async () => {
+  it("an Instagram post with no Instagram account blocks Continue with one line, and a tick changes the line on the next draw", async () => {
     fn.answers.status = () => ({ accounts: [acc("li1", "linkedin", "leotan")] });
     mount(draftOf({ platform: "instagram" }));
     let tree = await draw();
     expect(text(tree)).toContain("Step 1 of 3 | Where");
+    // named once, in the footer, not again above the step
+    expect(text(tree).split("Step 1 of 3").length).toBe(2);
     expect(reasonLine(tree)).toMatchObject({ disabled: true });
     expect(text(tree)).toContain("Choose an account to post to Instagram.");
     expect(buttonOf(tree, "Connect Instagram")).not.toBeNull();
@@ -197,7 +202,24 @@ describe("step 1, Where", () => {
     tick(tree, "LinkedIn", true);
     tree = await draw();
     expect(text(tree)).not.toContain("Pick an account to post to.");
-    expect(buttonOf(tree, "Next")!.props.disabled).toBe(false);
+    expect(buttonOf(tree, "Continue")!.props.disabled).toBe(false);
+    expect(actions()).toEqual(["status"]);
+  });
+
+  it("Cancel on step 1 closes the steps, and Back on step 2 goes back to step 1", async () => {
+    fn.answers.status = () => ({ accounts: [acc("li1", "linkedin")] });
+    mount(draftOf());
+    let tree = await draw();
+    expect(buttonOf(tree, "Back")).toBeNull();
+    press(tree, "Continue");
+    tree = await draw();
+    expect(text(tree)).toContain("Step 2 of 3 | When");
+    press(tree, "Back");
+    tree = await draw();
+    expect(text(tree)).toContain("Step 1 of 3 | Where");
+    expect(url.params.has("step")).toBe(false);
+    press(tree, "Cancel");
+    expect(props.onClose).toHaveBeenCalledTimes(1);
     expect(actions()).toEqual(["status"]);
   });
 
@@ -239,11 +261,11 @@ describe("the one press that posts", () => {
     fn.answers.schedule = () => ({ post: view("scheduled", [{ platform: "linkedin", accountId: "li1", status: "pending" }, { platform: "facebook", accountId: "fb1", status: "pending" }]) });
     mount(draftOf({ versions: { facebook: { caption: "For Facebook" } } }));
     let tree = await draw();
-    press(tree, "Next");
+    press(tree, "Continue");
     tree = await draw();
     expect(url.params.get("step")).toBe("when");
     expect(text(tree)).toContain("Step 2 of 3 | When");
-    press(tree, "Next");
+    press(tree, "Continue");
     tree = await draw();
     expect(url.params.get("step")).toBe("caption");
     expect(actions()).toEqual(["status"]);
@@ -281,14 +303,14 @@ describe("the one press that posts", () => {
     fn.answers.schedule = () => ({ post: view("scheduled", [{ platform: "linkedin", accountId: "li1", status: "pending" }]) });
     mount(draftOf({ status: "draft", scheduledFor: undefined }));
     let tree = await draw();
-    press(tree, "Next");
+    press(tree, "Continue");
     tree = await draw();
     (find(tree, (e) => e.props.label === "Pick a time")!.props.onPick as () => void)();
     tree = await draw();
     (find(tree, (e) => e.props["aria-label"] === "Day")!.props.onChange as (e: unknown) => void)({ target: { value: "2030-01-15" } });
     (find(tree, (e) => e.props["aria-label"] === "Time")!.props.onChange as (e: unknown) => void)({ target: { value: "09:00" } });
     tree = await draw();
-    press(tree, "Next");
+    press(tree, "Continue");
     tree = await draw();
     press(tree, /^Schedule for/);
     await settle();
@@ -346,9 +368,9 @@ describe("Telegram beside a network", () => {
     let tree = await draw();
     tick(tree, "ClientsGroup", true);
     tree = await draw();
-    press(tree, "Next");
+    press(tree, "Continue");
     tree = await draw();
-    press(tree, "Next");
+    press(tree, "Continue");
     tree = await draw();
     press(tree, /^Post now/);
     await settle();
@@ -376,9 +398,9 @@ describe("TikTok", () => {
   const tiktokDraft = () => draftOf({ platform: "tiktok", media: "https://cdn.example.com/clip.mp4" });
   const toCaption = async () => {
     let tree = await draw();
-    press(tree, "Next");
+    press(tree, "Continue");
     tree = await draw();
-    press(tree, "Next");
+    press(tree, "Continue");
     return draw();
   };
   beforeEach(() => {
@@ -410,12 +432,12 @@ describe("TikTok", () => {
     fn.answers.schedule = () => ({ post: view("published", [{ platform: "tiktok", accountId: "tt1", status: "published", draft: true }]) });
     mount(tiktokDraft());
     let tree = await draw();
-    press(tree, "Next");
+    press(tree, "Continue");
     tree = await draw();
     // the When options are their own small component: pick Now through its onPick
     (find(tree, (e) => e.props.label === "Now")!.props.onPick as () => void)();
     tree = await draw();
-    press(tree, "Next");
+    press(tree, "Continue");
     tree = await draw();
     expect(text(sendButton(tree))).toBe("Send to inbox");
     press(tree, "Send to inbox");
@@ -525,9 +547,9 @@ describe("TikTok", () => {
       tree = await draw();
       expect(text(tree)).toContain("Step 1 of 3 | Where");
       expect(find(tree, (e) => e.type === TikTokMode)!.props.mode).toBe("inbox");
-      press(tree, "Next");
+      press(tree, "Continue");
       tree = await draw();
-      press(tree, "Next");
+      press(tree, "Continue");
       tree = await draw();
       fn.answers.schedule = () => ({ post: view("scheduled", [{ platform: "tiktok", accountId: "tt1", status: "pending" }]) });
       press(tree, /^Schedule for/);

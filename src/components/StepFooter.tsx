@@ -15,6 +15,8 @@ export default function StepFooter(p: {
   name: string;
   /** None on the first step: Back keeps its place, switched off. */
   onBack?: () => void;
+  /** "Cancel" where the first step's way back closes the maker (Post it for me). */
+  backLabel?: string;
   backDisabled?: boolean;
   /** None on a step whose own action (children) moves on. */
   onContinue?: () => void;
@@ -30,7 +32,7 @@ export default function StepFooter(p: {
         {/* a status: a screen reader hears the count when the step changes */}
         <p role="status" className="text-xs font-medium text-muted-foreground">{stepLine(p.step, p.total, p.name)}</p>
         <div className="ml-auto flex flex-wrap items-start justify-end gap-2">
-          <Button type="button" variant="outline" onClick={p.onBack} disabled={!p.onBack || p.backDisabled}>Back</Button>
+          <Button type="button" variant="outline" onClick={p.onBack} disabled={!p.onBack || p.backDisabled}>{p.backLabel ?? "Back"}</Button>
           {p.onContinue && (
             <Button type="button" variant={p.continueVariant} onClick={p.onContinue} disabled={p.reason != null}>Continue</Button>
           )}

@@ -28,6 +28,11 @@ describe("StepFooter", () => {
     expect(buttons(out)[0]).toEqual({ text: "Back", disabled: true, filled: false });
   });
 
+  it("names the way back Cancel where the first step closes the maker", () => {
+    const out = renderToStaticMarkup(<StepFooter step={1} total={3} name="Where" onBack={noop} backLabel="Cancel" onContinue={noop} />);
+    expect(buttons(out)[0]).toEqual({ text: "Cancel", disabled: false, filled: false });
+  });
+
   it("says why Continue is off", () => {
     const out = renderToStaticMarkup(<StepFooter step={1} total={3} name="Who" onContinue={noop} reason="Pick who it reaches." />);
     expect(buttons(out)[1]).toEqual({ text: "Continue", disabled: true, filled: true });

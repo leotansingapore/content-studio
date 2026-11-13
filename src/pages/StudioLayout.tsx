@@ -391,7 +391,7 @@ export default function StudioLayout() {
   const [needsYou, setNeedsYou] = useState(0);
   // Posts in Review or Needs changes on the posts board: the rest of Home's count.
   const [boardWaiting, setBoardWaiting] = useState(0);
-  // Social accounts sits in the nav only once the server has said it is on for this sign-in.
+  // Rerenders once the server says whether this sign-in may connect accounts: the Auto-DM tab waits on it (Connections is in Settings for every sign-in).
   const [, setSocialOn] = useState(socialConnectShown);
   const [, setReelsOn] = useState(reelsShown);
   const [, setMarketOn] = useState(marketShown);

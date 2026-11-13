@@ -9,8 +9,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeftIcon, ArrowRightIcon, CopyIcon, CircleNotchIcon, PaperPlaneTiltIcon, XIcon } from "@phosphor-icons/react";
+import { CopyIcon, CircleNotchIcon, PaperPlaneTiltIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import StepFooter from "@/components/StepFooter";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import PriceChip from "@/components/PriceChip";
@@ -843,11 +844,9 @@ export function ScheduleSteps({
         <p className="flex items-center gap-1.5 text-muted-foreground"><CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Loading your accounts...</p>
       ) : (
         <>
-          <div className="space-y-1.5">
-            <div className="grid grid-cols-3 gap-1" aria-hidden="true">
-              {SCHEDULE_STEPS.map((s, i) => <span key={s} className={`h-1.5 rounded-full ${i <= n ? "bg-primary" : "bg-border"}`} />)}
-            </div>
-            <p className="font-semibold text-foreground">Step {n + 1} of 3 | {LABEL[step]}</p>
+          {/* the step is named once, in the footer's status line */}
+          <div className="grid grid-cols-3 gap-1" aria-hidden="true">
+            {SCHEDULE_STEPS.map((s, i) => <span key={s} className={`h-1.5 rounded-full ${i <= n ? "bg-primary" : "bg-border"}`} />)}
           </div>
 
           {step === "where" && (
@@ -1073,27 +1072,25 @@ export function ScheduleSteps({
             </>
           )}
 
-          <div className="space-y-1.5 border-t border-border/60 pt-2">
-            <div className="flex flex-wrap items-center gap-2">
-              {step === "where" ? (
-                <Button size="sm" variant="ghost" onClick={onClose} className={`h-9 ${TOUCH}`}>Cancel</Button>
-              ) : (
-                <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => go(SCHEDULE_STEPS[n - 1])} className={`h-9 gap-1.5 ${TOUCH}`}>
-                  <ArrowLeftIcon className="h-3.5 w-3.5" /> Back
-                </Button>
-              )}
-              {reason && !busy && <span className="text-muted-foreground sm:order-none">{reason}</span>}
-              {step !== "caption" ? (
-                <Button size="sm" disabled={!!reason} onClick={() => go(SCHEDULE_STEPS[n + 1])} className={`ml-auto h-9 gap-1.5 ${TOUCH}`}>
-                  Next <ArrowRightIcon className="h-3.5 w-3.5" />
-                </Button>
-              ) : (
-                <Button size="sm" disabled={!!reason || !!busy} onClick={() => void send()} className={`ml-auto h-9 gap-1.5 ${TOUCH}`}>
+          <div className="space-y-1.5">
+            {/* busy is only ever set by the last step's send, so Cancel and Continue keep today's rules */}
+            <StepFooter
+              step={n + 1}
+              total={SCHEDULE_STEPS.length}
+              name={LABEL[step]}
+              onBack={step === "where" ? onClose : () => go(SCHEDULE_STEPS[n - 1])}
+              backLabel={step === "where" ? "Cancel" : undefined}
+              backDisabled={!!busy}
+              onContinue={step !== "caption" ? () => go(SCHEDULE_STEPS[n + 1]) : undefined}
+              reason={busy ? null : reason || null}
+            >
+              {step === "caption" && (
+                <Button size="sm" disabled={!!reason || !!busy} onClick={() => void send()} className={`h-9 gap-1.5 ${TOUCH}`}>
                   {busy ? <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> : <PaperPlaneTiltIcon className="h-3.5 w-3.5" />}
                   {busyLabel ?? (failed ? "Try again" : goesNow ? (allInbox ? "Send to inbox" : "Post now") : `Schedule for ${whenText}`)}
                 </Button>
               )}
-            </div>
+            </StepFooter>
             {error && (
               <div role="alert" className="flex flex-wrap items-center justify-end gap-2 text-right">
                 <p className="text-destructive">{error}</p>
