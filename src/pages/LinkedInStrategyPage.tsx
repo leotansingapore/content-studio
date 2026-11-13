@@ -7,8 +7,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeftIcon, ArrowRightIcon, LinkedinLogoIcon, CircleNotchIcon, PencilLineIcon, ArrowCounterClockwiseIcon, SparkleIcon } from "@phosphor-icons/react";
+import { LinkedinLogoIcon, CircleNotchIcon, PencilLineIcon, ArrowCounterClockwiseIcon, SparkleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
+import StepFooter from "@/components/StepFooter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -130,7 +131,6 @@ function Interview(p: {
             <span key={s.id} className={`h-1.5 flex-1 rounded-full ${i <= p.step ? "bg-primary" : "bg-muted"}`} />
           ))}
         </div>
-        <p className="text-xs font-medium text-muted-foreground">Step {p.step + 1} of {STEPS.length}</p>
         <CardTitle className="font-serif text-xl">{step.title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -153,13 +153,16 @@ function Interview(p: {
             {p.error} Your answers are saved.
           </p>
         )}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          {p.step > 0 && (
-            <Button variant="ghost" onClick={() => p.onStep(p.step - 1)} disabled={p.working} className={`gap-1.5 ${TOUCH}`}>
-              <ArrowLeftIcon className="h-4 w-4" /> Back
-            </Button>
-          )}
-          {last ? (
+        {/* the step is named once, here: the same foot as the post writer and the campaign wizard */}
+        <StepFooter
+          step={p.step + 1}
+          total={STEPS.length}
+          name={step.title}
+          onBack={p.step > 0 ? () => p.onStep(p.step - 1) : undefined}
+          backDisabled={p.working}
+          onContinue={last ? undefined : () => p.onStep(p.step + 1)}
+        >
+          {last && (
             <>
               <Button onClick={p.onWrite} disabled={!ready || p.working || p.left === 0} className={`gap-1.5 ${TOUCH}`}>
                 {p.working ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <SparkleIcon className="h-4 w-4" />}
@@ -167,17 +170,13 @@ function Interview(p: {
               </Button>
               <PriceChip feature="linkedin-strategy" left={p.left} />
             </>
-          ) : (
-            <Button onClick={() => p.onStep(p.step + 1)} className={`gap-1.5 ${TOUCH}`}>
-              Next <ArrowRightIcon className="h-4 w-4" />
-            </Button>
           )}
-          {p.hasStrategy && !p.working && (
-            <Button variant="ghost" onClick={p.onShow} className={`ml-auto text-muted-foreground ${TOUCH}`}>
-              See your strategy
-            </Button>
-          )}
-        </div>
+        </StepFooter>
+        {p.hasStrategy && !p.working && (
+          <Button variant="ghost" onClick={p.onShow} className={`text-muted-foreground ${TOUCH}`}>
+            See your strategy
+          </Button>
+        )}
         {/* the two answers it needs are on step 1: the line takes you there */}
         {last && !ready && (
           <button type="button" onClick={() => p.onStep(0)} className={`text-left text-xs font-medium text-primary hover:underline ${TOUCH}`}>

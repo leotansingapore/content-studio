@@ -48,9 +48,10 @@ const STRATEGY = {
 describe("/linkedin", () => {
   it("opens the interview on step 1 for anyone signed in, and the not-on-your-account card when signed out", () => {
     const page = html();
-    expect(page).toContain("Step 1 of 4");
+    expect(page.match(/Step 1 of 4/g)).toHaveLength(1);
     expect(page).toContain("What do you sell, and what does a client get?");
-    expect(page).toContain("Next");
+    expect(page).toContain("Continue");
+    expect(page).not.toContain(">Next");
     who.user = null;
     expect(html()).toContain("on your account yet");
   });
