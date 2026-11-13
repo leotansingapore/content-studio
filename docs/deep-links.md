@@ -306,7 +306,7 @@ Grow, Discover and settings pages:
   docs/adlauncher-ads.md); the code is spent once, then every param is removed (replace). /adlauncher itself has no
   other params: it shows the one connection this sign-in has.
 - /team?code=<invite code>: the team invite link (teamReview.ts inviteLink); removed once the invite is handled.
-- /brands/new?done=<profile id>: the add-a-brand flow's own reload once the brand is made; opens its ready screen.
+- /brands/new?done=<profile id>: the old ready screen's address; it now opens that brand's calendar. A new brand lands on /calendar?profile=<id>&made=1, which says "<name> is set up" once and drops `made`.
 - /diagnosis: sends you to /coach.
 - /feedback#<entry id>: the feedback board's changelog anchor.
 

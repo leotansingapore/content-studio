@@ -271,6 +271,12 @@ export default function CalendarPage() {
   const [teamPosts, setTeamPosts] = useState<TeamPost[]>([]);
   const [teamReviews, setTeamReviews] = useState<TeamReviews>({});
   // /calendar?teampost=tp3 (the Telegram prompt links it): opens that post's review panel once it is loaded.
+  // a brand just made on /brands/new lands here, as Holo's land on their calendar: say so once
+  useEffect(() => {
+    if (params.get("made") !== "1" || !profile) return;
+    toast({ title: `${profile.name} is set up` });
+    setParams((prev) => withParam(prev, "made", null), { replace: true });
+  }, [params, profile]);
   const teamOpenId = params.get("teampost");
 
   useEffect(() => {

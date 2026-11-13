@@ -551,7 +551,8 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     setLeaving(true);
     markOnboarded(uid);
     persist(null);
-    window.location.assign(`/brands/new?done=${encodeURIComponent(result.id)}`);
+    // as Holo, a new brand lands on its calendar; ?made= says so there once
+    window.location.assign(`/calendar?profile=${encodeURIComponent(result.id)}&made=1`);
   };
 
   const leaveTo = (to: string, topic = "") => {

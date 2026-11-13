@@ -1,23 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { BrandSetup, TITLE_ID } from "@/components/onboarding/BrandSetup";
-import { DoneStep } from "@/components/onboarding/DoneStep";
+import { BrandSetup } from "@/components/onboarding/BrandSetup";
 import { OnboardingCanvas } from "@/components/onboarding/parts";
 import { keptBrandKey } from "@/lib/addBrand";
-import { loadBrand } from "@/lib/carousel";
-import { distinctColours } from "@/lib/onboardingFlow";
-import { loadPositioning } from "@/lib/positioning";
-import { activeProfileId, loadProfiles, setActiveProfile } from "@/lib/profiles";
+import { loadProfiles } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { applyTheme, readTheme, resolveTheme } from "@/lib/theme";
 import { useLeoOnly } from "@/lib/useLeoOnly";
-
-type Made = { id: string; name: string; logo: string | null; colours: string[]; line: string };
 
 export default function AddBrandPage() {
   const leo = useLeoOnly();
   const [uid, setUid] = useState("");
   const [kept, setKept] = useState<string | null>(null);
-  const [made, setMade] = useState<Made | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -40,21 +33,14 @@ export default function AddBrandPage() {
       const doneId = new URLSearchParams(window.location.search).get("done");
       const brand = doneId && id ? loadProfiles(id).find((p) => p.id === doneId) : undefined;
       if (brand) {
-        if (activeProfileId(id) !== brand.id) setActiveProfile(id, brand.id);
-        const kit = loadBrand(id);
-        setMade({
-          id: brand.id,
-          name: brand.name,
-          logo: kit?.logo ?? null,
-          colours: distinctColours([kit?.color, ...(kit?.palette ?? []).map((p) => p.hex)], 4, 1),
-          line: loadPositioning(id)?.oneLiner ?? "",
-        });
-      } else {
-        try {
-          setKept(id ? sessionStorage.getItem(keptBrandKey(id)) : null);
-        } catch {
-          setKept(null);
-        }
+        // the old done page's links (?done=) land where a new brand now does, its calendar
+        window.location.replace(`/calendar?profile=${encodeURIComponent(brand.id)}`);
+        return;
+      }
+      try {
+        setKept(id ? sessionStorage.getItem(keptBrandKey(id)) : null);
+      } catch {
+        setKept(null);
       }
       setReady(true);
     });
@@ -74,14 +60,6 @@ export default function AddBrandPage() {
   );
 
   if (!ready) return <OnboardingCanvas progress={null}>{null}</OnboardingCanvas>;
-
-  if (made) {
-    return (
-      <OnboardingCanvas progress={100} onBack={() => window.location.assign("/home")} backLabel="Go to Home">
-        <DoneStep titleId={TITLE_ID} id={made.id} name={made.name} logo={made.logo} colours={made.colours} line={made.line} />
-      </OnboardingCanvas>
-    );
-  }
 
   return <BrandSetup mode="add" uid={uid} leo={leo} kept={kept} persist={persist} />;
 }
