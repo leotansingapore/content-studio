@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DAILY_LIMITS, type UsageFeature } from "../../supabase/functions/_shared/usageCaps";
-import { NO_PRICE, PRICES, chipText, priceOf, reasonText } from "./prices";
+import { NO_PRICE, PRICES, chipText, priceOf, readLabel, reasonText } from "./prices";
 
 const price = { usd: 2.75, kind: "about" as const };
 
@@ -51,6 +51,14 @@ describe("chipText", () => {
   it("shows uses left only for a cap with no price", () => {
     expect(chipText({ price: null, left: 3, leo: true }).text).toBe("2 left after this");
     expect(chipText({ price: null, left: null, leo: true }).text).toBe("");
+  });
+});
+
+describe("readLabel", () => {
+  it("says how many accounts a first read takes and what it costs, from the table", () => {
+    const each = (priceOf("similar-posts") as { usd: number }).usd;
+    expect(readLabel(7, "similar-posts")).toBe(`Read 7 accounts, up to US$${(each * 7).toFixed(2)}`);
+    expect(readLabel(1, "competitor-posts")).toBe(`Read 1 account, up to US$${(priceOf("competitor-posts") as { usd: number }).usd.toFixed(2)}`);
   });
 });
 

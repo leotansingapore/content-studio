@@ -14,13 +14,13 @@ import { FilterChip } from "@/components/ui/filter-chip";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
   type CompetitorPostsState, type FeedPost, type PostSort, bestRatio, checkCompetitorPosts, checkingAnyPosts, duePosts, entryKey, feedPosts, handlesOf,
-  isCheckingPosts, onCompetitorPosts, postsCheckFailure, postsStopped, runDuePosts, runPostsCheck,
+  isCheckingPosts, onCompetitorPosts, postsCheckFailure, postsStopped, runDuePosts, runPostsCheck, waitingPosts,
 } from "@/lib/competitorPosts";
 import type { Competitor } from "@/lib/competitors";
 import { safeExternalUrl } from "@/lib/embed";
 import { type FollowPlatform, followStats, postKind, remixUrl } from "@/lib/following";
 import { links } from "@/lib/links";
-import { priceOf, reasonText, sumPrices } from "@/lib/prices";
+import { priceOf, readLabel, reasonText, sumPrices } from "@/lib/prices";
 import { dayMonth, fromFollowPost } from "@/lib/remixSource";
 import { useGoneItem, useScrollToItem, useUrlItem, useUrlState } from "@/lib/urlState";
 import { times } from "../../../supabase/functions/_shared/outlier.ts";
@@ -85,10 +85,12 @@ export default function TheirPosts({ userId, list, store, openEdit }: {
   const skeletons = rows.some((r) => isCheckingPosts(r.k) && !r.a);
   const growthDays = Math.max(0, ...rows.map((r) => (r.a ? followStats(r.a) : null)).filter((s) => s?.growth != null).map((s) => s!.growthDays));
 
-  // Check now: the picked competitor's handles, or every due handle under All
-  const due = selected ? handlesOf(selected).filter((h) => !only || h.platform === only) : duePosts(userId);
+  // Check now: the picked competitor's handles, or every due handle under All, first reads included; while a first read
+  // waits, the button says how many and what they cost
+  const due = selected ? handlesOf(selected).filter((h) => !only || h.platform === only) : duePosts(userId, Date.now(), true);
+  const first = !selected && waitingPosts(userId) > 0;
   const checkNow = () => (selected ? void checkCompetitorPosts(userId, selected, only) : void runDuePosts(userId, true));
-  const why = reasonText({ left, leo: true }) ?? (!selected && !due.length && rows.length ? "Every account was checked in the last 7 days. Pick one to check it again." : null);
+  const why = reasonText({ left, uses: first ? due.length : 1, leo: true }) ?? (!selected && !due.length && rows.length ? "Every account was checked in the last 7 days. Pick one to check it again." : null);
   const stopped = postsStopped();
 
   return (
@@ -210,10 +212,11 @@ export default function TheirPosts({ userId, list, store, openEdit }: {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <p className="mr-auto text-xs text-muted-foreground">We check each account once a week, when you open Competitors.</p>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className={`h-10 gap-2 ${TOUCH}`} onClick={checkNow} disabled={busy || Boolean(why) || !due.length}>
-              {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <ArrowsClockwiseIcon className="h-4 w-4" />} Check now
+            <Button variant={first ? "default" : "outline"} className={`h-10 gap-2 ${TOUCH}`} onClick={checkNow} disabled={busy || Boolean(why) || !due.length}>
+              {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : !first && <ArrowsClockwiseIcon className="h-4 w-4" />}
+              {first ? readLabel(due.length, "competitor-posts") : "Check now"}
             </Button>
-            {!busy && due.length > 0 && (
+            {!busy && !first && due.length > 0 && (
               <PriceChip feature="competitor-posts" price={due.length > 1 ? sumPrices(...due.map(() => priceOf("competitor-posts"))) : undefined} uses={due.length} left={left} />
             )}
           </div>

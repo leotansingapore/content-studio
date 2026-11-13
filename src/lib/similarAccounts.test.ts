@@ -119,15 +119,38 @@ describe("Apps like yours: posts", () => {
     expect(s.dueSimilar(U, NOW).map((a) => a.handle)).toEqual(["a", "c"]);
   });
 
-  it("reads an account once more, 30 posts, when this device kept no covers for it, then not again", async () => {
-    const fresh = s.applySimilarCheck(undefined, read("b", [post("p1", 2)], new Date(NOW - DAY).toISOString()));
+  it("leaves a read for covers this device never kept to the press, 30 posts, then not again", async () => {
+    const fresh = s.applySimilarCheck(undefined, read("b", [post("p1", 2)], new Date().toISOString()));
     s.saveSimilar(U, { accounts: [{ ...found("b", { platform: "tiktok" }), addedAt: "x" }], posts: { "tiktok:b": fresh }, dismissed: [], month: null });
-    expect(s.dueSimilar(U, NOW).map((a) => a.handle)).toEqual(["b"]);
-    callFn.mockResolvedValueOnce(read("b", [post("p1", 2, { cover: "https://p16-sign-sg.tiktokcdn.com/c.jpeg" })], new Date(NOW).toISOString()));
-    await s.runSimilarPosts(U, "tiktok", "b");
+    expect(s.dueSimilar(U)).toEqual([]);
+    expect(s.waitingSimilar(U).map((a) => a.handle)).toEqual(["b"]);
+    callFn.mockResolvedValueOnce(read("b", [post("p1", 2, { cover: "https://p16-sign-sg.tiktokcdn.com/c.jpeg" })], new Date().toISOString()));
+    await s.readWaitingSimilar(U);
     expect(callFn.mock.calls.at(-1)?.[1]).toMatchObject({ limit: 30 });
     expect("tiktok:b" in s.loadMedia(U)).toBe(true);
-    expect(s.dueSimilar(U, NOW)).toEqual([]);
+    expect(s.waitingSimilar(U)).toEqual([]);
+  });
+
+  it("never reads an added or seeded account's first time on open: Read N accounts does, and only those", async () => {
+    const week = s.applySimilarCheck(undefined, read("old", [], new Date(Date.now() - 8 * DAY).toISOString()));
+    s.saveSimilar(U, {
+      accounts: [
+        { ...found("seeded", { platform: "tiktok" }), via: "added", addedAt: "x" },
+        { ...found("found", { platform: "tiktok" }), addedAt: "x" },
+        { ...found("old", { platform: "tiktok" }), via: "added", addedAt: "x" },
+      ],
+      posts: { "tiktok:old": week }, dismissed: [], month: null,
+    });
+    s.rememberMedia(U, "tiktok:old", [], []);
+    expect(s.waitingSimilar(U).map((a) => a.handle)).toEqual(["seeded"]);
+    callFn.mockImplementation(async (_n: string, b: { handle: string }) => read(b.handle, [post("p1", 2)], new Date().toISOString()));
+    await s.runDueSimilar(U); // opening the tab: the found one's first read and the weekly one, never the seeded one
+    expect(callFn.mock.calls.map((c) => c[1].handle)).toEqual(["found", "old"]);
+    callFn.mockClear();
+    await s.readWaitingSimilar(U);
+    expect(callFn.mock.calls.map((c) => c[1].handle)).toEqual(["seeded"]);
+    expect(s.waitingSimilar(U)).toEqual([]);
+    expect(s.dueSimilar(U)).toEqual([]);
   });
 
   it("filters slideshows (TikTok photo posts), carousels (Instagram's), reels and UGC, best outlier first", () => {
@@ -161,15 +184,16 @@ describe("Apps like yours: accounts added by hand", () => {
     for (const bad of ["", "a b c", "acme.com/pricing", "https://www.instagram.com/p/abc/", "https://x.com/someone"]) expect(s.readAddInput(bad), bad).toBeNull();
   });
 
-  it("stores an added account in the same key with via added, first, and reads its posts like the rest", async () => {
+  it("stores an added account in the same key with via added, first, its first read waiting for the press", async () => {
     s.saveSimilar(U, s.mergeFound({ accounts: [], posts: {}, dismissed: ["instagram:megrow_app"], month: null }, [found("acct_a")]));
     expect(s.addAccount(U, "instagram", "@MeGrow_App")).toBe("added");
     const st = s.loadSimilar(U);
     expect(st.accounts.map((a) => [a.handle, a.via])).toEqual([["megrow_app", "added"], ["acct_a", "@tiimoapp"]]);
     expect(st.dismissed).toEqual([]); // adding it by hand undoes "Not this one"
-    expect(s.dueSimilar(U, NOW).map((a) => a.handle)).toContain("megrow_app");
+    expect(s.dueSimilar(U, NOW).map((a) => a.handle)).not.toContain("megrow_app");
+    expect(s.waitingSimilar(U, NOW).map((a) => a.handle)).toEqual(["megrow_app"]);
     await flush();
-    expect(callFn).toHaveBeenCalledWith("competitors", expect.objectContaining({ mode: "posts", handle: "megrow_app", scope: "similar" }), s.POSTS_FAILED);
+    expect(callFn).not.toHaveBeenCalled();
     expect(s.addAccount(U, "instagram", "megrow_app")).toBe("already");
     expect(s.addAccount(U, "tiktok", "bad handle!")).toBe("invalid");
     expect(s.addAccount(U, "instagram", "acct_a")).toBe("added"); // a found one becomes added

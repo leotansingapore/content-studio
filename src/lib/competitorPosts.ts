@@ -101,22 +101,28 @@ export async function checkCompetitorPosts(userId: string, c: Competitor, platfo
   }
 }
 
-/** The handles a round would check now. */
-export function duePosts(userId: string, now = Date.now()): { competitorId: string; platform: FollowPlatform; handle: string }[] {
+/**
+ * The handles a round would check now. A typed competitor's handle never read (added by hand or by a seed) is left to
+ * Check now (`first`), never an open: 13 Nov, 37 brands switched live in demos. A suggested one reads on open.
+ */
+export function duePosts(userId: string, now = Date.now(), first = false): { competitorId: string; platform: FollowPlatform; handle: string }[] {
   const state = loadCompetitorPosts(userId);
   return loadCompetitors(userId).list.flatMap((c) =>
     handlesOf(c)
       .filter((h) => {
         const a = state[entryKey(c.id, h.platform)];
-        return a?.handle !== h.handle || postsDue(a, now);
+        return a?.handle !== h.handle ? first || c.source !== "typed" : postsDue(a, now);
       })
       .map((h) => ({ competitorId: c.id, ...h })),
   );
 }
 
-/** Opening Their posts: every due handle, one at a time (manual: Check now under All). */
+/** How many handles wait for Check now's first read. */
+export const waitingPosts = (userId: string, now = Date.now()) => duePosts(userId, now, true).length - duePosts(userId, now).length;
+
+/** Opening Their posts: every due handle, one at a time (manual: Check now under All, first reads included). */
 export function runDuePosts(userId: string, manual = false): Promise<void> {
-  return jobs.round(userId, () => duePosts(userId).map((d) => ({
+  return jobs.round(userId, () => duePosts(userId, Date.now(), manual).map((d) => ({
     target: `${d.competitorId}:${d.platform}:${d.handle}`,
     go: () => runPostsCheck(userId, d.competitorId, d.platform, d.handle),
   })), manual);

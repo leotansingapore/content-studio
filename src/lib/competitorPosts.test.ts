@@ -87,7 +87,7 @@ describe("checks", () => {
     callFn.mockImplementation(async (_n: string, b: { platform: "instagram" | "tiktok"; handle: string }) => ({
       platform: b.platform, handle: b.handle, name: "A", url: "", followers: 1200, postsCount: 30, posts: [post("x1", 100, 50)], checkedAt: "2026-10-20T00:00:00Z",
     }));
-    await p.runDuePosts(U);
+    await p.runDuePosts(U, true);
     expect(callFn.mock.calls.map((c) => c[1])).toEqual([{ mode: "posts", platform: "instagram", handle: "aacct" }, { mode: "posts", platform: "tiktok", handle: "atok" }]);
     expect(p.loadCompetitorPosts(U)["a:instagram"]).toMatchObject({ handle: "aacct", fresh: [], seen: ["x1"], checkedAt: "2026-10-20T00:00:00Z" });
     callFn.mockClear();
@@ -97,6 +97,20 @@ describe("checks", () => {
     callFn.mockResolvedValueOnce({ platform: "instagram", handle: "aacct", name: "A", url: "", followers: 1300, postsCount: 31, posts: [post("x2", 1, 9), post("x1", 100, 50)], checkedAt: "2026-10-27T00:00:00Z" });
     await p.runPostsCheck(U, "a", "instagram", "aacct");
     expect(p.loadCompetitorPosts(U)["a:instagram"]).toMatchObject({ fresh: ["x2"], history: [{ followers: 1200 }, { followers: 1300 }] });
+  });
+
+  it("never reads a typed competitor's handle the first time on open: Check now does; a suggested one reads on open", async () => {
+    setList([comp("typed", { instagram: "tacct" }), { ...comp("sug", { tiktok: "stok" }), source: "suggested" }]);
+    expect(p.waitingPosts(U)).toBe(1);
+    callFn.mockImplementation(async (_n: string, b: { platform: "instagram" | "tiktok"; handle: string }) => ({
+      platform: b.platform, handle: b.handle, name: "A", url: "", followers: 1, postsCount: 1, posts: [], checkedAt: new Date().toISOString(),
+    }));
+    await p.runDuePosts(U); // opening the view
+    expect(callFn.mock.calls.map((c) => c[1].handle)).toEqual(["stok"]);
+    callFn.mockClear();
+    await p.runDuePosts(U, true); // Check now, worded Read 1 account
+    expect(callFn.mock.calls.map((c) => c[1].handle)).toEqual(["tacct"]);
+    expect(p.waitingPosts(U)).toBe(0);
   });
 
   it("keeps last week's posts when a check fails, with the server's line", async () => {

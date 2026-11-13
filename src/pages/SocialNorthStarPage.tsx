@@ -18,9 +18,9 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import { embedUrlFor, safeExternalUrl } from "@/lib/embed";
 import { remixUrl, watchText } from "@/lib/following";
 import { links } from "@/lib/links";
-import { reasonText } from "@/lib/prices";
+import { readLabel, reasonText } from "@/lib/prices";
 import { dayMonth, fromFollowPost } from "@/lib/remixSource";
-import { isFinding, lastFind, loadMedia, loadSimilar, onSimilarChanged, type PostMedia, similarBusy } from "@/lib/similarAccounts";
+import { isFinding, lastFind, loadMedia, loadSimilar, onSimilarChanged, type PostMedia, readWaitingSimilar, similarBusy, waitingSimilar } from "@/lib/similarAccounts";
 import {
   exampleCover, isBuilding, isReadingOwn, isStarting, lastNote, loadSocialNs, nextUp, onSocialNs, onSocialNsChanged, ownCounts, type Play, type PlayExample, progressOf, readCount, runBuild,
   startSocialNs,
@@ -97,6 +97,9 @@ function SocialNorthStar({ userId }: { userId: string }) {
 
   const read = readCount(sim);
   const reading = !finding && similarBusy();
+  // an added account's first read waits for a press here too, never for the open
+  const unread = useMemo(() => waitingSimilar(userId), [userId, version]);
+  const readWhy = reasonText({ left: useUsesLeft(reading)("similar-posts"), uses: unread.length, leo: true });
   const own = isReadingOwn();
   const note = lastNote();
   const found = lastFind();
@@ -180,10 +183,18 @@ function SocialNorthStar({ userId }: { userId: string }) {
         </div>
       ) : (
         !busy && (
-          <p className="text-sm text-muted-foreground">
-            {ns.builtAt ? "None of the formats is used by 2 or more of your references yet." : sim.accounts.length ? "The plan builds once 2 or more of your references have their posts read." : "The plan builds from Apps like yours."}{" "}
-            <Link to={links.swipe({ tab: "similar" })} className="font-medium text-primary hover:underline">Add accounts you like</Link>
-          </p>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {ns.builtAt ? "None of the formats is used by 2 or more of your references yet." : sim.accounts.length ? "The plan builds once 2 or more of your references have their posts read." : "The plan builds from Apps like yours."}{" "}
+              <Link to={links.swipe({ tab: "similar" })} className="font-medium text-primary hover:underline">Add accounts you like</Link>
+            </p>
+            {unread.length > 0 && (
+              <div className="space-y-1.5">
+                <Button className={cn("h-10", TOUCH)} onClick={() => void readWaitingSimilar(userId)} disabled={Boolean(readWhy)}>{readLabel(unread.length, "similar-posts")}</Button>
+                {readWhy && <p className="text-xs text-muted-foreground">{readWhy}</p>}
+              </div>
+            )}
+          </div>
         )
       )}
 

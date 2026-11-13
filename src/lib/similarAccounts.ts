@@ -138,7 +138,7 @@ export function readAddInput(raw: string): { handle: string; platforms: FollowPl
 
 export type AddResult = "added" | "already" | "full" | "invalid";
 
-/** An account added by hand: always kept, never judged, its posts read like the rest; a found one becomes added. */
+/** An account added by hand: always kept, never judged; its first read waits for Read N accounts. A found one becomes added. */
 export function addAccount(userId: string, platform: FollowPlatform, handle: string, now = new Date()): AddResult {
   const h = normalizeHandle(platform, handle);
   if (!h) return "invalid";
@@ -153,7 +153,6 @@ export function addAccount(userId: string, platform: FollowPlatform, handle: str
     accounts: [row, ...s.accounts.filter((a) => accountKey(a) !== key)],
     dismissed: s.dismissed.filter((d) => d !== key),
   });
-  void runDueSimilar(userId);
   return "added";
 }
 
@@ -298,7 +297,7 @@ export function bestPostIds(posts: TrackedPost[], now = Date.now(), max = MEDIA_
 const jobs = checkJobs("similar");
 export const isReading = (key: string) => jobs.isRunning(key);
 /** A find, a read or a round of reads is under way: the social north star waits for it before it builds. */
-export const similarBusy = () => finding || jobs.busy();
+export const similarBusy = () => finding || pressing || jobs.busy();
 export const readingAny = () => jobs.anyRunning();
 export const readFailure = (key: string) => jobs.failure(key);
 export const readsStopped = () => jobs.stopped();
@@ -328,24 +327,49 @@ export function runSimilarPosts(userId: string, platform: FollowPlatform, handle
   }, POSTS_FAILED);
 }
 
-/**
- * The accounts a round reads now: never read, read 7+ days ago, or read with no covers kept on this device (before
- * 1 Nov covers were not kept, so the social north star's examples showed no pictures). A read always leaves the
- * account's entry in the media cache, empty or not, so that last one happens once a device.
- */
+/** The accounts a round reads by itself: read 7+ days ago, or found by a find and never read. */
 export function dueSimilar(userId: string, now = Date.now()): SimilarEntry[] {
+  const s = loadSimilar(userId);
+  return s.accounts.filter((a) => {
+    const read = s.posts[accountKey(a)];
+    return read?.checkedAt ? postsDue(read, now) : !isAdded(a);
+  });
+}
+
+/**
+ * The reads that wait for Read N accounts, never for an open (13 Nov: 37 brands switched live in demos, up to 10 paid
+ * reads each): an account added by hand or by a seed and never read, and one read elsewhere whose covers this device
+ * never kept (a read always leaves the account's entry in the media cache, empty or not).
+ */
+export function waitingSimilar(userId: string, now = Date.now()): SimilarEntry[] {
   const s = loadSimilar(userId);
   const media = loadMedia(userId);
   return s.accounts.filter((a) => {
     const read = s.posts[accountKey(a)];
-    return postsDue(read, now) || (Boolean(read?.checkedAt) && !(accountKey(a) in media));
+    return read?.checkedAt ? !postsDue(read, now) && !(accountKey(a) in media) : isAdded(a);
   });
 }
 
-/** Opening the tab (and after a find or an add): every due account, one at a time, stopping at a refusal. */
+/** Opening the tab (and after a find): every due account, one at a time, stopping at a refusal. */
 export function runDueSimilar(userId: string, manual = false): Promise<void> {
   return jobs.round(userId, () => dueSimilar(userId).map((a) => ({ target: accountKey(a), go: () => runSimilarPosts(userId, a.platform, a.handle) })), manual);
 }
+
+let pressing = false;
+/** Read N accounts: the waiting reads it counted, one at a time, stopping at a refusal. */
+export async function readWaitingSimilar(userId: string): Promise<void> {
+  if (pressing) return;
+  pressing = true;
+  try {
+    for (const a of waitingSimilar(userId)) if (!(await runSimilarPosts(userId, a.platform, a.handle))) return;
+  } finally {
+    pressing = false;
+    emit(); // the social north star builds once nothing reads
+  }
+}
+
+/** Reads still to go, the one under way included. */
+export const readsAhead = (userId: string) => dueSimilar(userId).length + (pressing ? waitingSimilar(userId).length : 0);
 
 // ---- The feed ----------------------------------------------------------------------------------------------------
 

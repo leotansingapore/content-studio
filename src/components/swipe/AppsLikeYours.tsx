@@ -17,11 +17,12 @@ import { Input } from "@/components/ui/input";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { type FollowPlatform, watchText } from "@/lib/following";
 import { links } from "@/lib/links";
-import { priceOf, reasonText, sumPrices } from "@/lib/prices";
+import { priceOf, readLabel, reasonText, sumPrices } from "@/lib/prices";
 import { fromFollowPost } from "@/lib/remixSource";
 import {
-  accountKey, addAccount, type AddResult, autoFindDue, dismissAccount, dueSimilar, isFinding, isReading, lastFind, loadMedia, loadSimilar, onSimilar, onSimilarChanged, refreshSimilar,
-  readAddInput, readFailure, readingAny, readsStopped, runDueSimilar, runFind, SIMILAR_FILTERS, type SimilarEntry, type SimilarFilter, similarFeed, similarKey,
+  accountKey, addAccount, type AddResult, autoFindDue, dismissAccount, isFinding, isReading, lastFind, loadMedia, loadSimilar, onSimilar, onSimilarChanged, readsAhead, refreshSimilar,
+  readAddInput, readFailure, readingAny, readsStopped, readWaitingSimilar, runDueSimilar, runFind, SIMILAR_FILTERS, type SimilarEntry, type SimilarFilter, similarBusy, similarFeed, similarKey,
+  waitingSimilar,
 } from "@/lib/similarAccounts";
 import { useGoneItem, useUrlItem, useUrlState } from "@/lib/urlState";
 import { SIMILAR_KEEP } from "../../../supabase/functions/competitors/logic.ts";
@@ -45,7 +46,8 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   const [, tick] = useState(0);
   useEffect(() => onSimilarChanged(() => bump((v) => v + 1)), []);
   useEffect(() => onSimilar(() => tick((n) => n + 1)), []);
-  // opening the tab reads whatever is 7+ days old, the newest 10 posts each, and starts the brand's first find
+  // opening the tab reads whatever is 7+ days old, the newest 10 posts each, and starts the brand's first find; an
+  // added account's first read waits for Read N accounts
   useEffect(() => {
     void runDueSimilar(userId);
   }, [userId]);
@@ -87,7 +89,11 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   const note = lastFind();
   const stopped = readsStopped();
   const now = state.accounts.find((a) => isReading(accountKey(a)));
-  const waiting = reading ? dueSimilar(userId).length : 0;
+  const waiting = reading ? readsAhead(userId) : 0;
+  const unread = useMemo(() => waitingSimilar(userId), [userId, version]);
+  const readLeft = useUsesLeft(reading)("similar-posts");
+  const readWhy = reasonText({ left: readLeft, uses: unread.length, leo: true });
+  const busy = similarBusy();
   const at = feed.findIndex((p) => p.key === linked);
   const shown = feed.slice(0, Math.max(limit, at + 1));
   const skeletons = Boolean(now && !state.posts[accountKey(now)]);
@@ -95,7 +101,7 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   const find = (
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Button className={`h-10 gap-2 ${TOUCH}`} onClick={() => void runFind(userId)} disabled={finding || Boolean(why)}>
+        <Button variant={unread.length ? "outline" : "default"} className={`h-10 gap-2 ${TOUCH}`} onClick={() => void runFind(userId)} disabled={finding || Boolean(why)}>
           {finding ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <MagnifyingGlassIcon className="h-4 w-4" />} Find apps like yours
         </Button>
         {!finding && <PriceChip feature="similar-find" price={price} left={left} />}
@@ -137,6 +143,14 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
         <ul className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="Accounts">
           {state.accounts.map((a) => <AccountCard key={accountKey(a)} userId={userId} a={a} />)}
         </ul>
+      )}
+      {unread.length > 0 && (
+        <div className="space-y-1.5">
+          <Button className={`h-10 gap-2 ${TOUCH}`} onClick={() => void readWaitingSimilar(userId)} disabled={busy || Boolean(readWhy)}>
+            {busy && <CircleNotchIcon className="h-4 w-4 animate-spin" />} {readLabel(unread.length, "similar-posts")}
+          </Button>
+          {readWhy && <p className="text-xs text-muted-foreground">{readWhy}</p>}
+        </div>
       )}
 
       {(all.length > 0 || skeletons) && (
@@ -220,7 +234,7 @@ function AddAccount({ userId }: { userId: string }) {
     setPick(null);
     if (r === "added") {
       setText("");
-      setLine({ text: `Added @${handle}. Reading its posts now.`, error: false });
+      setLine({ text: `Added @${handle}.`, error: false });
     } else setLine({ text: ADD_LINE[r], error: true });
   };
   const submit = (e: FormEvent) => {
