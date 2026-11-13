@@ -226,9 +226,9 @@ export const WORK_LINES: Record<string, string> = {
 export function sectionTitle(s: Section, leo: boolean): string {
   switch (s) {
     case "identity":
-      return "Name and logo";
+      return "Brand identity";
     case "look":
-      return leo ? "Colours and font" : "Brand colours";
+      return "Visual identity";
     case "voice":
       return "Voice and audience";
     case "social":
@@ -246,9 +246,9 @@ export function confirmLabel(s: Section, last: boolean, name: string, leo = fals
   if (last) return mode === "first" ? "Save my brand" : `Create ${name.trim() || "brand"}`;
   switch (s) {
     case "identity":
-      return "Confirm name and logo";
+      return "Confirm brand identity";
     case "look":
-      return leo ? "Confirm colours and font" : "Confirm colours";
+      return "Confirm visual identity";
     case "voice":
       return "Confirm voice";
     case "social":

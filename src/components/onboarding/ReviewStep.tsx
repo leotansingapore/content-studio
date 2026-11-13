@@ -318,10 +318,6 @@ export function ReviewStep(p: ReviewProps) {
               <input id={`${id}-name`} value={dna.name} maxLength={40} onChange={(e) => patch({ name: e.target.value })} placeholder="MoneyBees" className={fieldClass} aria-invalid={!dna.name.trim()} />
             </div>
             <div className="space-y-1.5">
-              <FieldLabel>Logo</FieldLabel>
-              <LogoField logo={dna.logo} name={dna.name} colour={p.colours[0] ?? null} found={!p.manual} onLogo={(logo) => patch({ logo })} />
-            </div>
-            <div className="space-y-1.5">
               <FieldLabel htmlFor={`${id}-line`} hint={`${dna.oneLiner.length}/200`}>
                 What you do, in one line
               </FieldLabel>
@@ -352,9 +348,13 @@ export function ReviewStep(p: ReviewProps) {
         return (
           <>
             <div className="space-y-2">
-              {leo && <FieldLabel>Brand colours</FieldLabel>}
+              <FieldLabel>Brand colours</FieldLabel>
               <ColourField picked={p.colours} suggested={p.suggested} presets={p.presets} max={4} onChange={p.onColours} />
               {!p.colours.length && <p className="text-[13px] font-medium text-destructive">Pick a colour to go on.</p>}
+            </div>
+            <div className="space-y-1.5">
+              <FieldLabel>Logo</FieldLabel>
+              <LogoField logo={dna.logo} name={dna.name} colour={p.colours[0] ?? null} found={!p.manual} onLogo={(logo) => patch({ logo })} />
             </div>
             {leo && (
               <div className="space-y-2">

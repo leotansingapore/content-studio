@@ -48,9 +48,9 @@ describe("progress and the brand set up score", () => {
     expect(scoreOf(0, 4)).toBe(0);
     expect(scoreOf(1, 4)).toBe(25);
     expect(scoreOf(3, 6)).toBe(50);
-    expect(nextLine("identity", 0, 4, false)).toBe("Confirm name and logo to reach 25%");
-    expect(nextLine("look", 1, 4, false)).toBe("Confirm brand colours to reach 50%");
-    expect(nextLine("look", 1, 4, true)).toBe("Confirm colours and font to reach 50%");
+    expect(nextLine("identity", 0, 4, false)).toBe("Confirm brand identity to reach 25%");
+    expect(nextLine("look", 1, 4, false)).toBe("Confirm visual identity to reach 50%");
+    expect(nextLine("look", 1, 4, true)).toBe("Confirm visual identity to reach 50%");
     expect(nextLine(null, 4, 4, false)).toBe("All set. Create your brand when you're ready.");
     expect(nextLine(null, 4, 4, false, "first")).toBe("All set. Save your brand when you're ready.");
     expect(nextLine("products", 4, 5, true)).toBe("Confirm what you sell to reach 100%");
@@ -64,9 +64,9 @@ describe("progress and the brand set up score", () => {
   });
 
   it("labels the last confirm as creating the brand", () => {
-    expect(confirmLabel("identity", false, "Acme")).toBe("Confirm name and logo");
-    expect(confirmLabel("look", false, "Acme")).toBe("Confirm colours");
-    expect(confirmLabel("look", false, "Acme", true)).toBe("Confirm colours and font");
+    expect(confirmLabel("identity", false, "Acme")).toBe("Confirm brand identity");
+    expect(confirmLabel("look", false, "Acme")).toBe("Confirm visual identity");
+    expect(confirmLabel("look", false, "Acme", true)).toBe("Confirm visual identity");
     expect(confirmLabel("social", true, " Acme ")).toBe("Create Acme");
     expect(confirmLabel("social", true, "  ")).toBe("Create brand");
   });
