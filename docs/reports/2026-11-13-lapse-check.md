@@ -2,7 +2,13 @@
 
 Item 3 of docs/handovers/2026-11-13-jilian-next.md.
 
-Result: 29 of the 40 functions that call `consumeUsage` now refuse a lapsed subscriber with 402 `subscription_lapsed`. The other 11 wait for your call, because a redeploy would also ship code beyond `_shared/`. Nothing changes today for any account without a `cs_subscriptions` row.
+Result: 29 of the 40 functions that call `consumeUsage` now refuse a lapsed subscriber before a use is counted. Most answer 402 `subscription_lapsed`. Three answer differently:
+
+- `social` treats a lapsed subscriber as switched off: 404 "Not enabled.", or 200 `{enabled:false}` on the bare status call. It still lets them remove a brand's accounts.
+- `remix`'s fit check returns its usual unknown fit (200).
+- `text-voice`'s music mood returns the default mood (200).
+
+The other 11 wait for your call, because a redeploy would also ship code beyond `_shared/`. Nothing changes today for any account without a `cs_subscriptions` row.
 
 ## How
 

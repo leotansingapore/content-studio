@@ -11,7 +11,7 @@ These are the words a customer reads in /welcome and Add a brand (/brands/new) t
 | --- | --- | --- | --- |
 | Review, the colour section's title (customers; yours is unchanged) | Brand colour | Brand colours | Every account now gets the site's palette, up to 4 colours, not one. |
 | Review, the colour section's button (customers) | Confirm colour | Confirm colours | Same. |
-| Brand > Profile, under the main colour (all accounts; before, yours only) | (not shown) | Add a colour / Up to 3 more colours. / Colour 2 to Colour 4, or the preset's name | The extra colours from set-up can be edited there. |
+| Brand kit (/brand), the Colour section, under the main colour (all accounts; before, yours only) | (not shown) | Add a colour / Up to 3 more colours. / Colour 2 to Colour 4, or the preset's name | The extra colours from set-up can be edited there. Profile (/playbook) shows them as swatches but edits only the main colour. |
 | Review, under each colour swatch | Main, or the hex code | (nothing) | Holo shows the swatches without captions. The screen reader label still says "Main colour #...". |
 | Review, the logo box when the site has no logo | The brand's first letter on its colour | Upload logo / PNG, JPG, WebP or SVG, up to 5 MB. | Holo's empty logo box. Both lines were already on the screen beside the box. |
 | Review, a confirmed section | ✓ Done | Done | Holo's pill has no tick. Same word. |
