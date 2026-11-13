@@ -555,8 +555,10 @@ export default function BoardPage() {
                       )}
 
                       {cards.length === 0 && channel.length === 0 && col.key !== "idea" && (
-                        <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-border/50 text-[11px] text-muted-foreground">
-                          Drop posts here
+                        // a phone can't drag: there it names the way a card gets here
+                        <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-border/50 px-3 text-center text-[11px] text-muted-foreground">
+                          <span className="[@media(pointer:coarse)]:hidden">Drop posts here</span>
+                          <span className="hidden [@media(pointer:coarse)]:inline">Move a post here with Move to on its card</span>
                         </div>
                       )}
                     </div>
