@@ -111,7 +111,7 @@ export const TEMPLATE_SECTIONS: Record<string, FormatSection> = {
     [
       "ugc-creator-review", "handheld-ugc-vlog", "character-reference-lock", "street-interview", "three-levels", "two-host-podcast",
       "reaction-claim", "unboxing", "notes-presenter", "comment-reply", "question-box", "car-call", "front-camera-chat", "car-split",
-      "whiteboard-presenter", "baby-podcast",
+      "whiteboard-presenter", "baby-podcast", "laptop-presenter", "phone-app-presenter",
     ].map((id) => [id, "person"]),
   ),
 };

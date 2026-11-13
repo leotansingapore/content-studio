@@ -9,7 +9,7 @@ const ok = (body: Record<string, unknown>) => parseVideoRequest({ mode: "templat
 // A person on camera, after Fastlane's Studio > Create (11 Nov): Leo's, like the skits
 const ON_CAMERA = [
   "reaction-claim", "unboxing", "notes-presenter", "comment-reply", "question-box",
-  "car-call", "front-camera-chat", "car-split", "whiteboard-presenter", "baby-podcast",
+  "car-call", "front-camera-chat", "car-split", "whiteboard-presenter", "baby-podcast", "laptop-presenter", "phone-app-presenter",
 ];
 
 const TODAY = [
@@ -120,6 +120,23 @@ describe("the people on camera (Fastlane's Studio > Create, 11 Nov)", () => {
       expect(s, id).toContain("Spoken lines: few, each under 8 words");
       expect(s, id).toContain("No on-screen text, captions, logos or watermarks; text is added later in the editor.");
     }
+  });
+
+  it("shows the brand's screenshot on the laptop or phone as it is, not locked like a product", () => {
+    const written = JSON.stringify({ prompt: "Vertical 9:16, 8 seconds. A woman at a desk turns her laptop to the lens; its screen shows @image1. 0-4s she points, 4-8s she speaks." });
+    for (const id of ["laptop-presenter", "phone-app-presenter"]) {
+      const t = templateById(id)!;
+      expect([t.needsPhoto, t.photos], id).toEqual(["product", ["product"]]);
+      expect(ok({ template: id, fields: filled(t) }), id).toEqual({ ok: false, error: "Add a photo first." });
+      expect(t.structure.join(" "), id).toMatch(/screen(?: showing| shows) @image1/);
+      const p = clipPrompt(written, "product", t)!;
+      expect(p, id).toContain("@image1 is a screenshot of the brand's own app or page. Show it on the device's screen as it is");
+      expect(p, id).not.toContain(referenceLock("product"));
+      expect(p.endsWith("No on-screen text, subtitles, logos or watermarks."), id).toBe(true);
+    }
+    // a template without its own lock keeps the product's
+    expect(clipPrompt(written, "product", templateById("unboxing"))).toContain(referenceLock("product"));
+    expect(clipPrompt(written, null, templateById("laptop-presenter"))).not.toContain("@image1 is a screenshot");
   });
 
   it("asks for a product photo before an unboxing, and leaves the sticker's room on a reply", () => {

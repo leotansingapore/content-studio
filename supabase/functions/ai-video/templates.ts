@@ -56,6 +56,8 @@ export interface VideoTemplate {
    * tested as one exact prompt (crumple-hook, Leo's Higgsfield test 21 Oct), which a rewrite could only drift from.
    */
   fixed?: true;
+  /** The photo's lock in place of referenceLock's, for a photo that is not a product (a screenshot shown on a screen). */
+  lock?: string;
 }
 
 const PERSON: TemplateField = { key: "person", label: "Who is on camera", placeholder: "A woman in her 30s in a navy blazer" };
@@ -271,6 +273,10 @@ const PHASE3_TEMPLATES: VideoTemplate[] = [
 
 const STICKER_ROOM = "Leave the top third of the frame calm and clear: a sticker goes there in the editor";
 const SPEAKER = { ...PERSON, label: "Who is on camera", placeholder: "A Chinese woman in her 20s in a cream knit top" };
+// the brand's screenshot goes on a laptop or phone screen as it is, not broken into parts like a product
+const SCREEN_LOCK = "@image1 is a screenshot of the brand's own app or page. Show it on the device's screen as it is: its layout, colours and " +
+  "pictures, the same in every shot, the screen turned towards the lens. Keep the device at desk or arm's length, never a close-up, so small words stay small.";
+const SCREEN_WARNING = "Small words on your screenshot come out soft or garbled. Pick a screen with big, clear parts and add key words in the editor.";
 
 const PERSON_TEMPLATES: VideoTemplate[] = [
   {
@@ -503,6 +509,54 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     avoid: ["Logos on the mics or the wall", "Adults in frame", "Long spoken lines"],
     leoOnly: true,
     rule: SKIT_RULE,
+  },
+  {
+    id: "laptop-presenter",
+    title: "Laptop presenter",
+    blurb: "Someone at a desk turns to their laptop and walks you through what's on it.",
+    fields: [
+      { key: "scene", label: "What they walk through", placeholder: "Three things to check before you renew", required: true },
+      LINE,
+      SPEAKER,
+    ],
+    photos: ["product"],
+    needsPhoto: "product",
+    warnings: ["Add a screenshot of your list, page or app as the product photo.", SCREEN_WARNING, SKIT_WARNINGS[0]],
+    structure: [
+      "Opening line: the length, vertical 9:16, a locked-off tripod shot across a tidy desk, one take",
+      "Who: one person seated at the desk at home or in a small office, chest-up, facing the lens",
+      "The laptop: open on the desk beside them, angled so its whole screen faces the lens, the screen showing @image1",
+      "Beats in order: they glance at the screen and point to it, then look into the lens and say the line",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: ["Keep the whole laptop screen in frame and in focus, beside the person, never behind their head.", "Soft, even light, so the screen reads without glare."],
+    avoid: ["Close-ups of the screen", "Logos on the laptop", "Long spoken lines"],
+    leoOnly: true,
+    lock: SCREEN_LOCK,
+  },
+  {
+    id: "phone-app-presenter",
+    title: "Phone with your app",
+    blurb: "Someone holds up a phone with your app on screen and talks it through to camera.",
+    fields: [
+      { key: "product", label: "Your app", placeholder: "A budgeting app that sorts your spending for you", required: true },
+      { ...LINE, placeholder: "This is how I finally saw where it all goes" },
+      SPEAKER,
+    ],
+    photos: ["product"],
+    needsPhoto: "product",
+    warnings: ["Add a screenshot of your app as the product photo.", SCREEN_WARNING, SKIT_WARNINGS[0]],
+    structure: [
+      "Opening line: the length, vertical 9:16, a locked-off shot at chest height against a plain, evenly lit backdrop, like a green screen, one take",
+      "Who: one person standing chest-up, holding a phone up beside their face, its screen turned straight to the lens",
+      "The phone's screen shows @image1, filling the screen, upright and steady",
+      "Beats in order: they tap the screen once and glance at it, then look into the lens and say the line, the phone still held up",
+      "Each spoken line inside the beat where it is said",
+    ],
+    guidance: ["The phone stays still and upright, its screen facing the lens the whole time.", "Realistic hands with five fingers, kept on the phone's edges, off the screen."],
+    avoid: ["Close-ups of the screen", "The screen turning away from the lens", "Logos on the phone", "Long spoken lines"],
+    leoOnly: true,
+    lock: SCREEN_LOCK,
   },
 ];
 
@@ -815,7 +869,7 @@ export const PROMPT_FORMAT = {
 const MAX_WRITTEN = 3000;
 
 /** The prompt Seedance gets: what the writer wrote, then the reference locks and the no-text tail. Null when it came back empty. */
-export function clipPrompt(raw: unknown, photo: PhotoRole | null): string | null {
+export function clipPrompt(raw: unknown, photo: PhotoRole | null, t?: VideoTemplate): string | null {
   const written = parseObject(raw)?.prompt;
   if (typeof written !== "string") return null;
   const text = written
@@ -827,6 +881,6 @@ export function clipPrompt(raw: unknown, photo: PhotoRole | null): string | null
     .trim()
     .slice(0, MAX_WRITTEN);
   if (text.length < 80) return null;
-  const lock = referenceLock(photo);
+  const lock = (photo && t?.lock) || referenceLock(photo);
   return [text, lock, "No on-screen text, subtitles, logos or watermarks."].filter(Boolean).join("\n\n");
 }

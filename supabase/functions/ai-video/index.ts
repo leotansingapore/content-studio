@@ -536,7 +536,7 @@ Deno.serve(async (req) => {
       }
       const photo = r.photos[0] ?? null;
       const written = t.fixed ? null : await writeJson(openai, templateSystem(t, r.seconds, photo?.role ?? null, r.profession), templateDetails(t, r.fields), PROMPT_FORMAT, 1500);
-      const prompt = t.fixed ? fixedPrompt(t, photo?.role ?? null) : clipPrompt(written, photo?.role ?? null);
+      const prompt = t.fixed ? fixedPrompt(t, photo?.role ?? null) : clipPrompt(written, photo?.role ?? null, t);
       if (!prompt) {
         if (written) console.error("ai-video template prompt rejected", written.slice(0, 300));
         await giveBack("ai-clip");
