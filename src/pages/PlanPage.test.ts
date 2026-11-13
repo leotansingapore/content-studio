@@ -169,6 +169,16 @@ describe("/plan's one filled button", () => {
   });
 });
 
+describe("Add to calendar's Undo", () => {
+  it("takes off the posts it made, puts back the ones it refreshed, and leaves every other post alone", async () => {
+    const { undoAddToCalendar } = await import("./PlanPage");
+    const post = (id: string, scheduledFor: string) => ({ id, scheduledFor }) as unknown as import("@/lib/draftHistory").DraftEntry;
+    const before = [post("plan_a", "2026-11-09"), post("mine", "2026-11-10")];
+    const now = [post("plan_b", "2026-11-17"), post("plan_a", "2026-11-16"), post("mine", "2026-11-10")];
+    expect(undoAddToCalendar(now, before, ["plan_a", "plan_b"])).toEqual([post("plan_a", "2026-11-09"), post("mine", "2026-11-10")]);
+  });
+});
+
 describe("/plan for Leo", () => {
   const LEO = { id: UID, email: "tanjunsing@gmail.com" };
 

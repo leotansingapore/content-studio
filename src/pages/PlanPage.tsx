@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useScrollToHash, useUrlItem, useUrlState, withParam } from "@/lib/urlState";
-import { draftStatus, loadDrafts, setDraftStatus, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
+import { draftStatus, draftsChanged, loadDrafts, saveDrafts, setDraftStatus, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import {
   Card,
   CardContent,
@@ -129,6 +129,10 @@ const CTA_LABEL: Record<string, string> = {
 };
 
 const WEEK_OPTIONS = [1, 2, 4];
+
+/** Undo for Add to calendar: a slot's post it made comes off, one it refreshed goes back as it was. */
+export const undoAddToCalendar = (current: DraftEntry[], before: DraftEntry[], ids: string[]): DraftEntry[] =>
+  current.flatMap((d) => (ids.includes(d.id) ? before.filter((b) => b.id === d.id) : [d]));
 
 // The positioning form while it is open, kept for this tab so leaving the page
 // doesn't throw away what was typed before the plan is built. sessionStorage,
@@ -431,13 +435,27 @@ export default function PlanPage() {
   // upcoming Monday). Re-running updates untouched slots and keeps written ones.
   const handleAddToCalendar = () => {
     if (!userId || !plan) return;
-    const { entries, kept } = planCalendarEntries(plan.items.map(labelled), upcomingMonday(new Date()), loadDrafts(userId));
+    const before = loadDrafts(userId);
+    const { entries, kept } = planCalendarEntries(plan.items.map(labelled), upcomingMonday(new Date()), before);
     for (const entry of entries) upsertDraft(userId, entry);
+    const ids = entries.map((e) => e.id);
     toast({
       title: `${entries.length} post${entries.length === 1 ? "" : "s"} added to your calendar`,
       description: kept
         ? `${kept} you've already written or posted stay as they are.`
         : "Open one to write it. It stays on its scheduled day.",
+      // the calendar this lands on reads the posts again (draftsChanged)
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            saveDrafts(userId, undoAddToCalendar(loadDrafts(userId), before, ids));
+            draftsChanged();
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
     });
     navigate("/calendar");
   };
