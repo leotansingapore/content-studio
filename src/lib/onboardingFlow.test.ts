@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  APP_SECTIONS, colourGap, confirmLabel, distinctColours, firstOpenQuestion, flowKey, foundNetworks, hexOf, hostOf, isSerif, keptAnswers, keptNetworks, keptSaved, keptStep, mainPlatform, nextLine,
+  APP_SECTIONS, colourGap, confirmLabel, DEFAULT_NETWORK, distinctColours, firstOpenQuestion, flowKey, foundNetworks, networksAfterRead, hexOf, hostOf, isSerif, keptAnswers, keptNetworks, keptSaved, keptStep, mainPlatform, nextLine,
   nextSection, prefilledProfession, progressOf, QUESTIONS, readableInk, scoreOf, shouldSetUp, shownStep, SITE_SECTIONS, slideFontFor, webAddress, type Section,
 } from "./onboardingFlow";
 import { blankPixels, dominantColours, lightPixels } from "./logoImage";
@@ -24,10 +24,10 @@ describe("the website box", () => {
 });
 
 describe("progress and the brand set up score", () => {
-  it("fills the bar a quarter per step, then the last quarter section by section", () => {
-    expect(progressOf("site", 0, 4)).toBe(20);
-    expect(progressOf("work", 0, 4)).toBe(40);
-    expect(progressOf("networks", 0, 4)).toBe(60);
+  it("fills the bar a quarter per step as Holo's does (website, where you post, review), then the last quarter section by section", () => {
+    expect(progressOf("site", 0, 4)).toBe(25);
+    expect(progressOf("networks", 0, 4)).toBe(50);
+    expect(progressOf("work", 0, 4)).toBe(50);
     expect(progressOf("review", 0, 4)).toBe(75);
     expect(progressOf("review", 2, 4)).toBe(88);
     expect(progressOf("review", 4, 4)).toBe(100);
@@ -35,8 +35,9 @@ describe("progress and the brand set up score", () => {
   });
 
   it("leaves room for connecting and finishing when it sets up a new account's own brand", () => {
-    expect(progressOf("site", 0, 4, "first")).toBe(12);
-    expect(progressOf("networks", 0, 4, "first")).toBe(38);
+    expect(progressOf("site", 0, 4, "first")).toBe(15);
+    expect(progressOf("networks", 0, 4, "first")).toBe(35);
+    expect(progressOf("work", 0, 4, "first")).toBe(35);
     expect(progressOf("review", 0, 4, "first")).toBe(50);
     expect(progressOf("review", 4, 4, "first")).toBe(80);
     expect(progressOf("connect", 4, 4, "first")).toBe(88);
@@ -224,6 +225,15 @@ describe("where you post", () => {
 
   it("ticks the networks whose handles the read found, never X", () => {
     expect(foundNetworks({ instagram: "acme", facebook: " ", linkedin: "company/acme", x: "acme" } as Record<string, string>)).toEqual(["instagram", "linkedin"]);
+  });
+
+  it("starts on Instagram, as Holo starts on one pick, and swaps that start for what the read found until someone picks", () => {
+    expect(DEFAULT_NETWORK).toBe("instagram");
+    expect(networksAfterRead(["instagram"], ["linkedin"], false)).toEqual(["linkedin"]);
+    expect(networksAfterRead(["instagram"], [], false)).toEqual(["instagram"]);
+    expect(networksAfterRead([], ["tiktok", "instagram"], false)).toEqual(["tiktok", "instagram"]);
+    expect(networksAfterRead(["facebook"], ["linkedin"], true)).toEqual(["facebook"]);
+    expect(networksAfterRead([], ["linkedin"], true)).toEqual([]);
   });
 
   it("plans for the first picked network a plan can hold", () => {

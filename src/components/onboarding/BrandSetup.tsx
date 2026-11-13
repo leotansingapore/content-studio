@@ -8,7 +8,6 @@ import { OnboardingCanvas } from "@/components/onboarding/parts";
 import { ReadingStep } from "@/components/onboarding/ReadingStep";
 import { ReviewStep } from "@/components/onboarding/ReviewStep";
 import { SiteStep } from "@/components/onboarding/SiteStep";
-import { WorkStep } from "@/components/onboarding/WorkStep";
 import { blankDna, createBrand, fillBrand, keptBrand, PROFESSION_NEEDED, readBody, type BrandDna as Dna } from "@/lib/addBrand";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { appDna, appFacts, appProfession, appStoreLink, isAppRead, proofLines, readComplaints, readListing, readRivals, type AppRead } from "@/lib/appStore";
@@ -22,7 +21,7 @@ import { NEW_POST } from "@/lib/newPost";
 import { reviewRows, scanOf } from "@/lib/productScan";
 import { loadProducts, mergeScan, saveProducts, type Scan } from "@/lib/products";
 import { markOnboarded } from "@/lib/onboarding";
-import { ADDRESS_ERROR, APP_SECTIONS, distinctColours, KEPT_SECTIONS, PRODUCT_SECTIONS, foundNetworks, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS, slideFontFor, STEPS, webAddress, type Answers, type Mode, type Network, type Section, type Step, prefilledProfession } from "@/lib/onboardingFlow";
+import { ADDRESS_ERROR, APP_SECTIONS, DEFAULT_NETWORK, distinctColours, KEPT_SECTIONS, PRODUCT_SECTIONS, foundNetworks, networksAfterRead, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS, slideFontFor, STEPS, webAddress, type Answers, type Mode, type Network, type Section, type Step, prefilledProfession } from "@/lib/onboardingFlow";
 import { goalChips } from "@/lib/positioning";
 import { reasonText } from "@/lib/prices";
 import { activeProfileId, DEFAULT_PROFILE_ID, renameProfile, setActiveProfile } from "@/lib/profiles";
@@ -300,10 +299,15 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
 
   useEffect(() => {
     if (step === "review" && !dna) swapStep("site");
-    else if (step === "reading" && read.status === "idle" && !start.resumeRead) swapStep(profession.trim() ? "networks" : "site");
+    else if (step === "work") swapStep(dna ? "review" : address.trim() || noSite ? "networks" : "site");
+    else if (step === "reading" && read.status === "idle" && !start.resumeRead) swapStep(address.trim() || noSite ? "networks" : "site");
     else if ((step === "connect" || step === "finish") && (!first || !saved)) swapStep(dna ? "review" : "site");
     else if (first && saved && step !== "connect" && step !== "finish") swapStep(canConnect ? "connect" : "finish");
-  }, [step, dna, read.status, profession, first, saved, canConnect, swapStep, start.resumeRead]);
+  }, [step, dna, read.status, address, noSite, first, saved, canConnect, swapStep, start.resumeRead]);
+
+  useEffect(() => {
+    if (step === "networks" && !networks.length && !networksTouched.current) setNetworks([DEFAULT_NETWORK]);
+  }, [step]);
 
   useEffect(() => setBusy(""), [step]);
 
@@ -346,7 +350,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
       setSlideFont(slideFontFor(d.fonts));
       setDone(new Set());
       setExpanded(new Set());
-      if (!networksTouched.current) setNetworks((n) => [...new Set([...n, ...foundNetworks(d.handles)])]);
+      setNetworks((n) => networksAfterRead(n, foundNetworks(d.handles), networksTouched.current));
       if (listing) setApp(listing);
       setRead((r) => ({ ...r, status: "done", finished: Date.now() }));
     },
@@ -444,10 +448,10 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     setAddressError("");
     const same = read.target === targetOf(address) && !noSite;
     if (same && (read.status === "running" || (read.status === "done" && dna))) {
-      setStep("work");
+      setStep("networks");
       return;
     }
-    beginRead("work");
+    beginRead("networks");
   };
 
   const goNoSite = () => {
@@ -456,7 +460,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
     setAddressError("");
     clearRead();
     setNoSite(true);
-    setStep("work");
+    setStep("networks");
   };
 
   const fillByHand = () => {
@@ -610,7 +614,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
             return;
           }
           if (historyIndex() > startIdx.current) window.history.back();
-          else swapStep(step === "work" ? "site" : step === "networks" ? "work" : "networks");
+          else swapStep(step === "networks" ? "site" : "networks");
         };
 
   const finishFacts = () => ({
@@ -654,7 +658,6 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
           }
         />
       )}
-      {step === "work" && <WorkStep titleId={TITLE_ID} value={profession} onChange={setProfession} onContinue={() => setStep("networks")} />}
       {step === "networks" && (
         <NetworksStep
           titleId={TITLE_ID}
@@ -697,7 +700,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
           dna={dna}
           patch={(p) => setDna((d) => d && { ...d, ...p })}
           profession={profession}
-          onProfession={() => swapStep("work")}
+          onProfession={setProfession}
           sections={sections}
           done={done}
           current={current}
@@ -729,10 +732,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
               </p>
             ) : triedEmpty && !profession.trim() ? (
               <p role="alert" className="text-sm font-medium text-destructive">
-                {PROFESSION_NEEDED}{" "}
-                <button type="button" className="underline underline-offset-2" onClick={() => swapStep("work")}>
-                  Pick it
-                </button>
+                {PROFESSION_NEEDED}
               </p>
             ) : null
           }

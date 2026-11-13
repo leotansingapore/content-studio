@@ -19,6 +19,13 @@ export const keptNetworks = (raw: unknown): Network[] =>
 
 export const foundNetworks = (handles: Partial<Record<string, string | undefined>>): Network[] => NETWORK_KEYS.filter((k) => !!handles[k]?.trim());
 
+/** Where you post starts picked, as Holo's one choice does. */
+export const DEFAULT_NETWORK: Network = "instagram";
+
+/** Until someone picks, what the read found replaces the starting pick; an empty find keeps it. */
+export const networksAfterRead = (current: readonly Network[], found: readonly Network[], touched: boolean): Network[] =>
+  touched || !found.length ? [...current] : [...found];
+
 export const flowKey = (uid: string) => `content-studio-onboarding-${uid}`;
 
 export interface SetUpFacts {
@@ -86,10 +93,11 @@ export const hostOf = (raw: string): string => {
 export function progressOf(step: Step, done: number, total: number, mode: Mode = "add"): number {
   const share = Math.min(done, total) / Math.max(1, total);
   if (mode === "first") {
-    const at: Record<Step, number> = { site: 12, work: 25, networks: 38, reading: 44, review: 50, connect: 88, finish: 100 };
+    const at: Record<Step, number> = { site: 15, work: 35, networks: 35, reading: 44, review: 50, connect: 88, finish: 100 };
     return step === "review" ? Math.round(50 + 30 * share) : at[step];
   }
-  const at: Record<Step, number> = { site: 20, work: 40, networks: 60, reading: 66, review: 75, connect: 100, finish: 100 };
+  // "work" is no longer a step of its own (What you do sits in Brand identity); old ?step=work links land on networks
+  const at: Record<Step, number> = { site: 25, work: 50, networks: 50, reading: 50, review: 75, connect: 100, finish: 100 };
   return step === "review" ? Math.round(75 + 25 * share) : at[step];
 }
 

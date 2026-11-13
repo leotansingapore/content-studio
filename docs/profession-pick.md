@@ -5,9 +5,9 @@ Status: shadow only. Nothing reads it yet. The live `brand-dna` is unchanged.
 ## What it will do
 
 When a site read comes back, Jev picks what the brand's owner does. The pick prefills
-the work step ("What do you do?") on /welcome and /brands/new. The person still confirms it.
+"What you do" in Brand identity on /welcome and /brands/new (a separate work step until 13 Nov). The person still confirms it.
 
-- One Jev choice over the work step's six chips, plus `other`.
+- One Jev choice over the six choices, plus `other`.
 - It reads the same words as the audience pick: the written one-liner, the audience
   detail and the site's description.
 - It asks in the same Jev call as the audience pick, so a read makes no extra call.
@@ -41,5 +41,5 @@ TYPESAFE_API_KEY=... OPENAI_API_KEY=... deno run -A supabase/functions/brand-dna
 1. Set `PROFESSION_MIN` from the report.
 2. In `index.ts`, add `profession: professionAsk` to the audience call and return
    `profession: professionFrom(answers)`.
-3. In `BrandSetup.tsx`, fill the work step from `dna.profession` when it is empty.
+3. In `BrandSetup.tsx`, fill What you do from `dna.profession` when it is empty.
 4. Deploy `brand-dna` with JWT verification on.

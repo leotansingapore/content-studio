@@ -10,6 +10,7 @@ import { colourGap, confirmLabel, hexOf, nextLine, readableInk, scoreOf, section
 import type { PlanAudience } from "@/lib/positioning";
 import type { ReviewRow } from "@/lib/productScan";
 import { LANG_NAMES } from "@/lib/translate";
+import { MAX_PROFESSION_CHARS, PROFESSION_CHOICES } from "@/lib/profession";
 
 const NETWORK_ICONS: Record<string, Icon> = { instagram: InstagramLogoIcon, facebook: FacebookLogoIcon, linkedin: LinkedinLogoIcon, tiktok: TiktokLogoIcon };
 const SLIDE_LOOKS: { value: SlideFont; label: string; line: string; title: string; body: string }[] = [
@@ -231,6 +232,53 @@ function LogoField({ logo, name, colour, found, onLogo }: { logo: string | null;
   );
 }
 
+const OTHER_WORK = "other";
+const sameWork = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/** What you do, Required in Brand identity as Holo keeps every brand fact in its review; the read fills it when the site says. */
+function WorkField({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
+  const listed = PROFESSION_CHOICES.find((c) => sameWork(c, value) || (c === "Financial adviser" && sameWork(value, "financial advisor")));
+  const [other, setOther] = useState(() => !!value.trim() && !listed);
+  return (
+    <div className="space-y-1.5">
+      <FieldLabel htmlFor={`${id}-work`}>What you do</FieldLabel>
+      <select
+        id={`${id}-work`}
+        value={other ? OTHER_WORK : (listed ?? "")}
+        onChange={(e) => {
+          const v = e.target.value;
+          setOther(v === OTHER_WORK);
+          onChange(v === OTHER_WORK ? "" : v);
+        }}
+        aria-invalid={!value.trim()}
+        className={`${fieldClass} appearance-auto`}
+      >
+        <option value="" disabled>
+          Pick one
+        </option>
+        {PROFESSION_CHOICES.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+        <option value={OTHER_WORK}>Something else</option>
+      </select>
+      {other && (
+        <input
+          autoFocus
+          aria-label="What you do, in a few words"
+          value={value}
+          maxLength={MAX_PROFESSION_CHARS}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Like photographer, dentist or bakery"
+          aria-invalid={!value.trim()}
+          className={fieldClass}
+        />
+      )}
+    </div>
+  );
+}
+
 export interface ReviewProps {
   titleId: string;
   mode?: Mode;
@@ -240,7 +288,7 @@ export interface ReviewProps {
   dna: BrandDna;
   patch: (p: Partial<BrandDna>) => void;
   profession: string;
-  onProfession: () => void;
+  onProfession: (v: string) => void;
   sections: readonly Section[];
   done: ReadonlySet<Section>;
   current: Section | null;
@@ -281,7 +329,7 @@ export function ReviewStep(p: ReviewProps) {
   }, [current, id]);
 
   const finding = !!p.products?.busy;
-  const valid = (s: Section) => (s === "identity" ? !!dna.name.trim() : s === "look" ? p.colours.length > 0 : s === "products" ? !finding : true);
+  const valid = (s: Section) => (s === "identity" ? !!dna.name.trim() && !!p.profession.trim() : s === "look" ? p.colours.length > 0 : s === "products" ? !finding : true);
   const summary = (s: Section): ReactNode => {
     switch (s) {
       case "identity":
@@ -317,18 +365,13 @@ export function ReviewStep(p: ReviewProps) {
               <FieldLabel htmlFor={`${id}-name`}>Brand name</FieldLabel>
               <input id={`${id}-name`} value={dna.name} maxLength={40} onChange={(e) => patch({ name: e.target.value })} placeholder="MoneyBees" className={fieldClass} aria-invalid={!dna.name.trim()} />
             </div>
+            <WorkField id={id} value={p.profession} onChange={p.onProfession} />
             <div className="space-y-1.5">
               <FieldLabel htmlFor={`${id}-line`} hint={`${dna.oneLiner.length}/200`}>
                 What you do, in one line
               </FieldLabel>
               <textarea id={`${id}-line`} rows={3} maxLength={200} value={dna.oneLiner} onChange={(e) => patch({ oneLiner: e.target.value })} placeholder="We help young families save so they can buy their first home." className={`${areaClass} resize-none`} />
             </div>
-            <p className="text-[13px] text-muted-foreground">
-              Posts are written for a {p.profession.trim() ? p.profession.trim().toLowerCase() : "professional"}.{" "}
-              <button type="button" onClick={p.onProfession} className="font-medium text-primary underline-offset-2 hover:underline">
-                Change
-              </button>
-            </p>
             {leo && (
               <div className="space-y-1.5">
                 <FieldLabel htmlFor={`${id}-lang`}>Posts are written in</FieldLabel>
