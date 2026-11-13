@@ -48,3 +48,11 @@ describe("the slideshow page's More settings", () => {
     expect(showPicks("4x5", "mine", null)).toEqual(["4:5", "from my media"]);
   });
 });
+
+describe("the slideshow page's result pane before the first make", () => {
+  it("shows the format's example in place of a line about it", () => {
+    const page = html("/make/slideshow");
+    expect(page).toContain('src="/formats/slideshow.webp"');
+    expect(page).not.toContain("Your result shows here once you make it.");
+  });
+});

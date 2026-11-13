@@ -430,7 +430,16 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
           <Result userId={userId} show={shown} onAgain={() => makeIt()} canAgain={!reason && !busy} />
         </>
       ) : (
-        <Placeholder size={size}>Your result shows here once you make it.</Placeholder>
+        // before the first make: the format's own example, so the pane shows what you will get
+        <figure className="mx-auto w-full max-w-[340px] space-y-1.5">
+          <img
+            src={`/formats/${def.slug}.webp`}
+            alt={`${def.name} example`}
+            className="w-full rounded-xl border border-border/60 bg-muted object-cover"
+            style={{ aspectRatio: size === "9x16" ? "9 / 16" : "4 / 5" }}
+          />
+          <figcaption className="text-center text-xs text-muted-foreground">Example</figcaption>
+        </figure>
       )}
     </div>
   );
