@@ -1,26 +1,31 @@
 // /make/static/:slug (ff1111, after Fastlane's static ad format page): one static ad format from src/data/staticFormats.ts.
-// A back chip to the Create gallery's Static ads tab, the name and line, an example drawn by our own template for a
-// made-up business, what it works with, an optional note (kept on this device, cs-static-note-<slug>), the price and one
-// button: "Make an ad in this format" opens /image on that layout and writes the words for the brand with the note
-// (navigation state { go, format }, as the Remix sheet's link does; a pasted link writes nothing), and the design lands
-// in Your images. A format that needs a photo, with none on this brand yet, reads "Add a photo" and opens the picker
-// instead. Leo's sign-ins only (useLeoUser, so ?asLeo=1 works on localhost); anyone else, and an unknown slug, gets NotFound.
+// A back chip to the Create gallery's Static ads tab, the name and line, its made examples and our own drawn layout,
+// what it works with, an optional note (kept on this device, cs-static-note-<slug>), and two ways to make it, each with
+// its price. "Make it as a photo" (src/lib/photoAd.ts) writes the words for the brand with the note, then the picture
+// maker makes the format's scene with those words on it; it stays on this page, shows each step, and ends with a link to
+// the photo in Media. "Make it as a layout" opens /image on that layout and writes the words there (navigation state
+// { go, format }, as the Remix sheet's link does; a pasted link writes nothing), and the design lands in Your images.
+// The photo is the dominant button, since the examples it matches are photos; the layout takes over when today's
+// pictures are used up. A format that needs a photo, with none on this brand yet, offers only "Add a photo", which opens
+// the picker. Leo's sign-ins only (useLeoUser, so ?asLeo=1 works on localhost); anyone else, and an unknown slug, gets NotFound.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { CaretLeftIcon, CaretRightIcon, ImageSquareIcon, SparkleIcon } from "@phosphor-icons/react";
+import { CameraIcon, CaretLeftIcon, CaretRightIcon, CircleNotchIcon, ImageSquareIcon, SparkleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { STATIC_SHOTS, staticFormatBySlug, staticShotSrc, type StaticFormat } from "@/data/staticFormats";
+import { AI_FOLDER, imageJob, onImageJob, resumeImage } from "@/lib/aiImage";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { staticExampleUrl } from "@/lib/staticExample";
 import { isStatic } from "@/lib/imageLayout";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
+import { PHOTO_STEP, startPhotoAd, usePhotoAd } from "@/lib/photoAd";
 import { loadProducts, type Products } from "@/lib/products";
-import { reasonText } from "@/lib/prices";
+import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { brandName } from "@/lib/remixBrand";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -74,7 +79,7 @@ export function staticMake(
   if (f.needs === "photo" && !o.picture && !o.photos) return { label: "Add a photo", to: `${page}&pick=media`, state: { format: { topic } } };
   const pick = f.needs === "photo" && !o.picture ? "&pick=media" : "";
   return {
-    label: "Make an ad in this format",
+    label: "Make it as a layout",
     to: page + pick,
     state: { go: true, format: { topic, ...(usesPhoto && o.picture ? { pictureKey: o.picture } : {}), ...(f.best === "price" && o.price ? { price: o.price } : {}) } },
   };
@@ -98,11 +103,29 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
   const brand = useMemo(() => brandName(userId), [userId]);
   const bits = useMemo(() => productBits(loadProducts(userId)), [userId]);
   const photos = useMemo(() => loadMedia(userId).filter((m) => m.kind !== "video").length, [userId]);
-  const leftOf = useUsesLeft(false);
+  const photo = usePhotoAd();
+  const mine = photo?.slug === def.slug ? photo : null;
+  const running = photo?.state === "writing" || photo?.state === "making";
+  const [picture, setPicture] = useState(imageJob);
+  useEffect(() => onImageJob(setPicture), []);
+  // a photo whose use was spent before a reload still lands in Media
+  useEffect(() => resumeImage(userId), [userId]);
+  // one picture at a time: another format's photo, or a picture from elsewhere, holds this button until it's done
+  const picturing = running ? !mine : picture?.state === "working" || picture?.state === "saving";
+  const leftOf = useUsesLeft(running);
   const left = leftOf("remix-make");
+  const pictures = leftOf("ai-image");
+  // a photo spends one of each: what is left is the lower of the two
+  const photoLeft = left === null || pictures === null ? (left ?? pictures) : Math.min(left, pictures);
   const action = staticMake(def, { note, brand, photos, ...bits });
   const adding = action.label === "Add a photo";
-  const reason = adding ? null : reasonText({ left, leo: true });
+  // the photo leads while it can run today; with no pictures (or writes) left the layout is the one button to press
+  const photoFirst = !adding && photoLeft !== 0;
+  const reason = adding ? null
+    : left === 0 ? reasonText({ left, leo: true })
+    : pictures === 0 ? "Photos are back at 8am Singapore time."
+    : picturing ? "A picture is already being made. This one can start when it's done."
+    : null;
 
   return (
     <div className="space-y-6">
@@ -143,15 +166,60 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
           {drawn && (
             <div className="space-y-2">
               {adding && <p className="text-sm text-muted-foreground">This one shows what you sell, so it needs a photo of it first.</p>}
+              {!adding && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant={photoFirst ? "default" : "outline"}
+                    onClick={() => void startPhotoAd(userId, def, action.state.format)}
+                    disabled={running || picturing || photoLeft === 0}
+                    className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${running && mine ? "disabled:opacity-100" : ""}`}
+                  >
+                    {running && mine ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <CameraIcon className="h-4 w-4" />} Make it as a photo
+                  </Button>
+                  {!(running && mine) && <PriceChip price={sumPrices(priceOf("remix-make"), priceOf("ai-image"))} left={photoLeft} />}
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={() => navigate(action.to, { state: action.state })} disabled={!adding && left === 0} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
+                <Button
+                  variant={photoFirst ? "outline" : "default"}
+                  onClick={() => navigate(action.to, { state: action.state })}
+                  disabled={!adding && (left === 0 || running)}
+                  className="gap-1.5 [@media(pointer:coarse)]:min-h-11"
+                >
                   {adding ? <ImageSquareIcon className="h-4 w-4" /> : <SparkleIcon className="h-4 w-4" />} {action.label}
                 </Button>
                 {!adding && <PriceChip feature="remix-make" left={left} />}
               </div>
               {reason && <p className="text-xs text-muted-foreground">{reason}</p>}
+              <div aria-live="polite" className="text-sm">
+                {mine && (mine.state === "writing" || mine.state === "making") && (
+                  <p className="text-muted-foreground">
+                    {PHOTO_STEP[mine.state]}
+                    {mine.state === "making" && " About a minute. You can leave this page."}
+                  </p>
+                )}
+                {mine?.state === "failed" && <p className="text-destructive">{mine.error}</p>}
+                {mine?.state === "done" && mine.mediaKey && (
+                  <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-card p-2.5">
+                    {mine.preview && <img src={mine.preview} alt="" className="h-20 w-auto shrink-0 rounded border border-border/60" />}
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">Your photo ad is ready.</p>
+                      <Link to={links.media({ folder: AI_FOLDER, item: mine.mediaKey })} className="inline-flex font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
+                        Open it in Media
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        The same words as a layout are in{" "}
+                        <Link to={links.image({ image: mine.designId })} className="font-semibold text-primary hover:underline">
+                          Your images
+                        </Link>
+                        .
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                It opens on the Image page and stays in{" "}
+                {adding ? "It opens on the Image page and stays in " : "A photo goes to Media. A layout opens on the Image page and stays in "}
                 <Link to={links.image()} className="font-semibold text-primary hover:underline">
                   Your images
                 </Link>

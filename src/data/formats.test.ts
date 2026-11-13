@@ -225,7 +225,7 @@ describe("searchFormats", () => {
 });
 
 describe("readyStatics", () => {
-  const st = (slug: string, ready: boolean): StaticFormat => ({ slug, name: slug, blurb: "", ready });
+  const st = (slug: string, ready: boolean): StaticFormat => ({ slug, name: slug, blurb: "", ready, scene: "" });
   it("lists only the static formats whose page has shipped, in the registry's order", () => {
     expect(readyStatics([st("a", true), st("b", false), st("c", true)]).map((f) => f.slug)).toEqual(["a", "c"]);
     expect(readyStatics([st("b", false)])).toEqual([]);

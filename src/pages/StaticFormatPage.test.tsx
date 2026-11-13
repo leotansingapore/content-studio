@@ -1,5 +1,5 @@
 // /make/static/:slug: the page's states (Leo only, an unknown or not-yet-drawn format, a photo or none, the note kept on
-// this device) and where its one button goes.
+// this device), which of its two makes leads, and where the layout make goes.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -17,11 +17,12 @@ const as = vi.hoisted(() => {
     },
     clear: () => store.clear(),
   };
-  return { user: null as null | undefined | { id: string; email: string } };
+  return { user: null as null | undefined | { id: string; email: string }, left: {} as Record<string, number> };
 });
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user, useLeoOnly: () => !!as.user }));
 // no canvas in node: the example is measured roughly, as the layout tests do
 vi.mock("@/lib/carouselRender", async (actual) => ({ ...(await actual<typeof import("@/lib/carouselRender")>()), createCanvasMeasure: () => (t: string, f: { size: number }) => t.length * f.size * 0.5 }));
+vi.mock("@/lib/aiUsage", async (actual) => ({ ...(await actual<typeof import("@/lib/aiUsage")>()), useUsesLeft: () => (f: string) => as.left[f] ?? null }));
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
@@ -33,21 +34,26 @@ import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 const U = "u1";
 const html = (slug: string) =>
   renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/make/static/${slug}`] }, createElement(Routes, null, createElement(Route, { path: "/make/static/:slug", element: createElement(StaticFormatPage) }))));
+/** A button's markup, by the label it ends with. */
+const button = (page: string, label: string) => page.match(new RegExp(`<button[^>]*>(?:(?!</button>).)*${label}</button>`))?.[0] ?? "";
+const PRIMARY = "bg-primary text-primary-foreground";
 const product = (o: Record<string, unknown> = {}) => ({ id: "pd-abcd1", name: "Cold brew", what: "Bottled", forWho: "Offices", pictures: ["cimg-bottle1"], sources: [""], use: true, from: "you", addedAt: "", ...o });
 
 afterEach(() => {
   as.user = null;
+  as.left = {};
   localStorage.clear();
 });
 
 describe("the static format page", () => {
   it("is Leo's only, and an unknown format is not found", () => {
-    expect(html("text-chat")).not.toContain("Make an ad in this format");
+    expect(html("text-chat")).not.toContain("Make it as a layout");
+    expect(html("text-chat")).not.toContain("Make it as a photo");
     as.user = { id: U, email: "leo@x.sg" };
     expect(html("street-scene")).not.toContain("Static ads");
   });
 
-  it("shows the format, its example for a made-up business, what it works with, the note and one Make button", () => {
+  it("shows the format, its example for a made-up business, what it works with, the note and its two makes", () => {
     as.user = { id: U, email: "leo@x.sg" };
     const page = html("text-chat");
     expect(page).toContain('href="/make?tab=static"');
@@ -59,7 +65,36 @@ describe("the static format page", () => {
     expect(page).toContain("Angle: Name the pain. Made up for Hilltop Coffee.");
     expect(page).toContain("No photo needed. The words carry it.");
     expect(page).toContain('id="static-note"');
-    expect(page.match(/Make an ad in this format/g)).toHaveLength(1);
+    expect(page.match(/Make it as a photo/g)).toHaveLength(1);
+    expect(page.match(/Make it as a layout/g)).toHaveLength(1);
+  });
+
+  it("leads with the photo, priced for its write and its picture, and hands the lead to the layout when pictures run out", () => {
+    as.user = { id: U, email: "leo@x.sg" };
+    let page = html("street-poster");
+    // one dominant button: the photo, first, filled; the layout outlined after it
+    expect(page.indexOf("Make it as a photo")).toBeLessThan(page.indexOf("Make it as a layout"));
+    expect(button(page, "Make it as a photo")).toContain(PRIMARY);
+    expect(button(page, "Make it as a layout")).not.toContain(PRIMARY);
+    // the price before anything is spent: one write (US$0.007) and one picture (US$0.04)
+    expect(page).toContain("About US$0.05");
+    expect(page).toContain("A photo goes to Media.");
+
+    as.left = { "remix-make": 20, "ai-image": 0 };
+    page = html("street-poster");
+    expect(button(page, "Make it as a layout")).toContain(PRIMARY);
+    expect(button(page, "Make it as a photo")).not.toContain(PRIMARY);
+    expect(button(page, "Make it as a photo")).toContain('disabled=""');
+    expect(button(page, "Make it as a layout")).not.toContain('disabled=""');
+    expect(page).toContain("Photos are back at 8am Singapore time.");
+  });
+
+  it("offers no photo where the format needs the brand's own product photo and there is none", () => {
+    as.user = { id: U, email: "leo@x.sg" };
+    const page = html("share-popup");
+    expect(page).toContain("Add a photo");
+    expect(page).not.toContain("Make it as a photo");
+    expect(page).toContain("It opens on the Image page");
   });
 
   it("keeps the note on this device across a reload", () => {
@@ -72,25 +107,26 @@ describe("the static format page", () => {
 
   it("says a format the registry gains before its layout is drawn isn't drawn yet, with no button", () => {
     as.user = { id: U, email: "leo@x.sg" };
-    STATIC_FORMATS.push({ slug: "future-format", name: "Future format", blurb: "Not drawn yet.", ready: false });
+    STATIC_FORMATS.push({ slug: "future-format", name: "Future format", blurb: "Not drawn yet.", ready: false, scene: "A future scene." });
     try {
       const page = html("future-format");
       expect(page).toContain("isn&#x27;t drawn yet");
-      expect(page).not.toContain("Make an ad in this format");
+      expect(page).not.toContain("Make it as a layout");
+      expect(page).not.toContain("Make it as a photo");
     } finally {
       STATIC_FORMATS.pop();
     }
   });
 });
 
-describe("the Make button", () => {
+describe("the layout make", () => {
   const chat = staticFormatBySlug("text-chat")!;
   const best = { slug: "ai-chat", best: "photo" as const };
   const needs = { slug: "share-popup", needs: "photo" as const };
 
   it("writes at once for the brand, the note as the topic, else what the brand does", () => {
     expect(staticMake(chat, { note: "  For new parents  ", brand: "Hilltop", photos: 0 })).toEqual({
-      label: "Make an ad in this format",
+      label: "Make it as a layout",
       to: "/image?layout=text-chat",
       state: { go: true, format: { topic: "For new parents" } },
     });
@@ -102,13 +138,13 @@ describe("the Make button", () => {
     expect(staticMake(best, { note: "", brand: "B", picture: "cimg-bottle1", photos: 3 }).state.format.pictureKey).toBe("cimg-bottle1");
     expect(staticMake(chat, { note: "", brand: "B", picture: "cimg-bottle1", photos: 3 }).state.format.pictureKey).toBeUndefined();
     // best with a photo and none yet: it still writes
-    expect(staticMake(best, { note: "", brand: "B", photos: 0 })).toMatchObject({ label: "Make an ad in this format", state: { go: true } });
+    expect(staticMake(best, { note: "", brand: "B", photos: 0 })).toMatchObject({ label: "Make it as a layout", state: { go: true } });
   });
 
   it("adds a photo first when the format needs one and the brand has none, and opens the picker", () => {
     expect(staticMake(needs, { note: "Hi", brand: "B", photos: 0 })).toEqual({ label: "Add a photo", to: "/image?layout=share-popup&pick=media", state: { format: { topic: "Hi" } } });
     // photos in Media but no product photo: it writes, with the picker open beside it
-    expect(staticMake(needs, { note: "", brand: "B", photos: 2 })).toMatchObject({ label: "Make an ad in this format", to: "/image?layout=share-popup&pick=media", state: { go: true } });
+    expect(staticMake(needs, { note: "", brand: "B", photos: 2 })).toMatchObject({ label: "Make it as a layout", to: "/image?layout=share-popup&pick=media", state: { go: true } });
     expect(staticMake(needs, { note: "", brand: "B", picture: "cimg-bottle1", photos: 0 })).toMatchObject({ to: "/image?layout=share-popup", state: { go: true, format: { pictureKey: "cimg-bottle1" } } });
   });
 
