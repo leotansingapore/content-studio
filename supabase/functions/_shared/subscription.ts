@@ -85,5 +85,27 @@ export function siteOf(raw: unknown): string | null {
   return site.length <= 200 ? site : null;
 }
 
+/**
+ * An account made by an invite to a shared brand (docs/shared-brands.md). Its row opens nothing on its own: hasAccess
+ * doesn't list it, so a function deployed before shared brands refuses it.
+ */
+export const MEMBER = "member";
+
+/** Whether the rows of a member's brand owners open the studio for it: one that gives access is enough. A member's own
+ * row never covers anyone, and an owner with no row covers nobody (cs_member_owner_rows lists owners with a row only). */
+export const teamCovers = (ownerRows: SubRow[], now: number): boolean => ownerRows.some((r) => r.status !== MEMBER && hasAccess(r, now));
+
+/** The server's read of teamCovers for a member account, through 037's cs_member_owner_rows. A failed lookup refuses
+ * nobody, as readSubscription doesn't. */
+export async function teamCovered(admin: unknown, userId: string, now = Date.now()): Promise<boolean> {
+  try {
+    // deno-lint-ignore no-explicit-any
+    const { data, error } = await (admin as any).rpc("cs_member_owner_rows", { p_member: userId });
+    return error || !Array.isArray(data) ? true : teamCovers(data as SubRow[], now);
+  } catch {
+    return true;
+  }
+}
+
 /** A customer whose subscription has stopped giving access. Never true for an account with no row. */
 export const lapsed = (row: SubRow | null, now: number): boolean => !!row && !hasAccess(row, now);

@@ -187,6 +187,8 @@ export const NO_PRICE: UsageFeature[] = [
   "ai-presenter-global", "scene-move-global",
   // social reads and writes, team comments
   "social-connect", "social-read", "social-automation-write", "social-schedule", "social-presign", "team-comment",
+  // an invite to a shared brand is one email (brand-team), and its across-everyone counter
+  "brand-invite", "brand-invite-global",
   // slideshow campaign saves and reads, and Send to phone's upload links (slide-campaigns)
   "slide-campaign-write", "slide-phone",
   // Telegram's Bot API is free at these volumes

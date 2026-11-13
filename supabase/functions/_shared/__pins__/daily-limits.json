@@ -591,6 +591,22 @@
       "limit": 30
     }
   },
+  "brand-invite": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "brand-invite-global": {
+    "limit": 200,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 200
+    }
+  },
   "team-comment": {
     "limit": 60,
     "answer": {

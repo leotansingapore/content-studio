@@ -2,7 +2,7 @@
 // 009). Call consumeUsage before the paid call; it counts the use and says
 // whether it's allowed. No Deno or npm imports, so vitest can test it.
 
-import { lapsed, readSubscription } from "./subscription.ts";
+import { lapsed, MEMBER, readSubscription, teamCovered } from "./subscription.ts";
 
 export const DAILY_LIMITS = {
   "reel-clone": 20,
@@ -136,6 +136,10 @@ export const DAILY_LIMITS = {
   "telegram-connect": 5,
   "telegram-schedule": 30,
   "telegram-presign": 30,
+  // Inviting someone to a shared brand (brand-team invite): one email each, from an owner with an active plan; and
+  // across everyone on GLOBAL_COUNTER_USER, so the sender can't be used to mail the world (docs/shared-brands.md).
+  "brand-invite": 10,
+  "brand-invite-global": 200,
   // A team member's note on Leo's posts board (team-board); Leo's own notes are not counted.
   "team-comment": 60,
   // Adding a brand from its website, or reading it again on /brand (brand-dna): up to 5 pages, one LLM call and two Jev calls.
@@ -311,7 +315,9 @@ export async function consumeUsage(
 ): Promise<UsageResult> {
   // Postmosis billing (docs/postmosis-billing.md): the app's paywall is only a screen, so a customer whose
   // subscription has lapsed is refused here, before a use is counted. No row, or a failed read, refuses nobody.
-  if (lapsed(await readSubscription(admin, userId), Date.now())) return { allowed: false, limit, reason: "lapsed" };
+  // An account made by an invite (docs/shared-brands.md) is let through while an owner of one of its brands has a plan.
+  const row = await readSubscription(admin, userId);
+  if (lapsed(row, Date.now()) && !(row?.status === MEMBER && (await teamCovered(admin, userId)))) return { allowed: false, limit, reason: "lapsed" };
   return countUsage(admin, userId, feature, limit);
 }
 

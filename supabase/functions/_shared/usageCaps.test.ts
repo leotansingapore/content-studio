@@ -66,6 +66,43 @@ describe("a lapsed Postmosis subscription", () => {
   });
 });
 
+describe("an account made by an invite (docs/shared-brands.md)", () => {
+  // a member row, and the owners' rows the database answers for it
+  const member = (owners: unknown) => {
+    const calls: unknown[] = [];
+    return {
+      calls,
+      rpc(fn: string, args: Record<string, unknown>) {
+        calls.push({ fn, args });
+        return Promise.resolve(fn === "cs_member_owner_rows" ? { data: owners, error: null } : { data: 1, error: null });
+      },
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { status: "member" }, error: null }) }) }) }),
+    };
+  };
+
+  it("uses the AI under its own caps while an owner's plan covers it", async () => {
+    const admin = member([{ status: "active", past_due_since: null }]);
+    expect(await consumeUsage(admin, "m1", "carousel")).toMatchObject({ allowed: true });
+    expect(admin.calls).toEqual([
+      { fn: "cs_member_owner_rows", args: { p_member: "m1" } },
+      { fn: "cs_consume_ai_usage", args: { p_user: "m1", p_feature: "carousel", p_limit: DAILY_LIMITS.carousel } },
+    ]);
+  });
+
+  it("is refused, before a use is counted, once no owner's plan covers it", async () => {
+    for (const owners of [[], [{ status: "canceled", past_due_since: null }]]) {
+      const admin = member(owners);
+      expect(await consumeUsage(admin, "m1", "carousel")).toMatchObject({ allowed: false, reason: "lapsed" });
+      expect(admin.calls).toEqual([{ fn: "cs_member_owner_rows", args: { p_member: "m1" } }]);
+    }
+  });
+
+  it("caps invites per inviter and across everyone", () => {
+    expect(DAILY_LIMITS["brand-invite"]).toBe(10);
+    expect(DAILY_LIMITS["brand-invite-global"]).toBe(200);
+  });
+});
+
 describe("giving a use back", () => {
   // cs_ai_usage with one row at `count`; `update` answers each conditional update
   const table = (count: number, update: () => { data: unknown; error: unknown } | Error) => {

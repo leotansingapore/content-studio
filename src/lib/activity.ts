@@ -380,6 +380,8 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "telegram-schedule": "Posts set for Telegram",
   "telegram-presign": "File uploads for Telegram",
   "team-comment": "Team notes",
+  "brand-invite": "Team invites",
+  "brand-invite-global": "Team invites, everyone",
   "brand-dna": "Brand reads",
   "remix-make": "Remixes",
   "remix-make-refund": "Remixes given back",
