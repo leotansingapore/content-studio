@@ -151,7 +151,7 @@ export interface FnDb {
   cancelPending(uid: string, profileId: string, now: string): Promise<number>;
   insertConnect(row: { owner_id: string; profile_id: string; code_hash: string; code_expires_at: string; nonce_hash: string; bot_id: number | null }): Promise<{ id: string }>;
   /** The brand's own bot, or null when it posts through the shared one. */
-  brandBot(uid: string, profileId: string): Promise<{ id: string; bot_id: number; username: string } | null>;
+  brandBot(uid: string, profileId: string): Promise<{ id: string; bot_id: number; username: string; status: string } | null>;
   /** Whether any account has this bot set up. */
   botTaken(botId: number): Promise<boolean>;
   /** 027's cs_telegram_bot_save: the token into Vault and the row with it; null when refused (it never raises). */
@@ -207,6 +207,7 @@ export async function runStart(db: FnDb, uid: string, profileId: string, sharedU
   await db.cancelPending(uid, profileId, iso(now));
   // the brand's own bot when it has one: the code is issued for that bot, and only that bot's /start takes it
   const own = await db.brandBot(uid, profileId);
+  if (own?.status === "revoked") return { status: 409, body: { error: `Paste a new token for @${own.username} first.` } };
   const botUsername = own?.username ?? sharedUsername;
   const code = newCode();
   // kept by the browser that pressed Connect Telegram: the confirm works only there

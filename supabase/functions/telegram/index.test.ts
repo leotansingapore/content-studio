@@ -30,7 +30,7 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({
       // a query's calls, as they would reach PostgREST. A read finds the code itself (by its id), the brand's own bot
       // when the test gives one, never a used login or another live connect; an update or delete changes one row.
       const chain: Record<string, unknown> = {};
-      for (const m of ["eq", "gt", "or", "in", "neq", "is", "not", "limit"]) chain[m] = (...a: unknown[]) => (note([m, ...a]), chain);
+      for (const m of ["eq", "gt", "or", "in", "neq", "is", "not", "limit", "match"]) chain[m] = (...a: unknown[]) => (note([m, ...a]), chain);
       const writing = () => mine.some((f) => f[0] === "update" || f[0] === "delete");
       const answer = () =>
         t === "cs_telegram_bots"
@@ -132,11 +132,22 @@ describe("the telegram function's gate", () => {
       ["eq", "profile_id", "pmoneybees"],
       ["eq", "status", "pending"],
       ["select", "id"],
-      ["read", "id, bot_id, username"],
+      ["read", "id, bot_id, username, status"],
       ["eq", "owner_id", LEO],
       ["eq", "profile_id", "pmoneybees"],
     ]);
     expect(h.inserted).toEqual([{ owner_id: LEO, profile_id: "pmoneybees", code_hash: expect.stringMatching(/^[0-9a-f]{64}$/), code_expires_at: expect.any(String), nonce_hash: sha(nonce), bot_id: null }]);
+    expect(telegram).toEqual([]);
+  });
+
+  it("refuses a connect through the brand's own bot once its token stopped working, and gives the day's use back", async () => {
+    h.ownBot = { id: "00000000-0000-4000-8000-0000000000b1", bot_id: 7000000002, username: "mb_test_bot", status: "revoked" };
+    const res = await call("leo", { action: "start", profileId: "pmoneybees" });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "Paste a new token for @mb_test_bot first." });
+    expect(h.inserted).toEqual([]);
+    expect(h.reads.slice(-1)).toEqual(["cs_ai_usage"]);
+    expect(h.filters).toContainEqual(["match", { user_id: LEO, feature: "telegram-connect", day: new Date().toISOString().slice(0, 10) }]);
     expect(telegram).toEqual([]);
   });
 

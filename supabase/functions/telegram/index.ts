@@ -13,7 +13,7 @@
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { BUCKET, botClient, scrubTokens } from "../_shared/telegram.ts";
-import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { isAllowed } from "../social/logic.ts";
 import { parseRequest, runAddBot, runDisconnect, runPresign, runRemoveBot, runReplaceBot, runSchedule, runStart, runVerify, type BotFor, type FnDb, type OwnRow, type PostView } from "./logic.ts";
 
@@ -34,8 +34,8 @@ function fnDb(db: SupabaseClient): FnDb {
   const bots = () => db.from("cs_telegram_bots");
   return {
     async brandBot(uid, profileId) {
-      return must(await bots().select("id, bot_id, username").eq("owner_id", uid).eq("profile_id", profileId).maybeSingle(), "brand bot") as
-        | { id: string; bot_id: number; username: string }
+      return must(await bots().select("id, bot_id, username, status").eq("owner_id", uid).eq("profile_id", profileId).maybeSingle(), "brand bot") as
+        | { id: string; bot_id: number; username: string; status: string }
         | null;
     },
     async botTaken(botId) {
@@ -139,6 +139,7 @@ Deno.serve(async (req) => {
 
   // disconnect, verify and bot-remove are not counted: they only ever act on the caller's own rows
   const feature = q.action === "start" || q.action === "bot-add" || q.action === "bot-replace" ? "telegram-connect" : q.action === "presign" ? "telegram-presign" : q.action === "schedule" ? "telegram-schedule" : null;
+  const day = new Date().toISOString().slice(0, 10);
   if (feature) {
     const usage = await consumeUsage(admin, uid, feature);
     if (!usage.allowed) {
@@ -176,6 +177,7 @@ Deno.serve(async (req) => {
             return { path: signed.path, token: signed.token };
           }, uid, q.profileId, q.files)
       : await runSchedule(db, uid, q, now);
+    if (q.action === "start" && reply.status === 409) await refundUsage(admin, uid, "telegram-connect", day);
     return json(reply.body, reply.status);
   } catch (e) {
     console.error("telegram failed", q.action, scrubTokens(e instanceof Error ? `${e.name}: ${e.message}` : "error").slice(0, 200));

@@ -52,7 +52,7 @@ function fakeDb(rows: Row[] = [], bots: OwnBot[] = []) {
     },
     async brandBot(uid, profileId) {
       const b = bots.find((x) => x.owner_id === uid && x.profile_id === profileId);
-      return b ? { id: b.id, bot_id: b.bot_id, username: b.username } : null;
+      return b ? { id: b.id, bot_id: b.bot_id, username: b.username, status: b.status ?? "active" } : null;
     },
     async botTaken(botId) {
       return bots.some((x) => x.bot_id === botId);
@@ -582,6 +582,13 @@ describe("own bot per brand", () => {
     const shared = fakeDb();
     await runStart(shared.db, UID, "me", "cs_test_bot", NOW);
     expect(shared.inserted[0]).toMatchObject({ bot_id: null });
+  });
+
+  it("issues no code through the brand's own bot once its token stopped working, and asks for a new token", async () => {
+    const mine: OwnBot = { id: "b1", owner_id: UID, profile_id: "me", bot_id: 7000000002, username: "mb_test_bot", display_name: "MoneyBees", token: OWN, webhook_secret_hash: "0".repeat(64), status: "revoked" };
+    const { db, inserted } = fakeDb([], [mine]);
+    expect(await runStart(db, UID, "me", "cs_test_bot", NOW)).toEqual({ status: 409, body: { error: "Paste a new token for @mb_test_bot first." } });
+    expect(inserted).toEqual([]);
   });
 
   it("checks a login against the token of the bot the code was issued for, and that bot sends the pickers", async () => {

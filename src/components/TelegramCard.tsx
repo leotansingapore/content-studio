@@ -342,6 +342,7 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
   };
 
   const chats = rows ? chatRows(rows) : [];
+  const botRevoked = ownBot?.status === "revoked";
   const state = watched ? connectState(watched, now) : null;
   const backTo = state?.kind === "connected" ? readConnectReturn() : null;
 
@@ -389,7 +390,7 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
                   </p>
                 </div>
                 {r.status !== "connected" && (
-                  <Button size="sm" className="h-11 sm:h-9" disabled={!!busy || live} onClick={() => void connect()}>
+                  <Button size="sm" className="h-11 sm:h-9" disabled={!!busy || live || botRevoked} onClick={() => void connect()}>
                     Connect again
                   </Button>
                 )}
@@ -461,7 +462,7 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
           </Button>
         ) : (
           // during a wait this tab has no link for, a new code replaces the waiting one
-          <Button variant="outline" className="h-11 w-full sm:w-auto" disabled={!!busy} onClick={() => void connect()}>
+          <Button variant="outline" className="h-11 w-full sm:w-auto" disabled={!!busy || botRevoked} onClick={() => void connect()}>
             {busy === "start" ? "Opening Telegram..." : live ? "Start again" : chats.length ? "Add another Telegram chat" : "Connect Telegram"}
           </Button>
         ))}
