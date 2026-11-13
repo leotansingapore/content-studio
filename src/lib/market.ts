@@ -227,6 +227,8 @@ function readShown(): { on: boolean; at: number } | null {
 
 /** Whether the nav shows Your market on this device. */
 export const marketShown = (): boolean => readShown()?.on === true;
+/** The device's last answer, null when it has none: the page's first frame, before checkMarketEnabled() confirms. */
+export const marketKnown = (): boolean | null => readShown()?.on ?? null;
 
 /** On sign-out, so the next person on this browser asks the server afresh. */
 export function forgetMarketShown(): void {

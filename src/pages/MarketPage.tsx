@@ -15,10 +15,11 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { loadBrand } from "@/lib/carousel";
 import {
-  EMPTY_MARKET, POSITION_LABEL, actCount, alsoReported, geoKey, geoWriteUrl, loadMarket, marketJob, newsKey, newsWriteUrl, nextCheckDay,
+  EMPTY_MARKET, POSITION_LABEL, actCount, alsoReported, checkMarketEnabled, geoKey, geoWriteUrl, loadMarket, marketJob, newsKey, newsWriteUrl, nextCheckDay,
   dismissQuestion, newsByTopic, onMarketJob, reminderOffer, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, siteList, visibleGeo, visibleNews, visiblePosts,
-  weekNote, withKey, type GeoRead, type JudgedPost, type MarketState, type Show,
+  marketKnown, weekNote, withKey, type GeoRead, type JudgedPost, type MarketState, type Show,
 } from "@/lib/market";
+import NotFoundPage from "@/pages/NotFoundPage";
 import RemixButton from "@/components/remix/RemixButton";
 import { loadFollowing, type FollowedAccount } from "@/lib/following";
 import { fromFollowPost, safeUrl, type RemixSource } from "@/lib/remixSource";
@@ -43,9 +44,12 @@ export default function MarketPage() {
   const [uid, setUid] = useState<string | null>(null);
   const [state, setState] = useState<MarketState>(EMPTY_MARKET);
   const [view, setView] = useUrlState<"digest" | "setup">("view", "digest", { allowed: ["digest", "setup"] });
+  // off for this sign-in: a link or Jump to still lands here, where Check my market would only be refused
+  const [on, setOn] = useState(marketKnown);
 
   useEffect(() => {
     document.title = "Your market - Postmosis";
+    void checkMarketEnabled().then(setOn);
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
       setUid(id);
@@ -53,7 +57,8 @@ export default function MarketPage() {
     });
   }, []);
 
-  if (!uid) return null;
+  if (on === false) return <NotFoundPage notOnAccount />;
+  if (!uid || !on) return null;
   const ready = !!state.audience && (state.questions.length > 0 || loadWatch(uid).length > 0);
   return view === "setup" || !ready
     ? <SetupForm uid={uid} state={state} onSaved={(s, check) => { setState(s); setView("digest"); if (check) void runMarketCheck(uid); }} />
