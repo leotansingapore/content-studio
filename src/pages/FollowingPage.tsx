@@ -146,7 +146,7 @@ export default function FollowingPage() {
             <Button type="submit" className="h-11 shrink-0 sm:h-10" disabled={!handle.trim()}>Follow</Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Public accounts only. Each check uses 1 of your {LIMIT} a day.
+            Public accounts only. Following reads the account straight away, and each check uses 1 of your {LIMIT} a day.
             {leo && !anyChecking && <> <PriceChip feature="track-accounts" left={left} /></>}
           </p>
           {/* Follow stays on at 0 (following is free; only its first check is refused), so say when checks are back */}
