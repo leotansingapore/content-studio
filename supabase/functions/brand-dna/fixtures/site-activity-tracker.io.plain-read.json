@@ -15,6 +15,9 @@
     "edge": "One app on your phone",
     "voice": "Plain. Direct.",
     "colours": [],
+    "neutrals": [
+      "#fbf6ee"
+    ],
     "fonts": [
       "Inter",
       "Montserrat",

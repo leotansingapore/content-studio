@@ -330,7 +330,11 @@ const coloursIn = (value: string): string[] => {
 const PAINT_ATTR = /(?:^|[\s;"'{])(?:fill|stroke|stop-color|color)\s*(?:=\s*(?:"([^"]{0,200})"|'([^']{0,200})')|:\s*([^;"'}<>]{1,200}))/gi;
 const paintsOf = (svg: string) => [...svg.matchAll(PAINT_ATTR)].map((m) => (m[1] ?? m[2] ?? m[3] ?? "").trim());
 
-export const lookColours = (html: string, css: string, logoSvg = ""): string[] => {
+export const lookColours = (html: string, css: string, logoSvg = ""): string[] => lookPalette(html, css, logoSvg).colours;
+
+const light = (h: string) => Math.min(...rgbOf(h)) > 215;
+
+export const lookPalette = (html: string, css: string, logoSvg = ""): { colours: string[]; neutrals: string[] } => {
   const score = new Map<string, number>();
   const strong = new Set<string>();
   const inky = new Set<string>();
@@ -401,9 +405,12 @@ export const lookColours = (html: string, css: string, logoSvg = ""): string[] =
   picked.sort((a, b) => b.score - a.score);
   const top = picked[0]?.score ?? 0;
   const colours = picked.filter((p) => (p.strong && p.score >= 6) || p.score >= Math.max(10, top / 2)).slice(0, 4).map((p) => p.hex);
-  if (colours.length) return colours;
-  const ink = ranked.find(([hex, s]) => dark(hex) && inky.has(hex) && s >= 4);
-  return ink ? [ink[0]] : [];
+  const ink = ranked.find(([hex, s]) => !colourful(hex) && dark(hex) && s >= 4)?.[0];
+  const paper = ranked.find(([hex, s]) => !colourful(hex) && light(hex) && s >= 4)?.[0];
+  const neutrals = [ink, paper].filter((h): h is string => !!h && !colours.includes(h));
+  if (colours.length) return { colours, neutrals };
+  const inkOnly = ranked.find(([hex, s]) => dark(hex) && inky.has(hex) && s >= 4);
+  return { colours: inkOnly ? [inkOnly[0]] : [], neutrals: neutrals.filter((h) => h !== inkOnly?.[0]) };
 };
 
 export type LogoPick = { kind: "img"; src: string; from: string } | { kind: "svg"; svg: string; from: string };

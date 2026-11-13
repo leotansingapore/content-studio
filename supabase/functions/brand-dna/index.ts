@@ -35,7 +35,7 @@ import {
   parseAudienceAsk, parseAudiences, parseProducts, parseWritten, pickPages, productClues, productMessages, PRODUCTS_FORMAT, readSite, type SiteFacts, siteUrl,
   withOffers, WRITE_FORMAT, writeMessages,
 } from "./logic.ts";
-import { colourful, icoPng, type LogoPick, logoPicks, logoWindow, lookColours, lookFonts, stylesheetLinks, svgDataUrl, svgFile } from "./look.ts";
+import { colourful, icoPng, type LogoPick, logoPicks, logoWindow, lookFonts, lookPalette, stylesheetLinks, svgDataUrl, svgFile } from "./look.ts";
 
 const PAGE_BYTES = 300_000;
 const HOME_BYTES = 1_000_000;
@@ -342,7 +342,8 @@ Deno.serve(async (req) => {
     sheetsOf(top, page.url).catch((e) => (console.warn("brand-dna: look sheets", msg(e)), "")),
   ]);
   const drawn = picks.flatMap((p) => (p.kind === "svg" && (p.from === "home link" || p.from === "header") ? [p.svg] : []))[0] ?? "";
-  const colours = safely("colours", () => lookColours(top, css, logo?.svg || drawn).slice(0, 4), [] as string[]);
+  const palette = safely("colours", () => lookPalette(top, css, logo?.svg || drawn), { colours: [] as string[], neutrals: [] as string[] });
+  const colours = palette.colours.slice(0, 4);
   const about = [written?.oneLiner, written?.audienceDetail, site.description].filter(Boolean).join(" ");
   const audience = about ? choiceOf(await askJev({ text: about.slice(0, 1500) }, { audience: audienceAsk }, { who: "brand-dna" }), "audience", AUDIENCES) : null;
 
@@ -359,6 +360,7 @@ Deno.serve(async (req) => {
     edge: written?.edge ?? "",
     voice: written?.voice ?? "",
     colours,
+    neutrals: palette.neutrals,
     fonts: safely("fonts", () => lookFonts(top, css).slice(0, 3), [] as string[]),
     ...(listed ? { pagesRead: fenced?.read ?? [page.url.href], lang: site.lang } : {}),
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colourGap, icoPng, logoPicks, logoWindow, lookColours, lookFonts, parseColour, stylesheetLinks, svgDataUrl, svgFile, TWIN_GAP } from "./look.ts";
+import { colourGap, icoPng, logoPicks, logoWindow, lookColours, lookFonts, lookPalette, parseColour, stylesheetLinks, svgDataUrl, svgFile, TWIN_GAP } from "./look.ts";
 
 const base = new URL("https://acme.sg/");
 const unpack = (url: string | null) => (url ? new TextDecoder().decode(Uint8Array.from(atob(url.split(",")[1]), (c) => c.charCodeAt(0))) : "");
@@ -153,6 +153,21 @@ describe("logoWindow", () => {
     const svg = `<header><a href="/"><svg viewBox="0 0 10 10"><title>Tony Robbins Logo</title><path d="M0 0h10v10z"/></svg></a></header>`;
     expect(logoPicks(svg, new URL("https://www.tonyrobbins.com/"), "Carat")).toHaveLength(1);
     expect(logoPicks(svg, new URL("https://acme.sg/"), "Acme Wealth")).toEqual([]);
+  });
+});
+
+describe("lookPalette", () => {
+  it("gives the site's base ink and paper beside its brand colours, as a theme palette", () => {
+    const css = ".btn{background:#2563eb}.text{color:#0f172a}.surface{background:#ffffff}";
+    const page = `<meta name="theme-color" content="#2563eb">${busyPage(`<a class="btn" href="/go">Go</a>${'<section class="surface"><p class="text">x</p><p class="text">y</p></section>'.repeat(4)}`)}`;
+    const p = lookPalette(page, css);
+    expect(p.colours).toEqual(["#2563eb"]);
+    expect(p.neutrals).toEqual(["#0f172a", "#ffffff"]);
+    expect(lookColours(page, css)).toEqual(p.colours);
+  });
+
+  it("gives no neutrals for a page that paints nothing", () => {
+    expect(lookPalette("<p>plain</p>", "")).toEqual({ colours: [], neutrals: [] });
   });
 });
 
