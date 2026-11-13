@@ -253,7 +253,7 @@ export function confirmLabel(s: Section, last: boolean, name: string, leo = fals
     case "look":
       return "Confirm visual identity";
     case "voice":
-      return "Confirm voice";
+      return "Confirm voice and audience";
     case "social":
       return "Confirm accounts";
     case "products":

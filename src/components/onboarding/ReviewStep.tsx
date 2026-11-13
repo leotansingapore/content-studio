@@ -582,7 +582,7 @@ export function ReviewStep(p: ReviewProps) {
                   <span className="block text-base font-bold text-foreground">{sectionTitle(s, leo)}</span>
                   {!isOpen && <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{summary(s)}</span>}
                 </span>
-                {(!ok || done.has(s)) && !(s === "products" && finding) && <StatusPill state={ok && done.has(s) ? "done" : "required"} />}
+                {!(s === "products" && finding) && <StatusPill state={ok ? "done" : "required"} />}
                 <span className="grid h-[37px] w-[37px] shrink-0 place-items-center rounded-full bg-muted text-foreground">
                   <CaretDownIcon size={16} weight="bold" className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                 </span>

@@ -78,6 +78,7 @@ describe("progress and the brand set up score", () => {
     expect(confirmLabel("identity", false, "Acme")).toBe("Confirm brand identity");
     expect(confirmLabel("look", false, "Acme")).toBe("Confirm visual identity");
     expect(confirmLabel("look", false, "Acme", true)).toBe("Confirm visual identity");
+    expect(confirmLabel("voice", false, "Acme")).toBe("Confirm voice and audience");
     expect(confirmLabel("social", true, " Acme ")).toBe("Create Acme");
     expect(confirmLabel("social", true, "  ")).toBe("Create brand");
   });
