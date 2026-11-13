@@ -2050,9 +2050,12 @@ export default function CalendarPage() {
                             title="Time (optional)"
                             className={`${dateInputClass} w-24`}
                           />
-                          <Button type="submit" size="sm" disabled={!rowPick[d.id]?.date} className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
-                            Schedule
-                          </Button>
+                          {/* shown once a date is picked: a greyed Schedule beside every draft said nothing about why */}
+                          {rowPick[d.id]?.date && (
+                            <Button type="submit" size="sm" variant="outline" className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+                              Schedule
+                            </Button>
+                          )}
                         </form>
                       </div>
                     ))}
