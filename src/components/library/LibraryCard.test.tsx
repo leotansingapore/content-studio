@@ -1,4 +1,4 @@
-// The Library after Fastlane's (11 Nov): one row of quiet chips (formats left, states right, Building among them), a
+// The Library (Fastlane 11 Nov, one header row 13 Nov): formats as quiet chips, the states in one menu, a
 // dense grid, and each card one link with no buttons at rest; a failure keeps Try again in words.
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
@@ -44,20 +44,34 @@ describe("a Library card", () => {
 });
 
 describe("the Library page", () => {
-  it("draws Fastlane's filter row: formats in its order with Text after, states with Building, quiet chips", () => {
-    const local = brandDevice("u1");
-    local.setItem("content-studio-drafts-u1", JSON.stringify([{ id: "p1", createdAt: "2026-11-10T00:00:00Z", hook: "Three CPF myths", draft: "x", pillar: "", pillarDetail: "", audience: "", format: "text-post", platform: "linkedin", ctaType: "" }]));
+  const seed = () => brandDevice("u1").setItem("content-studio-drafts-u1", JSON.stringify([{ id: "p1", createdAt: "2026-11-10T00:00:00Z", hook: "Three CPF myths", draft: "x", pillar: "", pillarDetail: "", audience: "", format: "text-post", platform: "linkedin", ctaType: "" }]));
+
+  it("draws one header row: formats as its tabs in Fastlane's order with Text after, then search, one status menu and the view switch", () => {
+    seed();
     const out = html(<LibraryPage />);
     expect(out).toContain('<h1 class="sr-only">Library</h1>');
-    const group = (label: string) => [...(new RegExp(`aria-label="${label}"[^>]*>(.*?)</div>`).exec(out)?.[1] ?? "").matchAll(/aria-pressed="(true|false)"[^>]*>([A-Za-z ]+)/g)].map((m) => m[2].trim());
-    expect(group("Format")).toEqual(["All formats", "Video", "Slides", "Image", "Text"]);
-    expect(group("Status")).toEqual(["All", "Ready", "Scheduled", "Posted", "Building", "Failed"]);
-    expect(out).toContain("lg:flex-row lg:items-center lg:justify-between");
+    const header = /<header[^>]*data-library-header[^>]*>(.*?)<\/header>/.exec(out)?.[1] ?? "";
+    const formats = [...(/aria-label="Format"[^>]*>(.*?)<\/div>/.exec(header)?.[1] ?? "").matchAll(/aria-pressed="(true|false)"[^>]*>([A-Za-z ]+)/g)].map((m) => m[2].trim());
+    expect(formats).toEqual(["All formats", "Video", "Slides", "Image", "Text"]);
+    // the status filter is one control that says what is chosen, not a second row of chips
+    expect(header).toMatch(/<button[^>]*aria-label="Status"[^>]*>.*?All statuses/);
+    expect(out.match(/aria-pressed=/g)).toHaveLength(5);
+    const at = ['aria-label="Format"', 'aria-label="Search titles, words and captions"', 'aria-label="Status"', 'aria-label="Library view"'].map((x) => header.indexOf(x));
+    expect(at.every((n) => n >= 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
     // no chip wears a border at rest
     expect(out).not.toMatch(/aria-pressed="false"[^>]*class="[^"]*\bborder\b/);
     expect(out).toContain("xl:grid-cols-6");
     // nothing is being made: no Making now button, and no column beside the grid
     expect(out).not.toContain("Making now (");
     expect(out).not.toContain("<aside");
+  });
+
+  it("keeps each filter's address: an old link opens the same view, the menu showing its status and count", () => {
+    seed();
+    const out = html(<LibraryPage />, "/library?format=text&status=ready");
+    expect(out).toMatch(/aria-pressed="true"[^>]*>Text/);
+    expect(out).toMatch(/<button[^>]*aria-label="Status"[^>]*>.*?Ready \(1\)/);
+    expect(out).toContain("Three CPF myths");
   });
 });

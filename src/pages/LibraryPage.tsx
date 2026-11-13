@@ -5,16 +5,16 @@
 import { newPostHref } from "@/lib/newPost";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { BooksIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
+import { BooksIcon, MagnifyingGlassIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import LibraryCard from "@/components/library/LibraryCard";
 import LibraryChip from "@/components/library/LibraryChip";
-import LibraryViews from "@/components/library/LibraryViews";
+import LibraryHeader, { LibrarySearch, QUIET_SELECT, createHref } from "@/components/library/LibraryHeader";
 import { thumbSources, useFontsReady } from "@/components/library/LibraryThumb";
 import MakingNow, { useLibraryJobs } from "@/components/library/MakingNow";
 import { useZernioRefresh } from "@/components/PostItForMe";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEFAULT_BRAND, loadBrand, loadCarousels } from "@/lib/carousel";
 import { DESIGNS_CHANGED, loadDesigns } from "@/lib/design";
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
@@ -54,7 +54,7 @@ export default function LibraryPage() {
   const user = useSignedInUser();
   if (user === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
   if (!user) return <NotFoundPage notOnAccount />;
-  return <Library userId={user.id} />;
+  return <Library userId={user.id} email={user.email} />;
 }
 
 /** The stores, read at once from this device: no page spinner, only thumbs load. */
@@ -69,7 +69,7 @@ const readStores = (userId: string) => ({
   brand: loadBrand(userId) ?? DEFAULT_BRAND,
 });
 
-function Library({ userId }: { userId: string }) {
+function Library({ userId, email }: { userId: string; email: string }) {
   const [format, setFormat] = useUrlState<(typeof FORMATS)[number]>("format", "all", { allowed: FORMATS });
   const [status, setStatus] = useUrlState<(typeof STATUSES)[number]>("status", "all", { allowed: STATUSES });
   const [text, setText, q] = useUrlSearch("q");
@@ -109,20 +109,54 @@ function Library({ userId }: { userId: string }) {
     update({ format: null, status: null, q: null });
   };
 
+  const statusText = (s: (typeof STATUSES)[number]) => (s === "all" ? "All statuses" : `${STATUS_LABELS[s]}${counts[s] ? ` (${counts[s]})` : ""}`);
+
   return (
     <div className="space-y-4">
-      {/* Fastlane's Library has no title under the Studio tabs: the view switch and the chips say where you are */}
-      <h1 className="sr-only">Library</h1>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <LibraryViews />
-        {/* what is being made or failed, with its step and Try again; the cards say the same in short */}
-        {making + failedJobs > 0 && (
-          <Button size="sm" variant="ghost" onClick={() => openPanel("making")} className={`gap-1.5 text-xs text-muted-foreground ${TOUCH}`}>
-            {making > 0 && <span className="h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden />}
-            Making now ({making}){failedJobs ? ` | ${failedJobs} failed` : ""}
-          </Button>
-        )}
-      </div>
+      {/* one row: formats as its tabs, then search, the status menu, what is being made, and the view switch */}
+      <LibraryHeader
+        title="Library"
+        left={
+          items.length > 0 && (
+            <div role="group" aria-label="Format" className="flex gap-0.5">
+              {FORMAT_CHIPS.map((c) => (
+                <LibraryChip key={c.value} on={format === c.value} onClick={() => setFormat(c.value)}>
+                  {c.label}
+                </LibraryChip>
+              ))}
+            </div>
+          )
+        }
+      >
+        {items.length > 0 || making + failedJobs > 0 ? (
+          <>
+            {items.length > 0 && (
+              <>
+                <LibrarySearch value={text} onChange={setText} label="Search titles, words and captions" />
+                <Select value={status} onValueChange={(v) => setStatus(v as (typeof STATUSES)[number])}>
+                  <SelectTrigger aria-label="Status" className={QUIET_SELECT}>
+                    <SelectValue>{statusText(status)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {statusText(s)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+            {/* what is being made or failed, with its step and Try again; the cards say the same in short */}
+            {making + failedJobs > 0 && (
+              <Button size="sm" variant="ghost" onClick={() => openPanel("making")} className={`shrink-0 gap-1.5 text-xs text-muted-foreground ${TOUCH}`}>
+                {making > 0 && <span className="h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden />}
+                Making now ({making}){failedJobs ? ` | ${failedJobs} failed` : ""}
+              </Button>
+            )}
+          </>
+        ) : null}
+      </LibraryHeader>
 
       {items.length === 0 ? (
         <EmptyState
@@ -141,57 +175,22 @@ function Library({ userId }: { userId: string }) {
         >
           Posts, carousels, videos and images you make land here.
         </EmptyState>
+      ) : shown.length === 0 ? (
+        <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
+          <p className="text-sm text-muted-foreground">Nothing matches these filters.</p>
+          <Button variant="outline" onClick={clear} className={TOUCH}>
+            Clear filters
+          </Button>
+        </div>
       ) : (
-        <>
-          <div className="space-y-2">
-            {/* one row from lg, as Fastlane's: formats on the left, states on the right */}
-            <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
-              <div role="group" aria-label="Format" className="scrollbar-none -mx-1 flex gap-0.5 overflow-x-auto px-1">
-                {FORMAT_CHIPS.map((c) => (
-                  <LibraryChip key={c.value} on={format === c.value} onClick={() => setFormat(c.value)}>
-                    {c.label}
-                  </LibraryChip>
-                ))}
-              </div>
-              <div role="group" aria-label="Status" className="scrollbar-none -mx-1 flex gap-0.5 overflow-x-auto px-1">
-                {STATUSES.map((s) => (
-                  <LibraryChip key={s} on={status === s} onClick={() => setStatus(s)} count={s === "all" ? undefined : counts[s]}>
-                    {s === "all" ? "All" : STATUS_LABELS[s]}
-                  </LibraryChip>
-                ))}
-              </div>
-            </div>
-            <div className="relative max-w-sm">
-              <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-              <Input
-                type="search"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Search titles, words and captions"
-                aria-label="Search titles, words and captions"
-                className={`h-9 pl-8 ${TOUCH}`}
-              />
-            </div>
-          </div>
-
-          {shown.length === 0 ? (
-            <div className="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
-              <p className="text-sm text-muted-foreground">Nothing matches these filters.</p>
-              <Button variant="outline" onClick={clear} className={TOUCH}>
-                Clear filters
-              </Button>
-            </div>
-          ) : (
-            // Fastlane's density: six portrait cards a row on a wide screen
-            <ul className="grid grid-cols-2 items-start gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-              {shown.map((item) => (
-                <li key={item.key} className="flex min-w-0">
-                  <LibraryCard item={item} sources={sources} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
+        // Fastlane's density: six portrait cards a row on a wide screen
+        <ul className="grid grid-cols-2 items-start gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+          {shown.map((item) => (
+            <li key={item.key} className="flex min-w-0">
+              <LibraryCard item={item} sources={sources} />
+            </li>
+          ))}
+        </ul>
       )}
 
       <MakingSheet open={panel === "making"} onClose={closePanel}>

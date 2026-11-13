@@ -3,7 +3,7 @@
 // its frame, anything else a card in the brand colour with the hook.
 
 import { useEffect, useMemo, useState } from "react";
-import LibraryViews from "@/components/library/LibraryViews";
+import LibraryHeader from "@/components/library/LibraryHeader";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link } from "react-router-dom";
 import { GridNineIcon } from "@phosphor-icons/react";
@@ -65,12 +65,11 @@ export default function GridPage() {
 
   return (
     <div className="space-y-5">
-      {/* as the Library's other views: the switch says Grid, so the title is for screen readers */}
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <LibraryViews />
-        <h1 className="sr-only">Instagram grid</h1>
-        {userId && <span className="text-xs text-muted-foreground">{planned} planned{tiles.length > planned ? `, ${tiles.length - planned} posted` : ""}</span>}
-      </header>
+      {/* the Library's one header row: the switch says Grid, so the title is for screen readers */}
+      <LibraryHeader
+        title="Instagram grid"
+        left={userId && <span className="text-xs text-muted-foreground">{planned} planned{tiles.length > planned ? `, ${tiles.length - planned} posted` : ""}</span>}
+      />
 
       {userId && tiles.length === 0 ? (
         <EmptyState

@@ -11,9 +11,9 @@ describe("the Library's view switch", () => {
   it("lists the four views in one order on every one of them, marking the open one", () => {
     for (const v of LIBRARY_VIEWS) {
       const out = html(v.to);
-      expect([...out.matchAll(/<span class="truncate">([^<]+)<\/span>/g)].map((m) => m[1])).toEqual(["Everything", "Posts", "Board", "Grid"]);
+      expect([...out.matchAll(/<span class="sr-only">([^<]+)<\/span>/g)].map((m) => m[1])).toEqual(["Everything", "Posts", "Board", "Grid"]);
       expect(out.match(/aria-current="page"/g)).toHaveLength(1);
-      expect(out).toMatch(new RegExp(`<span aria-current="page"[^>]*>.*?<span class="truncate">${v.label}</span></span>`));
+      expect(out).toMatch(new RegExp(`<span aria-current="page"[^>]*>.*?<span class="sr-only">${v.label}</span></span>`));
       expect(out).not.toContain(`href="${v.to}"`);
     }
   });

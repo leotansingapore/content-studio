@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRightIcon, DotsSixVerticalIcon, LightbulbIcon, PencilSimpleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, ColumnsIcon, DotsSixVerticalIcon, LightbulbIcon, PencilSimpleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
 
-import LibraryViews from "@/components/library/LibraryViews";
+import LibraryHeader, { createHref } from "@/components/library/LibraryHeader";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Card, CardContent } from "@/components/ui/card";
 import { ToastAction } from "@/components/ui/toast";
@@ -39,6 +40,7 @@ import { undoTo } from "@/lib/useZernioOutbox";
 
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import { useUrlItem } from "@/lib/urlState";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 
 const PRODUCTION: BoardColumn[] = ["idea", "scripted", "to-film", "editing"];
@@ -258,6 +260,7 @@ function FeedCard({ item, onOpen }: { item: CalendarFeedItem; onOpen: () => void
 
 export default function BoardPage() {
   const { toast } = useToast();
+  const leo = useLeoUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // The assistant moves posts from outside this page: read them again when it does.
@@ -419,14 +422,15 @@ export default function BoardPage() {
 
   return (
     <div className="space-y-4">
-      {/* as the Library's other views: the switch says Board, so the title is for screen readers */}
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <LibraryViews />
-        <h1 className="sr-only">Board</h1>
-        <InfoTip label="About moving cards">
-          Drag a card, or pick its column in Move to.
-        </InfoTip>
-      </header>
+      {/* the Library's one header row: the switch says Board, so the title is for screen readers */}
+      <LibraryHeader
+        title="Board"
+        left={
+          <InfoTip label="About moving cards">
+            Drag a card, or pick its column in Move to.
+          </InfoTip>
+        }
+      />
 
       {drafts.length === 0 && feed.length === 0 && (
         <Card>

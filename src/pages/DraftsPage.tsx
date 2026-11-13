@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import LibraryChip from "@/components/library/LibraryChip";
-import LibraryViews from "@/components/library/LibraryViews";
+import LibraryHeader, { LibrarySearch, QUIET_SELECT, createHref } from "@/components/library/LibraryHeader";
 import CampaignPostLink from "@/components/campaign/CampaignPostLink";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
@@ -9,7 +9,6 @@ import { links } from "@/lib/links";
 import { draftLine } from "@/lib/remixSource";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -20,7 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
-import { TrashIcon, MagnifyingGlassIcon, PencilSimpleIcon, SparkleIcon, CheckCircleIcon, ArrowUUpLeftIcon, CalendarDotsIcon, MagicWandIcon, XIcon, CardsIcon, TagIcon, CopySimpleIcon, UploadSimpleIcon, DotsThreeIcon, LinkIcon, ChatTextIcon, PaperclipIcon, PaperPlaneTiltIcon, ListNumbersIcon, TranslateIcon } from "@phosphor-icons/react";
+import { TrashIcon, MagnifyingGlassIcon, PencilSimpleIcon, SparkleIcon, CheckCircleIcon, ArrowUUpLeftIcon, CalendarDotsIcon, MagicWandIcon, XIcon, CardsIcon, TagIcon, CopySimpleIcon, FileCsvIcon, DotsThreeIcon, LinkIcon, ChatTextIcon, PaperclipIcon, PaperPlaneTiltIcon, ListNumbersIcon, TranslateIcon } from "@phosphor-icons/react";
 import {
   deleteDraft,
   loadDrafts,
@@ -201,9 +200,6 @@ const firstWords = (text: string, n = 6) => {
 };
 // Write's score colours (GeneratePage's Predicted engagement)
 const scoreTone = (v: number) => (v >= 7.5 ? "bg-success/15 text-success" : v >= 5 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning");
-
-// a filter at rest reads as its value ("All platforms") with no box, tinted on hover, as the Library's chips
-const QUIET_SELECT = "h-8 w-auto shrink-0 gap-1 border-transparent bg-transparent px-2.5 text-xs text-muted-foreground shadow-none hover:bg-accent hover:text-foreground focus:ring-1 [@media(pointer:coarse)]:h-11";
 
 export default function DraftsPage() {
   const { toast, toasts } = useToast();
@@ -757,48 +753,35 @@ export default function DraftsPage() {
 
   return (
     <div className="space-y-4">
-      {/* as the Library's other views: the switch and this view's own actions on one row, the title for screen readers */}
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <LibraryViews />
-        <h1 className="sr-only">All posts</h1>
-        {job && <span aria-live="polite" className="mr-auto">{numbersChip(job)}</span>}
-        {/* Leo only: My posts' first frame stays as pinned for everyone else (DraftsPage.test.ts) */}
-        {leo && <CopyLinkButton label="Copy link to this view" className="ml-auto" />}
-        {!importOpen && userId && (
-          <Button size="sm" variant="ghost" onClick={() => setImportOpen(true)} className="gap-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">
-            <UploadSimpleIcon className="h-3.5 w-3.5" /> Import CSV
-          </Button>
-        )}
-      </header>
-      {importOpen && userId && (
-        <CsvImport
-          posts={drafts}
-          defaultPlatform={loadPositioning(userId)?.platform ?? "linkedin"}
-          onImport={handleImport}
-          onClose={() => setImportOpen(false)}
-        />
-      )}
-
-      {drafts.length > 0 && (
-        <>
-      {/* the Library's filter row: states on the left, platform, pillar and label on the right, search under them */}
-      <div className="space-y-2">
-        <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
-          <div role="group" aria-label="Status" className="scrollbar-none -mx-1 flex gap-0.5 overflow-x-auto px-1">
-            {(
-              [
-                ["all", "All", drafts.length],
-                ["draft", "Drafts", counts.draft],
-                ["scheduled", "Scheduled", counts.scheduled],
-                ["posted", "Posted", counts.posted],
-              ] as [("all" | DraftStatus), string, number][]
-            ).map(([key, label, n]) => (
-              <LibraryChip key={key} on={statusFilter === key} onClick={() => update({ status: key === "all" ? null : key, fill: null })} count={n}>
-                {label}
-              </LibraryChip>
-            ))}
-          </div>
-          <div className="scrollbar-none -mx-1 flex items-center gap-0.5 overflow-x-auto px-1">
+      {/* one row, as the Library's other views: states as its tabs, then search, the menus, this view's actions and the switch */}
+      <LibraryHeader
+        title="All posts"
+        left={
+          drafts.length > 0 && (
+            <div role="group" aria-label="Status" className="flex gap-0.5">
+              {(
+                [
+                  ["all", "All", drafts.length],
+                  ["draft", "Drafts", counts.draft],
+                  ["scheduled", "Scheduled", counts.scheduled],
+                  ["posted", "Posted", counts.posted],
+                ] as [("all" | DraftStatus), string, number][]
+              ).map(([key, label, n]) => (
+                <LibraryChip key={key} on={statusFilter === key} onClick={() => update({ status: key === "all" ? null : key, fill: null })} count={n}>
+                  {label}
+                </LibraryChip>
+              ))}
+            </div>
+          )
+        }
+      >
+        {job || leo || drafts.length > 0 || (!importOpen && userId) ? (
+          <>
+            {job && <span aria-live="polite" className="shrink-0">{numbersChip(job)}</span>}
+            {drafts.length > 0 && (
+              <>
+                {/* folded to its icon from lg until it is used: this row also holds three menus */}
+                <LibrarySearch value={search} onChange={setSearch} label="Search hooks and words" tight />
             <Select value={platformFilter} onValueChange={setPlatformFilter}>
               <SelectTrigger aria-label="Platform" className={QUIET_SELECT}>
                 <SelectValue />
@@ -840,24 +823,32 @@ export default function DraftsPage() {
               </Select>
             )}
             {!manageLabels && (
-              <Button size="sm" variant="ghost" onClick={openManager} className="shrink-0 gap-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">
-                <TagIcon className="h-3.5 w-3.5" /> Labels
+              <Button size="sm" variant="ghost" onClick={openManager} aria-label="Labels" title="Labels" className="h-9 w-9 shrink-0 p-0 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
+                <TagIcon className="h-4 w-4" />
               </Button>
             )}
-          </div>
-        </div>
-        <div className="relative max-w-sm">
-          <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Hook or body keyword"
-            aria-label="Search"
-            className="h-9 pl-8 [@media(pointer:coarse)]:h-11"
-          />
-        </div>
-      </div>
-      {manageLabels && userId && (
+              </>
+            )}
+            {/* Leo only: My posts' first frame stays as pinned for everyone else (DraftsPage.test.ts) */}
+            {leo && <CopyLinkButton label="Copy link to this view" className="shrink-0" />}
+            {!importOpen && userId && (
+              <Button size="sm" variant="ghost" onClick={() => setImportOpen(true)} aria-label="Import CSV" title="Import CSV" className="h-9 w-9 shrink-0 p-0 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
+                <FileCsvIcon className="h-4 w-4" />
+              </Button>
+            )}
+          </>
+        ) : null}
+      </LibraryHeader>
+      {importOpen && userId && (
+        <CsvImport
+          posts={drafts}
+          defaultPlatform={loadPositioning(userId)?.platform ?? "linkedin"}
+          onImport={handleImport}
+          onClose={() => setImportOpen(false)}
+        />
+      )}
+
+      {manageLabels && userId && drafts.length > 0 && (
         <LabelManager
           userId={userId}
           labels={labels}
@@ -871,8 +862,6 @@ export default function DraftsPage() {
           }}
           onClose={() => setManageLabels(false)}
         />
-      )}
-        </>
       )}
 
       {setParam && setCard()}
