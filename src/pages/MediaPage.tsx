@@ -193,7 +193,7 @@ export default function MediaPage() {
           </label>
         )}
         {!stock && view === "" && (
-          <Button variant="outline" className="h-10 gap-2" onClick={() => setStock(true)}>
+          <Button variant="outline" className="h-10 gap-2 [@media(pointer:coarse)]:h-11" onClick={() => setStock(true)}>
             <MagnifyingGlassIcon className="h-4 w-4" /> Search free photos
           </Button>
         )}
@@ -225,12 +225,12 @@ export default function MediaPage() {
           <label className="relative min-w-[200px] flex-1">
             <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search names, folders and alt text" aria-label="Search media"
-              className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-2 text-sm" />
+              className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-2 text-sm [@media(pointer:coarse)]:h-11" />
           </label>
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Folder">
             {[["", "All"], ...folders.map((f) => [f, f]), ["-", "No folder"]].map(([id, label]) => (
               <button key={id || "all"} type="button" aria-pressed={folder === id} onClick={() => setFolder(id)}
-                className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${folder === id ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                className={`rounded-full border px-2.5 py-1 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${folder === id ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
                 {label}
               </button>
             ))}
@@ -311,16 +311,16 @@ export default function MediaPage() {
                 </p>
               )}
               <input value={m.name} {...hold(m.key)} onChange={(e) => edit(m.key, { name: e.target.value.slice(0, 80) })} aria-label="Name"
-                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs font-semibold" />
+                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs font-semibold [@media(pointer:coarse)]:h-11" />
               <input value={m.folder} {...hold(m.key)} list="media-folders" onChange={(e) => edit(m.key, { folder: e.target.value.slice(0, 40) })} placeholder="Folder" aria-label="Folder"
-                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs" />
+                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs [@media(pointer:coarse)]:h-11" />
               <textarea value={m.alt} {...hold(m.key)} onChange={(e) => edit(m.key, { alt: e.target.value.slice(0, 250) })} rows={2} placeholder="Alt text: what the photo shows" aria-label="Alt text"
                 className="w-full resize-none rounded-md border border-input bg-background px-2 py-1 text-xs" />
               <div className="flex items-center gap-1">
-                <Button size="sm" variant="ghost" className="h-8 flex-1 gap-1.5 text-xs text-muted-foreground hover:text-destructive" onClick={() => remove(m)}>
+                <Button size="sm" variant="ghost" className="h-8 flex-1 gap-1.5 text-xs text-muted-foreground hover:text-destructive [@media(pointer:coarse)]:h-11" onClick={() => remove(m)}>
                   <TrashIcon className="h-3.5 w-3.5" /> Remove
                 </Button>
-                <CopyLinkButton path={links.media({ item: m.key })} label={`Copy link to ${m.name || "this picture"}`} className="h-8 w-8" />
+                <CopyLinkButton path={links.media({ item: m.key })} label={`Copy link to ${m.name || "this picture"}`} className="h-8 w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" />
               </div>
             </li>
           ))}
