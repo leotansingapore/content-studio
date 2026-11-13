@@ -4,6 +4,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 // The handler with the web, the LLM and Jev faked: what a brand's address turns into, and which counters move.
 const db = vi.hoisted(() => ({
   spent: [] as string[],
+  /** the cap each counted use was checked against (cs_consume_ai_usage p_limit) */
+  limits: [] as unknown[],
   refunded: [] as string[],
   /** every counter refuses, as when the day's uses are spent */
   limit: false,
@@ -12,7 +14,7 @@ const db = vi.hoisted(() => ({
 }));
 db.admin = {
   auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
-  rpc: async (_fn: string, a: Record<string, unknown>) => (db.spent.push(String(a.p_feature)), { data: db.limit ? null : 1, error: null }),
+  rpc: async (_fn: string, a: Record<string, unknown>) => (db.spent.push(String(a.p_feature)), db.limits.push(a.p_limit), { data: db.limit ? null : 1, error: null }),
   from: () => ({
     select: () => ({ match: async () => ({ data: [{ count: 1 }], error: null }) }),
     update: () => ({ match: (q: { feature: string }) => ({ select: async () => (db.refunded.push(q.feature), { data: [{ count: 0 }], error: null }) }) }),
@@ -85,6 +87,7 @@ beforeAll(async () => {
 beforeEach(() => {
   seen.length = 0;
   db.spent.length = 0;
+  db.limits.length = 0;
   db.refunded.length = 0;
   db.limit = false;
   jevAsked.length = 0;
@@ -309,6 +312,13 @@ describe("brand-dna phase 4 (deep and image Leo only, products for everyone)", (
     });
     expect(db.spent).toEqual(["brand-products"]);
     expect(db.refunded).toEqual([]);
+  });
+
+  it("gives the owner's own id 40 site reads and 40 product finds a day, and everyone else the shared 10", async () => {
+    await call({ url: "acme.sg" }, "leo");
+    await call({ url: "acme.sg" }, "u1");
+    expect(db.spent).toEqual(["brand-dna", "brand-dna"]);
+    expect(db.limits).toEqual([40, 10]);
   });
 
   it("holds a uid not on NORTH_STAR_USERS to the same products cap and give-back", async () => {

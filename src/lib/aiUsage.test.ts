@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NOT_AI, limitFor, ownerSignedIn, readUsageWeek, usesLeft, utcDay } from "@/lib/aiUsage";
-import { DAILY_LIMITS, OWNER_AI_IMAGE_LIMIT, type UsageFeature } from "../../supabase/functions/_shared/usageCaps";
+import { DAILY_LIMITS, OWNER_AI_IMAGE_LIMIT, OWNER_BRAND_READ_LIMIT, type UsageFeature } from "../../supabase/functions/_shared/usageCaps";
 
 const db = vi.hoisted(() => ({ rows: [] as unknown[] | null, error: null as unknown, asked: [] as unknown[][] }));
 vi.mock("@/lib/supabase", () => {
@@ -91,12 +91,21 @@ describe("the owner's picture cap", () => {
     expect(limitFor("ai-image", true)).toBe(40);
   });
 
+  it("leaves Leo 40 site reads and 40 product finds a day for dogfooding Add a brand, and everyone else 10", () => {
+    expect(OWNER_BRAND_READ_LIMIT).toBe(40);
+    for (const f of ["brand-dna", "brand-products"] as UsageFeature[]) {
+      expect(limitFor(f, true), f).toBe(40);
+      expect(limitFor(f, false), f).toBe(DAILY_LIMITS[f]);
+      expect(usesLeft({ day: "2026-10-08", used: { [f]: 12 } }, f, now, true), f).toBe(28);
+    }
+  });
+
   it("changes no other cap, for Leo or anyone, and no cap at all for anyone else", () => {
     const none = { day: "2026-10-08", used: {} };
     for (const f of FEATURES) {
       expect(usesLeft(none, f, now, false), f).toBe(DAILY_LIMITS[f]);
       expect(limitFor(f, false), f).toBe(DAILY_LIMITS[f]);
-      if (f !== "ai-image") expect([usesLeft(none, f, now, true), limitFor(f, true)], f).toEqual([DAILY_LIMITS[f], DAILY_LIMITS[f]]);
+      if (!["ai-image", "brand-dna", "brand-products"].includes(f)) expect([usesLeft(none, f, now, true), limitFor(f, true)], f).toEqual([DAILY_LIMITS[f], DAILY_LIMITS[f]]);
     }
   });
 

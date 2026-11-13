@@ -275,9 +275,16 @@ export type UsageFeature = keyof typeof DAILY_LIMITS;
 /**
  * The owner's own "ai-image" cap (Leo, dogfooding photo ads across every brand on one account): ai-image's start uses it
  * for an id listed in NORTH_STAR_USERS, and the app shows it on Leo's sign-in (aiUsage.ts). Everyone else keeps
- * DAILY_LIMITS["ai-image"]; no other feature has one.
+ * DAILY_LIMITS["ai-image"].
  */
 export const OWNER_AI_IMAGE_LIMIT = 40;
+
+/**
+ * The owner's own cap on reading sites in Add a brand (Leo, 13 Nov: dogfooding the onboarding on 20 sites a day):
+ * brand-dna's plain read ("brand-dna") and its products scan ("brand-products") use it for an id listed in
+ * NORTH_STAR_USERS, and the app shows it on his sign-in (aiUsage.ts). Everyone else keeps DAILY_LIMITS.
+ */
+export const OWNER_BRAND_READ_LIMIT = 40;
 
 /** True only when `uid` itself is in the comma-separated list: an "*" entry raises nobody's cap. */
 export const isOwnerId = (list: string | undefined, uid: string): boolean => !!uid && (list ?? "").split(",").map((s) => s.trim()).includes(uid);

@@ -31,7 +31,10 @@ import { askJev, choiceOf } from "../_shared/jev.ts";
 import { professionAsk, professionFrom } from "./profession.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { fetchCapped } from "../_shared/safeFetch.ts";
-import { consumeUsage, refundUsage, type UsageResult, usageRefusal } from "../_shared/usageCaps.ts";
+import { consumeUsage, isOwnerId, OWNER_BRAND_READ_LIMIT, refundUsage, type UsageResult, usageRefusal } from "../_shared/usageCaps.ts";
+
+// the owner's own id reads up to OWNER_BRAND_READ_LIMIT sites a day (dogfooding Add a brand); everyone else the shared cap
+const readCap = (uid: string) => (isOwnerId(Deno.env.get("NORTH_STAR_USERS"), uid) ? OWNER_BRAND_READ_LIMIT : undefined);
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { isAllowed } from "../market/logic.ts";
 import {
@@ -156,7 +159,7 @@ async function products(admin: Admin, uid: string, body: { url?: unknown }): Pro
   const url = siteUrl(body?.url);
   if (!url) return fail(400, "bad_request", "Type the brand's web address, like acme.sg.");
   const day = new Date().toISOString().slice(0, 10);
-  const usage = await consumeUsage(admin, uid, "brand-products");
+  const usage = await consumeUsage(admin, uid, "brand-products", readCap(uid));
   if (!usage.allowed) return refusal(usage);
   const giveBack = async (error: string) => (await refundUsage(admin, uid, "brand-products", day), fail(502, "failed", error));
 
@@ -307,7 +310,7 @@ Deno.serve(async (req) => {
   const url = siteUrl(body?.url);
   if (!url) return json({ error: "Type the brand's web address, like acme.sg." }, 400);
 
-  const usage = await consumeUsage(admin, uid, "brand-dna");
+  const usage = await consumeUsage(admin, uid, "brand-dna", readCap(uid));
   if (!usage.allowed) {
     const r = usageRefusal(usage);
     return json(r.body, r.status);

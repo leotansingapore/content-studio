@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { leoOnly } from "@/lib/leoOnly";
 import { supabase } from "@/lib/supabase";
 import { storedUser } from "@/lib/useLeoOnly";
-import { DAILY_LIMITS, OWNER_AI_IMAGE_LIMIT, type UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
+import { DAILY_LIMITS, OWNER_AI_IMAGE_LIMIT, OWNER_BRAND_READ_LIMIT, type UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
 export interface Usage {
   day: string;
@@ -27,7 +27,8 @@ export function ownerSignedIn(): boolean {
 }
 
 /** Today's cap: the server's own for the feature, and on Leo's sign-in its owner's picture cap (ai-image start). */
-export const limitFor = (feature: UsageFeature, owner: boolean): number => (owner && feature === "ai-image" ? OWNER_AI_IMAGE_LIMIT : DAILY_LIMITS[feature]);
+export const limitFor = (feature: UsageFeature, owner: boolean): number =>
+  owner && feature === "ai-image" ? OWNER_AI_IMAGE_LIMIT : owner && (feature === "brand-dna" || feature === "brand-products") ? OWNER_BRAND_READ_LIMIT : DAILY_LIMITS[feature];
 
 /** Uses left today, or null before today's count has been read. `owner` defaults to ownerSignedIn(), so every caller agrees with the server's cap. */
 export function usesLeft(u: Usage | null, feature: UsageFeature, now = new Date(), owner = ownerSignedIn()): number | null {
