@@ -53,6 +53,7 @@ const fake = vi.hoisted(() => {
 });
 const jev = vi.hoisted(() => ({ pick: null as unknown, p: {} as Record<string, number | null>, refuse: null as null | { status: number; code: string }, hang: false, bodies: [] as Record<string, unknown>[], during: null as null | (() => void) }));
 const invoke = vi.hoisted(() => vi.fn());
+const picked = vi.hoisted(() => ({ ids: null as string[] | null, bodies: [] as Record<string, unknown>[] }));
 const wait = () => new Promise((r) => setTimeout(r, 0));
 const SCRIPT =
   "Most people never check what CPF LIFE will pay them. Here's where to see your own estimate in two minutes. Log in, open the payout page, and pick the plan that fits how you want to live after sixty five.";
@@ -227,7 +228,7 @@ import { saveProducts } from "@/lib/products";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
-const PRICED = /^(startRemix|startSlideshow|startWall|writeTalk|writeScript|startTalk|goOnAtPrice|writeExplainer|makeExplainer|makeImage|startImageWrite|startLinkRead|runRead|startDrafting|propose|apply|runSkill|navigate|fn:(?!assistant-act$|writing-judge$))/;
+const PRICED = /^(startRemix|startSlideshow|startWall|writeTalk|writeScript|startTalk|goOnAtPrice|writeExplainer|makeExplainer|makeImage|startImageWrite|startLinkRead|runRead|startDrafting|propose|apply|runSkill|navigate|fn:(?!assistant-act$|writing-judge$|make-pick$))/;
 const priced = () => fake.calls.filter((c) => PRICED.test(c));
 const pk = (o: Partial<ServerPick>): ServerPick => ({ act: null, format: null, length: null, who: null, audience: null, weeks: null, pace: null, slide: null, which: null, skill: null, post: null, day: null, time: null, scope: null, subject: null, name: null, ...o });
 const thread = (id: string) => loadThreads(UID).find((t) => t.id === id)!;
@@ -276,6 +277,8 @@ beforeEach(() => {
   jev.hang = false;
   jev.bodies = [];
   jev.during = null;
+  picked.ids = null;
+  picked.bodies = [];
   invoke.mockReset();
   invoke.mockImplementation(async (name: string, opts: { body: Record<string, unknown>; signal?: AbortSignal }) => {
     // the explainer's script, written by the engine in the brand's voice
@@ -286,6 +289,10 @@ beforeEach(() => {
     }
     fake.calls.push(`fn:${name}`);
     if (name === "writing-judge") return { data: { replaces: null }, error: null };
+    if (name === "make-pick") {
+      picked.bodies.push(opts.body);
+      return picked.ids ? { data: { ids: picked.ids }, error: null } : { data: null, error: new Error("no make-pick here") };
+    }
     if (name !== "assistant-act") return { data: null, error: new Error(`unexpected ${name}`) };
     jev.bodies.push(opts.body);
     jev.during?.();
@@ -1105,6 +1112,70 @@ describe("the 25 Oct replay: the explainer card (D14)", () => {
     kit("Financial adviser");
     await approve(await say("make an explainer video about first homes", { act: "make", format: "explainer" }));
     expect("profession" in JSON.parse(JSON.stringify(fake.explainerAsk))).toBe(false);
+  });
+});
+
+describe("a broad ask for an ad: the formats that suit it", () => {
+  const ASK = "make a static image ad about never forgetting a follow-up";
+  it("lists Jev's top formats, numbered, with the topic kept, and makes nothing", async () => {
+    picked.ids = ["text-chat", "whiteboard", "nope", "general-ad"];
+    const id = await say(ASK, { act: "make", format: "image", subject: "never forgetting a follow-up" });
+    expect(last(id)).toMatchObject({ text: "Formats that suit your business's ad. Pick one below, or Surprise me.", picks: ["text-chat", "whiteboard", "general-ad"], topic: "never forgetting a follow-up" });
+    expect(last(id).card).toBeUndefined();
+    expect(priced()).toEqual([]);
+    // the formats sent are the static ads and the pictures, each one line
+    const sent = picked.bodies[0].candidates as { id: string; line: string }[];
+    expect(sent.map((c) => c.id)).toEqual(expect.arrayContaining(["text-chat", "picture", "general-ad"]));
+    expect(sent.find((c) => c.id === "text-chat")?.line).toBe("Text message chat: A text chat about a familiar task or mix-up.");
+  });
+
+  it("goes straight to the picture card when Jev ranks the plain picture first, or has no answer", async () => {
+    picked.ids = ["picture", "text-chat"];
+    const id = await say("make a picture of a family at a hawker centre", { act: "make", format: "image" });
+    expect(cardMsg(id).card?.kind).toBe("image");
+    picked.ids = null;
+    const t2 = await say("make a picture of a family at a hawker centre", { act: "make", format: "image" });
+    expect(cardMsg(t2).card?.kind).toBe("image");
+    // a format that is one make already never asks
+    picked.bodies = [];
+    await say("make a carousel about CPF", { act: "make", format: "carousel" });
+    expect(picked.bodies).toEqual([]);
+  });
+});
+
+describe("a make skill's answers (makeSkills.ts)", () => {
+  it("builds the card for the answered format, with no Jev call and nothing charged before the press", async () => {
+    jev.pick = pk({ act: "make", format: "post" });
+    const id = send(UID, null, "Slideshow: three CPF myths", { make: { format: "slideshow", topic: "three CPF myths" } });
+    await settled(id);
+    expect(jev.bodies).toEqual([]);
+    expect(priced()).toEqual([]);
+    const c = cardMsg(id).card!;
+    expect([c.status, fieldsOf(c).plan, fieldsOf(c).format, fieldsOf(c).topic]).toEqual(["proposed", "slideshow", "slideshow", "three CPF myths"]);
+    expect(thread(id).messages[0]).toMatchObject({ role: "user", make: { format: "slideshow", topic: "three CPF myths" } });
+  });
+
+  it("makes a static ad on its layout with the angle and the product picked, its page offered beside the chat", async () => {
+    saveProducts(UID, { items: [{ id: "pd-brew01", name: "Cold brew", what: "Bottled", forWho: "Offices", pictures: ["cimg-bottle1"], sources: [""], use: true, from: "you", addedAt: "" }] } as never);
+    const page = "/make/static/whiteboard?note=Desks&angle=Bust+a+myth&product=pd-brew01";
+    const id = send(UID, null, "Whiteboard: Desks", { make: { format: "image", topic: "Desks", layout: "whiteboard", angle: "Bust a myth", product: "pd-brew01", page, skill: "whiteboard" } });
+    await settled(id);
+    expect(jev.bodies).toEqual([]);
+    const c = cardMsg(id).card!;
+    expect([c.title, fieldsOf(c).plan, fieldsOf(c).layout, fieldsOf(c).angle, fieldsOf(c).product]).toEqual(['Whiteboard: "Desks"', "layout", "whiteboard", "Bust a myth", "pd-brew01"]);
+    expect(c.line).toBe("A whiteboard explaining one idea in marker. In your colours, saved to Your images. If the words don't come through, the use comes back.");
+    expect(c.details).toEqual([{ label: "Angle", value: "Bust a myth" }, { label: "Product", value: "Cold brew" }, { label: "Size", value: "Feed 4:5" }]);
+    expect(last(id).go).toEqual([{ label: "Open its page instead", path: `/agent/${id}?skill=whiteboard&step=make&at=${encodeURIComponent(page).replace(/%20/g, "+")}` }]);
+    await approve(id);
+    expect(fake.writeAsk).toMatchObject({ layout: "whiteboard", angles: ["Bust a myth"], product: { name: "Cold brew" } });
+  });
+
+  it("takes the answered length and a new presenter for a talking video", async () => {
+    const id = send(UID, null, "Talking head: CPF LIFE", { make: { format: "speaking", topic: "CPF LIFE", length: 30, who: "presenter" } });
+    await settled(id);
+    expect(jev.bodies).toEqual([]);
+    const f = fieldsOf(cardMsg(id).card!);
+    expect([f.plan, f.length, f.who]).toEqual(["speaking", 30, "presenter"]);
   });
 });
 

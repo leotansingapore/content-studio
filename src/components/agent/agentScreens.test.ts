@@ -29,8 +29,11 @@ const SKILLS = [
 ];
 
 describe("slash menu", () => {
-  it("lists up to 6 skills while the text is a bare slash", () => {
-    expect(slashItems("/", SKILLS).map((s) => s.slash)).toEqual(["check", "retro", "check-week", "answer", "tighten", "hooks"]);
+  it("lists every skill while the text is a bare slash, the menu scrolling past six", () => {
+    expect(slashItems("/", SKILLS).map((s) => s.slash)).toEqual(["check", "retro", "check-week", "answer", "tighten", "hooks", "cta"]);
+  });
+  it("finds a make skill by its old names too", () => {
+    expect(slashItems("/vsl", [...SKILLS, { slash: "sales-script", name: "Sales script", was: "VSL video sales letter", make: true }]).map((s) => s.slash)).toEqual(["sales-script"]);
   });
   it("matches the slash or the name, and drops a leading slash from saved ones", () => {
     expect(slashItems("/che", SKILLS).map((s) => s.slash)).toEqual(["check", "check-week"]);

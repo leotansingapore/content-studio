@@ -1,7 +1,8 @@
 // The agent (docs/north-star/items/agent-chat.md; phase6-build-brief.md, "Agent engine API"): one turn at a time per
 // thread, run outside React like the makers' jobs, so leaving /agent loses nothing. A message goes to assistant-act
-// once (Jev picks the act and fills its slots; a "/" message, and one sent with a static format's layout, never asks
-// Jev), and the agent answers with a fixed line, a card, or the feedback service's words. A card's press runs its plan
+// once (Jev picks the act and fills its slots; a "/" message, one sent with a static format's layout, and one sent with
+// a make skill's answers (makeSkills.ts, `make`) never ask Jev), and the agent answers with a fixed line, a card, or the
+// feedback service's words. A card's press runs its plan
 // (agentPlans.ts): every priced step waits for a press on a card that shows its price, and a typed yes approves only
 // the one proposed card, only under US$1.
 // Stop aborts the Jev call only; after a press the make finishes. Turns, cards and receipts live in the thread
@@ -18,19 +19,22 @@ import {
 import { appendMsg, loadThreads, newMsg, newThread, patchMsg, type AgentMsg, type AgentThread, type TurnState } from "@/lib/agentThreads";
 import { logActivity } from "@/lib/activity";
 import { LOOKS } from "@/lib/aiVideo";
-import { looksFor } from "@/lib/postChoices";
+import { looksFor, pickLook } from "@/lib/postChoices";
 import { askAgent, conflictFor, type AgentAsk } from "@/lib/assistantActs";
 import { loadAudiences } from "@/lib/audiences";
 import { loadAutonomy, recordShadow } from "@/lib/autonomy";
 import { loadCompetitorAds } from "@/lib/competitorAds";
-import { EdgeError } from "@/lib/edgeFn";
+import { callFn, EdgeError } from "@/lib/edgeFn";
+import { pickCandidates } from "@/lib/makeSkills";
+import { loadPositioning } from "@/lib/positioning";
+import { SHOWN as PICKS_SHOWN } from "../../supabase/functions/make-pick/logic.ts";
 import { currentEditTarget } from "@/lib/editTarget";
 import { isStatic, type StaticLayoutId } from "@/lib/imageLayout";
 import { links } from "@/lib/links";
 import { priceText } from "@/lib/prices";
-import { speakerFor } from "@/lib/remixBrand";
+import { brandName, speakerFor } from "@/lib/remixBrand";
 import { resolveSource } from "@/lib/resolveSource";
-import { speakers } from "@/lib/talkingHead";
+import { speakers, TALK_LENGTHS } from "@/lib/talkingHead";
 import { VOICES, VOICE_IDS, type VoiceId } from "@/lib/textVoice";
 import { activeLearnings, addLearning, loadLearnings, setLearningOff } from "@/lib/voiceMemory";
 import type { AgentP as ServerP, AgentPick as ServerPick } from "../../supabase/functions/assistant-act/logic.ts";
@@ -41,6 +45,22 @@ import * as chatSkills from "@/lib/chatSkills";
 export { approveLabel, blockedReason, setNavigate };
 
 export type Chip = "post" | "carousel" | "video" | "campaign";
+/** A make skill's answers (makeSkills.ts agentAsk): the format and what the card takes, so no Jev pick is needed. */
+export interface MakeAnswers {
+  format: AgentFormat;
+  topic: string;
+  length?: number;
+  /** "mine", a saved presenter's id, or "presenter" for a new one. */
+  who?: string;
+  /** A static ad's layout, with the angle and the saved product's id picked for it. */
+  layout?: string;
+  angle?: string;
+  product?: string;
+  /** The format's own page with the answers in, offered under the card beside the chat, and the skill it is. */
+  page?: string;
+  skill?: string;
+}
+type SendOpts = { chip?: Chip; source?: string; layout?: StaticLayoutId; topic?: string; make?: MakeAnswers };
 export interface Turn {
   thread: string;
   msg: string;
@@ -164,11 +184,11 @@ function liveFor(thread: string, msg: string): Live & { steps: () => number; not
 // ---------- send ----------
 
 /** Sends a message: the user row and the agent's Starting row are written before this returns the thread id. */
-export function send(userId: string, threadId: string | null, text: string, o: { chip?: Chip; source?: string; layout?: StaticLayoutId; topic?: string } = {}): string {
+export function send(userId: string, threadId: string | null, text: string, o: SendOpts = {}): string {
   const said = text.trim();
   if (threadId && running(turns.get(threadId)) && turns.get(threadId)!.state !== "making") return threadId;
   const at = new Date(clock());
-  const user = newMsg("user", { text: said, ...(o.source ? { source: o.source } : {}), ...(o.layout ? { layout: o.layout, topic: o.topic } : {}) }, at);
+  const user = newMsg("user", { text: said, ...(o.source ? { source: o.source } : {}), ...(o.layout ? { layout: o.layout, topic: o.topic } : {}), ...(o.make ? { make: o.make } : {}) }, at);
   const agent = newMsg("agent", { turn: "starting" }, at);
   const saved = threadId ? appendMsg(userId, threadId, [user, agent], at) : newThread(userId, [user, agent], at);
   if (saved.ok === false) return "";
@@ -179,7 +199,7 @@ export function send(userId: string, threadId: string | null, text: string, o: {
   return id;
 }
 
-async function runTurn(userId: string, thread: string, msg: string, text: string, o: { chip?: Chip; source?: string; layout?: StaticLayoutId; topic?: string }) {
+async function runTurn(userId: string, thread: string, msg: string, text: string, o: SendOpts) {
   const ctl = new AbortController();
   aborts.set(thread, ctl);
   const live = liveFor(thread, msg);
@@ -265,8 +285,9 @@ const writeDraft = () => (typeof location !== "undefined" && location.pathname =
 
 type Out = Reply & { turn?: TurnState };
 
-async function decide(userId: string, thread: string, msg: string, text: string, o: { chip?: Chip; source?: string; layout?: StaticLayoutId; topic?: string }, signal: AbortSignal, live: ReturnType<typeof liveFor>): Promise<Out> {
+async function decide(userId: string, thread: string, msg: string, text: string, o: SendOpts, signal: AbortSignal, live: ReturnType<typeof liveFor>): Promise<Out> {
   if (o.layout) return layoutReply(userId, o.layout, o.topic || text, live);
+  if (o.make) return answersReply(userId, thread, o.make, text, live);
   const messages = (threadOf(userId, thread)?.messages ?? []).filter((m) => m.id !== msg);
   const api = skillsApi();
   if (text.startsWith("/")) return slash(userId, text, api, live);
@@ -323,8 +344,11 @@ async function decide(userId: string, thread: string, msg: string, text: string,
     case "decline":
       return typed(userId, thread, text, act, pending);
     case "make":
-    case "remix":
-      return makeReply(userId, text, act, cp, p, src, o.chip, speaker, made);
+    case "remix": {
+      // a broad ask (an ad, a picture, a video, a post) with nothing attached: the formats that suit it, to pick from
+      const picks = act === "make" && !o.chip && !src && !linkIn(text) && cp.subject !== "last" ? await pickReply(userId, text, cp.format, cp.subject, signal, live) : null;
+      return picks ?? makeReply(userId, text, act, cp, p, src, o.chip, speaker, made);
+    }
     case "competitor":
       return competitorCard(userId, text, act, p, undefined, cp.name);
     case "campaign":
@@ -396,6 +420,56 @@ async function layoutReply(userId: string, layout: StaticLayoutId, topic: string
   live.note(STEP.uses);
   const c = makeCard(userId, { plan: "layout", format: "image", act: "make", p: {}, topic, layout });
   return (await makeCheck(userId, c, topicOf(topic))) ?? { text: LINES.lead, card: c };
+}
+
+/** A make skill's answers: the card for its format, priced, with what was answered and no Jev at all. */
+async function answersReply(userId: string, thread: string, a: MakeAnswers, text: string, live: ReturnType<typeof liveFor>): Promise<Reply> {
+  live.note(STEP.uses);
+  const topic = a.topic || text;
+  const saved = speakers(userId).presenters.find((x) => x.id === a.who);
+  const speaker = !a.who ? null : a.who === "presenter" ? { id: "new", look: pickLook(userId, LOOKS) } : { id: a.who, look: saved?.look ?? "" };
+  const length = TALK_LENGTHS.find((n) => n === a.length) ?? null;
+  const layout = a.layout && isStatic(a.layout) ? a.layout : undefined;
+  const c = layout
+    ? makeCard(userId, { plan: "layout", format: "image", act: "make", p: {}, topic, subject: a.topic || null, layout, ...(a.angle ? { angle: a.angle } : {}), ...(a.product ? { product: a.product } : {}) })
+    : makeCard(userId, { plan: planOf(a.format, null), format: a.format, act: "make", p: {}, topic, subject: a.topic || null, speaker, length });
+  // the format's page beside this chat (MakerPanel), with the same answers in
+  const page = a.page && a.skill && /^\/(?![/\\])/.test(a.page) ? [{ label: "Open its page instead", path: `${links.agent({ thread })}?${new URLSearchParams({ skill: a.skill, step: "make", at: a.page })}` }] : [];
+  return (await makeCheck(userId, c, topicOf(topic))) ?? { text: LINES.lead, card: c, ...(page.length ? { go: page } : {}) };
+}
+
+export const PICK_LINE = (brand: string, noun: string) => `Formats that suit ${brand}'s ${noun}. Pick one below, or Surprise me.`;
+// shortcut: a pick list for an ad or a picture only; a video or a post goes straight to its card, as Jev's who and length
+// slots already shape it. Widen once a week of Leo's video asks has been read side by side with the list.
+const PICK_NOUN: Partial<Record<AgentFormat, string>> = { image: "ad" };
+
+/**
+ * The formats that suit a broad ask for an ad or a picture, ranked by Jev on the server (make-pick), as a numbered list
+ * to pick from. When Jev ranks the agent's own plain picture first, or has no answer (no key, over its cap, can't be
+ * reached), the ask goes on as before, straight to its card (the old logic stays the fallback). Null then.
+ */
+async function pickReply(userId: string, text: string, format: AgentFormat | null, subject: string | null, signal: AbortSignal, live: ReturnType<typeof liveFor>): Promise<Reply | null> {
+  const list = pickCandidates(format).slice(0, 40);
+  const noun = format ? PICK_NOUN[format] : undefined;
+  if (list.length < 2 || !noun) return null;
+  const pos = loadPositioning(userId);
+  let ids: string[] | null = null;
+  live.call();
+  try {
+    ({ ids } = await callFn<{ ids: string[] | null }>(
+      "make-pick",
+      { message: text, brand: { sells: pos?.oneLiner || pos?.edge || "", serves: pos?.audienceDetail || "" }, candidates: list.map((s) => ({ id: s.id, line: `${s.name}: ${s.blurb}` })) },
+      undefined,
+      { signal },
+    ));
+  } catch (e) {
+    if (signal.aborted) throw e;
+  }
+  const picks = (ids ?? []).filter((id) => list.some((s) => s.id === id)).slice(0, PICKS_SHOWN);
+  const own = list.find((s) => s.agentFormat === format && !s.staticSlug && !s.href.startsWith("/image"));
+  if (!picks.length || picks[0] === own?.id) return null;
+  const topic = (subject && subject !== "last" ? subject : topicOf(text)).trim();
+  return { text: PICK_LINE(brandName(userId), noun), picks, ...(topic ? { topic } : {}) };
 }
 
 /** A pressed composer chip with no act from Jev: a card in that format (or the campaign), with no Jev at all. */
@@ -498,7 +572,7 @@ export async function press(userId: string, threadId: string, msgId: string, but
     // a failed or interrupted turn: the message before it, sent again
     const msgs = threadOf(userId, threadId)?.messages ?? [];
     const before = msgs.slice(0, msgs.findIndex((x) => x.id === msgId)).reverse().find((x) => x.role === "user");
-    if (before?.text) send(userId, threadId, before.text, { ...(before.source ? { source: before.source } : {}), ...(before.layout && isStatic(before.layout) ? { layout: before.layout, topic: before.topic } : {}) });
+    if (before?.text) send(userId, threadId, before.text, { ...(before.source ? { source: before.source } : {}), ...(before.layout && isStatic(before.layout) ? { layout: before.layout, topic: before.topic } : {}), ...(before.make ? { make: before.make } : {}) });
     return;
   }
   if (button === "remember" || button === "no-thanks") {

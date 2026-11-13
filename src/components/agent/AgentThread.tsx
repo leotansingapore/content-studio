@@ -3,7 +3,7 @@
 // blocks and receipts, "Jump to latest" and "Your <format> is ready" when scrolled up, and the composer. Every
 // message, card and receipt comes from the thread store; the engine (agentRun) writes them, so leaving loses nothing.
 
-import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowDownIcon, ArrowUpIcon, CircleNotchIcon, SparkleIcon } from "@phosphor-icons/react";
 import ActionCard, { hhmm } from "@/components/agent/ActionCard";
@@ -12,6 +12,7 @@ import { chipAction, DONE, isAppPath, type DockIdentity } from "@/components/age
 import FbChip from "@/components/agent/FbChip";
 import MadeBlock, { madeNoun } from "@/components/agent/MadeBlock";
 import MakingBlock from "@/components/agent/MakingBlock";
+import PickList from "@/components/agent/PickList";
 import Receipt from "@/components/agent/Receipt";
 import { Button } from "@/components/ui/button";
 import { choose, onAgent, send, turnOf, type Turn } from "@/lib/agentRun";
@@ -80,6 +81,9 @@ export default function AgentThread({
   focusMsg,
   identity,
   onThread,
+  flow,
+  flowKey,
+  onPick,
 }: {
   userId: string;
   threadId: string | null;
@@ -93,6 +97,11 @@ export default function AgentThread({
   identity?: DockIdentity;
   /** A new chat got its thread: the page moves to /agent/<id>, the dock keeps it open. */
   onThread: (id: string) => void;
+  /** A make skill's question card, last in the thread (makeSkills.ts), and what changes when it moves on. */
+  flow?: ReactNode;
+  flowKey?: string;
+  /** A pick from a message's pick list: its number (0-based) or Surprise me. */
+  onPick?: (m: AgentMsg, n: number | "surprise") => void;
 }) {
   const navigate = useNavigate();
   const threads = useThreads(userId);
@@ -154,7 +163,7 @@ export default function AgentThread({
   }, [focusMsg, show]);
 
   // new words follow the bottom while it is in view; a make that lands while scrolled up gets the "ready" chip
-  const tail = messages.map((m) => `${m.id}:${m.turn ?? ""}:${m.card?.status ?? ""}:${m.job?.state ?? ""}:${m.receipt ? 1 : 0}`).join("|");
+  const tail = `${messages.map((m) => `${m.id}:${m.turn ?? ""}:${m.card?.status ?? ""}:${m.job?.state ?? ""}:${m.receipt ? 1 : 0}`).join("|")}|${flowKey ?? ""}`;
   useLayoutEffect(() => {
     const made = newlyMade(jobs.current, messages).pop();
     if (made?.job && !near.current) setReady({ id: made.id, noun: madeNoun(made.job) });
@@ -211,7 +220,7 @@ export default function AgentThread({
   );
 
   if (!messages.length) {
-    const starters = starterChips(userId).slice(0, 6);
+    const starters = flow ? [] : starterChips(userId).slice(0, 6);
     return (
       <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", compact ? "p-3" : "justify-center px-1 py-6")}>
         <div className={cn("mx-auto w-full", compact ? "space-y-3" : "max-w-2xl space-y-5")}>
@@ -223,6 +232,7 @@ export default function AgentThread({
             )}
             <h2 className={cn("font-serif font-semibold tracking-tight", compact ? "text-lg" : "text-2xl sm:text-3xl")}>What are we making?</h2>
           </div>
+          {flow && <div className="flex justify-center">{flow}</div>}
           {composerEl}
           {starters.length > 0 && (
             <div className="space-y-2">
@@ -286,6 +296,7 @@ export default function AgentThread({
               {m.text && (
                 <p className={cn("max-w-[92%] whitespace-pre-wrap break-words text-sm leading-relaxed", m.error && "text-destructive")}>{m.text}</p>
               )}
+              {!!m.picks?.length && onPick && <PickList ids={m.picks} disabled={live} onPick={(n) => onPick(m, n)} />}
               {m.card && threadId && <ActionCard userId={userId} threadId={threadId} msg={m as AgentMsg & { card: NonNullable<AgentMsg["card"]> }} usage={usage} onSend={(t) => sendHere(m.id, t)} />}
               {/* a priced make on its way; a saved change (a note, a move) lands at once and shows none */}
               {inFlight(m) && (m.job || m.card?.price) && (
@@ -338,6 +349,7 @@ export default function AgentThread({
             </div>
           );
         })}
+        {flow}
       </div>
       <div className={cn("relative border-t border-border/70 bg-background", compact ? "p-2" : "pt-3")}>
         {(ready || away) && (

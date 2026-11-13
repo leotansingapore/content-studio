@@ -4,7 +4,7 @@
 //   MAX_CHARS of JSON in all (the oldest threads go first), so the synced row stays small.
 // shortcut: one synced array, last write wins across devices; split per thread if Leo uses two devices at once.
 
-import { newId, type AgentCard, type Receipt } from "@/lib/agentCards";
+import { newId, type AgentCard, type AgentFormat, type Receipt } from "@/lib/agentCards";
 import { logActivity } from "@/lib/activity";
 import { scoped } from "@/lib/profiles";
 import { SAVE_FAILED, type Saved } from "@/lib/voiceMemory";
@@ -34,6 +34,10 @@ export interface AgentMsg {
   source?: string;
   layout?: string;
   topic?: string;
+  /** A make skill's answers it was sent with (agentRun MakeAnswers), so Send again sends them again. */
+  make?: { format: AgentFormat; topic: string; length?: number; who?: string; layout?: string; angle?: string; product?: string; page?: string; skill?: string };
+  /** A numbered list of make skills (makeSkills.ts ids) to pick from, best first, for the topic it was asked about. */
+  picks?: string[];
   go?: { path: string; label: string }[];
   meta?: { steps: number; ms: number };
   turn?: TurnState;

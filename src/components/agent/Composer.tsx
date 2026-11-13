@@ -1,11 +1,13 @@
 // The agent's composer (docs/north-star/items/agent-chat.md, "Screens and states"), shared by /agent, the agent dock
-// and Home (agent-home): a text box that keeps its words on this device until sent, the four format chips (one at a
-// time, sent as `chip`), the slash menu, an attached remix source, Send that turns into a square Stop while this
-// thread's turn runs, and the agent meter. Sending goes through agentRun's `send`, which writes the Starting row
+// and Home (agent-home): a text box that keeps its words on this device until sent, Make (the make skills' picker,
+// /agent?make=open) and the four format chips (one at a time, sent as `chip`), the slash menu (a make skill's slash
+// starts its questions, its words after it the first answer), a number typed under a pick list picks it, an attached
+// remix source, Send that turns into a square Stop while this thread's turn runs, and the agent meter. Sending goes through agentRun's `send`, which writes the Starting row
 // before it returns, so the thread shows the message at once.
 
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useReducer, useRef, useState } from "react";
-import { ArrowUpIcon, SquareIcon, XIcon } from "@phosphor-icons/react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowUpIcon, PlusIcon, SquareIcon, XIcon } from "@phosphor-icons/react";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Button } from "@/components/ui/button";
 import SlashMenu, { slashItems, type SlashItem } from "@/components/agent/SlashMenu";
@@ -13,6 +15,8 @@ import { meterLine, leftOf } from "@/lib/agentBudget";
 import { onAgent, send, stop, turnOf, type Chip } from "@/lib/agentRun";
 import { readUsage, type Usage } from "@/lib/aiUsage";
 import { BUILT_IN_SKILLS, loadMySkills } from "@/lib/chatSkills";
+import { loadThreads } from "@/lib/agentThreads";
+import { SKILLS, openPicks, pickFrom, saveFlow, skillById } from "@/lib/makeSkills";
 import { AVATAR_MAX, priceText } from "@/lib/prices";
 import { scoped } from "@/lib/profiles";
 import { SAVE_FAILED } from "@/lib/voiceMemory";
@@ -118,6 +122,10 @@ const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
   const box = useRef<HTMLTextAreaElement>(null);
   const menuId = useId();
   const used = useAgentUsage();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  // the picker and a skill's questions open in the agent's chat: this one on /agent, a new one from anywhere else
+  const go = (p: Record<string, string>) => navigate(`${pathname.startsWith("/agent") ? pathname : "/agent"}?${new URLSearchParams(p)}`);
 
   useEffect(() => onAgent(redraw), []);
   // another slot (a new chat becoming a thread): its own words
@@ -166,12 +174,40 @@ const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
 
   const turn = threadId ? turnOf(threadId) : null;
   const running = !!turn && RUNNING.has(turn.state);
-  const skills: SlashItem[] = [...BUILT_IN_SKILLS, ...loadMySkills(userId)];
+  const skills: SlashItem[] = [...BUILT_IN_SKILLS, ...loadMySkills(userId), ...SKILLS.map((x) => ({ slash: x.id, name: x.name, kind: x.kind, was: x.was, make: true as const }))];
   const items = menuShut ? [] : slashItems(text, skills);
+
+  const clear = () => {
+    setText("");
+    writeKey(key, "");
+  };
+  /** A make skill's slash with words after it, or a number under a pick list: the skill's questions, nothing sent. */
+  const startsSkill = (words: string): boolean => {
+    const slash = /^\/(\S+)\s*([\s\S]*)$/.exec(words);
+    const mine = slash && skills.find((x) => !x.make && x.slash.replace(/^\//, "") === slash[1]);
+    const skill = slash && !mine ? skillById(slash[1]) : null;
+    if (skill) {
+      const about = slash![2].trim();
+      saveFlow(userId, { skill: skill.id, answers: about ? { about } : {}, at: new Date().toISOString() });
+      clear();
+      go({ skill: skill.id });
+      return true;
+    }
+    const n = /^\s*(\d)\s*$/.exec(words);
+    const list = n && threadId ? openPicks(loadThreads(userId).find((t) => t.id === threadId)?.messages ?? []) : null;
+    if (!list || !threadId) return false;
+    const i = Number(n![1]) - 1;
+    const picked = pickFrom(userId, threadId, list, i === list.picks!.length ? "surprise" : i);
+    if (!picked) return false;
+    clear();
+    go({ skill: picked.id });
+    return true;
+  };
 
   const submit = useCallback(() => {
     const words = text.trim();
     if (running || (!words && !source)) return;
+    if (!source && startsSkill(words)) return;
     let id = "";
     try {
       id = send(userId, threadId, words || "Remix this.", { ...(chip ? { chip } : {}), ...(source ? { source } : {}) });
@@ -189,6 +225,11 @@ const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
   }, [text, running, source, userId, threadId, chip, key, onSent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pick = (s: SlashItem) => {
+    if (s.make) {
+      edit("");
+      go({ skill: s.slash });
+      return;
+    }
     edit(`/${s.slash} `);
     setMenuShut(true);
     box.current?.focus();
@@ -258,6 +299,13 @@ const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
             )}
           </div>
           <div className="flex flex-wrap items-center gap-1.5 px-2 pb-2">
+            <button
+              type="button"
+              onClick={() => go({ make: "open" })}
+              className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full border border-border bg-background px-3 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 sm:h-7 [@media(pointer:coarse)]:min-h-11"
+            >
+              <PlusIcon className="h-3.5 w-3.5" aria-hidden /> Make
+            </button>
             {CHIPS.map((c) => (
               <FilterChip key={c.id} active={chip === c.id} onClick={() => setChip(chip === c.id ? null : c.id)}>
                 {c.label}

@@ -29,7 +29,7 @@ import { IMAGE_FIELDS, isStatic, mainWords, staticPhoto } from "@/lib/imageLayou
 import { blankImage, imageById, imageMention, imageWrite, imageWriteBusy, saveImage, startImageWrite } from "@/lib/images";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
-import { loadProducts, productBits } from "@/lib/products";
+import { adFacts, loadProducts, productBits, productLabel } from "@/lib/products";
 import { loadProjects } from "@/lib/videoProjects";
 import { loadPositioning } from "@/lib/positioning";
 import { priceOf, priceText, sumPrices, WRITE_PRICE, type Price } from "@/lib/prices";
@@ -73,6 +73,9 @@ export interface Reply {
   receipt?: Receipt;
   /** The text quotes outside text (agentThreads AgentMsg.quotes). */
   quotes?: true;
+  /** A numbered pick list of make skills, and the topic it was asked about (agentThreads AgentMsg.picks). */
+  picks?: string[];
+  topic?: string;
 }
 /** The engine's turn while a press runs: the step line, and one more server call. */
 export interface Live {
@@ -117,6 +120,9 @@ export interface PlanFields {
   correction?: Omit<Correction, "at" | "card">;
   nudge?: Nudge;
   layout?: string;
+  /** A static ad's angle (one of the twelve) and saved product's id, picked in a make skill's questions. */
+  angle?: string;
+  product?: string;
   design?: string;
 }
 export const fieldsOf = (c: AgentCard) => c.plan as unknown as PlanFields;
@@ -274,6 +280,8 @@ export interface MakeAsk {
   /** Jev's subject: the title and the chips name it instead of the message. */
   subject?: string | null;
   layout?: string;
+  angle?: string;
+  product?: string;
 }
 
 const card = (kind: AgentCard["kind"], f: PlanFields, c: Partial<AgentCard> & Pick<AgentCard, "title" | "line" | "needs">, now = new Date()): AgentCard => ({
@@ -346,8 +354,15 @@ export function makeCard(userId: string, a: MakeAsk, now = new Date()): AgentCar
   }
   if (a.plan === "image")
     return card("image", f, { title: `Picture: ${cutAtWord(subject ?? a.topic, 40)}`, line: "One picture, 3:4, saved to Photos and videos, under AI images.", prompt: a.topic.trim(), price: price("ai-image") ?? undefined, needs: needsOf("image") }, now);
-  if (a.plan === "layout")
-    return card("make", { ...f, layout: a.layout }, { title: `${staticFormatBySlug(a.layout ?? "")?.name ?? "Static ad"}: "${about}"`, line: "A static ad in your colours, saved to Your images.", price: price("remix-make") ?? undefined, needs: needsOf("layout") }, now);
+  if (a.plan === "layout") {
+    // a make skill's picks: the angle and the product go on the card, and the line says what the ad shows
+    const def = staticFormatBySlug(a.layout ?? "");
+    const sold = a.product ? loadProducts(userId).items.find((x) => x.id === a.product) : undefined;
+    const picked = !!(a.angle || sold);
+    const details = [...(a.angle ? [{ label: "Angle", value: a.angle }] : []), ...(sold ? [{ label: "Product", value: productLabel(sold) }] : []), ...(picked ? [{ label: "Size", value: "Feed 4:5" }] : [])];
+    const line = picked && def ? `${def.blurb} In your colours, saved to Your images. If the words don't come through, the use comes back.` : "A static ad in your colours, saved to Your images.";
+    return card("make", { ...f, layout: a.layout, ...(a.angle ? { angle: a.angle } : {}), ...(sold ? { product: sold.id } : {}) }, { title: `${def?.name ?? "Static ad"}: "${about}"`, line, ...(details.length ? { details } : {}), price: price("remix-make") ?? undefined, needs: needsOf("layout") }, now);
+  }
   return card("make", f, { title: `${cap(NOUN[a.format])}: "${about}"`, line: MAKE_LINE[a.format] ?? "", price: price("remix-make") ?? undefined, needs: needsOf(a.plan) }, now);
 }
 
@@ -1005,7 +1020,9 @@ async function layoutPress(userId: string, x: Press, src: RemixSource | null, li
   const def = staticFormatBySlug(f.layout ?? "");
   if (!def || !isStatic(def.slug)) return x.fail(NOT_THROUGH);
   if (imageWriteBusy()) return x.fail(LINES.layoutBusy);
-  const bits = productBits(loadProducts(userId));
+  const products = loadProducts(userId);
+  const sold = f.product ? products.items.find((x) => x.id === f.product) : undefined;
+  const bits = sold ? { picture: sold.pictures[0], price: sold.price?.trim() || undefined } : productBits(products);
   const topic = f.topic ?? "";
   const kept = imageById(userId, f.design);
   const base = kept && kept.layout === def.slug && !mainWords(def.slug, kept.words) ? kept : blankImage({ layout: def.slug });
@@ -1019,7 +1036,7 @@ async function layoutPress(userId: string, x: Press, src: RemixSource | null, li
   live.call();
   live.step("Writing your words...", "writing");
   x.started();
-  await startImageWrite(userId, { designId: design.id, source: src, topic, layout: def.slug, mention: imageMention(userId), note: "", size: design.size, read: false });
+  await startImageWrite(userId, { designId: design.id, source: src, topic, layout: def.slug, mention: imageMention(userId), note: "", size: design.size, read: false, ...(f.angle ? { angles: [f.angle] } : {}), ...(sold ? { product: adFacts(sold) } : {}) });
   const w = imageWrite();
   if (w?.designId !== design.id || w.state !== "done") return x.fail((w?.designId === design.id && w.error) || NOT_THROUGH);
   const words = imageById(userId, design.id)?.words ?? {};
