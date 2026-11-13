@@ -31,10 +31,26 @@ import { isOn, loadFacts } from "@/lib/voiceMemory";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic.ts";
 import { STATIC_ANGLES, type AdProduct, type Subject } from "../../supabase/functions/remix/logic.ts";
 
-export const PHOTO_PEOPLE = "People, when the scene shows any, are Singaporean adults.";
+export const PHOTO_PEOPLE = "Any people are Singaporean adults.";
 /** A real Singapore look without a real business or place on it (a 13 Nov poster drew a real station's sign and operator mark). */
-export const PHOTO_MARKS = "Singapore by its look alone: no real place names on signs, and no real transit, mall, bank or shop logos or vehicle liveries.";
-export const PHOTO_RULE = "All text spelled exactly as quoted. No other logos, brands or watermarks.";
+export const PHOTO_MARKS = "Singapore by its look alone: no real place names, transit, mall, bank or shop logos, or vehicle liveries.";
+/** The only writing on the picture (a 13 Nov poster printed a price nobody asked for beside the logo). */
+export const PHOTO_RULE = "Only the quoted words, spelled exactly, and the logo are written on it: no prices, dates, phone numbers, web addresses or small print, on screens and footers too. No other logos or watermarks.";
+
+/** A clause that names a price or a figure: a digit or a currency. */
+const PRICED = /\d|[$€£¥₹]|\b(SGD|USD|MYR|AUD|EUR|GBP|IDR|RM|Rp|dollars?|cents?)\b/i;
+
+/** Text with every clause holding a digit or a currency left out and the rest kept, so a picture is never handed a price. */
+export function withoutPrices(text: string): string {
+  // a priced aside in brackets goes whole, then each clause between punctuation is kept or left out
+  const parts = text.replace(/\s*\([^)]*\)/g, (m) => (PRICED.test(m) ? "" : m)).split(/([.;,!?]+\s*)/);
+  let out = "";
+  for (let i = 0; i < parts.length; i += 2) if (parts[i].trim() && !PRICED.test(parts[i])) out += parts[i] + (parts[i + 1] ?? "");
+  return out.replace(/[\s,;]+$/, "").trim();
+}
+
+/** A format that prints a price the brand typed itself (the tear-off flyer): only there may a figure reach the picture. */
+const typedPrice = (slug: string) => isStatic(slug) && IMAGE_FIELDS[slug].some((x) => x.key === "price" && x.typed);
 
 /** One string as the prompt quotes it: on one line, a double quote inside it made a single one so the quote stays whole. */
 const quoted = (s: string) => `"${s.replace(/\s+/g, " ").trim().replace(/"/g, "'")}"`;
@@ -73,7 +89,7 @@ export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { 
   return [
     f.scene,
     name ? `The brand is ${quoted(name)}, its colour ${brand.color}.` : `The brand colour is ${brand.color}.`,
-    product ? productLine(product) : "",
+    product ? productLine(typedPrice(f.slug) ? product : { name: product.name.split(/\s+/).filter((w) => !PRICED.test(w)).join(" "), what: withoutPrices(product.what) }) : "",
     subject && staticPhoto(f.slug) ? SUBJECT_LINES[subject] : "",
     on.length ? `The words on it, in order: ${on.join("; ")}.` : "",
     PHOTO_PEOPLE,

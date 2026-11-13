@@ -66,7 +66,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { AD_FACTS_MAX, ANGLE_POOL, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { AD_FACTS_MAX, ANGLE_POOL, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -101,10 +101,33 @@ describe("the photo prompt", () => {
     expect(p).not.toMatch(/edges?\b|cut/i);
   });
 
-  it("ends on the people line, the real-marks line and the spelling rule, word for word", () => {
+  it("ends on the people line, the real-marks line and the only-these-words rule, word for word", () => {
     const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." });
-    expect(p.endsWith(" People, when the scene shows any, are Singaporean adults. Singapore by its look alone: no real place names on signs, and no real transit, mall, bank or shop logos or vehicle liveries. All text spelled exactly as quoted. No other logos, brands or watermarks.")).toBe(true);
+    expect(p.endsWith(" Any people are Singaporean adults. Singapore by its look alone: no real place names, transit, mall, bank or shop logos, or vehicle liveries. Only the quoted words, spelled exactly, and the logo are written on it: no prices, dates, phone numbers, web addresses or small print, on screens and footers too. No other logos or watermarks.")).toBe(true);
     expect(p.endsWith(`${PHOTO_PEOPLE} ${PHOTO_MARKS} ${PHOTO_RULE}`)).toBe(true);
+  });
+
+  it("hands the picture no price: every clause of the product line with a digit or a currency is left out, the rest kept", () => {
+    expect(withoutPrices("Logs calls as streaks. From SGD 34 per person a month, billed yearly. Team leaderboard.")).toBe("Logs calls as streaks. billed yearly. Team leaderboard.");
+    expect(withoutPrices("A virtual corgi (only $5) that grows; 3x more streak days")).toBe("A virtual corgi that grows");
+    expect(withoutPrices("A virtual corgi (it barks)")).toBe("A virtual corgi (it barks)");
+    expect(withoutPrices("Hand-rolled ang ku kueh, RM 2 each, steamed daily")).toBe("Hand-rolled ang ku kueh, steamed daily");
+    expect(withoutPrices("Plain words only.")).toBe("Plain words only.");
+    // a price in words, with no digit, is still a price
+    expect(withoutPrices("From thirty-four dollars a month, logs every call. Billed per seat in SGD.")).toBe("logs every call.");
+    const facts = { name: "ActivityTracker Pro 2", what: "SGD 34 per person a month. Logs each call as a streak, with a team leaderboard." };
+    const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." }, facts);
+    const line = p.slice(p.indexOf("The ad shows"), p.indexOf(" The words on it"));
+    expect(line).toBe("The ad shows the brand's product itself: ActivityTracker Pro, Logs each call as a streak, with a team leaderboard.");
+    expect(line).not.toMatch(/\d|SGD|\$/);
+    // the flyer prints the brand's own typed price, so its product line may name one
+    const flyer = staticFormatBySlug("tear-off-flyer")!;
+    expect(photoAdPrompt(flyer, hilltop, { headline: "Kueh, delivered.", price: "$6 a box" }, facts)).toContain("SGD 34 per person a month");
+  });
+
+  it("says the quoted words and the logo are the only writing, with no prices, dates, phone numbers, web addresses or small print on screens and footers", () => {
+    expect(PHOTO_RULE).toBe("Only the quoted words, spelled exactly, and the logo are written on it: no prices, dates, phone numbers, web addresses or small print, on screens and footers too. No other logos or watermarks.");
+    for (const f of STATIC_FORMATS) expect(photoAdPrompt(f, hilltop, {}), f.slug).toContain(PHOTO_RULE);
   });
 
   it("keeps every quoted line whole: a double quote inside becomes a single one, and a line break a space", () => {
@@ -137,7 +160,7 @@ describe("each format's scene", () => {
       expect(f.scene, f.slug).not.toMatch(/\b(MRT|LRT|platforms?|stations?|malls?|banks?|Orchard|Changi|Sentosa|Marina|Raffles|Bugis|Jurong|Tampines|Buona Vista|Chinatown)\b/i);
       expect(photoAdPrompt(f, hilltop, {}), f.slug).toContain(PHOTO_MARKS);
     }
-    expect(PHOTO_MARKS).toMatch(/no real place names on signs, and no real transit, mall, bank or shop logos or vehicle liveries/);
+    expect(PHOTO_MARKS).toMatch(/no real place names, transit, mall, bank or shop logos, or vehicle liveries/);
   });
 
   it("is one plain sentence with no double quote, so it never reads as words to print", () => {
@@ -236,6 +259,16 @@ describe("the photo run", () => {
       expect((fake.asks[1].product as { what: string }).what.length).toBeGreaterThan(200);
       const line = fake.calls[1].prompt.match(/The ad shows the brand's product itself: [^.]*\.[^"]*?(?= The words on it)/)![0];
       expect(line.length).toBeLessThanOrEqual("The ad shows the brand's product itself: ActivityTracker, .".length + 160);
+    });
+
+    it("never hands the picture a price from the brand's saved facts, while the writer still reads them all", async () => {
+      localStorage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#F26B1D", name: "ActivityTracker", handle: "" }));
+      localStorage.setItem(`content-studio-positioning-${U}`, JSON.stringify({ oneLiner: "A phone app for your selling week.", edge: "SGD 34 per person a month, logs each day's calls as a streak.", audience: "working-adult", audienceDetail: "", topics: [] }));
+      await startPhotoAd(U, poster, { topic: "x" });
+      expect((fake.asks[0].product as { what: string }).what).toContain("SGD 34 per person a month");
+      const p = fake.calls[0].prompt;
+      expect(p).toContain("The ad shows the brand's product itself: ActivityTracker, logs each day's calls as a streak. A phone app for your selling week.");
+      expect(p).not.toMatch(/SGD|34 per/);
     });
 
     it("drops the product line, never the words, when both would run past ai-image's prompt cap", async () => {
