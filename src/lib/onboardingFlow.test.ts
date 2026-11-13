@@ -174,8 +174,13 @@ describe("logo pixels", () => {
     for (const c of got) expect(parseInt(c.slice(5, 7), 16)).toBeGreaterThan(parseInt(c.slice(1, 3), 16));
   });
 
-  it("calls a logo light when nearly all of what shows is near white, so it gets a dark tile", () => {
-    expect(lightPixels(pixels([...Array(300).fill([0, 0, 0, 0]), ...Array(100).fill([255, 255, 255, 255])] as [number, number, number, number][]))).toBe(true);
+  it("gives a logo the dark tile when the light tile would hide more of it, and keeps a logo with its own background on the light one", () => {
+    const clear: [number, number, number, number][] = Array(300).fill([0, 0, 0, 0]);
+    expect(lightPixels(pixels([...clear, ...Array(100).fill([255, 255, 255, 255])] as [number, number, number, number][]))).toBe(true);
+    expect(lightPixels(pixels([...clear, ...Array(51).fill([255, 255, 255, 255]), ...Array(49).fill([37, 99, 235, 255])] as [number, number, number, number][]))).toBe(true);
+    expect(lightPixels(pixels([...clear, ...Array(80).fill([250, 250, 250, 255]), ...Array(20).fill([220, 38, 38, 255])] as [number, number, number, number][]))).toBe(true);
+    expect(lightPixels(pixels([...clear, ...Array(70).fill([17, 24, 39, 255]), ...Array(30).fill([37, 99, 235, 255])] as [number, number, number, number][]))).toBe(false);
+    expect(lightPixels(pixels([...clear, ...Array(100).fill([37, 99, 235, 255])] as [number, number, number, number][]))).toBe(false);
     expect(lightPixels(pixels([...Array(80).fill([250, 250, 250, 255]), ...Array(20).fill([37, 99, 235, 255])] as [number, number, number, number][]))).toBe(false);
     expect(lightPixels(pixels([[0, 0, 0, 0]], 100))).toBe(false);
     expect(lightPixels(pixels([[17, 24, 39, 255]], 100))).toBe(false);

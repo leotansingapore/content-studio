@@ -36,15 +36,29 @@ export function blankPixels(data: Uint8ClampedArray): boolean {
   return !mixed && opaque / total > 0.98;
 }
 
+const LINEAR = Array.from({ length: 256 }, (_, v) => {
+  const c = v / 255;
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+});
+const luminance = (r: number, g: number, b: number) => 0.2126 * LINEAR[r] + 0.7152 * LINEAR[g] + 0.0722 * LINEAR[b];
+const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+const LIGHT_TILE = luminance(243, 244, 246);
+const DARK_TILE = luminance(28, 34, 48);
+
 export function lightPixels(data: Uint8ClampedArray): boolean {
+  const total = data.length / 4;
   let opaque = 0;
-  let light = 0;
+  let hiddenOnLight = 0;
+  let hiddenOnDark = 0;
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] < 128) continue;
     opaque++;
-    if (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2] > 217) light++;
+    const l = luminance(data[i], data[i + 1], data[i + 2]);
+    if (contrast(l, LIGHT_TILE) < 1.5) hiddenOnLight++;
+    if (contrast(l, DARK_TILE) < 1.5) hiddenOnDark++;
   }
-  return opaque > 0 && light / opaque >= 0.9;
+  if (!opaque || opaque / total >= 0.98) return false;
+  return hiddenOnDark < hiddenOnLight;
 }
 
 export async function logoIsLight(src: string): Promise<boolean> {
