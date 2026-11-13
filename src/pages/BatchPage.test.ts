@@ -1,5 +1,6 @@
 // Batch serves everyone: its first frame, with the five audience chips, must draw exactly as it did before saved
 // audiences (brand-audiences), pinned on today's code at eaaa6379. Never update the pinned file with vitest -u.
+// Re-pinned once on 13 Nov, on purpose: Generate is off until there is a topic, with the reason beside it (law 14).
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
@@ -23,5 +24,9 @@ describe("Batch for everyone else", () => {
   });
   it("draws today's page with a life stage picked in the address", async () => {
     await expect(html("/generate/batch?audience=parent&pillar=market")).toMatchFileSnapshot("./__pins__/batch-page-everyone-parent.html");
+  });
+  it("holds Generate until there is a topic, and says why beside it rather than in a red toast", () => {
+    const out = html("/generate/batch");
+    expect(out).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Generate 3 drafts<\/button><span[^>]*>Add a topic first\.<\/span>/s);
   });
 });

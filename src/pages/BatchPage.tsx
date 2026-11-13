@@ -190,25 +190,13 @@ export default function BatchPage() {
     );
   };
 
+  // Generate stays off until it can run, with the reason beside it, as Answer and Sales script do (law 14)
+  const blocked = !topic.trim() ? "Add a topic first." : activeTargets.length === 0 ? "Pick at least one platform." : null;
+
   // only: a failed card's Try again writes that one again and leaves the others as they are
   const runBatch = async (only?: BatchTarget) => {
     const trimmed = topic.trim();
-    if (!trimmed) {
-      document.getElementById("batch-topic")?.focus();
-      toast({
-        title: "Add a topic",
-        description: "One topic, angle, or client scenario is enough to seed the whole batch.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (activeTargets.length === 0) {
-      toast({
-        title: "Pick at least one platform",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!trimmed || (!only && activeTargets.length === 0)) return;
     if (!only && !okToDropUnsaved()) return;
     setRunning(true);
     setDismissed((d) => (only ? d.filter((id) => !id.startsWith(`${only.key}:`)) : []));
@@ -426,23 +414,26 @@ export default function BatchPage() {
             </div>
           </div>
 
-          <Button
-            onClick={() => void runBatch()}
-            disabled={running}
-            size="lg"
-            className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 disabled:opacity-100 sm:w-auto"
-          >
-            {running ? (
-              <>
-                <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> Generating {activeTargets.filter((t) => cards[t.key]?.status === "streaming").length || activeTargets.length}...
-              </>
-            ) : (
-              <>
-                <StackIcon className="h-4 w-4" /> Generate {activeTargets.length || ""} draft
-                {activeTargets.length === 1 ? "" : "s"}
-              </>
-            )}
-          </Button>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Button
+              onClick={() => void runBatch()}
+              disabled={running || !!blocked}
+              size="lg"
+              className={`w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 sm:w-auto ${running ? "disabled:opacity-100" : ""}`}
+            >
+              {running ? (
+                <>
+                  <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> Generating {activeTargets.filter((t) => cards[t.key]?.status === "streaming").length || activeTargets.length}...
+                </>
+              ) : (
+                <>
+                  <StackIcon className="h-4 w-4" /> Generate {activeTargets.length || ""} draft
+                  {activeTargets.length === 1 ? "" : "s"}
+                </>
+              )}
+            </Button>
+            {blocked && !running && <span className="text-xs text-muted-foreground">{blocked}</span>}
+          </div>
         </CardContent>
       </Card>
 
@@ -480,7 +471,7 @@ export default function BatchPage() {
                   {card.status === "error" ? (
                     <div className="space-y-2">
                       <p className="text-sm text-destructive">{card.error}</p>
-                      <Button size="sm" variant="outline" disabled={running} onClick={() => void runBatch(t)} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
+                      <Button size="sm" variant="outline" disabled={running || !topic.trim()} onClick={() => void runBatch(t)} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
                         <ArrowCounterClockwiseIcon className="h-3.5 w-3.5" /> Try again
                       </Button>
                     </div>
