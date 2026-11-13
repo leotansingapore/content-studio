@@ -470,35 +470,48 @@ describe("the angle each make takes", () => {
     expect(usedAngles(U, "street-poster")).toEqual(["The moment", "Make them smile"]);
   });
 
-  it("keeps the brand's last 5 openings per format beside its angles, the latest first, once each", () => {
+  it("keeps the brand's last 10 openings across every static format beside its angles, the latest first, once each", () => {
     expect(openingOf("  Heading home with follow-ups scattered across chats?")).toBe("Heading home with follow-ups");
     rememberAngle(U, "street-poster", "The offer");
-    for (const h of ["One two three four five", "Heading home with follow-ups scattered", "heading home WITH follow-ups again", "A b c d e", "F g h i", "J k l m", "N o p q"]) rememberOpening(U, "street-poster", h);
-    rememberOpening(U, "text-chat", "Hey you up yet");
-    expect(recentOpenings(U, "street-poster")).toEqual(["N o p q", "J k l m", "F g h i", "A b c d", "heading home WITH follow-ups"]);
-    expect(recentOpenings(U, "street-poster")).toHaveLength(OPENINGS_KEPT);
-    expect(recentOpenings(U, "text-chat")).toEqual(["Hey you up yet"]);
+    const heads = ["Start managing follow-ups on", "Heading home with follow-ups scattered", "heading home WITH follow-ups again", ...Array.from({ length: 9 }, (_, i) => `Opening ${"abcdefghi"[i]} words here`)];
+    heads.forEach((h) => rememberOpening(U, h));
+    const kept = recentOpenings(U);
+    expect(kept).toHaveLength(OPENINGS_KEPT);
+    expect(OPENINGS_KEPT).toBe(10);
+    expect(kept[0]).toBe("Opening i words here");
+    expect(kept.at(-1)).toBe("heading home WITH follow-ups");
+    expect(kept).not.toContain("Start managing follow-ups on");
     // the angles beside them are untouched, and an angle kept afterwards keeps the openings
     expect(usedAngles(U, "street-poster")).toEqual(["The offer"]);
-    rememberAngle(U, "street-poster", "Bust a myth");
-    expect(recentOpenings(U, "street-poster")[0]).toBe("N o p q");
-    expect(JSON.parse(localStorage.getItem(`content-studio-static-angles-${U}`)!)).toMatchObject({ "street-poster": ["Bust a myth", "The offer"], openings: { "text-chat": ["Hey you up yet"] } });
+    rememberAngle(U, "general-ad", "Bust a myth");
+    expect(recentOpenings(U)).toEqual(kept);
+    // the same opening twice, in any case, is kept once, as the latest
+    localStorage.clear();
+    rememberOpening(U, "Start managing follow-ups on your phone");
+    rememberOpening(U, "Your memory keeps no score");
+    rememberOpening(U, "START managing follow-ups ON the go");
+    expect(recentOpenings(U)).toEqual(["START managing follow-ups ON", "Your memory keeps no"]);
+    // the old one-list-per-format shape reads as none rather than breaking
+    localStorage.setItem(`content-studio-static-angles-${U}`, JSON.stringify({ openings: { "street-poster": ["Heading home with follow-ups"] } }));
+    expect(recentOpenings(U)).toEqual([]);
   });
 
-  it("tells the writer the brand's last openings on the format, and keeps this make's once its words are written", async () => {
-    fake.writeAngle = "Name the pain";
-    fake.writeWords = { headline: "Heading home with follow-ups scattered across chats?", line: "Hilltop cold brew." };
+  it("tells the writer the brand's last openings on any format, so the next format can't open the same way", async () => {
+    fake.writeAngle = "The offer";
+    fake.writeWords = { headline: "Start managing follow-ups on your phone", line: "Hilltop cold brew." };
     await startPhotoAd(U, poster, { topic: "x" });
     expect(fake.asks[0]).not.toHaveProperty("openings");
-    expect(recentOpenings(U, "street-poster")).toEqual(["Heading home with follow-ups"]);
+    expect(recentOpenings(U)).toEqual(["Start managing follow-ups on"]);
+    // another format next is told the poster's opening
+    const general = staticFormatBySlug("general-ad")!;
     fake.writeWords = { headline: "Your memory keeps no score.", line: "Hilltop cold brew." };
-    await startPhotoAd(U, poster, { topic: "x" });
-    expect(fake.asks[1].openings).toEqual(["Heading home with follow-ups"]);
-    expect(recentOpenings(U, "street-poster")).toEqual(["Your memory keeps no", "Heading home with follow-ups"]);
+    await startPhotoAd(U, general, { topic: "x" });
+    expect(fake.asks[1].openings).toEqual(["Start managing follow-ups on"]);
+    expect(recentOpenings(U)).toEqual(["Your memory keeps no", "Start managing follow-ups on"]);
     // words that failed are no opening
     fake.writeFails = "Couldn't write it.";
     await startPhotoAd(U, poster, { topic: "x" });
-    expect(recentOpenings(U, "street-poster")).toHaveLength(2);
+    expect(recentOpenings(U)).toHaveLength(2);
   });
 
   it("keeps the angle of words whose picture failed, and remembers nothing when the writer sent none back", async () => {

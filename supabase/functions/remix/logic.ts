@@ -348,7 +348,7 @@ export interface MakeRequest {
   subject?: Subject;
   /** image with a static layout only: the opening words of the format's sample ad, which the words never start with. */
   avoid?: string;
-  /** image with a static layout only: the brand's last openings on this format (first four words each), never reused. */
+  /** image with a static layout only: the brand's last 10 openings on any static format (first four words each), never reused. */
   openings?: string[];
   /** Every format but hooks: a HOOK_FORMULA_COPY id the opening line follows (remix-variations); an unknown id is dropped. */
   formula?: string;
@@ -663,7 +663,7 @@ function parseShape(as: MakeAs, r: Item, speaker: Speaker): Partial<MakeRequest>
     const angles = isStaticLayout(layout) && Array.isArray(r.angles) ? [...new Set(r.angles.filter(isAngle))] : [];
     const avoid = isStaticLayout(layout) ? line(r.avoid, 60) : "";
     // cut, never ellipsed: a quoted opening is matched word for word
-    const said = isStaticLayout(layout) && Array.isArray(r.openings) ? r.openings.filter((o): o is string => typeof o === "string").map((o) => o.replace(/\s+/g, " ").trim().slice(0, 40)).filter(Boolean).slice(0, 5) : [];
+    const said = isStaticLayout(layout) && Array.isArray(r.openings) ? r.openings.filter((o): o is string => typeof o === "string").map((o) => o.replace(/\s+/g, " ").trim().slice(0, 40)).filter(Boolean).slice(0, 10) : [];
     const openings = said.filter((o, i) => said.findIndex((x) => x.toLowerCase() === o.toLowerCase()) === i);
     return { ...(layout ? { layout } : {}), ...(shows ? { shows } : {}), ...(angles.length ? { angles } : {}), ...(avoid ? { avoid } : {}), ...(openings.length ? { openings } : {}) };
   }

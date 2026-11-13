@@ -176,7 +176,7 @@ describe("a static ad's angle", () => {
     // the sample's alone reads as it did before
     expect(buildMakePrompt({ ...r, openings: undefined }).system).toContain('- Never open with "Still dark, still" or those same opening words: start your own way.');
     expect(req({ as: "image", layout: "headline", topic: "x", openings: ["Heading home with"] }).openings).toBeUndefined();
-    expect(req({ as: "image", layout: "street-poster", topic: "x", openings: Array(9).fill(0).map((_, i) => `opening ${"abcdefghi"[i]}`) }).openings).toHaveLength(5);
+    expect(req({ as: "image", layout: "street-poster", topic: "x", openings: Array(12).fill(0).map((_, i) => `opening ${"abcdefghijkl"[i]}`) }).openings).toHaveLength(10);
   });
 
   it("prescribes no moment, setting or hook of its own on any layout: the angle and the picture prompt set those", () => {

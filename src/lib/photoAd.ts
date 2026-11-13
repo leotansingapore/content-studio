@@ -122,30 +122,33 @@ export function rememberAngle(userId: string, slug: string, angle: string): void
   }
 }
 
-/** How many of the brand's last openings on a format the writer is told not to reuse (three posters opened "Heading home with"). */
-export const OPENINGS_KEPT = 5;
+/**
+ * How many of the brand's last openings, across every static format, the writer is told not to reuse: three posters
+ * opened "Heading home with", and two formats in a row both opened "Start managing" (14 Nov).
+ */
+export const OPENINGS_KEPT = 10;
 /** An opening as kept: the first four words of the ad's main line. */
 export const openingOf = (main: string) => main.replace(/\s+/g, " ").trim().split(" ").slice(0, 4).join(" ");
 
-/** The brand's last openings on a format, the latest first, kept beside its angles in the same synced key. */
-export function recentOpenings(userId: string, slug: string): string[] {
+/** The brand's last openings on any static format, the latest first, kept beside its angles in the same synced key. */
+export function recentOpenings(userId: string): string[] {
   try {
-    const list = JSON.parse(localStorage.getItem(ANGLES + scoped(userId)) ?? "{}")?.openings?.[slug];
+    const list = JSON.parse(localStorage.getItem(ANGLES + scoped(userId)) ?? "{}")?.openings;
+    // a list from before openings were kept across formats was one per format: it reads as none
     return Array.isArray(list) ? list.filter((o): o is string => typeof o === "string" && !!o.trim()).slice(0, OPENINGS_KEPT) : [];
   } catch {
     return [];
   }
 }
 
-export function rememberOpening(userId: string, slug: string, main: string): void {
+export function rememberOpening(userId: string, main: string): void {
   const opening = openingOf(main);
   if (!opening) return;
   try {
     const raw = JSON.parse(localStorage.getItem(ANGLES + scoped(userId)) ?? "{}");
     const all = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
-    const kept = all.openings && typeof all.openings === "object" && !Array.isArray(all.openings) ? all.openings : {};
-    const list = [opening, ...recentOpenings(userId, slug).filter((o) => o.toLowerCase() !== opening.toLowerCase())].slice(0, OPENINGS_KEPT);
-    localStorage.setItem(ANGLES + scoped(userId), JSON.stringify({ ...all, openings: { ...kept, [slug]: list } }));
+    const list = [opening, ...recentOpenings(userId).filter((o) => o.toLowerCase() !== opening.toLowerCase())].slice(0, OPENINGS_KEPT);
+    localStorage.setItem(ANGLES + scoped(userId), JSON.stringify({ ...all, openings: list }));
   } catch {
     // storage full: the next make just isn't told this opening
   }
@@ -269,14 +272,14 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   const product = sold ? adFacts(sold) : (brandAdFacts(userId) ?? undefined);
   const angles = format.angle && format.angle in STATIC_ANGLES ? [format.angle] : angleOrder(slug, usedAngles(userId, slug)).slice(0, ANGLE_POOL);
   const avoid = sampleOpening(f);
-  const openings = recentOpenings(userId, slug);
+  const openings = recentOpenings(userId);
   await startImageWrite(userId, { designId: design.id, source: null, topic: format.topic, layout: slug, mention: imageMention(userId), note: "", size: design.size, read: false, angles, ...(avoid ? { avoid } : {}), ...(openings.length ? { openings } : {}), ...(product ? { product } : {}) });
   const w = imageWrite();
   const words = imageById(userId, design.id)?.words ?? {};
   if (w?.designId !== design.id || w.state !== "done" || !mainWords(slug, words)) return set({ ...base, state: "failed", error: w?.error || WRITE_FAILED });
   // the words are written: their angle and opening count as used whatever happens to the picture
   if (w.angle) rememberAngle(userId, slug, w.angle);
-  rememberOpening(userId, slug, mainWords(slug, words));
+  rememberOpening(userId, mainWords(slug, words));
   const made = { ...base, ...(w.angle ? { angle: w.angle } : {}) };
   const kit = loadBrand(userId) ?? DEFAULT_BRAND;
   const brand = { name: ownBrandName(userId), color: kit.color };
