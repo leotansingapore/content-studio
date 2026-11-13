@@ -24,7 +24,7 @@ export function parsePath(pathname: string): { slug: string; linkId: string | nu
 // Crawlers, link previewers and headless browsers: sent on, never counted.
 // In-app browsers (Instagram, FBAN/FBAV, TikTok) are people and do count.
 const BOT_RE =
-  /bot\b|bot\/|crawl|spider|slurp|preview|facebookexternalhit|facebot|embedly|quora link|pinterest|vkshare|whatsapp|telegram|skypeuripreview|headless|lighthouse|curl\/|wget|python-requests|go-http-client|node-fetch|axios/i;
+  /bot\b|bot\/|crawl|spider|slurp|preview|facebookexternalhit|facebot|embedly|quora link|pinterest|vkshare|whatsapp|skypeuripreview|headless|lighthouse|curl\/|wget|python-requests|go-http-client|node-fetch|axios/i;
 
 export function isBot(userAgent: string | null): boolean {
   return !userAgent || BOT_RE.test(userAgent);

@@ -23,6 +23,7 @@ describe("isBot", () => {
     expect(isBot("facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)")).toBe(true);
     expect(isBot("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")).toBe(true);
     expect(isBot("WhatsApp/2.23.20.0")).toBe(true);
+    expect(isBot("TelegramBot (like TwitterBot)")).toBe(true);
     expect(isBot("curl/8.4.0")).toBe(true);
     expect(isBot(null)).toBe(true);
   });
@@ -31,6 +32,11 @@ describe("isBot", () => {
       isBot("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 300.0.0.0"),
     ).toBe(false);
     expect(isBot("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36 [FBAN/EMA;FBAV/400.0]")).toBe(false);
+    expect(
+      isBot(
+        "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Mobile Safari/537.36 Telegram-Android/11.4.2 (Google Pixel 7; Android 14; SDK 34; AVERAGE)",
+      ),
+    ).toBe(false);
     expect(isBot("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15")).toBe(false);
   });
 });
