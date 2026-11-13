@@ -1,11 +1,11 @@
 import { forwardRef, useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { logoIsLight } from "@/lib/logoImage";
-import { ArrowRightIcon, CaretLeftIcon, CheckIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CaretLeftIcon } from "@phosphor-icons/react";
 
 export function OnboardingCanvas({ progress, onBack, backLabel = "Back", children }: { progress: number | null; onBack?: () => void; backLabel?: string; children: ReactNode }) {
   return (
-    <div className="min-h-[100dvh] bg-background sm:p-3 lg:p-5">
-      <div className="onboard-canvas relative flex min-h-[100dvh] flex-col overflow-hidden sm:min-h-[calc(100dvh-1.5rem)] sm:rounded-[24px] sm:border sm:border-border/60 lg:min-h-[calc(100dvh-2.5rem)]">
+    <div className="onboard-font min-h-[100dvh] bg-background sm:p-3 lg:p-5">
+      <div className="onboard-canvas relative flex min-h-[100dvh] flex-col overflow-hidden sm:min-h-[calc(100dvh-1.5rem)] sm:rounded-[20px] lg:min-h-[calc(100dvh-2.5rem)]">
         <div className="relative z-10 flex flex-1 flex-col items-center gap-8 px-4 pb-12 pt-5 sm:gap-10 sm:px-8 sm:pt-8 lg:px-10 lg:pt-10">
           <header className="flex w-full max-w-[800px] items-center gap-3">
             {onBack ? (
@@ -21,7 +21,7 @@ export function OnboardingCanvas({ progress, onBack, backLabel = "Back", childre
               <span className="-ml-1 h-9 w-9 shrink-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-hidden="true" />
             )}
             {progress === null ? (
-              <div className="h-3.5 w-full" aria-hidden="true" />
+              <div className="h-[15px] w-full" aria-hidden="true" />
             ) : (
               <div
                 role="progressbar"
@@ -29,7 +29,7 @@ export function OnboardingCanvas({ progress, onBack, backLabel = "Back", childre
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={progress}
-                className="relative h-3.5 w-full overflow-hidden rounded-full bg-primary/10"
+                className="relative h-[15px] w-full overflow-hidden rounded-full bg-primary/10"
               >
                 <div
                   className="onboard-bar h-full rounded-full bg-gradient-primary transition-[width] duration-700 ease-out motion-reduce:transition-none"
@@ -48,10 +48,10 @@ export function OnboardingCanvas({ progress, onBack, backLabel = "Back", childre
 export function StepTitle({ title, lead, id }: { title: string; lead?: ReactNode; id?: string }) {
   return (
     <div className="flex w-full flex-col items-center gap-2.5 text-center">
-      <h1 id={id} tabIndex={-1} className="max-w-full font-serif text-[26px] font-semibold leading-tight tracking-tight text-foreground outline-none [overflow-wrap:anywhere] focus-visible:shadow-none focus-visible:outline-none sm:text-[30px]">
+      <h1 id={id} tabIndex={-1} className="max-w-full text-[24px] font-bold leading-8 text-foreground outline-none [overflow-wrap:anywhere] focus-visible:shadow-none focus-visible:outline-none sm:text-[26px]">
         {title}
       </h1>
-      {lead && <p className="max-w-[30rem] text-[15px] leading-relaxed text-muted-foreground [overflow-wrap:anywhere] sm:text-base">{lead}</p>}
+      {lead && <p className="max-w-[30rem] text-base font-medium leading-6 text-muted-foreground [overflow-wrap:anywhere]">{lead}</p>}
     </div>
   );
 }
@@ -63,11 +63,11 @@ export const PrimaryPill = forwardRef<HTMLButtonElement, PillProps>(function Pri
     <button
       ref={ref}
       type={type}
-      className={`onboard-primary relative inline-flex h-10 min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-full bg-gradient-primary px-4 text-[15px] font-semibold text-primary-foreground transition-[filter,opacity] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:brightness-100 [@media(pointer:coarse)]:h-11 ${className}`}
+      className={`onboard-primary relative inline-flex h-[37px] min-w-0 items-center justify-center gap-[5px] overflow-hidden rounded-full bg-gradient-primary px-[15px] text-base font-medium text-primary-foreground transition-[filter,opacity] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:brightness-100 [@media(pointer:coarse)]:h-11 ${className}`}
       {...rest}
     >
       <span className="truncate">{children}</span>
-      {arrow && <ArrowRightIcon size={17} weight="bold" className="shrink-0" />}
+      {arrow && <ArrowRightIcon size={16} weight="bold" className="shrink-0" />}
     </button>
   );
 });
@@ -76,7 +76,7 @@ export function QuietPill({ className = "", children, type = "button", ...rest }
   return (
     <button
       type={type}
-      className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-border/70 bg-card px-4 text-[15px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50 [@media(pointer:coarse)]:h-11 ${className}`}
+      className={`inline-flex h-[37px] items-center justify-center gap-[5px] rounded-full bg-card px-[15px] text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50 [@media(pointer:coarse)]:h-11 ${className}`}
       {...rest}
     >
       {children}
@@ -85,16 +85,14 @@ export function QuietPill({ className = "", children, type = "button", ...rest }
 }
 
 export function Actions({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`flex w-full flex-col-reverse gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-4 [&>button]:w-full sm:[&>button]:w-auto ${className}`}>{children}</div>;
+  return <div className={`flex w-full flex-col-reverse gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-5 [&>button]:w-full sm:[&>button]:w-auto ${className}`}>{children}</div>;
 }
 
 export function StatusPill({ state }: { state: "required" | "done" }) {
   return state === "done" ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
-      <CheckIcon size={12} weight="bold" /> Done
-    </span>
+    <span className="rounded-full bg-success/10 px-2.5 py-[5px] text-xs font-medium tracking-[0.02em] text-success">Done</span>
   ) : (
-    <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive">Required</span>
+    <span className="rounded-full bg-destructive/10 px-2.5 py-[5px] text-xs font-medium tracking-[0.02em] text-destructive">Required</span>
   );
 }
 
@@ -125,7 +123,7 @@ export function ScoreRing({ value }: { value: number }) {
 export function FieldLabel({ children, htmlFor, hint }: { children: ReactNode; htmlFor?: string; hint?: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <label htmlFor={htmlFor} className="text-[15px] font-medium text-foreground">
+      <label htmlFor={htmlFor} className="text-base font-medium text-foreground">
         {children}
       </label>
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
@@ -134,7 +132,10 @@ export function FieldLabel({ children, htmlFor, hint }: { children: ReactNode; h
 }
 
 export const fieldClass =
-  "w-full rounded-xl border border-transparent bg-muted/70 px-3 py-2.5 text-[15px] text-foreground outline-none transition-shadow focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_hsl(var(--primary)/0.18)] placeholder:text-muted-foreground/80 focus:border-border focus:bg-background focus:shadow-[inset_0_0_0_3px_hsl(var(--primary)/0.18)] [@media(pointer:coarse)]:min-h-11";
+  "w-full min-h-[37px] rounded-[30px] border-0 bg-muted px-[14px] py-[6px] text-base font-medium text-foreground outline-none transition-shadow focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_hsl(var(--foreground)/0.12)] placeholder:font-medium placeholder:text-muted-foreground/80 focus:shadow-[inset_0_0_0_3px_hsl(var(--foreground)/0.12)] [@media(pointer:coarse)]:min-h-11";
+
+export const areaClass =
+  "w-full rounded-[20px] border-0 bg-muted p-[12px] text-base font-medium text-foreground outline-none transition-shadow focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_hsl(var(--foreground)/0.12)] placeholder:font-medium placeholder:text-muted-foreground/80 focus:shadow-[inset_0_0_0_3px_hsl(var(--foreground)/0.12)]";
 
 export function useLogoTile(logo: string | null | undefined): string {
   const [light, setLight] = useState(false);

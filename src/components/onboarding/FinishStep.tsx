@@ -35,16 +35,16 @@ export function FinishStep({ facts, firstTopic, busy, onWrite, onHome, titleId }
           {facts.logo ? (
             <img src={facts.logo} alt="" className="max-h-16 max-w-16 object-contain" />
           ) : (
-            <span className="grid h-full w-full place-items-center font-serif text-3xl font-semibold" style={{ backgroundColor: main, color: readableInk(main) }}>
+            <span className="grid h-full w-full place-items-center text-3xl font-bold" style={{ backgroundColor: main, color: readableInk(main) }}>
               {facts.name.trim().charAt(0).toUpperCase() || "?"}
             </span>
           )}
         </span>
         <div className="space-y-2">
-          <h1 id={titleId} tabIndex={-1} className="max-w-full font-serif text-[26px] font-semibold leading-tight tracking-tight text-foreground outline-none [overflow-wrap:anywhere] focus-visible:shadow-none focus-visible:outline-none sm:text-[30px]">
+          <h1 id={titleId} tabIndex={-1} className="max-w-full text-[24px] font-bold leading-8 text-foreground outline-none [overflow-wrap:anywhere] focus-visible:shadow-none focus-visible:outline-none sm:text-[26px]">
             {facts.name} is set up
           </h1>
-          <p className="text-[15px] text-muted-foreground sm:text-base">Every post, plan and calendar now starts from this.</p>
+          <p className="text-base font-medium text-muted-foreground">Every post, plan and calendar now starts from this.</p>
         </div>
       </div>
       <div className="divide-y divide-border/70 overflow-hidden rounded-[20px] bg-card shadow-card">

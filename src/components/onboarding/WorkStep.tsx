@@ -30,21 +30,23 @@ export function WorkStep({ value, onChange, onContinue, titleId }: { value: stri
       type="button"
       aria-pressed={picked}
       onClick={onPick}
-      className={`group relative flex min-h-[132px] w-[calc(50%-6px)] flex-col items-start gap-3 overflow-hidden rounded-[20px] border-2 p-4 text-left transition-colors sm:w-[166px] ${
-        picked ? "border-primary bg-primary/[0.07]" : "border-transparent bg-card shadow-card hover:border-border"
+      className={`group relative flex w-[calc(50%-6px)] flex-col overflow-hidden rounded-[20px] border-2 text-left transition-colors sm:w-[200px] ${
+        picked ? "border-success bg-success/[0.07]" : "border-transparent bg-card hover:border-border"
       }`}
     >
       {picked && (
-        <span className="absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-200">
+        <span className="absolute right-3 top-3 z-10 grid h-6 w-6 place-items-center rounded-full bg-success text-white motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-200">
           <CheckIcon size={14} weight="bold" />
         </span>
       )}
-      <span className={`grid h-11 w-11 place-items-center rounded-2xl transition-transform motion-safe:group-hover:scale-105 ${picked ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
-        <Glyph size={22} weight={picked ? "fill" : "regular"} />
+      <span className="grid h-[92px] w-full place-items-center bg-gradient-to-br from-primary/10 via-brand/10 to-primary/5">
+        <span className={`grid h-14 w-14 place-items-center rounded-2xl shadow-card transition-transform motion-safe:group-hover:scale-105 ${picked ? "bg-success text-white" : "bg-card text-primary"}`}>
+          <Glyph size={28} weight={picked ? "fill" : "duotone"} />
+        </span>
       </span>
-      <span className="space-y-1">
-        <span className={`block text-[15px] font-semibold leading-snug ${picked ? "text-primary" : "text-foreground"}`}>{title}</span>
-        <span className="block text-[13px] leading-snug text-muted-foreground">{line}</span>
+      <span className="space-y-1 p-3.5">
+        <span className={`block text-lg font-bold leading-snug ${picked ? "text-success" : "text-foreground"}`}>{title}</span>
+        <span className={`block text-sm font-medium leading-snug ${picked ? "text-success" : "text-muted-foreground"}`}>{line}</span>
       </span>
     </button>
   );
@@ -55,10 +57,10 @@ export function WorkStep({ value, onChange, onContinue, titleId }: { value: stri
         e.preventDefault();
         if (value.trim()) onContinue();
       }}
-      className="flex w-full max-w-[720px] flex-1 flex-col justify-center gap-8 pb-[6vh] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
+      className="flex w-full max-w-[880px] flex-1 flex-col justify-center gap-10 pb-[2vh] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
     >
       <StepTitle id={titleId} title="What do you do?" lead="Every post is written for this. You can change it later." />
-      <div role="group" aria-labelledby={titleId} className="flex flex-wrap justify-center gap-3 sm:gap-4">
+      <div role="group" aria-labelledby={titleId} className="flex flex-wrap justify-center gap-3 sm:gap-5">
         {PROFESSION_CHOICES.map((c) =>
           card(c, c, WORK_LINES[c] ?? "", !other && listed === c, ICONS[c] ?? BriefcaseIcon, () => {
             setOther(false);
@@ -72,13 +74,13 @@ export function WorkStep({ value, onChange, onContinue, titleId }: { value: stri
       </div>
       {other && (
         <div className="mx-auto w-full max-w-[420px] space-y-1.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1">
-          <label htmlFor={`${id}-own`} className="text-[15px] font-medium">
+          <label htmlFor={`${id}-own`} className="text-base font-medium">
             What you do, in a few words
           </label>
           <input ref={otherRef} id={`${id}-own`} value={value} maxLength={MAX_PROFESSION_CHARS} onChange={(e) => onChange(e.target.value)} placeholder="Like photographer, dentist or bakery" className={fieldClass} />
         </div>
       )}
-      <Actions>
+      <Actions className="sm:justify-center">
         <PrimaryPill type="submit" disabled={!value.trim()}>
           Continue
         </PrimaryPill>

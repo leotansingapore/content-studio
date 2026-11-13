@@ -19,13 +19,13 @@ export function DoneStep({ id, name, logo, colours, line, titleId }: { id: strin
             {logo ? (
               <img src={logo} alt="" className="max-h-16 max-w-16 object-contain" />
             ) : (
-              <span className="grid h-full w-full place-items-center font-serif text-3xl font-semibold" style={{ backgroundColor: main, color: readableInk(main) }}>
+              <span className="grid h-full w-full place-items-center text-3xl font-bold" style={{ backgroundColor: main, color: readableInk(main) }}>
                 {name.trim().charAt(0).toUpperCase() || "?"}
               </span>
             )}
           </span>
           <div className="space-y-1">
-            <p className="truncate font-serif text-xl font-semibold text-foreground">{name}</p>
+            <p className="truncate text-xl font-bold text-foreground">{name}</p>
             {line && <p className="line-clamp-2 text-sm text-muted-foreground">{line}</p>}
           </div>
           {colours.length > 0 && (
@@ -38,7 +38,7 @@ export function DoneStep({ id, name, logo, colours, line, titleId }: { id: strin
         </div>
       </div>
       <div className="flex flex-col items-center gap-2.5">
-        <h1 id={titleId} tabIndex={-1} className="font-serif text-[26px] font-semibold tracking-tight text-foreground outline-none focus-visible:shadow-none focus-visible:outline-none sm:text-[30px]">
+        <h1 id={titleId} tabIndex={-1} className="text-[24px] font-bold leading-8 text-foreground outline-none focus-visible:shadow-none focus-visible:outline-none sm:text-[26px]">
           {name} is ready
         </h1>
         <p className="max-w-[26rem] text-[15px] text-muted-foreground sm:text-base">It has its own posts, plan, calendar and links, kept apart from your other brands.</p>

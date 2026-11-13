@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ArrowSquareOutIcon, CaretDownIcon, CircleNotchIcon, FacebookLogoIcon, InstagramLogoIcon, LinkedinLogoIcon, PlusIcon, StarIcon, TiktokLogoIcon, TrashIcon, UploadSimpleIcon, type Icon } from "@phosphor-icons/react";
-import { FieldLabel, PrimaryPill, ScoreRing, StatusPill, StepTitle, fieldClass, useLogoTile } from "@/components/onboarding/parts";
+import { FieldLabel, PrimaryPill, ScoreRing, StatusPill, StepTitle, areaClass, fieldClass, useLogoTile } from "@/components/onboarding/parts";
 import { AUDIENCE_NAMES, NETWORKS, parseTopics, shownTopics, type BrandDna } from "@/lib/addBrand";
 import { MAX_PAINS, proofLines, type AppRead } from "@/lib/appStore";
 import type { SlideFont } from "@/lib/carouselLayout";
@@ -26,7 +26,7 @@ function Swatch({ hex, size = "lg", label, onClick, selected }: { hex: string; s
       onClick={onClick}
       aria-label={label}
       aria-pressed={selected}
-      className={`grid shrink-0 place-items-center rounded-full border bg-card transition-transform motion-safe:hover:scale-105 ${big ? "h-[52px] w-[52px] p-[5px]" : "h-9 w-9 p-[3px]"} ${selected ? "border-foreground/70 ring-2 ring-primary/40" : "border-border"}`}
+      className={`grid shrink-0 place-items-center rounded-full border bg-card transition-transform motion-safe:hover:scale-105 ${big ? "h-[51px] w-[51px] p-[5px]" : "h-9 w-9 p-[3px]"} ${selected ? "border-foreground/70 ring-2 ring-primary/40" : "border-border"}`}
     >
       <span className="h-full w-full rounded-full border border-foreground/15" style={{ backgroundColor: hex }} />
     </button>
@@ -66,10 +66,7 @@ function ColourField({ picked, suggested, presets, max, onChange }: { picked: st
     <div className="space-y-3">
       <div ref={row} className="flex flex-wrap items-center gap-2.5">
         {picked.map((hex, i) => (
-          <div key={`${hex}-${i}`} className="flex flex-col items-center gap-1">
-            <Swatch hex={hex} label={`${i === 0 ? "Main colour" : `Colour ${i + 1}`} ${hex}, change it`} selected={editing === i} onClick={() => (editing === i ? setEditing(null) : open(i, hex))} />
-            <span className="text-[11px] font-medium text-muted-foreground">{i === 0 ? "Main" : hex}</span>
-          </div>
+          <Swatch key={`${hex}-${i}`} hex={hex} label={`${i === 0 ? "Main colour" : `Colour ${i + 1}`} ${hex}, change it`} selected={editing === i} onClick={() => (editing === i ? setEditing(null) : open(i, hex))} />
         ))}
         {picked.length < max && (
           <div className="flex flex-col items-center gap-1">
@@ -77,7 +74,7 @@ function ColourField({ picked, suggested, presets, max, onChange }: { picked: st
               type="button"
               onClick={() => open(picked.length, others[0] ?? "#2563EB")}
               aria-label="Add a colour"
-              className="grid h-[52px] w-[52px] place-items-center rounded-full border-2 border-dashed border-border bg-muted/50 text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
+              className="grid h-[51px] w-[51px] place-items-center rounded-full border-2 border-dashed border-border bg-card text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
             >
               <PlusIcon size={20} />
             </button>
@@ -187,56 +184,49 @@ function LogoField({ logo, name, colour, found, onLogo }: { logo: string | null;
       setBusy(false);
     }
   };
-  const initial = name.trim().charAt(0).toUpperCase();
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-4">
-        <label
-          htmlFor={`${id}-file`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setOver(true);
-          }}
-          onDragLeave={() => setOver(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setOver(false);
-            void take(e.dataTransfer.files?.[0]);
-          }}
-          className={`group relative grid h-[88px] w-[88px] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-2xl border transition-colors ${over ? "border-primary bg-primary/10" : logo ? `${tile} border-border/70` : "border-dashed border-border bg-muted/40 hover:border-muted-foreground"}`}
-        >
+      <input id={`${id}-file`} type="file" accept={LOGO_TYPES} className="peer sr-only" onChange={(e) => {
+        void take(e.target.files?.[0]);
+        e.target.value = "";
+      }} />
+      <label
+        htmlFor={`${id}-file`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setOver(true);
+        }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setOver(false);
+          void take(e.dataTransfer.files?.[0]);
+        }}
+        className={`group relative block cursor-pointer rounded-[20px] border p-1.5 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card ${over ? "border-primary bg-primary/5" : "border-border/70 hover:border-border"}`}
+      >
+        <span className="flex min-h-[121px] flex-col items-center justify-center gap-1.5 rounded-[15px] bg-muted/50 p-5 text-center">
           {logo ? (
-            <img src={logo} alt={`${name || "Brand"} logo`} className="max-h-[72px] max-w-[72px] object-contain" />
-          ) : name.trim() ? (
-            <span className="grid h-12 w-12 place-items-center rounded-xl font-serif text-xl font-semibold" style={{ backgroundColor: colour ?? "hsl(var(--muted))", color: colour ? readableInk(colour) : undefined }}>
-              {initial}
+            <span className={`${tile} grid h-[72px] min-w-[72px] max-w-full place-items-center overflow-hidden rounded-xl px-2`}>
+              <img src={logo} alt={`${name || "Brand"} logo`} className="max-h-[60px] max-w-[220px] object-contain" />
             </span>
           ) : (
-            <UploadSimpleIcon size={22} className="text-muted-foreground" />
+            <UploadSimpleIcon size={28} weight="duotone" className="text-primary" />
           )}
-          {busy && <span className="absolute inset-0 grid place-items-center bg-background/70 text-xs font-medium">Reading...</span>}
-        </label>
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap gap-2">
-            <input id={`${id}-file`} type="file" accept={LOGO_TYPES} className="peer sr-only" onChange={(e) => {
-              void take(e.target.files?.[0]);
-              e.target.value = "";
-            }} />
-            <label htmlFor={`${id}-file`} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 text-[13px] font-medium text-foreground transition-colors hover:bg-muted peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card [@media(pointer:coarse)]:h-11">
-              <UploadSimpleIcon size={15} /> {logo ? "Replace" : "Upload logo"}
-            </label>
-            {logo && (
-              <button type="button" onClick={() => {
-                onLogo(null);
-                setMine(false);
-              }} className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive [@media(pointer:coarse)]:h-11">
-                <TrashIcon size={15} /> Remove
-              </button>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">{!logo ? "PNG, JPG, WebP or SVG, up to 5 MB." : mine || !found ? "Your logo. Drop another file on it to swap." : "Found on your site. Drop a file on it to swap."}</p>
-        </div>
-      </div>
+          <span className="inline-flex items-center gap-1.5 text-base font-medium text-foreground">
+            {logo && <UploadSimpleIcon size={16} />} {logo ? "Replace" : "Upload logo"}
+          </span>
+          <span className="text-xs font-medium text-muted-foreground">{!logo ? "PNG, JPG, WebP or SVG, up to 5 MB." : mine || !found ? "Your logo. Drop another file on it to swap." : "Found on your site. Drop a file on it to swap."}</span>
+        </span>
+        {busy && <span className="absolute inset-0 grid place-items-center rounded-[20px] bg-background/70 text-sm font-medium">Reading...</span>}
+      </label>
+      {logo && (
+        <button type="button" onClick={() => {
+          onLogo(null);
+          setMine(false);
+        }} className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive [@media(pointer:coarse)]:h-11">
+          <TrashIcon size={15} /> Remove
+        </button>
+      )}
       {error && (
         <p role="alert" className="text-sm font-medium text-destructive">
           {error}
@@ -340,7 +330,7 @@ export function ReviewStep(p: ReviewProps) {
               <FieldLabel htmlFor={`${id}-line`} hint={`${dna.oneLiner.length}/200`}>
                 What you do, in one line
               </FieldLabel>
-              <textarea id={`${id}-line`} rows={3} maxLength={200} value={dna.oneLiner} onChange={(e) => patch({ oneLiner: e.target.value })} placeholder="We help young families save so they can buy their first home." className={`${fieldClass} resize-none`} />
+              <textarea id={`${id}-line`} rows={3} maxLength={200} value={dna.oneLiner} onChange={(e) => patch({ oneLiner: e.target.value })} placeholder="We help young families save so they can buy their first home." className={`${areaClass} resize-none`} />
             </div>
             <p className="text-[13px] text-muted-foreground">
               Posts are written for a {p.profession.trim() ? p.profession.trim().toLowerCase() : "professional"}.{" "}
@@ -396,7 +386,7 @@ export function ReviewStep(p: ReviewProps) {
           <>
             <div className="space-y-1.5">
               <FieldLabel htmlFor={`${id}-voice`}>How you sound</FieldLabel>
-              <textarea id={`${id}-voice`} rows={3} maxLength={400} value={dna.voice} onChange={(e) => patch({ voice: e.target.value })} placeholder="Warm and plain. Short sentences. Talks like a friend who knows the numbers." className={`${fieldClass} resize-none`} />
+              <textarea id={`${id}-voice`} rows={3} maxLength={400} value={dna.voice} onChange={(e) => patch({ voice: e.target.value })} placeholder="Warm and plain. Short sentences. Talks like a friend who knows the numbers." className={`${areaClass} resize-none`} />
             </div>
             <div className="space-y-2">
               <FieldLabel>Who you help</FieldLabel>
@@ -413,7 +403,7 @@ export function ReviewStep(p: ReviewProps) {
               <label htmlFor={`${id}-who`} className="sr-only">
                 Exactly who
               </label>
-              <textarea id={`${id}-who`} rows={2} value={dna.audienceDetail} maxLength={160} onChange={(e) => patch({ audienceDetail: e.target.value })} placeholder="Exactly who, like parents with kids under 10" className={`${fieldClass} resize-none`} />
+              <textarea id={`${id}-who`} rows={2} value={dna.audienceDetail} maxLength={160} onChange={(e) => patch({ audienceDetail: e.target.value })} placeholder="Exactly who, like parents with kids under 10" className={`${areaClass} resize-none`} />
             </div>
             <div className="space-y-1.5">
               <FieldLabel htmlFor={`${id}-topics`} hint="Up to 6, with commas">
@@ -426,7 +416,7 @@ export function ReviewStep(p: ReviewProps) {
             </div>
             <div className="space-y-1.5">
               <FieldLabel htmlFor={`${id}-edge`}>Why people pick you</FieldLabel>
-              <textarea id={`${id}-edge`} rows={2} value={dna.edge} maxLength={200} onChange={(e) => patch({ edge: e.target.value })} placeholder="Plain answers, no sales pitch" className={`${fieldClass} resize-none`} />
+              <textarea id={`${id}-edge`} rows={2} value={dna.edge} maxLength={200} onChange={(e) => patch({ edge: e.target.value })} placeholder="Plain answers, no sales pitch" className={`${areaClass} resize-none`} />
             </div>
           </>
         );
@@ -565,11 +555,11 @@ export function ReviewStep(p: ReviewProps) {
           lead={p.manual ? "Fill in each part. You can change any of it later." : `We read ${p.host}. Check each part and fix anything that's off.`}
         />
       </div>
-      <div className="flex items-center gap-4 rounded-[20px] bg-card p-4 shadow-card sm:gap-5 sm:p-5">
+      <div className="flex items-center gap-5 rounded-[20px] bg-card p-5">
         <ScoreRing value={score} />
         <div className="min-w-0">
-          <p className="text-[15px] font-semibold text-foreground">Brand set up</p>
-          <p className="text-[13px] text-muted-foreground sm:text-sm">{nextLine(current, done.size, sections.length, leo, p.mode)}</p>
+          <p className="text-base font-bold text-foreground">Brand set up</p>
+          <p className="text-sm font-medium text-muted-foreground">{nextLine(current, done.size, sections.length, leo, p.mode)}</p>
         </div>
       </div>
       {p.productsNote && <p className="-mt-2 px-1 text-[13px] text-muted-foreground">{p.productsNote}</p>}
@@ -591,19 +581,19 @@ export function ReviewStep(p: ReviewProps) {
                 aria-expanded={isOpen}
                 aria-controls={`${id}-${s}-b`}
                 onClick={() => s !== current && p.onToggle(s)}
-                className={`flex w-full items-center gap-3 rounded-[20px] p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-5 ${s === current ? "cursor-default" : "hover:bg-muted/30"}`}
+                className={`flex w-full items-center gap-5 rounded-[20px] p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${s === current ? "cursor-default" : "hover:bg-muted/30"}`}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-semibold text-foreground sm:text-base">{sectionTitle(s, leo)}</span>
+                  <span className="block text-base font-bold text-foreground">{sectionTitle(s, leo)}</span>
                   {!isOpen && <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{summary(s)}</span>}
                 </span>
                 {(!ok || done.has(s)) && !(s === "products" && finding) && <StatusPill state={ok && done.has(s) ? "done" : "required"} />}
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted text-foreground">
+                <span className="grid h-[37px] w-[37px] shrink-0 place-items-center rounded-full bg-muted text-foreground">
                   <CaretDownIcon size={16} weight="bold" className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                 </span>
               </button>
               {isOpen && (
-                <div id={`${id}-${s}-b`} className="flex flex-col gap-5 border-t border-border/70 p-4 sm:p-5">
+                <div id={`${id}-${s}-b`} className="flex flex-col gap-5 border-t border-border/70 p-5">
                   {body(s)}
                 </div>
               )}

@@ -76,11 +76,11 @@ export function NetworksStep({
         e.preventDefault();
         if (picked.length) onContinue();
       }}
-      className="flex w-full max-w-[720px] flex-1 flex-col justify-center gap-8 pb-[6vh] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
+      className="flex w-full max-w-[720px] flex-1 flex-col justify-center gap-10 pb-[2vh] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
     >
       <StepTitle id={titleId} title="Where do you post?" lead="Pick every place you post." />
       <div className="space-y-5">
-        <div role="group" aria-labelledby={titleId} className="flex flex-wrap justify-center gap-3 sm:gap-4">
+        <div role="group" aria-labelledby={titleId} className="flex flex-wrap justify-center gap-3 sm:gap-5">
           {NETWORK_KEYS.map((n) => {
             const on = picked.includes(n);
             const Glyph = ICONS[n];
@@ -90,19 +90,21 @@ export function NetworksStep({
                 type="button"
                 aria-pressed={on}
                 onClick={() => onToggle(n)}
-                className={`group relative flex w-[calc(50%-6px)] flex-col items-start gap-3 rounded-[20px] border-2 p-4 text-left transition-colors sm:w-[200px] ${on ? "border-primary bg-primary/[0.07]" : "border-transparent bg-card shadow-card hover:border-border"}`}
+                className={`group relative flex w-[calc(50%-6px)] flex-col overflow-hidden rounded-[20px] border-2 text-left transition-colors sm:w-[200px] ${on ? "border-success bg-success/[0.07]" : "border-transparent bg-card hover:border-border"}`}
               >
                 {on && (
-                  <span className="absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-200">
+                  <span className="absolute right-3 top-3 z-10 grid h-6 w-6 place-items-center rounded-full bg-success text-white motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-200">
                     <CheckIcon size={14} weight="bold" />
                   </span>
                 )}
-                <span className={`grid h-11 w-11 place-items-center rounded-2xl transition-transform motion-safe:group-hover:scale-105 ${on ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
-                  <Glyph size={22} weight={on ? "fill" : "regular"} />
+                <span className="grid h-[92px] w-full place-items-center bg-gradient-to-br from-primary/10 via-brand/10 to-primary/5">
+                  <span className={`grid h-14 w-14 place-items-center rounded-2xl shadow-card transition-transform motion-safe:group-hover:scale-105 ${on ? "bg-success text-white" : "bg-card text-primary"}`}>
+                    <Glyph size={28} weight={on ? "fill" : "duotone"} />
+                  </span>
                 </span>
-                <span className="space-y-1">
-                  <span className={`block text-[15px] font-semibold leading-snug ${on ? "text-primary" : "text-foreground"}`}>{PLATFORM_NAME[n]}</span>
-                  <span className="block text-[13px] leading-snug text-muted-foreground">{found.includes(n) ? "Found on your site" : LINES[n]}</span>
+                <span className="space-y-1 p-3.5">
+                  <span className={`block text-lg font-bold leading-snug ${on ? "text-success" : "text-foreground"}`}>{PLATFORM_NAME[n]}</span>
+                  <span className={`block text-sm font-medium leading-snug ${on ? "text-success" : "text-muted-foreground"}`}>{found.includes(n) ? "Found on your site" : LINES[n]}</span>
                 </span>
               </button>
             );
@@ -110,7 +112,7 @@ export function NetworksStep({
         </div>
         <PlanLine picked={picked} main={main} onMain={onMain} />
       </div>
-      <Actions>
+      <Actions className="sm:justify-center">
         <QuietPill onClick={onUnsure}>Not sure yet</QuietPill>
         <PrimaryPill type="submit" disabled={!picked.length}>
           Continue

@@ -6,7 +6,7 @@ import { firstOpenQuestion, QUESTIONS, type Answers } from "@/lib/onboardingFlow
 function StepRow({ label, state, index }: { label: string; state: "done" | "active" | "waiting"; index: number }) {
   return (
     <li
-      className="flex items-center gap-2.5 rounded-[18px] bg-card px-3 py-2.5 shadow-card motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:fill-mode-backwards"
+      className="flex items-center gap-2.5 rounded-full bg-card px-2.5 py-2.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:fill-mode-backwards"
       style={{ animationDelay: `${index * 70}ms` }}
     >
       <span className="grid h-[22px] w-[22px] shrink-0 place-items-center">
@@ -20,7 +20,7 @@ function StepRow({ label, state, index }: { label: string; state: "done" | "acti
           <span className="h-[18px] w-[18px] rounded-full border-2 border-border" />
         )}
       </span>
-      <span className={`min-w-0 flex-1 truncate text-[15px] font-medium ${state === "done" ? "text-success" : state === "active" ? "onboard-shimmer" : "text-muted-foreground/70"}`}>
+      <span className={`min-w-0 flex-1 truncate text-base font-medium ${state === "done" ? "text-success" : state === "active" ? "onboard-shimmer" : "text-muted-foreground/70"}`}>
         {state === "done" ? label : `${label}...`}
       </span>
     </li>
@@ -46,14 +46,14 @@ function Questions({ answers, onAnswer }: { answers: Answers; onAnswer: (a: Answ
   };
   return (
     <section aria-label="Optional questions" className="flex w-full flex-col items-center gap-3">
-      <div ref={card} aria-live="polite" className="w-full max-w-[520px] rounded-[20px] bg-card p-4 shadow-card">
+      <div ref={card} aria-live="polite" className="w-full max-w-[496px] rounded-[20px] bg-card p-[18px]">
         {finished ? (
           <p tabIndex={-1} className="flex items-center justify-center gap-2 py-2 text-[15px] font-medium text-success outline-none">
             <CheckIcon size={16} weight="bold" /> Thanks. Your plan starts from these.
           </p>
         ) : (
           <div key={q.key} className="flex flex-col items-center gap-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2">
-            <h2 className="text-center text-[15px] font-semibold text-foreground">{q.ask}</h2>
+            <h2 className="text-center text-base font-bold text-foreground">{q.ask}</h2>
             <div role="group" aria-label={q.ask} className="flex flex-wrap justify-center gap-2">
               {q.options.map((o) => {
                 const on = answers[q.key] === o.value;
@@ -63,7 +63,7 @@ function Questions({ answers, onAnswer }: { answers: Answers; onAnswer: (a: Answ
                     type="button"
                     aria-pressed={on}
                     onClick={() => pick(o.value)}
-                    className={`rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
                       on ? "border-primary bg-primary text-primary-foreground" : "border-border/80 bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                   >
@@ -142,10 +142,10 @@ export function ReadingStep({
 
   const label = steps[Math.min(active, steps.length - 1)];
   return (
-    <div className="flex w-full max-w-[680px] flex-1 flex-col items-center gap-10 sm:gap-14">
-      <div className="flex w-full flex-1 flex-col items-center justify-center gap-6 pt-[4vh]">
+    <div className="flex w-full max-w-[680px] flex-1 flex-col items-center gap-10">
+      <div className="flex w-full flex-1 flex-col items-center gap-6 pt-[6vh]">
         <StepTitle id={titleId} title={title} lead={slow ? "Still reading. Big sites take a little longer." : "Usually under a minute."} />
-        <ol className="flex w-full max-w-[320px] flex-col gap-2.5" aria-label="What we're reading">
+        <ol className="flex w-full max-w-[300px] flex-col gap-2.5" aria-label="What we're reading">
           {steps.map((s, i) => (
             <StepRow key={s} label={s} index={i} state={i < active ? "done" : i === active ? "active" : "waiting"} />
           ))}
