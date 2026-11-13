@@ -53,11 +53,11 @@ const typedPrice = (slug: string) => isStatic(slug) && IMAGE_FIELDS[slug].some((
 const quoted = (s: string) => `"${s.replace(/\s+/g, " ").trim().replace(/"/g, "'")}"`;
 
 /**
- * What the picture shows of what the brand sells, on a format with room for it (staticPhoto): software on its own plain
+ * What the picture shows of what the brand sells, on a format with room for it (StaticFormat.room): software on its own plain
  * screen, a product itself, a service being done. Never a stock person holding a phone (13 Nov poster).
  */
 export const SUBJECT_LINES: Record<Subject, string> = {
-  software: "What it sells is software: show it on a phone or laptop screen, a plain, plausible interface in the brand colour showing the thing the words name. No real app's interface and no readable small print.",
+  software: "What it sells is software: wherever the picture shows what is sold, it is the product's own screen on a phone or laptop, a plain, plausible interface in the brand colour showing the thing the words name, not people holding phones. No real app's interface and no readable small print.",
   product: "What it sells is a physical product: show the product itself, held or in use, not a person holding a phone.",
   service: "What it sells is a service: show the service being done for someone, not a person holding a phone.",
 };
@@ -75,11 +75,11 @@ export const productLine = (p: { name: string; what: string }) => {
 /**
  * The picture maker's prompt for a static format made as a photo: its scene, the brand's name and colour, the product the
  * ad is about when there is one, what to show of what it sells (SUBJECT_LINES, on a format with room for a picture of
- * it), every on-picture string of its layout in draw order (IMAGE_FIELDS, a typed price included), each labelled and in
+ * it, StaticFormat.room), every on-picture string of its layout in draw order (IMAGE_FIELDS, a typed price included), each labelled and in
  * double quotes, and the rule on what is written (ai-image adds the setting and who may be in it). Words the layout never draws (the topic,
  * the caption) stay out, and a brand with no name is given by its colour alone. Pure.
  */
-export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { name: string; color: string }, words: Record<string, string>, product?: { name: string; what: string }, subject?: Subject): string {
+export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene" | "room">, brand: { name: string; color: string }, words: Record<string, string>, product?: { name: string; what: string }, subject?: Subject): string {
   const fields = isStatic(f.slug) ? IMAGE_FIELDS[f.slug] : [];
   const on = fields.filter((x) => words[x.key]?.trim()).map((x) => `${x.label}: ${quoted(words[x.key])}`);
   const name = brand.name.trim();
@@ -87,7 +87,7 @@ export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { 
     f.scene,
     name ? `The brand is ${quoted(name)}, its colour ${brand.color}.` : `The brand colour is ${brand.color}.`,
     product ? productLine(typedPrice(f.slug) ? product : { name: product.name.split(/\s+/).filter((w) => !PRICED.test(w)).join(" "), what: withoutPrices(product.what) }) : "",
-    subject && staticPhoto(f.slug) ? SUBJECT_LINES[subject] : "",
+    subject && f.room ? SUBJECT_LINES[subject] : "",
     on.length ? `The words on it, in order: ${on.join("; ")}.` : "",
     PHOTO_RULE,
   ]

@@ -338,13 +338,17 @@ describe("what the picture shows of what the brand sells", () => {
   });
 
   it("shows software on its own plain screen, a product itself and a service being done, never a stock person with a phone", () => {
-    expect(SUBJECT_LINES.software).toContain("show it on a phone or laptop screen, a plain, plausible interface in the brand colour showing the thing the words name. No real app's interface and no readable small print.");
+    expect(SUBJECT_LINES.software).toContain("wherever the picture shows what is sold, it is the product's own screen on a phone or laptop, a plain, plausible interface in the brand colour showing the thing the words name, not people holding phones. No real app's interface and no readable small print.");
     expect(SUBJECT_LINES.product).toContain("show the product itself");
     expect(SUBJECT_LINES.service).toContain("show the service being done");
     const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." }, undefined, "software");
     expect(p).toContain(SUBJECT_LINES.software);
     expect(p.indexOf(SUBJECT_LINES.software)).toBeLessThan(p.indexOf("The words on it"));
-    // only where the format pictures what is sold: a chat on a phone screen has no room for it
+    // on every format whose picture has room for what is sold, and on none without: a chat on a phone screen has none
+    const room = STATIC_FORMATS.filter((f) => photoAdPrompt(f, hilltop, {}, undefined, "software").includes(SUBJECT_LINES.software)).map((f) => f.slug);
+    expect(room.sort()).toEqual(["ai-chat", "anti-design", "article-page", "concern-answer", "email-screenshot", "general-ad", "lettered-object", "lofi-note", "news-headline", "page-post", "phone-share", "share-popup", "story-reply", "street-poster", "tear-off-flyer", "us-vs-them"]);
+    // every format that draws a photo of what is sold has room for it
+    for (const f of STATIC_FORMATS) if (f.best === "photo" || f.needs === "photo") expect(f.room, f.slug).toBe(true);
     expect(photoAdPrompt(chat, hilltop, { one: "hi" }, undefined, "software")).not.toContain("What it sells is");
     expect(photoAdPrompt(poster, hilltop, { headline: "Still dark." })).not.toContain("What it sells is");
   });
@@ -370,7 +374,7 @@ describe("what the picture shows of what the brand sells", () => {
   it("leaves out the product line first, then what to show, never the words, to stay inside the cap", async () => {
     localStorage.setItem(`content-studio-products-${U}`, JSON.stringify({ items: [{ id: "pd-long111", name: "Activity Tracker", what: "w ".repeat(100), forWho: "", pictures: [], sources: [], use: true, from: "you", addedAt: "" }] }));
     fake.writeSubject = "software";
-    for (const [n, product, subject] of [[40, true, true], [80, false, true], [120, false, false]] as const) {
+    for (const [n, product, subject] of [[20, true, true], [60, false, true], [100, false, false]] as const) {
       fake.writeWords = { headline: "word ".repeat(n).trim(), line: "Hilltop cold brew." };
       fake.calls = [];
       await startPhotoAd(U, poster, { topic: "x" });
