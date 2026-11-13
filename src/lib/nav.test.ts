@@ -15,7 +15,7 @@ const OLD_PATHS = [
   "/settings", "/notifications", "/settings/post-choices", "/accounts", "/bio", "/links", "/connect", "/adlauncher", "/reels/team", "/automations", "/activity", "/skills",
 ];
 // Pages the nav gained since: Brand's Products and Demo videos tabs (sections of the brand kit drawn alone, 12 Nov).
-const NEW_PATHS = ["/brand/products", "/brand/demo-videos", "/settings/billing"];
+const NEW_PATHS = ["/brand/products", "/brand/demo-videos", "/settings/billing", "/settings/held"];
 const LEO = "tanjunsing@gmail.com";
 const ANYONE = "someone@example.com";
 const pages = (id: string, email: string) => visiblePages(section(id).pages, email).map((p) => p.to);
@@ -123,7 +123,7 @@ describe("nav", () => {
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect", "/welcome", "/academy", "/create-guide", "/tutorial", "/feedback"]);
     // the gates are the ones each page had before: these and no others are Leo's
     const leoOnly = SECTIONS.flatMap((s) => s.pages.filter((p) => p.owners).map((p) => p.to)).sort();
-    expect(leoOnly).toEqual(["/activity", "/adlauncher", "/agent", "/audiences", "/automations", "/blitz", "/brand/demo-videos", "/brand/products", "/campaigns", "/competitors", "/ideas", "/image", "/make", "/north-star", "/people", "/recruit/auto-dm", "/research", "/saved", "/script", "/skills", "/social-north-star"]);
+    expect(leoOnly).toEqual(["/activity", "/adlauncher", "/agent", "/audiences", "/automations", "/blitz", "/brand/demo-videos", "/brand/products", "/campaigns", "/competitors", "/ideas", "/image", "/make", "/north-star", "/people", "/recruit/auto-dm", "/research", "/saved", "/script", "/settings/held", "/skills", "/social-north-star"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
       expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/launch", "/linkedin", "/social-north-star", "/ideas", "/team"]);

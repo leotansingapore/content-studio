@@ -11,6 +11,7 @@ import {
   BookBookmarkIcon,
   CommandIcon,
   CreditCardIcon,
+  HandCoinsIcon,
   HouseIcon,
   LinkIcon,
   ListChecksIcon,
@@ -254,6 +255,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/settings/post-choices", label: "Post choices", icon: SlidersHorizontalIcon, hint: "Who appears, your name, captions and text style on new posts." },
       // only for an account that came in through checkout (docs/postmosis-billing.md)
       { to: "/settings/billing", label: "Billing", icon: CreditCardIcon, show: billingShown, hint: "Your plan, your card and your invoices." },
+      { to: "/settings/held", label: "Held payments", icon: HandCoinsIcon, owners: LEO_EMAILS, was: "held checkouts refunds attach", hint: "Paid checkouts waiting for you to attach or refund." },
       { to: "/accounts", label: "Social accounts", icon: ShareNetworkIcon, show: socialConnectShown, group: "Connections", hint: "The Instagram and TikTok accounts the studio posts to." },
       { to: "/bio", label: "Link in bio", icon: LinkIcon, hint: "One page of your links for your profile." },
       { to: "/links", label: "Tracked links", icon: CursorClickIcon, hint: "Short links that count who clicks." },

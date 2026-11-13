@@ -93,6 +93,7 @@ export const PAGES: Record<string, string> = {
   "/notifications": "Notifications",
   "/settings/post-choices": "Post choices",
   "/settings/billing": "Billing",
+  "/settings/held": "Held payments",
   "/adlauncher": "AdLauncher",
   "/settings": "Settings",
   "/studio": "Studio",

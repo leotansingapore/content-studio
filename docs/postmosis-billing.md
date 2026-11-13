@@ -108,6 +108,15 @@ update cs_held_checkouts set resolved_at = now(), note = 'attached' where stripe
 
 Attaching puts that account under billing from then on: it is gated if the subscription lapses. The next webhook event for the subscription fills in the dates.
 
+### The held payments page
+
+Leo's sign-ins see Settings > Held payments (`/settings/held`): every unresolved held checkout, newest first, up to 200. Each shows the email, the reason in plain words, Stripe's status, when it was held, and a link to the subscription in Stripe's dashboard. The link opens Stripe's test mode while `POSTMOSIS_STRIPE_PUBLISHABLE_KEY` is a test key.
+
+- It only reads. Attaching and refunding stay in Stripe and the SQL above.
+- It sends no alert.
+- The `held-checkouts` function serves it. It checks the caller's email against `LEO_EMAILS` (`supabase/functions/_shared/leo.ts`, which `src/lib/leoOnly.ts` re-exports) and reads `cs_held_checkouts` with the service role.
+- Deploy it WITH JWT verification: `supabase functions deploy held-checkouts --project-ref hgdbflprrficdoyxmdxe --use-api`
+
 ## Posting to connected accounts
 
 A subscriber whose row gives access may connect social accounts without being on `SOCIAL_CONNECT_USERS`, at the existing customer cap of 3. Every Zernio id check in `docs/zernio-connection.md` is unchanged, and the team cap (`ZERNIO_MAX_ACCOUNTS`) still holds everyone. Auto-DM, threads and PDF posts stay with `NORTH_STAR_USERS`.

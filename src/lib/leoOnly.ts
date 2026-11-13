@@ -2,7 +2,8 @@
 // show only on Leo's two sign-ins until he turns a piece on for everyone. Hiding is a convenience, not a
 // boundary: anything bundled can be read by a signed-in user who goes looking.
 
-/** Leo's Content Studio sign-ins (uid 40f07a18 and 13b28b1d). */
-export const LEO_EMAILS = ["tanjunsing@gmail.com", "leotanjs95@gmail.com"];
+import { LEO_EMAILS, isLeoEmail } from "../../supabase/functions/_shared/leo.ts";
 
-export const leoOnly = (email: string | null | undefined): boolean => LEO_EMAILS.includes((email ?? "").trim().toLowerCase());
+export { LEO_EMAILS };
+
+export const leoOnly = isLeoEmail;

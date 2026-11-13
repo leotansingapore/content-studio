@@ -39,6 +39,7 @@ const ConnectPage = lazy(() => import("@/pages/ConnectPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const PostChoicesPage = lazy(() => import("@/pages/PostChoicesPage"));
 const BillingPage = lazy(() => import("@/pages/BillingPage"));
+const HeldPaymentsPage = lazy(() => import("@/pages/HeldPaymentsPage"));
 const AccountsPage = lazy(() => import("@/pages/AccountsPage"));
 const AdLauncherPage = lazy(() => import("@/pages/AdLauncherPage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
@@ -262,6 +263,7 @@ export default function App() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings/post-choices" element={<PostChoicesPage />} />
           <Route path="/settings/billing" element={<BillingPage />} />
+          <Route path="/settings/held" element={<HeldPaymentsPage />} />
           <Route path="/skills" element={<SkillsPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/automations" element={<AutomationsPage />} />
