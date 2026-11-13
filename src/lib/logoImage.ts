@@ -45,17 +45,24 @@ const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a
 const LIGHT_TILE = luminance(243, 244, 246);
 const DARK_TILE = luminance(28, 34, 48);
 
-export function lightPixels(data: Uint8ClampedArray): boolean {
+export function lightPixels(data: Uint8ClampedArray, width = 0): boolean {
   const total = data.length / 4;
+  const w = width > 0 ? width : total;
+  const h = Math.max(1, Math.round(total / w));
+  const solid = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && data[(y * w + x) * 4 + 3] >= 128;
   let opaque = 0;
   let hiddenOnLight = 0;
   let hiddenOnDark = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] < 128) continue;
-    opaque++;
-    const l = luminance(data[i], data[i + 1], data[i + 2]);
-    if (contrast(l, LIGHT_TILE) < 1.5) hiddenOnLight++;
-    if (contrast(l, DARK_TILE) < 1.5) hiddenOnDark++;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (data[i + 3] < 128) continue;
+      opaque++;
+      if (solid(x - 1, y) && solid(x + 1, y) && solid(x, y - 1) && solid(x, y + 1)) continue;
+      const l = luminance(data[i], data[i + 1], data[i + 2]);
+      if (contrast(l, LIGHT_TILE) < 2) hiddenOnLight++;
+      if (contrast(l, DARK_TILE) < 2) hiddenOnDark++;
+    }
   }
   if (!opaque || opaque / total >= 0.98) return false;
   return hiddenOnDark < hiddenOnLight;
@@ -71,7 +78,7 @@ export async function logoIsLight(src: string): Promise<boolean> {
     const g = canvas.getContext("2d");
     if (!g) return false;
     g.drawImage(img, 0, 0, w, h);
-    return lightPixels(g.getImageData(0, 0, w, h).data);
+    return lightPixels(g.getImageData(0, 0, w, h).data, w);
   } catch {
     return false;
   }

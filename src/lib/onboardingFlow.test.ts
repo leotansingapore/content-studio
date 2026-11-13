@@ -174,16 +174,26 @@ describe("logo pixels", () => {
     for (const c of got) expect(parseInt(c.slice(5, 7), 16)).toBeGreaterThan(parseInt(c.slice(1, 3), 16));
   });
 
-  it("gives a logo the dark tile when the light tile would hide more of it, and keeps a logo with its own background on the light one", () => {
-    const clear: [number, number, number, number][] = Array(300).fill([0, 0, 0, 0]);
-    expect(lightPixels(pixels([...clear, ...Array(100).fill([255, 255, 255, 255])] as [number, number, number, number][]))).toBe(true);
-    expect(lightPixels(pixels([...clear, ...Array(51).fill([255, 255, 255, 255]), ...Array(49).fill([37, 99, 235, 255])] as [number, number, number, number][]))).toBe(true);
-    expect(lightPixels(pixels([...clear, ...Array(80).fill([250, 250, 250, 255]), ...Array(20).fill([220, 38, 38, 255])] as [number, number, number, number][]))).toBe(true);
-    expect(lightPixels(pixels([...clear, ...Array(70).fill([17, 24, 39, 255]), ...Array(30).fill([37, 99, 235, 255])] as [number, number, number, number][]))).toBe(false);
-    expect(lightPixels(pixels([...clear, ...Array(100).fill([37, 99, 235, 255])] as [number, number, number, number][]))).toBe(false);
-    expect(lightPixels(pixels([...Array(80).fill([250, 250, 250, 255]), ...Array(20).fill([37, 99, 235, 255])] as [number, number, number, number][]))).toBe(false);
-    expect(lightPixels(pixels([[0, 0, 0, 0]], 100))).toBe(false);
-    expect(lightPixels(pixels([[17, 24, 39, 255]], 100))).toBe(false);
+  it("gives a logo the dark tile only when the light tile would hide more of its outline, and keeps a logo with its own background on the light one", () => {
+    type Px = [number, number, number, number];
+    const draw = (w: number, h: number, rects: [number, number, number, number, Px][]) => {
+      const out = new Uint8ClampedArray(w * h * 4);
+      for (const [x0, y0, x1, y1, c] of rects) for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) out.set(c, (y * w + x) * 4);
+      return out;
+    };
+    const white: Px = [255, 255, 255, 255];
+    const blue: Px = [37, 99, 235, 255];
+    const word = (x: number, c: Px): [number, number, number, number, Px][] => [0, 3, 6, 9].map((d) => [x + d, 3, x + d + 2, 9, c]);
+    const tile = (rects: [number, number, number, number, Px][]) => lightPixels(draw(30, 12, rects), 30);
+    expect(tile(word(10, white))).toBe(true);
+    expect(tile([[1, 2, 9, 10, blue], ...word(12, white)])).toBe(true);
+    expect(tile([[1, 2, 9, 10, blue], [3, 4, 7, 8, white], ...word(12, [68, 68, 68, 255])])).toBe(false);
+    expect(tile([[1, 1, 11, 11, [0, 0, 0, 255]], [2, 2, 10, 10, white], ...word(14, [0, 0, 0, 255])])).toBe(false);
+    expect(tile([[1, 1, 10, 11, [30, 58, 138, 255]], [3, 3, 8, 9, white], ...word(13, [30, 58, 138, 255])])).toBe(false);
+    expect(tile(word(10, [17, 24, 39, 255]))).toBe(false);
+    expect(tile(word(10, blue))).toBe(false);
+    expect(lightPixels(draw(10, 10, [[0, 0, 10, 10, white], [0, 0, 10, 2, blue]]), 10)).toBe(false);
+    expect(lightPixels(draw(10, 10, []), 10)).toBe(false);
   });
 
   it("calls a drawing blank when almost nothing shows or one flat colour fills it all", () => {
