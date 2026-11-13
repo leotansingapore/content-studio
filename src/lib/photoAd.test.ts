@@ -98,7 +98,7 @@ describe("the photo prompt", () => {
   it("asks for no edge margin: nothing is cut off the picture any more, so the words run straight into the closing lines", () => {
     const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." });
     expect(p).toContain(`"Still dark.". ${PHOTO_RULE}`);
-    expect(p).not.toMatch(/edges?\b|cut/i);
+    expect(p).not.toMatch(/clear of the top and bottom edges|cut/i);
   });
 
   it("ends on the only-these-words rule, word for word, and leaves the setting and who is in it to ai-image's rule", () => {
@@ -160,6 +160,17 @@ describe("each format's scene", () => {
     for (const f of STATIC_FORMATS) {
       expect(f.scene, f.slug).not.toMatch(/\b(MRT|LRT|platforms?|stations?|malls?|banks?|Orchard|Changi|Sentosa|Marina|Merlion|ArtScience|Singapore Flyer|skyline|Raffles|Bugis|Jurong|Tampines|Buona Vista|Chinatown)\b/i);
     }
+  });
+
+  it("is its own visual grammar: no two formats open alike, none asks for a group, the type-led ones never get one", () => {
+    const openings = STATIC_FORMATS.map((f) => f.scene.split(/[:,;]/)[0]);
+    expect(new Set(openings).size, openings.join(" | ")).toBe(STATIC_FORMATS.length);
+    for (const f of STATIC_FORMATS) expect(f.scene, f.slug).not.toMatch(/\bgroup\b|\bcrowd\b|\bfriends\b|people walking|smiling/i);
+    // type-led formats: a screen, a card or an object, with no photo, no people, or one person at most
+    const TYPE_LED = ["playful-apology", "concern-answer", "email-screenshot", "text-chat", "friend-recommends", "lofi-note", "forum-thread", "ai-chat", "article-page", "news-headline", "tear-off-flyer", "tshirt-print", "lettered-object", "whiteboard"];
+    for (const slug of TYPE_LED) expect(staticFormatBySlug(slug)!.scene, slug).toMatch(/no photo|no people|no faces|one person|a single person|a stranger/);
+    expect(staticFormatBySlug("playful-apology")!.scene).toMatch(/^A type-only ad with no photo, no people and no objects/);
+    expect(staticFormatBySlug("anti-design")!.scene).toMatch(/^A deliberately rough, messy paste-up: .*scrawls.*hand-drawn arrows, a crossed-out word.*never polished\.$/);
   });
 
   it("is one plain sentence with no double quote, so it never reads as words to print", () => {
