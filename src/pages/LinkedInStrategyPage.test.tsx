@@ -56,6 +56,17 @@ describe("/linkedin", () => {
     expect(html()).toContain("on your account yet");
   });
 
+  it("marks the two needed questions where they are asked, in their accessible names, and lets Continue through", () => {
+    const page = html("/linkedin?step=1");
+    const label = (key: string) => new RegExp(`<label[^>]*for="li-${key}"[^>]*>((?:(?!</label>).)*)</label>`, "s").exec(page)?.[1] ?? "";
+    expect(label("offer")).toMatch(/Needed/);
+    expect(label("buyer")).toMatch(/Needed/);
+    expect(label("pains")).not.toMatch(/Needed/);
+    expect(page.match(/>Needed</g)).toHaveLength(2);
+    expect(page).toMatch(/<button(?![^>]*disabled="")[^>]*>Continue<\/button>/);
+    expect(html("/linkedin?step=2")).not.toContain(">Needed<");
+  });
+
   it("holds Write my strategy until the first two answers are in, and says why", () => {
     const page = html("/linkedin?step=4");
     expect(page).toContain("Write my strategy");

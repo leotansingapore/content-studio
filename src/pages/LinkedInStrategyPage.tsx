@@ -136,9 +136,13 @@ function Interview(p: {
       <CardContent className="space-y-5">
         {step.questions.map((q) => (
           <div key={q.key} className="space-y-1.5">
-            <Label htmlFor={`li-${q.key}`}>{q.label}</Label>
+            {/* the two Write my strategy needs say so where they are asked; Continue stays open (law 14) */}
+            <Label htmlFor={`li-${q.key}`}>
+              {q.label} {REQUIRED.includes(q.key) && <span className="text-xs font-normal text-muted-foreground">Needed</span>}
+            </Label>
             <Textarea
               id={`li-${q.key}`}
+              aria-required={REQUIRED.includes(q.key) || undefined}
               rows={q.key === "voice" ? 6 : 3}
               maxLength={q.key === "voice" ? MAX_VOICE : MAX_ANSWER}
               value={p.answers[q.key]}
