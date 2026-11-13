@@ -11,7 +11,8 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { DiamondIcon, ImageIcon, MagnifyingGlassIcon, SpeakerXIcon } from "@phosphor-icons/react";
+import { DiamondIcon, ImageIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import FormatPreview from "@/components/make/FormatPreview";
 import FormatTile from "@/components/make/FormatTile";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -42,8 +43,6 @@ const STATIC_PRICE = priceOf("remix-make");
 // no ready static format: no tab, and a typed ?tab=static lands on Videos
 const TABS = STATICS.length ? (["videos", "static"] as const) : (["videos"] as const);
 type Tab = "videos" | "static";
-// a mouse, and motion allowed: phones and reduced motion keep the poster
-const PLAYS = "(hover: hover) and (prefers-reduced-motion: no-preference)";
 // where each need is added; a reel's video is picked on its own page
 const NEED_HREFS: Partial<Record<FormatNeed, string>> = {
   "demo-video": links.brand({ section: "demo-videos" }),
@@ -180,11 +179,10 @@ const PILL = "inline-flex max-w-full rounded-full border border-border px-2 py-0
 /** One format: poster or drawn storyboard, name, line, price, uses left, and what it still needs. The whole card is one link;
  * a missing need with a place to add it sits just under it as a second link. */
 function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; lacking: boolean }) {
-  const [playing, setPlaying] = useState(false);
-  const [broken, setBroken] = useState(false);
-  const poster = !!f.preview && !broken;
-  const play = () => poster && f.kind === "video" && window.matchMedia(PLAYS).matches && setPlaying(true);
-  const stop = () => setPlaying(false);
+  // hovered or focused: plays the clip even under reduced motion (on screen it plays by itself)
+  const [active, setActive] = useState(false);
+  const play = () => setActive(true);
+  const stop = () => setActive(false);
   const price = f.price();
   const needsHref = lacking && f.needs ? NEED_HREFS[f.needs] : undefined;
   const need = lacking && f.needs && (
@@ -195,19 +193,7 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
   const card = (
     <Link to={formatHref(f)} state={{ back: true }} onMouseEnter={play} onMouseLeave={stop} onFocus={play} onBlur={stop} className={CARD}>
       <div className={`${TILE} ${f.preview ? "aspect-[9/16]" : "aspect-[4/3]"}`}>
-        {poster ? (
-          <img src={`/formats/${f.slug}.webp`} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
-        ) : (
-          <FormatTile f={f} />
-        )}
-        {playing && (
-          <>
-            <video src={`/formats/${f.slug}.mp4`} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
-            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground">
-              <SpeakerXIcon className="h-3 w-3" aria-hidden /> Muted preview
-            </span>
-          </>
-        )}
+        {f.preview ? <FormatPreview slug={f.slug} video={f.kind === "video"} active={active} fallback={<FormatTile f={f} />} /> : <FormatTile f={f} />}
       </div>
       <div className={TEXT}>
         <p className="text-sm font-semibold leading-snug text-foreground">{f.name}</p>
