@@ -43,6 +43,7 @@ export default function NoTeamView({
   const [joinError, setJoinError] = useState("");
 
   const invited = Boolean(initialCode);
+  // One filled button, on the card that comes first: Join with an invite link, Create a team without one.
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -134,7 +135,7 @@ export default function NoTeamView({
               {joinError}
             </p>
           )}
-          <Button type="submit" disabled={joining} className="w-full gap-1.5 sm:w-auto">
+          <Button type="submit" variant={invited ? "default" : "outline"} disabled={joining} className="w-full gap-1.5 sm:w-auto">
             {joining && <CircleNotchIcon className="h-4 w-4 animate-spin" />} Join team
           </Button>
         </form>
@@ -181,7 +182,7 @@ export default function NoTeamView({
               {createError}
             </p>
           )}
-          <Button type="submit" disabled={creating} className="w-full gap-1.5 sm:w-auto">
+          <Button type="submit" variant={invited ? "outline" : "default"} disabled={creating} className="w-full gap-1.5 sm:w-auto">
             {creating && <CircleNotchIcon className="h-4 w-4 animate-spin" />} Create team
           </Button>
         </form>
