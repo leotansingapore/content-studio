@@ -313,11 +313,13 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
           <CopyLinkButton path={links.trends({ trend: trend.id })} label="Copy link to this trend" className="order-last ml-auto" />
+          {/* outlined in the primary colour: a filled one on every card left the grid with ten equal calls (law 7) */}
           <RemixButton className="flex-1" source={fromTrend(trend)}>
             <Button
               asChild
               size="sm"
-              className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:h-11"
+              variant="outline"
+              className="flex-1 gap-1.5 border-primary/40 text-primary hover:text-primary [@media(pointer:coarse)]:h-11"
             >
               <Link to={buildTrendRemixUrl(trend)}>
                 <MagicWandIcon className="h-3.5 w-3.5" /> Write this
