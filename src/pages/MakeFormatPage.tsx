@@ -7,7 +7,7 @@
 
 import { Suspense, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { formatBySlug } from "@/data/formats";
+import { pageFor } from "@/data/formats";
 import { seenSources, type RemixSource } from "@/lib/remixSource";
 import { resolveSource } from "@/lib/resolveSource";
 import { useLeoUser, useSignedInUser } from "@/lib/useLeoOnly";
@@ -19,7 +19,7 @@ export default function MakeFormatPage() {
   const { format } = useParams();
   const [params] = useSearchParams();
   const key = params.get("source");
-  const def = formatBySlug(format);
+  const def = pageFor(format);
   const user = def?.everyone ? anyone : leo;
   const userId = user?.id ?? "";
   const source = useMemo<RemixSource | null>(

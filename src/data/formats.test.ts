@@ -4,10 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TEMPLATES, type VideoTemplate } from "../../supabase/functions/ai-video/templates.ts";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 import { EXPLAINER_LOOKS } from "../../supabase/functions/ai-video/logic.ts";
-import {
-  FORMATS, FORMAT_FILTERS, NEED_LINES, SECTIONS, alsoMakeList, bySection, filterFormats, formatBySlug, formatHref, readyStatics, searchFormats, templateFormats,
-  usedUpLine, type FormatDef, type FormatNeed,
-} from "./formats";
+import { FORMATS, FORMAT_FILTERS, NEED_LINES, SECTIONS, alsoMakeList, bySection, filterFormats, formatBySlug, formatHref, readyStatics, searchFormats, templateFormats, usedUpLine, type FormatDef, type FormatNeed, pageFor } from "./formats";
 import { STATIC_FORMATS, type StaticFormat } from "./staticFormats";
 import { WRITE_PRICE, priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
 
@@ -72,7 +69,7 @@ describe("the format registry", () => {
     for (const f of FORMATS) {
       const path = formatHref(f, { source: "ad:1" }).split(/[?#]/)[0];
       const make = path.match(/^\/make\/([^/]+)$/);
-      const ok = make ? !!formatBySlug(decodeURIComponent(make[1])) : routes.has(path) || (!f.ready && path in LATER_ROUTES);
+      const ok = make ? !!pageFor(decodeURIComponent(make[1])) : routes.has(path) || (!f.ready && path in LATER_ROUTES);
       expect(ok, `${f.slug} -> ${path}`).toBe(true);
     }
     expect(routes.has("/make/:format")).toBe(true);
@@ -117,7 +114,9 @@ describe("the format registry", () => {
       if (t.hidden) expect(card, t.id).toBeUndefined();
       else expect(card, t.id).toMatchObject({ name: t.title, blurb: t.blurb, cap: "ai-clip", group: 2 });
     }
-    expect(formatHref(FORMATS.find((f) => f.slug === `template-${TEMPLATES[0].id}`)!)).toBe(`/edit?panel=ai&kind=template&template=${TEMPLATES[0].id}`);
+    const first = FORMATS.find((f) => f.slug === `template-${TEMPLATES[0].id}`)!;
+    expect(formatHref(first)).toBe(`/make/template-${TEMPLATES[0].id}`);
+    expect(first.opens?.()).toBe(`/edit?panel=ai&kind=template&template=${TEMPLATES[0].id}`);
   });
 
   it("names no brand-owned style", () => {
@@ -142,11 +141,40 @@ describe("the format registry", () => {
     expect(formatHref(page)).toBe("/make/wall-of-text");
     expect(formatHref(FORMATS.find((f) => f.slug === "static-ad")!, { source: "ad:1" })).toBe("/image?source=ad%3A1");
     expect(formatHref(FORMATS.find((f) => f.slug === "meme")!, { source: "ad:1" })).toBe("/image?layout=top-bottom&source=ad%3A1");
-    expect(formatHref(FORMATS.find((f) => f.slug === "look-clay")!)).toBe("/edit?panel=ai&kind=explainer&look=clay");
-    expect(formatHref(FORMATS.find((f) => f.slug === "look-puppet")!)).toBe("/edit?panel=ai&kind=explainer&look=puppet");
+    expect(formatHref(FORMATS.find((f) => f.slug === "look-clay")!)).toBe("/make/look-clay");
+    expect(formatHref(FORMATS.find((f) => f.slug === "look-puppet")!)).toBe("/make/look-puppet");
     expect(formatHref(FORMATS.find((f) => f.slug === "documentary-interview")!, { source: "ad:1" })).toBe("/make/text-over-clip?scene=interview&source=ad%3A1");
-    expect(formatHref(FORMATS.find((f) => f.slug === "news-anchor")!)).toBe("/edit?panel=ai&kind=avatar&talk=news");
-    expect(formatHref(FORMATS.find((f) => f.slug === "clips")!)).toBe("/edit?panel=clips");
+    expect(formatHref(FORMATS.find((f) => f.slug === "news-anchor")!)).toBe("/make/news-anchor");
+    expect(formatHref(FORMATS.find((f) => f.slug === "clips")!)).toBe("/make/clips");
+  });
+
+  it("gives every video format made in the editor a page of its own, whose button opens what the card used to", () => {
+    const opened = {
+      montage: "/edit?panel=ai&kind=montage",
+      explainer: "/edit?panel=ai&kind=explainer",
+      "look-clay": "/edit?panel=ai&kind=explainer&look=clay",
+      "look-puppet": "/edit?panel=ai&kind=explainer&look=puppet",
+      "template-unboxing": "/edit?panel=ai&kind=template&template=unboxing",
+      "news-anchor": "/edit?panel=ai&kind=avatar&talk=news",
+      "stage-talk": "/edit?panel=ai&kind=avatar&talk=stage",
+      spokesperson: "/edit?panel=ai&kind=avatar&talk=spokesperson",
+    };
+    for (const [slug, to] of Object.entries(opened)) expect(pageFor(slug)?.opens?.(), slug).toBe(to);
+    expect(pageFor("own-media")?.opens?.()).toBe("/edit?panel=own");
+    expect(pageFor("clips")?.opens?.()).toBe("/edit?panel=clips");
+    expect(pageFor("edit-own")?.opens?.()).toBe("/edit");
+    expect(formatBySlug("edit-own")).toBeNull();
+    const pages = FORMATS.filter((f) => f.opens);
+    expect(pages).toHaveLength(2 + 16 + TEMPLATES.filter((t) => !t.hidden).length + 3 + 3);
+    for (const f of pages) {
+      expect(formatHref(f, { source: "ad:1" }).split("?")[0], f.slug).toBe(`/make/${f.slug}`);
+      expect(pageFor(f.slug)?.Component, f.slug).toBe(pages[0].Component);
+      expect(f.opens!(), f.slug).toMatch(/^\/edit(\?panel=(ai&kind=(template|montage|explainer|avatar)(&|$)|own$|clips$)|$)/);
+      expect(routes.has(f.opens!().split("?")[0]), f.slug).toBe(true);
+    }
+    expect(FORMATS.filter((f) => /^\/edit(\?|$)/.test(formatHref(f))).map((f) => f.slug)).toEqual([]);
+    expect(formatBySlug("slideshow")?.opens).toBeUndefined();
+    expect(formatBySlug("slideshow")?.Component).not.toBe(pages[0].Component);
   });
 });
 
@@ -162,7 +190,7 @@ describe("the Create page's sections (Fastlane's Studio > Create, 11 Nov)", () =
 
   it("gives every animated story card a look the server can draw", () => {
     for (const f of FORMATS.filter((x) => x.section === "animated")) {
-      const look = new URLSearchParams(formatHref(f).split("?")[1]).get("look")!;
+      const look = new URLSearchParams(f.opens?.().split("?")[1]).get("look")!;
       expect(EXPLAINER_LOOKS[look as keyof typeof EXPLAINER_LOOKS]?.style, f.slug).toBeTruthy();
       expect(f.ready, f.slug).toBe(true);
     }

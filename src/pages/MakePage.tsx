@@ -193,7 +193,7 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
     </>
   );
   const card = (
-    <Link to={formatHref(f)} onMouseEnter={play} onMouseLeave={stop} onFocus={play} onBlur={stop} className={CARD}>
+    <Link to={formatHref(f)} state={{ back: true }} onMouseEnter={play} onMouseLeave={stop} onFocus={play} onBlur={stop} className={CARD}>
       <div className={`${TILE} ${f.preview ? "aspect-[9/16]" : "aspect-[4/3]"}`}>
         {poster ? (
           <img src={`/formats/${f.slug}.webp`} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
@@ -240,7 +240,7 @@ function StaticCard({ f }: { f: StaticFormat }) {
   const [broken, setBroken] = useState(false);
   return (
     <div className={BOX}>
-      <Link to={staticFormatHref(f.slug)} className={CARD}>
+      <Link to={staticFormatHref(f.slug)} state={{ back: true }} className={CARD}>
         <div className={`${TILE} aspect-[4/5]`}>
           {!broken ? (
             <img src={staticShotSrc(f.slug, 1)} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />

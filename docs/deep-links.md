@@ -39,6 +39,7 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | An idea in the Ideas inbox (Leo only) | /ideas?idea=<idea key> | the open idea |
 | A saved design (Leo only) | /image?image=<design id> | the open design |
 | A static ad format (Leo only) | /make/static/<slug> | the format's page; the Create gallery's Static ads cards link to it |
+| A video format made in the video editor (Leo only) | /make/<slug> | the format's page; its card on Create and Studio links to it |
 | A format trend (Leo only) | /trends?view=formats&template=<id> | every format card |
 | A carousel in the carousel library | /carousels/<id> | the carousel's page; every card is a link to it |
 | A What's working slideshow | /working/<TikTok post id> | the slideshow's page; every card is a link to it |
@@ -481,6 +482,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /make | kind | Leo only. video, slides, text, image | all | replace | /make?kind=video |
 | /make | needs | Leo only. none: only the formats that need nothing extra | off | replace | /make?kind=video&needs=none |
 | /make/static/<slug> | (path) | Leo only. One static ad format's page (src/pages/StaticFormatPage.tsx): its example, what it works with, an optional note kept on this device (cs-static-note-<slug>) and Make, which opens /image on that layout and writes it. An unknown slug gets the not-found page | none | push | /make/static/text-chat |
+| /make/<slug> | (path) | Leo only. The page of a video format made in the video editor (src/pages/VideoFormatPage.tsx): each template, each animated look, the narrated video, the stock montage and the three presenter talks. Its example clip, what it works with, its price and uses left, and Use this format, which opens /edit's Make a video without filming panel on that format (the entry's `opens` in src/data/formats.ts) | none | push | /make/look-clay |
 | /make/notification-stack | bg | Leo only. mine (Background: My video; the video stays on the device and is picked again on each visit). The typed worries, closing word and label are kept on the device in cs-make-notify | stock | replace | /make/notification-stack?bg=mine |
 | /make/text-over-clip | scene | Leo only. kitchen, walk, interview | kitchen | replace | /make/text-over-clip?scene=walk |
 | /make/text-over-clip | quality | Leo only. 480p, 720p | 480p | replace | /make/text-over-clip?quality=720p |

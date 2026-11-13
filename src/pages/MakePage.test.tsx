@@ -25,6 +25,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 import MakePage from "./MakePage";
+import { FORMATS } from "@/data/formats";
 import { STATIC_FORMATS } from "@/data/staticFormats";
 import { priceOf, priceText, type Price } from "@/lib/prices";
 
@@ -49,5 +50,17 @@ describe("Create, as Fastlane lays it out", () => {
     const chip = priceText(priceOf("remix-make") as Price);
     const ready = STATIC_FORMATS.filter((f) => f.ready).length;
     expect(page.split(chip).length - 1).toBe(ready);
+  });
+
+  it("opens a page for each video made in the editor, and every other card where it went before", () => {
+    const hrefs = [...html("/make").replace(/&amp;/g, "&").matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+    const pages = FORMATS.filter((f) => f.ready && f.opens);
+    expect(pages.length).toBeGreaterThan(40);
+    for (const f of pages) expect(hrefs, f.slug).toContain(`/make/${f.slug}`);
+    expect(hrefs.filter((h) => h.includes("panel=ai"))).toEqual([]);
+    for (const h of ["/make/slideshow", "/make/wall-of-text", "/make/talking-head", "/make/hook-demo", "/make/text-over-clip?scene=interview", "/image", "/image?layout=top-bottom", "/carousel", "/generate?format=text-post", "/make/own-media", "/make/clips", "/make/edit-own"]) {
+      expect(hrefs, h).toContain(h);
+    }
+    expect([...html("/make?tab=static").matchAll(/href="(\/make\/static\/[^"]+)"/g)]).toHaveLength(STATIC_FORMATS.filter((f) => f.ready).length);
   });
 });

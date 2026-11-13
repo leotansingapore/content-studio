@@ -55,6 +55,7 @@ export interface FormatDef {
   /** A page outside /make, built with links.*. */
   to?: (o: LinkOpts) => string;
   Component?: LazyExoticComponent<ComponentType<{ userId: string; source: RemixSource | null }>>;
+  opens?: () => string;
   /** Listed in the Remix sheet's "Also make" row. */
   alsoMake?: true;
   /** Its /make page opens for every sign-in, not only Leo's (the server's remix OPEN_MAKES says the same). */
@@ -115,6 +116,8 @@ export const TEMPLATE_SECTIONS: Record<string, FormatSection> = {
   ),
 };
 
+const VideoFormatPage = lazy(() => import("@/pages/VideoFormatPage"));
+
 /** One card per editor template, leaving out the ones the editor hides. */
 export function templateFormats(list: VideoTemplate[]): FormatDef[] {
   return list
@@ -130,7 +133,8 @@ export function templateFormats(list: VideoTemplate[]): FormatDef[] {
       // the editor opens at 8 s and 720p, so the card prices what pressing it makes (the gallery check, 21 Oct)
       price: () => priceOf("ai-clip", { seconds: 8, quality: "720p" }),
       needs: t.needsPhoto === "product" ? "product-photo" : t.needsPhoto ? "photo" : undefined,
-      to: () => links.edit({ panel: ["ai"], kind: "template", template: t.id }),
+      Component: VideoFormatPage,
+      opens: () => links.edit({ panel: ["ai"], kind: "template", template: t.id }),
       ready: true,
     }));
 }
@@ -247,7 +251,8 @@ export const FORMATS: FormatDef[] = ([
     section: "words",
     cap: "montage-beats",
     price: () => priceOf("montage-beats"),
-    to: () => links.edit({ panel: ["ai"], kind: "montage" }),
+    Component: VideoFormatPage,
+    opens: () => links.edit({ panel: ["ai"], kind: "montage" }),
     ready: true,
   },
   {
@@ -299,7 +304,8 @@ export const FORMATS: FormatDef[] = ([
     section: "words",
     cap: "ai-video",
     price: explainerPrice,
-    to: () => links.edit({ panel: ["ai"], kind: "explainer" }),
+    Component: VideoFormatPage,
+    opens: () => links.edit({ panel: ["ai"], kind: "explainer" }),
     ready: true,
   },
   ...LOOKS.map(
@@ -312,7 +318,8 @@ export const FORMATS: FormatDef[] = ([
       section: "animated",
       cap: "ai-video",
       price: explainerPrice,
-      to: () => links.edit({ panel: ["ai"], kind: "explainer", look: l.id }),
+      Component: VideoFormatPage,
+      opens: () => links.edit({ panel: ["ai"], kind: "explainer", look: l.id }),
       ready: true,
     }),
   ),
@@ -368,7 +375,8 @@ export const FORMATS: FormatDef[] = ([
       section: "person",
       cap: "ai-video",
       price: presenterTalkPrice,
-      to: () => links.edit({ panel: ["ai"], kind: "avatar", talk: t.talk }),
+      Component: VideoFormatPage,
+      opens: () => links.edit({ panel: ["ai"], kind: "avatar", talk: t.talk }),
       ready: true,
     }),
   ),
@@ -398,7 +406,8 @@ export const FORMATS: FormatDef[] = ([
     cap: "own-words",
     price: () => sumPrices(priceOf("own-words"), priceOf("ai-voice")),
     needs: "own-media",
-    to: () => links.edit({ panel: ["own"] }),
+    Component: VideoFormatPage,
+    opens: () => links.edit({ panel: ["own"] }),
     ready: true,
   },
   {
@@ -411,7 +420,8 @@ export const FORMATS: FormatDef[] = ([
     cap: "video-clips",
     price: () => sumPrices(priceOf("video-transcribe", { minutes: 60 }), priceOf("video-clips", { passes: 2 })),
     needs: "own-video",
-    to: () => links.edit({ panel: ["clips"] }),
+    Component: VideoFormatPage,
+    opens: () => links.edit({ panel: ["clips"] }),
     ready: true,
   },
   {
@@ -423,7 +433,8 @@ export const FORMATS: FormatDef[] = ([
     section: "footage",
     price: () => null,
     needs: "own-video",
-    to: () => links.edit(),
+    Component: VideoFormatPage,
+    opens: () => links.edit(),
     ready: true,
   },
 ] as FormatDef[]).map((f) => (f.ready ? { ...f, preview: true as const } : f));
@@ -431,6 +442,9 @@ export const FORMATS: FormatDef[] = ([
 /** Format pages only (an entry with a Component), so Slideshow.tsx and WallOfText.tsx read their cap without a check. */
 export const formatBySlug = (slug: string | undefined): PageFormat | null =>
   (FORMATS.find((f): f is PageFormat => f.slug === slug && !!f.Component && !!f.cap) ?? null);
+
+export const pageFor = (slug: string | undefined): (FormatDef & { Component: NonNullable<FormatDef["Component"]> }) | null =>
+  (FORMATS.find((f): f is FormatDef & { Component: NonNullable<FormatDef["Component"]> } => f.slug === slug && !!f.Component && (!!f.cap || !!f.opens)) ?? null);
 
 /** Where a card goes: its own page elsewhere, else /make/<slug> with the shared params. */
 export function formatHref(f: FormatDef, o: LinkOpts = {}): string {

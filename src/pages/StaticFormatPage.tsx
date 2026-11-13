@@ -10,7 +10,7 @@
 // the picker. Leo's sign-ins only (useLeoUser, so ?asLeo=1 works on localhost); anyone else, and an unknown slug, gets NotFound.
 
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CameraIcon, CaretLeftIcon, CaretRightIcon, CircleNotchIcon, ImageSquareIcon, SparkleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,7 @@ export default function StaticFormatPage() {
 
 function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }) {
   const navigate = useNavigate();
+  const fromGallery = (useLocation().state as { back?: boolean } | null)?.back === true;
   const drawn = isStatic(def.slug);
   const example = useMemo(() => staticExampleUrl(def), [def]);
   const [note, setNote] = useState(() => loadNote(def.slug));
@@ -132,7 +133,14 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
     <div className="space-y-6">
       <header className="space-y-1">
         <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1 text-muted-foreground">
-          <Link to="/make?tab=static">
+          <Link
+            to="/make?tab=static"
+            onClick={(e) => {
+              if (!fromGallery) return;
+              e.preventDefault();
+              navigate(-1);
+            }}
+          >
             <CaretLeftIcon className="h-4 w-4" /> Static ads
           </Link>
         </Button>
