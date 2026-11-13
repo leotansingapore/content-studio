@@ -20,7 +20,7 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-6 py-10 text-center", className)}>
+    <div className={cn("flex flex-col items-center gap-3 rounded-[20px] border border-dashed border-border px-6 py-10 text-center", className)}>
       <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
         <Icon className="h-5 w-5" />
       </span>

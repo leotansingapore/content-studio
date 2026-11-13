@@ -11,8 +11,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        serif: ["Roboto Serif", "ui-serif", "Georgia", "serif"],
+        sans: ["Figtree", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        // headings are sans since 13 Nov (the brand set-up look for the whole app): `font-serif` is on 340 headings, so the name stays and the face changes here
+        serif: ["Figtree", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

@@ -678,7 +678,7 @@ export default function StudioLayout() {
         className="fixed inset-y-0 left-0 z-30 hidden w-[var(--nav-w)] p-2.5 transition-[width] duration-200 ease-[cubic-bezier(0.2,0,0,1)] lg:flex"
       >
         <div
-          className={`flex min-h-0 w-full flex-col rounded-[20px] border border-border/70 bg-sidebar ${
+          className={`flex min-h-0 w-full flex-col rounded-[20px] bg-sidebar ${
             folded ? "overflow-y-auto overflow-x-hidden [scrollbar-width:none]" : sliding ? "overflow-hidden" : ""
           }`}
         >
@@ -980,7 +980,7 @@ export default function StudioLayout() {
       </nav>
 
       <div className="transition-[padding-left] duration-200 ease-[cubic-bezier(0.2,0,0,1)] lg:py-2.5 lg:pl-[var(--nav-w)] lg:pr-2.5">
-        <div className="lg:min-h-[calc(100vh-1.25rem)] lg:rounded-[20px] lg:border lg:border-border/70 lg:bg-canvas lg:bg-dots">
+        <div className="lg:min-h-[calc(100vh-1.25rem)] lg:rounded-[20px] lg:bg-canvas">
         <main
           id="main-content"
           ref={mainRef}

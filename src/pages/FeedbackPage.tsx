@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
-import { tabClass } from "@/components/SectionTabs";
+import { tabClass, tabTrack } from "@/components/SectionTabs";
 import { supabase } from "@/lib/supabase";
 import { FeedbackBoard } from "@/components/feedback/FeedbackBoard";
 import { FEEDBACK_API, FEEDBACK_BOARD_KEY } from "@/components/feedback/config";
@@ -43,7 +43,7 @@ export default function FeedbackPage() {
           Feedback
         </h1>
       </header>
-      <nav aria-label="Feedback" className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+      <nav aria-label="Feedback" className={`${tabTrack} overflow-x-auto [scrollbar-width:none]`}>
         {TABS.map((t) => (
           <Link key={t.tab} to={`?tab=${t.tab}`} onClick={() => setOpened((n) => n + 1)} aria-current={open === t.tab ? "page" : undefined} className={tabClass(open === t.tab)}>
             {t.label}

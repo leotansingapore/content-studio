@@ -9,9 +9,12 @@ import { isLibraryView } from "@/components/library/LibraryViews";
 import { sectionTabs, type Tab } from "@/lib/nav";
 
 export const tabClass = (active: boolean) =>
-  `flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-lg border px-3 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
-    active ? "border-border bg-background text-foreground shadow-sm" : "border-transparent text-muted-foreground hover:text-foreground"
+  `flex min-h-8 shrink-0 items-center whitespace-nowrap rounded-full px-3.5 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
+    active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
   }`;
+
+/** The grey track the tabs sit in: the open tab is the white pill on it. */
+export const tabTrack = "flex w-fit max-w-full gap-1 rounded-full bg-foreground/[0.06] p-1";
 
 /** How far to scroll a tab row so the open tab shows whole, with a little of its neighbour: 0 when it already does. */
 export const revealBy = (row: { left: number; right: number }, tab: { left: number; right: number }, pad = 24) =>
@@ -115,7 +118,7 @@ function Row({ tabs, picker }: { tabs: Tab[]; picker: Tab[] }) {
     return () => window.removeEventListener("resize", measure);
   }, [open, tabs.length]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div ref={row} onScroll={measure} style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+    <div ref={row} onScroll={measure} style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined} className={`${tabTrack} overflow-x-auto [scrollbar-width:none]`}>
       {tabs.map((t) =>
         t.active && picker.length ? (
           <Picker key={t.to} tab={t} pages={picker} />
