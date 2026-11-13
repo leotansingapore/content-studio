@@ -19,7 +19,7 @@ import { draftsOfBrand, type DraftEntry } from "@/lib/draftHistory";
 import { sgDay } from "@/lib/goals";
 import { links } from "@/lib/links";
 import type { NextUpInput } from "@/lib/needsYou";
-import { activeProfileId, loadProfiles } from "@/lib/profiles";
+import { activeProfile, activeProfileId, loadProfiles } from "@/lib/profiles";
 import { refreshIfStale } from "@/lib/realNumbers";
 import type { Board, Me } from "@/lib/reelsBoard";
 import { ownBrandName } from "@/lib/remixBrand";
@@ -122,6 +122,7 @@ export default function AgentHome({ userId, greeting, drafts, day, plan, market,
           otherDrafts,
           me: day?.me ?? null,
           board: day?.board ?? null,
+          boardBrand: activeProfile(userId).boardBrand,
           market,
           teamPosts: readTeamPostsHere(userId),
           reviews: readTeamReviews(userId),

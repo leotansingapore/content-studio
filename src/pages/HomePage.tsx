@@ -383,7 +383,7 @@ export default function HomePage() {
                 const d = drafts.find((x) => x.id === id);
                 return d ? reviews.blockReason(d) : null;
               }}
-              input={{ drafts, me: day?.me ?? null, board: day?.board ?? null }}
+              input={{ drafts, me: day?.me ?? null, board: day?.board ?? null, boardBrand: activeProfile(uid).boardBrand }}
               shape={(items) => customerItems(items, { drafts, setup: firstSetup, nextAct })}
               onCount={setWaiting}
               empty="Nothing needs you right now. Write something new above."

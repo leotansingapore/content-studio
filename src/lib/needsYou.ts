@@ -9,6 +9,7 @@ import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { daysOverdue, overdueLabel, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { statusOf, type TeamPost, type TeamReviews } from "@/lib/teamPosts";
 import { brandOf, feedCards, type Board, type Me, type ReelCard } from "@/lib/reelsBoard";
+import { isDemoBrand } from "@/lib/profiles";
 
 export function countNeedsYou(drafts: DraftEntry[], teamPosts: TeamPost[], reviews: TeamReviews, today: string, autopilotWaiting = 0): number {
   const overdue = drafts.filter((d) => draftStatus(d) === "scheduled" && (d.scheduledFor ?? "").slice(0, 10) < today && !!d.scheduledFor).length;
@@ -123,6 +124,8 @@ export interface NextUpInput {
   /** Posts board: To review per brand; for its owner also Team notes, Your market and the other brands' posts out today. */
   me?: Me | null;
   board?: Board | null;
+  /** The open brand's posts-board lane (Profile.boardBrand); see boardOfBrand. */
+  boardBrand?: string;
   otherDrafts?: DraftEntry[];
   market?: boolean;
   teamPosts?: TeamPost[];
@@ -147,6 +150,18 @@ const CARD_NOUN: Partial<Record<AgentCard["kind"], string>> = {
 const DAY_MS = 86_400_000;
 const hookOf = (d: DraftEntry) => d.hook || d.draft.slice(0, 60) || "Untitled";
 
+/**
+ * The board and other brands' posts Next up reads for the open brand. A brand with no lane, or one the board has, keeps
+ * every lane as since 22 Oct. A demo brand (`dma-`), or one naming a lane the board hasn't got, gets its own lane only
+ * (none, while the board has no such lane) and no other brand's posts: 13 Nov, a demo brand's Home showed Leo's real
+ * lanes to a prospect.
+ */
+export function boardOfBrand({ board, boardBrand: lane, otherDrafts }: Pick<NextUpInput, "board" | "boardBrand" | "otherDrafts">) {
+  const own = !!lane && (isDemoBrand({ boardBrand: lane }) || (!!board && !board.brands.some((b) => b.id === lane)));
+  if (!own) return { board, otherDrafts };
+  return { board: board && { ...board, brands: board.brands.filter((b) => b.id === lane), cards: board.cards.filter((c) => brandOf(c) === lane) }, otherDrafts: [] };
+}
+
 /** Zernio holds it (scheduled, in the TikTok inbox or failed), it is linked to its live post or marked posted: it has a time already. */
 export const heldOrLive = (d: Pick<DraftEntry, "zernio" | "live" | "status">) => !!d.zernio || !!d.live || d.status === "posted";
 
@@ -162,6 +177,7 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
   const agentLink = (thread: string, msg: string) => `/agent/${encodeURIComponent(thread)}?m=${encodeURIComponent(msg)}`;
   const draftLink = (id: string, panel?: "post") => `/generate?draft=${encodeURIComponent(id)}${panel ? "&panel=post" : ""}`;
   const scheduled = (d: DraftEntry) => draftStatus(d) === "scheduled" && !!d.scheduledFor;
+  const { board, otherDrafts } = boardOfBrand(input);
 
   for (const { thread, msg, card, price } of input.cards ?? [])
     items.push({
@@ -191,7 +207,7 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
   }
 
   const dueToday = input.drafts.filter((d) => scheduled(d) && d.scheduledFor!.slice(0, 10) === today).sort((a, b) => (a.scheduledFor! < b.scheduledFor! ? -1 : 1));
-  const elsewhere = input.me?.owner ? countPostingToday(input.board?.cards ?? [], input.otherDrafts ?? [], today) : 0;
+  const elsewhere = input.me?.owner ? countPostingToday(board?.cards ?? [], otherDrafts ?? [], today) : 0;
   const goOut = dueToday.length + elsewhere;
   if (goOut) {
     const d = dueToday[0];
@@ -207,7 +223,6 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
   const waiting = teamWaiting(input.teamPosts ?? [], input.reviews);
   if (waiting.length)
     items.push({ id: "team", kind: "team", title: TEAM_TO_REVIEW, n: waiting.length, line: "Approve or skip each one.", actions: [{ label: "Review", to: teamPostLink(waiting[0].id) }] });
-  const board = input.board;
   for (const b of board ? waitingByBrand(board, "") : [])
     items.push({ id: `review:${b.id}`, kind: "team", title: postsToReview(b.name), n: b.n, actions: [{ label: "Review", to: `/reels?brand=${encodeURIComponent(b.id)}${b.changes ? "&stage=all" : ""}` }] });
   if (input.me?.owner)

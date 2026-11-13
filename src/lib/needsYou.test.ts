@@ -77,6 +77,7 @@ describe("boardWaitingHere", () => {
     expect(boardWaitingHere(cards, true, "activitytracker")).toBe(1);
     expect(boardWaitingHere(cards, true, "moneybees")).toBe(2);
     expect(boardWaitingHere(cards, true, undefined)).toBe(0);
+    expect(boardWaitingHere(cards, true, "dma-brightsmile")).toBe(0); // a demo brand's sidebar badge
     expect(boardWaitingHere(cards, false, "activitytracker")).toBe(3);
   });
 });
@@ -226,6 +227,29 @@ describe("needsYouItems", () => {
     expect(by.ideas).toMatchObject({ title: "Today's ideas", n: 6, actions: [{ label: "Open", to: links.ideas() }] });
     expect(by.market).toMatchObject({ title: "Your market", actions: [{ label: "Open", to: "/market" }] });
     expect(by.setup).toEqual({ id: "setup", kind: "setup", title: "Set your voice", actions: [{ label: "Open", to: "/voice" }] });
+  });
+
+  it("keeps every lane for a brand with a lane and for Me, and gives a demo brand or one off the board its own lane only (13 Nov)", () => {
+    const ids = (o: Partial<NextUpInput>) => needsYouItems({ ...full, ...o }, TODAY, NOW).map((i) => i.id);
+    const today = (o: Partial<NextUpInput>) => needsYouItems({ ...full, ...o }, TODAY, NOW).find((i) => i.id === "today")?.title;
+    const everyLane = needsYouItems(full, TODAY, NOW);
+    // a brand with a lane (Leo's real brands): what it showed before, every lane and every brand's posts out today
+    expect(needsYouItems({ ...full, boardBrand: "moneybees" }, TODAY, NOW)).toEqual(everyLane);
+    expect(ids({ boardBrand: "radiant" })).toEqual(everyLane.map((i) => i.id));
+    expect(today({ boardBrand: "moneybees" })).toBe("4 posts go out today");
+    // Me: no lane of its own, so it shows what it did (and Me linked to "leo" is a brand with a lane)
+    expect(needsYouItems({ ...full, boardBrand: undefined }, TODAY, NOW)).toEqual(everyLane);
+    // a demo brand, and a brand naming a lane the board hasn't got: no lane rows, only its own posts out today
+    for (const lane of ["dma-brightsmile", "gone"]) {
+      expect(ids({ boardBrand: lane })).toEqual(everyLane.map((i) => i.id).filter((id) => !/^(review|notes):/.test(id)));
+      expect(today({ boardBrand: lane })).toBe("2 posts go out today");
+    }
+    // the board didn't answer: a real lane still counts the other brands' posts, a demo one never does
+    expect(today({ board: null, boardBrand: "moneybees" })).toBe("3 posts go out today");
+    expect(today({ board: null, boardBrand: "dma-brightsmile" })).toBe("2 posts go out today");
+    // a demo lane on the board shows that lane alone
+    const demo = { stages: [], brands: [...full.board!.brands, { id: "dma-brightsmile", name: "Bright Smile" }], cards: [...full.board!.cards, rc("review", "dma-brightsmile")] };
+    expect(ids({ board: demo, boardBrand: "dma-brightsmile" }).filter((id) => /^(review|notes):/.test(id))).toEqual(["review:dma-brightsmile"]);
   });
 
   it("adds the social north star's next play after today's ideas, with this month's count when the brand's posts are counted, and nothing with no plan", () => {
