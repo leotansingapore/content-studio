@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { kindOf } from "@/lib/createFormats";
 
 const as = vi.hoisted(() => ({ user: null as null | undefined | { id: string; email: string } }));
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user }));
@@ -11,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supa
 
 import StudioPage, { CUSTOMER_FORMATS, writeTarget } from "./StudioPage";
 
-const html = () => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/studio"] }, createElement(StudioPage))).replace(/&amp;/g, "&");
+const html = (at = "/studio") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, createElement(StudioPage))).replace(/&amp;/g, "&");
 const hrefs = (out: string) => [...out.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
 afterEach(() => {
   as.user = null;
@@ -39,6 +40,54 @@ describe("Studio overview for everyone else", () => {
     expect(hrefs(out)).not.toContain("/generate");
     // trending posts live under Find posts and your latest under Library
     for (const gone of ["Trending", "Your latest", "Ads running now"]) expect(out).not.toContain(gone);
+  });
+});
+
+describe("Create's type tabs", () => {
+  const pressed = (out: string) => [...out.matchAll(/<button[^>]*aria-pressed="true"[^>]*>([^<]+)/g)].map((m) => m[1]);
+  const formatHrefs = (out: string) => hrefs(out.slice(out.indexOf("<ul"), out.indexOf("</ul>")));
+
+  it("opens on All, one chip per kind in the Create picker's order", () => {
+    const out = html();
+    const row = out.slice(out.indexOf('aria-label="Kind of format"'), out.indexOf("<ul"));
+    expect([...row.matchAll(/<button[^>]*>([^<]+)/g)].map((m) => m[1])).toEqual(["All", "Words", "Slides and pictures", "Video"]);
+    expect(pressed(out)).toEqual(["All"]);
+  });
+
+  it("?kind= keeps only that kind's makers, in the same order", () => {
+    for (const [param, kind] of [["words", "Words"], ["slides-and-pictures", "Slides and pictures"], ["video", "Video"]]) {
+      const out = html(`/studio?kind=${param}`);
+      expect(pressed(out), param).toEqual([kind]);
+      const want = CUSTOMER_FORMATS.filter((w) => kindOf(w.to) === kind).map((w) => w.to);
+      expect(want.length, param).toBeGreaterThan(0);
+      expect(formatHrefs(out), param).toEqual(want);
+    }
+  });
+
+  it("a kind the address made up reads as All", () => {
+    const out = html("/studio?kind=podcasts");
+    expect(pressed(out)).toEqual(["All"]);
+    expect(formatHrefs(out)).toHaveLength(CUSTOMER_FORMATS.length);
+  });
+
+  it("every card shows its picture, its kind, its name and one line, in that order", () => {
+    const out = html();
+    const cards = out.slice(out.indexOf("<ul"), out.indexOf("</ul>")).split("<li").slice(1);
+    expect(cards).toHaveLength(CUSTOMER_FORMATS.length);
+    cards.forEach((card, i) => {
+      const w = CUSTOMER_FORMATS[i];
+      const at = [card.indexOf("<svg"), card.indexOf(`>${kindOf(w.to)}<`), card.indexOf(`>${w.name}<`), card.indexOf(`>${w.blurb}<`)];
+      expect(at.every((n) => n >= 0), w.to).toBe(true);
+      expect([...at].sort((a, b) => a - b), w.to).toEqual(at);
+    });
+  });
+
+  it("Leo's catalogue gets the same chips, only for the kinds it holds", () => {
+    as.user = { id: "40f07a18-0000-4000-8000-000000000001", email: "tanjunsing@gmail.com" };
+    const out = html("/studio?kind=words");
+    expect(pressed(out)).toEqual(["Words"]);
+    expect(formatHrefs(out).length).toBeGreaterThan(0);
+    expect(formatHrefs(out).length).toBeLessThan(formatHrefs(html()).length);
   });
 });
 

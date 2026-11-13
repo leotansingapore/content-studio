@@ -2,7 +2,8 @@
 // a way to start from your own material at the top, every format as a card under "Content formats", then "Remix a
 // competitor ad". For everyone else the top is the writer box (HomeWriter: New post lands here as /studio#topic) and the
 // formats are the makers they can open, each taking the box's topic with it; for Leo it is Fastlane's three cards
-// (upload your own, pictures, an AI clip) and the whole catalogue with prices. The question and the agent's composer
+// (upload your own, pictures, an AI clip) and the whole catalogue with prices. One row of type tabs filters the cards
+// (?kind=words|slides-and-pictures|video, replace): the Create picker's headings, from nav.ts by way of createFormats.ts. The question and the agent's composer
 // live on Home since 12 Nov. Reads only what this device and the bundled drops hold; calls no AI.
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,16 +12,18 @@ import FormatTile from "@/components/make/FormatTile";
 import HomeWriter from "@/components/home/HomeWriter";
 import { RemixCompetitorAd, RemixMarketAd, longestRunning, longestSwipeAds } from "@/components/home/HomeRows";
 import PriceChip from "@/components/PriceChip";
+import { FilterChip } from "@/components/ui/filter-chip";
 import { FORMATS, formatHref, type FormatDef } from "@/data/formats";
 import { STATIC_FORMATS, staticFormatHref } from "@/data/staticFormats";
 import { ADS } from "@/lib/adsSwipe";
 import { loadCompetitorAds } from "@/lib/competitorAds";
 import { loadCompetitors } from "@/lib/competitors";
-import { CREATE_FORMATS, MORE_FORMATS, type CreateFormat } from "@/lib/createFormats";
+import { CREATE_FORMATS, CREATE_KINDS, MORE_FORMATS, kindOf, kindOfFormat, type CreateFormat } from "@/lib/createFormats";
 import { loadCreateTopic, tileHref } from "@/lib/createTopic";
 import { links } from "@/lib/links";
 import { adviserBrand } from "@/lib/profession";
 import { supabase } from "@/lib/supabase";
+import { useUrlLabel } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
 
 export { writeTarget } from "@/components/home/HomeWriter";
@@ -43,7 +46,7 @@ const CARD = "group flex h-full min-w-0 flex-col gap-2 rounded-xl focus-visible:
 // no format has a preview clip yet: a short tile, as the Create gallery draws them, not a wall of empty phone-sized boxes
 const POSTER = "relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted transition-colors group-hover:border-primary/40";
 
-function Section({ id, title, count, more, children }: { id: string; title: string; count?: number; more?: { to: string; label: string }; children: ReactNode }) {
+function Section({ id, title, count, more, tabs, children }: { id: string; title: string; count?: number; more?: { to: string; label: string }; tabs?: ReactNode; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-h`} className="scroll-mt-6 space-y-3">
       <div className="flex min-h-9 items-center justify-between gap-3">
@@ -57,17 +60,22 @@ function Section({ id, title, count, more, children }: { id: string; title: stri
           </Link>
         )}
       </div>
+      {tabs}
       {children}
     </section>
   );
 }
 
-/** One format: its poster (a drawn storyboard, or the maker's icon), name, line and, on Leo's, its price. */
-function FormatCard({ to, name, blurb, poster, price, onClick }: { to: string; name: string; blurb: string; poster: ReactNode; price?: ReactNode; onClick?: (e: React.MouseEvent) => void }) {
+type FormatCardProps = { to: string; kind: string; name: string; blurb: string; poster: ReactNode; price?: ReactNode; onClick?: (e: React.MouseEvent) => void };
+
+/** One format, the same four things in the same order on every card: its poster (a drawn storyboard, or the maker's
+ * icon), its kind, its name and one line; then, on Leo's, its price. */
+function FormatCard({ to, kind, name, blurb, poster, price, onClick }: FormatCardProps) {
   return (
     <Link to={to} onClick={onClick} className={CARD}>
       <span className={POSTER}>{poster}</span>
       <span className="min-w-0 space-y-1 px-0.5">
+        <span className="inline-block rounded-md bg-muted px-1.5 text-xs font-medium text-muted-foreground">{kind}</span>
         <span className="block text-sm font-semibold leading-snug text-foreground">{name}</span>
         <span className="line-clamp-2 block text-xs text-muted-foreground">{blurb}</span>
         {price}
@@ -105,6 +113,17 @@ export default function StudioPage() {
     navigate(tileHref(to, topic, userId));
   };
 
+  const cards: (FormatCardProps & { key: string })[] = leo
+    ? [
+        ...VIDEO.map((f) => ({ key: f.slug, to: formatHref(f), kind: kindOfFormat(f.kind), name: f.name, blurb: f.blurb, poster: <FormatTile f={f} />, price: leoPrice(f) })),
+        ...STATICS.map((f) => ({ key: `static-${f.slug}`, to: staticFormatHref(f.slug), kind: kindOfFormat("image"), name: f.name, blurb: f.blurb, poster: <ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden /> })),
+      ]
+    : CUSTOMER_FORMATS.map((w) => ({ key: w.to, to: w.to, kind: kindOf(w.to) ?? CREATE_KINDS[0], name: w.name, blurb: w.blurb, poster: <w.icon className="h-7 w-7 text-primary" aria-hidden />, onClick: carry(w.to) }));
+  // a tab only for a kind that has cards; a typed ?kind= with none reads as All
+  const kinds = CREATE_KINDS.filter((k) => cards.some((c) => c.kind === k));
+  const [kind, setKind] = useUrlLabel("kind", kinds);
+  const shown = kind ? cards.filter((c) => c.kind === kind) : cards;
+
   return (
     <div className="space-y-10">
       {leo ? (
@@ -132,26 +151,28 @@ export default function StudioPage() {
         </header>
       )}
 
-      <Section id="formats" title="Content formats" count={leo ? VIDEO.length + STATICS.length : CUSTOMER_FORMATS.length} more={leo ? { to: links.make(), label: "All formats" } : undefined}>
-        <ul aria-label="Ways to make" className={GRID}>
-          {leo
-            ? [
-                ...VIDEO.map((f) => (
-                  <li key={f.slug} className="min-w-0">
-                    <FormatCard to={formatHref(f)} name={f.name} blurb={f.blurb} poster={<FormatTile f={f} />} price={leoPrice(f)} />
-                  </li>
-                )),
-                ...STATICS.map((f) => (
-                  <li key={`static-${f.slug}`} className="min-w-0">
-                    <FormatCard to={staticFormatHref(f.slug)} name={f.name} blurb={f.blurb} poster={<ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden />} />
-                  </li>
-                )),
-              ]
-            : CUSTOMER_FORMATS.map((w) => (
-                <li key={w.to} className="min-w-0">
-                  <FormatCard to={w.to} name={w.name} blurb={w.blurb} poster={<w.icon className="h-7 w-7 text-primary" aria-hidden />} onClick={carry(w.to)} />
-                </li>
+      <Section
+        id="formats"
+        title="Content formats"
+        count={cards.length}
+        more={leo ? { to: links.make(), label: "All formats" } : undefined}
+        tabs={
+          kinds.length > 1 && (
+            <div role="group" aria-label="Kind of format" className="scrollbar-none -mx-4 flex max-w-full gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+              <FilterChip active={!kind} onClick={() => setKind(null)}>All</FilterChip>
+              {kinds.map((k) => (
+                <FilterChip key={k} active={kind === k} onClick={() => setKind(k)}>{k}</FilterChip>
               ))}
+            </div>
+          )
+        }
+      >
+        <ul aria-label="Ways to make" className={GRID}>
+          {shown.map(({ key, ...c }) => (
+            <li key={key} className="min-w-0">
+              <FormatCard {...c} />
+            </li>
+          ))}
         </ul>
       </Section>
 

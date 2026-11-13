@@ -1,5 +1,6 @@
 // What Create's first screen offers (StudioPage): six big choices, each one tap from its maker, and the rest behind
 // "More formats". Every one is a page every sign-in can open (createFormats.test.ts), named as the nav names it.
+import { groupedPages, section } from "@/lib/nav";
 import { CalendarDotsIcon, FilmSlateIcon, FileTextIcon, ImagesIcon, StackIcon, LayoutIcon, ChatCircleDotsIcon, PencilLineIcon, SparkleIcon, VideoCameraIcon, type Icon } from "@phosphor-icons/react";
 
 export type CreateFormat = { to: string; name: string; blurb: string; icon: Icon };
@@ -22,3 +23,22 @@ export const MORE_FORMATS: CreateFormat[] = [
   { to: "/make/hook-demo", name: "Hook + demo", blurb: "A hook that stops the scroll, then your demo", icon: FilmSlateIcon },
   { to: "/clone", name: "Clone a reel", blurb: "A script from a reel that worked", icon: FilmSlateIcon },
 ];
+
+// The kinds Create's type tabs filter by are the headings of the Create tab's picker (nav.ts `head`), so the two
+// cannot drift: a maker's kind is the heading it sits under there.
+const CREATE_PAGES = groupedPages(section("write").pages).filter((p) => p.group === "Create");
+export const CREATE_KINDS: string[] = CREATE_PAGES.flatMap((p) => (p.head ? [p.head] : []));
+
+/** The kind of the maker at this address: its heading in the Create picker; null for a page that is not a maker. */
+export function kindOf(to: string): string | null {
+  let head: string | null = null;
+  for (const p of CREATE_PAGES) {
+    head = p.head ?? head;
+    if (p.to === to) return head;
+  }
+  return null;
+}
+
+/** The catalogue's own kinds (src/data/formats.ts) under the same three names. */
+export const kindOfFormat = (kind: "video" | "slides" | "text" | "image"): string =>
+  CREATE_KINDS[kind === "text" ? 0 : kind === "video" ? 2 : 1];
