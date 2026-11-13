@@ -22,10 +22,7 @@ import { NEW_POST } from "@/lib/newPost";
 import { reviewRows, scanOf } from "@/lib/productScan";
 import { loadProducts, mergeScan, saveProducts, type Scan } from "@/lib/products";
 import { markOnboarded } from "@/lib/onboarding";
-import {
-  ADDRESS_ERROR, APP_SECTIONS, distinctColours, KEPT_SECTIONS, PRODUCT_SECTIONS, foundNetworks, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS,
-  slideFontFor, STEPS, webAddress, type Answers, type Mode, type Network, type Section, type Step,
-} from "@/lib/onboardingFlow";
+import { ADDRESS_ERROR, APP_SECTIONS, distinctColours, KEPT_SECTIONS, PRODUCT_SECTIONS, foundNetworks, hexOf, hostOf, keptAnswers, keptNetworks, mainPlatform, nextSection, progressOf, READ_STEPS, shownStep, SITE_SECTIONS, slideFontFor, STEPS, webAddress, type Answers, type Mode, type Network, type Section, type Step, prefilledProfession } from "@/lib/onboardingFlow";
 import { goalChips } from "@/lib/positioning";
 import { reasonText } from "@/lib/prices";
 import { activeProfileId, DEFAULT_PROFILE_ID, renameProfile, setActiveProfile } from "@/lib/profiles";
@@ -342,6 +339,7 @@ export function BrandSetup({ mode, uid, leo, kept, persist, prefill }: BrandSetu
       const next: Dna = { ...d, name: d.name.slice(0, 40), logo, audience: answersRef.current.audience ?? d.audience };
       setNoSite(false);
       setDna(next);
+      setProfession((p) => prefilledProfession(p, d.profession));
       setFromLogo(logoHues);
       setColours(startingColours(next, logoHues));
       setLang(leo ? asPostLang((d as { lang?: unknown }).lang) : null);

@@ -26,6 +26,7 @@ export interface BrandDna {
   colours?: string[];
   neutrals?: string[];
   fonts?: string[];
+  profession?: string;
 }
 
 export const AUDIENCE_NAMES: Record<PlanAudience, string> = {
@@ -71,7 +72,8 @@ export const isDna = (d: unknown): d is BrandDna => {
     x.topics.every((t) => typeof t === "string") &&
     (x.colours === undefined || (Array.isArray(x.colours) && x.colours.every((c) => typeof c === "string"))) &&
     (x.neutrals === undefined || (Array.isArray(x.neutrals) && x.neutrals.every((c) => typeof c === "string"))) &&
-    (x.fonts === undefined || (Array.isArray(x.fonts) && x.fonts.every((f) => typeof f === "string")))
+    (x.fonts === undefined || (Array.isArray(x.fonts) && x.fonts.every((f) => typeof f === "string"))) &&
+    (x.profession === undefined || typeof x.profession === "string")
   );
 };
 

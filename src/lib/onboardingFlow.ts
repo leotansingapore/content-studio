@@ -223,6 +223,9 @@ export const WORK_LINES: Record<string, string> = {
   Lawyer: "Legal advice and cases",
 };
 
+export const prefilledProfession = (current: string, read: unknown): string =>
+  current.trim() || typeof read !== "string" || !Object.prototype.hasOwnProperty.call(WORK_LINES, read) ? current : read;
+
 export function sectionTitle(s: Section, leo: boolean): string {
   switch (s) {
     case "identity":

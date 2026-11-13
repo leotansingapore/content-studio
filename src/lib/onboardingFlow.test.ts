@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   APP_SECTIONS, colourGap, confirmLabel, distinctColours, firstOpenQuestion, flowKey, foundNetworks, hexOf, hostOf, isSerif, keptAnswers, keptNetworks, keptSaved, keptStep, mainPlatform, nextLine,
-  nextSection, progressOf, QUESTIONS, readableInk, scoreOf, shouldSetUp, shownStep, SITE_SECTIONS, slideFontFor, webAddress, type Section,
+  nextSection, prefilledProfession, progressOf, QUESTIONS, readableInk, scoreOf, shouldSetUp, shownStep, SITE_SECTIONS, slideFontFor, webAddress, type Section,
 } from "./onboardingFlow";
 import { blankPixels, dominantColours, lightPixels } from "./logoImage";
 
@@ -61,6 +61,17 @@ describe("progress and the brand set up score", () => {
     expect(nextSection(new Set<Section>(["identity", "look"]), SITE_SECTIONS)).toBe("voice");
     expect(nextSection(new Set<Section>(SITE_SECTIONS), SITE_SECTIONS)).toBeNull();
     expect(nextSection(new Set<Section>(SITE_SECTIONS), APP_SECTIONS)).toBe("proof");
+  });
+
+  it("prefills the work step from a read's profession only while nothing is picked, and only with a work step choice", () => {
+    expect(prefilledProfession("", "Coach")).toBe("Coach");
+    expect(prefilledProfession("", "Financial adviser")).toBe("Financial adviser");
+    expect(prefilledProfession("Lawyer", "Coach")).toBe("Lawyer");
+    expect(prefilledProfession("Home cleaning", "Coach")).toBe("Home cleaning");
+    expect(prefilledProfession("", "Astronaut")).toBe("");
+    expect(prefilledProfession("", "toString")).toBe("");
+    expect(prefilledProfession("", undefined)).toBe("");
+    expect(prefilledProfession("", 3)).toBe("");
   });
 
   it("labels the last confirm as creating the brand", () => {
