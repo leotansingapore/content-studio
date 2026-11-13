@@ -65,7 +65,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { ANGLE_POOL, PHOTO_EDGES, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { AD_FACTS_MAX, ANGLE_POOL, PHOTO_EDGES, brandAdFacts, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -219,6 +219,24 @@ describe("the photo run", () => {
       expect(fake.calls[1].prompt).not.toContain("product");
     });
 
+    it("with no product in use, writes from the brand's most concrete saved facts and names it in the prompt", async () => {
+      localStorage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#F26B1D", name: "ActivityTracker", handle: "" }));
+      localStorage.setItem(`content-studio-positioning-${U}`, JSON.stringify({ oneLiner: "A phone app for your selling week.", edge: "Logs each day's calls as a streak, with a team leaderboard.", audience: "working-adult", audienceDetail: "Insurance agents", topics: [] }));
+      keep({ ...tracker, use: false });
+      await startPhotoAd(U, poster, { topic: "x" });
+      expect(fake.asks[0].product).toEqual({ name: "ActivityTracker", what: "Logs each day's calls as a streak, with a team leaderboard. A phone app for your selling week.", forWho: "Insurance agents" });
+      expect(fake.calls[0].prompt).toContain("The ad shows the brand's product itself: ActivityTracker, Logs each day's calls as a streak, with a team leaderboard. A phone app for your selling week.");
+      // no product of its own, so no product picture
+      expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8 });
+      // the writer reads every fact; the picture gets the first 160 characters, cut at a word
+      const long = `Logs each day's calls as a streak, with a team leaderboard and a virtual corgi that grows as you keep going. ${"Every call counts toward the week. ".repeat(6)}`;
+      localStorage.setItem(`content-studio-positioning-${U}`, JSON.stringify({ oneLiner: "", edge: long, audience: "working-adult", audienceDetail: "", topics: [] }));
+      await startPhotoAd(U, poster, { topic: "x" });
+      expect((fake.asks[1].product as { what: string }).what.length).toBeGreaterThan(200);
+      const line = fake.calls[1].prompt.match(/The ad shows the brand's product itself: [^.]*\.[^"]*?(?= The words on it)/)![0];
+      expect(line.length).toBeLessThanOrEqual("The ad shows the brand's product itself: ActivityTracker, .".length + 160);
+    });
+
     it("drops the product line, never the words, when both would run past ai-image's prompt cap", async () => {
       keep({ ...tracker, what: "w".repeat(200) });
       fake.writeWords = { headline: "word ".repeat(125).trim(), line: "Hilltop cold brew." };
@@ -256,6 +274,43 @@ describe("the photo run", () => {
     fake.imageFails = "The image was blocked by the safety filter. Change the prompt and try again.";
     await startPhotoAd(U, poster, { topic: "x" });
     expect(photoAd()).toMatchObject({ state: "failed", error: fake.imageFails });
+  });
+});
+
+describe("a brand's saved facts, for an ad with no product in use", () => {
+  beforeEach(() => localStorage.clear());
+  const put = (k: string, v: unknown) => localStorage.setItem(`content-studio-${k}-${U}`, JSON.stringify(v));
+  const brand = () => put("carousel-brand", { color: "#F26B1D", name: "ActivityTracker", handle: "" });
+  const desk = (o: Record<string, unknown> = {}) => put("script-context", { product: { on: true, name: "Activity Tracker", what: "Logs daily sales activities.", who: "Agents", how: "Tap after each call\nWatch the streak grow.", gets: "A streak and a virtual corgi.", proof: "Agents keep 3x more streak days.", ...o } });
+
+  it("takes the script desk's Product first, then the edge and one-liner, then the brand's own facts, each once", () => {
+    brand();
+    desk();
+    put("positioning", { oneLiner: "A phone app for your selling week.", edge: "Logs daily sales activities", audienceDetail: "Insurance agents", topics: [] });
+    put("facts", [{ id: "f1", text: "Rated by agents on the App Store.", createdAt: "2026-11-01T00:00:00Z" }, { id: "f2", text: "Old fact", createdAt: "2026-11-01T00:00:00Z", offAt: "2026-11-02T00:00:00Z" }]);
+    expect(brandAdFacts(U)).toEqual({
+      name: "Activity Tracker",
+      what: "Logs daily sales activities. Tap after each call, Watch the streak grow. A streak and a virtual corgi. Agents keep 3x more streak days. A phone app for your selling week. Rated by agents on the App Store.",
+      forWho: "Agents",
+    });
+  });
+
+  it("skips a Product that is switched off, names the brand then, cuts at a word, and is nothing with no name or no facts", () => {
+    brand();
+    desk({ on: false });
+    put("positioning", { oneLiner: "word ".repeat(120), edge: "", audienceDetail: "", topics: [] });
+    const r = brandAdFacts(U)!;
+    expect(r.name).toBe("ActivityTracker");
+    expect(r.what).not.toContain("Logs daily sales");
+    expect(r.forWho).toBe("");
+    expect(r.what.length).toBeLessThanOrEqual(AD_FACTS_MAX);
+    expect(r.what.endsWith("word")).toBe(true);
+    localStorage.clear();
+    brand();
+    expect(brandAdFacts(U)).toBeNull();
+    localStorage.clear();
+    put("positioning", { oneLiner: "A phone app.", edge: "", audienceDetail: "", topics: [] });
+    expect(brandAdFacts(U)).toBeNull();
   });
 });
 

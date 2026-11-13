@@ -70,8 +70,9 @@ describe("a static ad about one product", () => {
     const quiet = req({ as: "image", layout: "street-poster", topic: "x", brand: { ...BIZ, mention: false }, product: PRODUCT });
     expect(buildMakePrompt(quiet).system).not.toContain("The ad is about Activity Tracker");
     expect(quiet.brand.facts).toContain("The product this ad is about: Activity Tracker");
-    const long = req({ as: "image", layout: "street-poster", topic: "x", product: { name: "n".repeat(90), what: "w".repeat(300), forWho: "f".repeat(200) } }).product!;
-    expect([long.name.length, long.what.length, long.forWho.length]).toEqual([60, 200, 120]);
+    const long = req({ as: "image", layout: "street-poster", topic: "x", product: { name: "n".repeat(90), what: "w".repeat(500), forWho: "f".repeat(200) } }).product!;
+    // what: 400, room for a brand's saved facts when it has no product (photoAd brandAdFacts)
+    expect([long.name.length, long.what.length, long.forWho.length]).toEqual([60, 400, 120]);
   });
 });
 

@@ -21,12 +21,16 @@ import { IMAGE_FIELDS, isStatic, mainWords, staticPhoto } from "@/lib/imageLayou
 import { WRITE_FAILED, blankImage, imageById, imageMention, imageWrite, imageWriteBusy, saveImage, startImageWrite } from "@/lib/images";
 import { getFile } from "@/lib/deviceFiles";
 import { links } from "@/lib/links";
+import { loadPositioning } from "@/lib/positioning";
 import { adFacts, adProduct, loadProducts, type Product } from "@/lib/products";
 import { scoped } from "@/lib/profiles";
 import { ownBrandName } from "@/lib/remixBrand";
 import { scalePicture } from "@/lib/remixLink";
+import { loadScriptContext } from "@/lib/scriptContext";
+import { cutAtWord } from "@/lib/scriptCaption";
+import { isOn, loadFacts } from "@/lib/voiceMemory";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic.ts";
-import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
+import { STATIC_ANGLES, type AdProduct } from "../../supabase/functions/remix/logic.ts";
 
 /** ai-image makes 3:4 and the photo is kept 4:5, cut from the middle: a little goes off the top and the bottom. */
 export const PHOTO_RATIO = 4 / 5;
@@ -165,6 +169,27 @@ export function usePhotoAd(): PhotoAd | null {
  * the drawn make carries (staticMake: the topic, and the product photo or price where the format uses them). Nothing
  * is spent on a picture when the words didn't come, or came too long for ai-image's prompt.
  */
+/** The most an ad make's product line carries (remix parseProduct's limit for `what`). */
+export const AD_FACTS_MAX = 400;
+
+/**
+ * What the ad is about when the brand has no product in use: its most concrete saved facts, in this order, each once:
+ * the script desk's Product while it is on (what it is, how it works, what you get, its proof line), the positioning's
+ * edge and one-liner (typed, or filled in by the website read), then the brand's own saved facts (Your memory, where an
+ * App Store read's proof lines land). Named by that Product, else the brand; null with no name or nothing saved.
+ */
+export function brandAdFacts(userId: string): AdProduct | null {
+  const { product: desk } = loadScriptContext(userId);
+  const pos = loadPositioning(userId);
+  const sentence = (t: string | undefined) => (t ?? "").replace(/\s+/g, " ").trim().replace(/[.\s]+$/, "");
+  const own = desk.on ? [desk.what, desk.how.split("\n").map(sentence).filter(Boolean).join(", "), desk.gets, desk.proof] : [];
+  const facts = [...own, pos?.edge, pos?.oneLiner, ...loadFacts(userId).filter(isOn).map((f) => f.text)].map(sentence).filter(Boolean);
+  const unique = facts.filter((f, i) => facts.findIndex((x) => x.toLowerCase() === f.toLowerCase()) === i);
+  const name = (desk.on && desk.name.trim()) || ownBrandName(userId);
+  if (!name || !unique.length) return null;
+  return { name: name.slice(0, 60), what: cutAtWord(`${unique.join(". ")}.`, AD_FACTS_MAX), forWho: cutAtWord((desk.on && desk.who.trim()) || pos?.audienceDetail.trim() || "", 120) };
+}
+
 /**
  * The product's first picture as a JPEG data URL within ai-image's limit, or undefined: none, a named insurer product
  * (its picture carries the insurer's brand), or one this device can't read.
@@ -188,7 +213,8 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   const base = { seq: ++seq, slug, designId: design.id };
   set({ ...base, state: "writing" });
   const sold = adProduct(loadProducts(userId).items, format.topic);
-  const product = sold ? adFacts(sold) : undefined;
+  // no product in use: the brand's most concrete saved facts, so the words still name one thing it does
+  const product = sold ? adFacts(sold) : (brandAdFacts(userId) ?? undefined);
   const angles = angleOrder(slug, usedAngles(userId, slug)).slice(0, ANGLE_POOL);
   const avoid = sampleOpening(f);
   await startImageWrite(userId, { designId: design.id, source: null, topic: format.topic, layout: slug, mention: imageMention(userId), note: "", size: design.size, read: false, angles, ...(avoid ? { avoid } : {}), ...(product ? { product } : {}) });
@@ -200,7 +226,8 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   const made = { ...base, ...(w.angle ? { angle: w.angle } : {}) };
   const kit = loadBrand(userId) ?? DEFAULT_BRAND;
   const brand = { name: ownBrandName(userId), color: kit.color };
-  const full = photoAdPrompt(f, brand, words, product);
+  // the picture gets the product's name and its first words, not every fact the writer read
+  const full = photoAdPrompt(f, brand, words, product && { name: product.name, what: cutAtWord(product.what, 160) });
   // the words are the ad: a product line that would push them over the cap is the part left out
   const prompt = full.length > MAX_PROMPT && product ? photoAdPrompt(f, brand, words) : full;
   if (prompt.length > MAX_PROMPT) return set({ ...made, state: "failed", error: TOO_LONG });

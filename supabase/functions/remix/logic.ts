@@ -581,7 +581,8 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
 function parseProduct(raw: unknown): AdProduct | undefined {
   const p = obj(raw);
   const name = line(p.name, 60);
-  return name ? { name, what: line(p.what, 200), forWho: line(p.forWho, 120) } : undefined;
+  // 400: a brand with no product sends its saved facts in `what` (photoAd brandAdFacts); a product's own is at most 200
+  return name ? { name, what: line(p.what, 400), forWho: line(p.forWho, 120) } : undefined;
 }
 
 /** The product's facts, ahead of the brand's own so the 2000-character cut never takes them. */
