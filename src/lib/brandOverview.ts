@@ -5,7 +5,7 @@
 // proof, competitors, demo videos, Media types) appear only when `leo` is set.
 
 import type { Audience } from "@/lib/audiences";
-import type { CarouselBrand } from "@/lib/carousel";
+import { DEFAULT_BRAND, type CarouselBrand } from "@/lib/carousel";
 import type { Positioning } from "@/lib/positioning";
 import type { Product } from "@/lib/products";
 import type { VoiceProfile } from "@/lib/voiceProfile";
@@ -32,6 +32,8 @@ export interface OverviewRow {
   edit?: ProfileEdit;
   /** A picture that stands for the value (the logo). */
   image?: string;
+  /** Shown in place of "Not set" when nothing is on file but something sensible is used meanwhile. */
+  note?: string;
 }
 
 export interface OverviewGroup {
@@ -77,6 +79,8 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
   const who = [STAGE[pos?.audience ?? ""], t(pos?.audienceDetail)].filter(Boolean);
   const posts = (i.voice?.posts ?? []).filter((p) => t(p)).length;
   const main = products[0];
+  // the kit saves whole, so typing a name stores the default navy too: a colour counts once one is picked
+  const picked = !!kit && (kit.color !== DEFAULT_BRAND.color || !!kit.palette?.length);
 
   const groups: OverviewGroup[] = [
     {
@@ -121,8 +125,10 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       title: "Look",
       rows: [
         { id: "logo", label: "Logo", value: kit?.logo ? "On file" : "", to: "/brand#logo", add: "Add a logo", ...(kit?.logo ? { image: kit.logo } : {}), ...(i.kitLocked ? {} : { edit: "logo" as const }) },
-        // a kit never saved still draws navy: that is our default, not something the brand told us
-        { id: "colours", label: "Colours", value: "", swatches: kit ? [kit.color, ...(kit.palette ?? []).map((c) => c.hex)] : [], to: "/brand#colour", add: "Pick a colour", ...(i.kitLocked ? {} : { edit: "colours" as const }) },
+        // navy is our default, not something the brand told us: shown as the default and neither known nor a gap, so a
+        // brand that wants navy is never chased for it (shortcut: the kit cannot tell navy picked from navy untouched)
+        { id: "colours", label: "Colours", value: "", swatches: picked && kit ? [kit.color, ...(kit.palette ?? []).map((c) => c.hex)] : [], to: "/brand#colour", add: "Pick a colour",
+          ...(picked ? {} : { optional: true, note: "Navy, the default" }), ...(i.kitLocked ? {} : { edit: "colours" as const }) },
       ],
     },
     {

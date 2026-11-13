@@ -10,7 +10,18 @@ describe("brandOverview", () => {
   it("a brand with nothing saved has every required row missing, and the default colour is not counted as known", () => {
     const c = completeness(brandOverview(empty));
     expect(c.set).toBe(0);
-    expect(c.missing.map((r) => r.id)).toEqual(["name", "does", "sells", "edge", "who", "topics", "logo", "colours", "voice"]);
+    expect(c.missing.map((r) => r.id)).toEqual(["name", "does", "sells", "edge", "who", "topics", "logo", "voice"]);
+  });
+
+  it("saving a name alone counts one row: the kit's untouched default colour is neither known nor a gap until a colour is picked", () => {
+    const named = completeness(brandOverview({ ...empty, kit: { ...DEFAULT_BRAND, name: "Ada" } }));
+    expect(named).toMatchObject({ set: 1, total: completeness(brandOverview(empty)).total });
+    expect(row({ ...empty, kit: { ...DEFAULT_BRAND, name: "Ada" } }, "colours")).toMatchObject({ swatches: [], value: "", note: "Navy, the default" });
+    const teal = { ...DEFAULT_BRAND, color: "#0F766E" };
+    expect(row({ ...empty, kit: teal }, "colours").swatches).toEqual(["#0F766E"]);
+    expect(completeness(brandOverview({ ...empty, kit: teal })).total).toBe(named.total + 1);
+    // an extra colour is a choice too, even beside the default main colour
+    expect(row({ ...empty, kit: { ...DEFAULT_BRAND, palette: [{ name: "Gold", hex: "#CA8A04" }] } }, "colours").swatches).toEqual([DEFAULT_BRAND.color, "#CA8A04"]);
   });
 
   it("optional rows count only once they are set", () => {
@@ -23,7 +34,7 @@ describe("brandOverview", () => {
   it("reads each row from the store that owns it and links to where it is edited", () => {
     const i: OverviewInput = {
       ...empty,
-      kit: { ...DEFAULT_BRAND, name: "Ada Tan", logo: "data:image/png;base64,x", offers: [{ name: "Free review", url: "https://a.sg" }], avoidWords: "cheapest\nhustle" },
+      kit: { ...DEFAULT_BRAND, color: "#0F766E", name: "Ada Tan", logo: "data:image/png;base64,x", offers: [{ name: "Free review", url: "https://a.sg" }], avoidWords: "cheapest\nhustle" },
       positioning: { ...EMPTY_POSITIONING, oneLiner: "I help parents plan", audience: "parent", audienceDetail: "aged 30-48", topics: ["CPF"], edge: "Quarterly plan" },
       voice: { posts: ["a", "b", " "], updatedAt: "" },
     };
@@ -33,7 +44,7 @@ describe("brandOverview", () => {
     expect(row(i, "who").chips).toEqual(["Parents", "aged 30-48"]);
     expect(row(i, "voice").value).toBe("2 past posts");
     expect(row(i, "avoid").value).toBe("cheapest, hustle");
-    expect(row(i, "colours").swatches).toEqual([DEFAULT_BRAND.color]);
+    expect(row(i, "colours").swatches).toEqual(["#0F766E"]);
     expect(completeness(brandOverview(i)).missing).toEqual([]);
   });
 

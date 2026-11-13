@@ -54,7 +54,7 @@ function Value({ row }: { row: OverviewRow }) {
       </span>
     );
   }
-  return row.value ? <span className="line-clamp-2 break-words text-foreground">{row.value}</span> : <span className="text-muted-foreground">Not set</span>;
+  return row.value ? <span className="line-clamp-2 break-words text-foreground">{row.value}</span> : <span className="text-muted-foreground">{row.note ?? "Not set"}</span>;
 }
 
 /** The label and value, side by side from sm up and stacked on a phone, the way every row reads. */
