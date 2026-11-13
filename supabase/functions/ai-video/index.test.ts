@@ -641,7 +641,7 @@ describe("today's one-off presenter, for everyone (pinned before people-presente
     db.handler!(new Request("http://x/ai-video", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
   const LOOK = "A Malay Singaporean woman in her 30s, light grey hijab, cream blouse, warm smile";
 
-  it("makes one Soul v2 picture from the typed look for one ai-image use, with no Jev question and nothing back on a failed submit", async () => {
+  it("makes one Soul v2 picture from the typed look for one ai-image use, with no Jev question, and gives the use back on a failed submit", async () => {
     const res = await send(UID, { mode: "presenter", look: LOOK });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ token: expect.any(String) });
@@ -660,7 +660,7 @@ describe("today's one-off presenter, for everyone (pinned before people-presente
     const down = await send(UID, { mode: "presenter", look: LOOK });
     expect(down.status).toBe(502);
     expect(await down.json()).toEqual({ error: "Couldn't start the video right now. Try again in a minute." });
-    expect([...db.rows.entries()]).toEqual([[`${UID}|ai-image|${db.today()}`, 2]]);
+    expect([...db.rows.entries()]).toEqual([[`${UID}|ai-image|${db.today()}`, 1]]);
   });
 });
 

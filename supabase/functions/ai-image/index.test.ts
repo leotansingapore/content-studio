@@ -160,6 +160,14 @@ describe("Make the image", () => {
     expect(used(UID, "ai-image")).toBe(0);
   });
 
+  it("gives the use back when Higgsfield refuses the picture after OpenAI couldn't make it", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    hf.failAt = 1;
+    const res = await call({ prompt: "A family picnic at East Coast Park at sunset" });
+    expect(res.status).toBe(502);
+    expect(used(UID, "ai-image")).toBe(0);
+  });
+
   it("says the safety filter stopped it, with nothing asked of Higgsfield", async () => {
     env.OPENAI_API_KEY = "sk-test";
     oa.reply = () => answer({ error: { type: "image_generation_user_error", code: "moderation_blocked" } }, 400);
@@ -203,6 +211,14 @@ describe("Fix it", () => {
     oa.reply = () => answer({}, 503);
     expect((await call(await fixBody())).status).toBe(200);
     expect(hf.submits).toEqual(["https://api.higgsfield.ai/alibaba/qwen-image-3/edit"]);
+  });
+
+  it("gives both fixes back when OpenAI can't edit it and Higgsfield refuses the edit", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    hf.failAt = 1;
+    const res = await call(await fixBody());
+    expect(res.status).toBe(502);
+    expect([used(UID, "ai-image-fix"), used(GLOBAL_COUNTER_USER, "ai-image-fix-global")]).toEqual([0, 0]);
   });
 
   it("spends nothing when the picture it would fix can't be read back from Higgsfield", async () => {
@@ -250,6 +266,25 @@ describe("an AI B-roll clip", () => {
     expect([used(UID, "ai-broll"), used(GLOBAL_COUNTER_USER, "ai-broll-global")]).toEqual([0, 20]);
     expect(hf.submits).toEqual([]);
   });
+
+  it("gives both uses back when Higgsfield refuses the picture or its motion", async () => {
+    const ask = { mode: "broll", search: "hawker centre", line: "Lunch costs add up", aspect: "9:16" };
+    for (const failAt of [1, 2]) {
+      hf.submits.length = 0;
+      hf.failAt = failAt;
+      const res = await call(ask);
+      expect(res.status).toBe(502);
+      expect(hf.submits).toHaveLength(failAt);
+      expect([used(UID, "ai-broll"), used(GLOBAL_COUNTER_USER, "ai-broll-global")]).toEqual([0, 0]);
+    }
+  }, 20_000);
+
+  it("gives both uses back when Higgsfield fails the picture", async () => {
+    hf.status = { status: "failed" };
+    const res = await call({ mode: "broll", search: "hawker centre", line: "Lunch costs add up", aspect: "9:16" });
+    expect(res.status).toBe(502);
+    expect([used(UID, "ai-broll"), used(GLOBAL_COUNTER_USER, "ai-broll-global")]).toEqual([0, 0]);
+  }, 20_000);
 });
 
 describe("a slideshow's AI pictures", () => {

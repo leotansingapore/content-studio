@@ -192,6 +192,15 @@ describe("the voiceover and the dub (pinned at 6cdc59d2, before the lines mode a
     });
   }
 
+  it("gives the use back when ElevenLabs refuses or never answers a voiceover or a dub", async () => {
+    for (const next of [402, 500, "throw"] as const) {
+      eleven.next = next;
+      expect((await send(UID, { text: "Most people pay twice for a hospital stay.", voice: "alice" })).status).toBe(502);
+      expect((await send(UID, { mode: "dub", lines: ["Satu", "Dua"], voice: "alice", lang: "ms" })).status).toBe(502);
+      expect(voiced(UID)).toBe(0);
+    }
+  });
+
   it("answers anyone else who asks for word times with today's MP3", async () => {
     const res = await send(UID, { text: "Most people pay twice for a hospital stay.", voice: "alice", timestamps: true });
     expect(res.status).toBe(200);

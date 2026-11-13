@@ -148,10 +148,12 @@ Deno.serve(async (req) => {
         });
       } catch (e) {
         console.error("text-voice dub request failed", e);
+        await refundUsage(admin, uid, "ai-voice", day);
         return json({ error: RETRY }, 502);
       }
       if (!res.ok) {
         console.error("text-voice dub elevenlabs", res.status, (await res.text()).slice(0, 300));
+        await refundUsage(admin, uid, "ai-voice", day);
         return json({ error: res.status === 401 || res.status === 402 ? "Voiceover credits have run out. Tell your studio admin." : RETRY }, 502);
       }
       const out = await res.json();
@@ -173,10 +175,12 @@ Deno.serve(async (req) => {
       });
     } catch (e) {
       console.error("text-voice request failed", e);
+      await refundUsage(admin, uid, "ai-voice", day);
       return json({ error: RETRY }, 502);
     }
     if (!res.ok) {
       console.error("text-voice elevenlabs", res.status, (await res.text()).slice(0, 300));
+      await refundUsage(admin, uid, "ai-voice", day);
       return json({ error: res.status === 401 || res.status === 402 ? "Voiceover credits have run out. Tell your studio admin." : RETRY }, 502);
     }
     console.log("text-voice", parsed.voice, parsed.emotion, parsed.pace, parsed.text.length, "chars, cost", res.headers.get("character-cost") ?? "?");

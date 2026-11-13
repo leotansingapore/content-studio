@@ -470,6 +470,7 @@ Deno.serve(async (req) => {
       try {
         return json({ token: await jobToken(signing, uid, await submit(PICTURE_MODEL, presenterBody(r.look, r.setting))) });
       } catch (e) {
+        await refundUsage(admin, uid, "ai-image", day);
         return failed(e);
       }
     }

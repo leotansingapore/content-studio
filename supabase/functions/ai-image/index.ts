@@ -131,7 +131,11 @@ Deno.serve(async (req) => {
         const refusal = usageRefusal(everyone);
         return json(refusal.body, refusal.status);
       }
-      const refuse = (status: number) => json({ error: status === 403 ? "AI clip credits have run out. Tell your studio admin." : "Couldn't make the clip right now. Try again in a minute." }, 502);
+      const back = () => Promise.all([refundUsage(admin, uid, "ai-broll", day), refundUsage(admin, GLOBAL_COUNTER_USER, "ai-broll-global", day)]);
+      const refuse = async (status: number) => {
+        await back();
+        return json({ error: status === 403 ? "AI clip credits have run out. Tell your studio admin." : "Couldn't make the clip right now. Try again in a minute." }, 502);
+      };
       // the picture first, waited for here (about 10 to 30 s), so one call makes one clip
       const pic = await submit(PICTURE_MODEL, scenePictureBody(broll.request));
       if (typeof pic !== "string") return refuse(pic);
@@ -140,10 +144,16 @@ Deno.serve(async (req) => {
         await new Promise((r) => setTimeout(r, 3000));
         const res = await fetch(`${HF_BASE}/requests/${pic}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) }).catch(() => null);
         const st = res?.ok ? readStatus(await res.json().catch(() => null)) : { state: "working" as const };
-        if (st.state === "failed") return json({ error: st.error }, 502);
+        if (st.state === "failed") {
+          await back();
+          return json({ error: st.error }, 502);
+        }
         if (st.state === "done") url = st.url;
       }
-      if (!url) return json({ error: "The clip took too long to start. Try again." }, 504);
+      if (!url) {
+        await back();
+        return json({ error: "The clip took too long to start. Try again." }, 504);
+      }
       const vid = await submit(MOTION_MODEL, motionBody(url));
       if (typeof vid !== "string") return refuse(vid);
       return json({ token: await jobToken(signing, uid, vid) });
@@ -217,7 +227,10 @@ Deno.serve(async (req) => {
       if (redone === "blocked") return json({ error: BLOCKED }, 422);
       if (redone) return json({ token: await jobToken(signing, uid, redone), usage: { used: mine.used, limit: mine.limit } });
       const fixed = await submit(FIX_MODEL, buildFixBody(url, parsed.request.fix));
-      if (typeof fixed !== "string") return json({ error: fixed === 403 ? "Image credits have run out. Tell your studio admin." : RETRY }, 502);
+      if (typeof fixed !== "string") {
+        await Promise.all([refundUsage(admin, uid, "ai-image-fix", day), refundUsage(admin, GLOBAL_COUNTER_USER, "ai-image-fix-global", day)]);
+        return json({ error: fixed === 403 ? "Image credits have run out. Tell your studio admin." : RETRY }, 502);
+      }
       return json({ token: await jobToken(signing, uid, fixed), usage: { used: mine.used, limit: mine.limit } });
     }
 
@@ -245,14 +258,19 @@ Deno.serve(async (req) => {
       });
     } catch (e) {
       console.error("ai-image submit failed", e);
+      await refundUsage(admin, uid, "ai-image", day);
       return json({ error: RETRY }, 502);
     }
     if (!res.ok) {
       console.error("ai-image submit", res.status, (await res.text()).slice(0, 300));
+      await refundUsage(admin, uid, "ai-image", day);
       return json({ error: res.status === 403 ? "Image credits have run out. Tell your studio admin." : RETRY }, 502);
     }
     const id = (await res.json().catch(() => null))?.request_id;
-    if (typeof id !== "string") return json({ error: RETRY }, 502);
+    if (typeof id !== "string") {
+      await refundUsage(admin, uid, "ai-image", day);
+      return json({ error: RETRY }, 502);
+    }
     return json({ token: await jobToken(signing, uid, id), usage: { used: usage.used, limit: usage.limit } });
   } catch (e) {
     console.error("ai-image failed", e);
