@@ -3,7 +3,6 @@ import { Link, Outlet, useLocation, useNavigate, useNavigationType, useSearchPar
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
-import ChannelsBlock from "@/components/ChannelsBlock";
 import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
@@ -712,7 +711,6 @@ export default function StudioLayout() {
               </button>
             )}
           </div>
-          {!folded && <ChannelsBlock userId={uid ?? leo?.id} className="px-3 pt-5" />}
           <nav aria-label="Sections" className={`space-y-1 pt-5 ${folded ? "px-2" : "px-3"}`}>
             {MAIN_SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => (
               // a chat is lit in the chats list, not as Home (Fastlane's)
@@ -904,7 +902,6 @@ export default function StudioLayout() {
               </Suspense>
             </ErrorBoundary>
           )}
-          <ChannelsBlock userId={uid ?? leo?.id} className="mb-4" />
           <div className="grid grid-cols-2 gap-2">
             {sheet.map((t) => (
               <MoreTileLink key={t.sectionId} tile={{ ...t, to: sectionTo(section(t.sectionId)) }} active={tileActive(t)} />
