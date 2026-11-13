@@ -82,15 +82,24 @@ export async function pollDesk<T>(job: string, opts: Omit<RunOpts, "userId" | "o
   opts.onPhase?.("queued");
   const started = now();
   let phase: DeskPhase = "queued";
+  let blip: unknown = null;
   while (now() - started < (opts.giveUpMs ?? GIVE_UP_MS)) {
     await sleep(POLL_MS);
     if (opts.signal?.aborted) throw new EdgeError("Stopped.", 0, "stopped");
-    const r = await callFn<{ status: string; result?: unknown; error?: string }>("script-desk", { action: "job", id: job }, undefined, { signal: opts.signal });
+    let r: { status: string; result?: unknown; error?: string };
+    try {
+      r = await callFn<{ status: string; result?: unknown; error?: string }>("script-desk", { action: "job", id: job }, undefined, { signal: opts.signal });
+    } catch (e) {
+      if (opts.signal?.aborted || !(e instanceof EdgeError) || (e.status !== 0 && e.status < 500)) throw e;
+      blip = e;
+      continue;
+    }
+    blip = null;
     if (r.status === "done") return r.result as T;
     if (r.status === "failed") throw new EdgeError(r.error || "That didn't go through. Try again.", 502, "failed");
     if (r.status === "claimed" && phase !== "claimed") opts.onPhase?.((phase = "claimed"));
   }
-  throw new EdgeError("Your Mac is taking too long. Try again.", 504, "timeout");
+  throw blip ?? new EdgeError("Your Mac is taking too long. Try again.", 504, "timeout");
 }
 
 /**

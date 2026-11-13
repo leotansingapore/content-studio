@@ -13,6 +13,7 @@ vi.mock("@/lib/edgeFn", async (real) => ({
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_URL: "https://x.supabase.co" }));
 
 import { DEFAULT_DIALS, DIAL_META, deskPostId, levelOf, runDesk, runRescript, saveScriptDraft, secondsOf, wordsOf } from "./scriptDesk";
+import { EdgeError } from "@/lib/edgeFn";
 import { deleteDraft, loadDrafts } from "./draftHistory";
 import { saveScriptContext } from "./scriptContext";
 
@@ -75,6 +76,16 @@ describe("runDesk", () => {
     await expect(runDesk({ action: "hooks", topic: "t" }, opts())).rejects.toThrow("Your Mac didn't pick this up");
     calls.replies.push({ job: "j2" }, ...Array.from({ length: 400 }, () => ({ status: "claimed" })));
     await expect(runDesk({ action: "hooks", topic: "t" }, opts())).rejects.toThrow("taking too long");
+  });
+
+  it("keeps waiting through a poll that can't reach the server or gets a 5xx, and ends on a 4xx", async () => {
+    const offline = () => new EdgeError("Couldn't reach the server. Check your connection and try again.", 0);
+    calls.replies.push({ job: "j1" }, { status: "queued" }, offline(), new EdgeError("Something went wrong. Try again in a minute.", 500, "failed"), { status: "claimed" }, { status: "done", result: { title: "t", script: "s" } });
+    await expect(runDesk({ action: "write", entry: "dials" }, opts())).resolves.toEqual({ title: "t", script: "s" });
+    calls.replies.push({ job: "j2" }, offline(), new EdgeError("That job isn't there any more. Start it again.", 404, "gone"));
+    await expect(runDesk({ action: "hooks", topic: "t" }, opts())).rejects.toThrow("isn't there any more");
+    calls.replies.push({ job: "j3" }, ...Array.from({ length: 400 }, offline));
+    await expect(runDesk({ action: "hooks", topic: "t" }, opts())).rejects.toThrow("Couldn't reach the server");
   });
 
   it("keeps waiting past five minutes when the caller asks for longer, as a research read does", async () => {
