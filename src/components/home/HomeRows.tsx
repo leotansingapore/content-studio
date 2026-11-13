@@ -209,7 +209,7 @@ export function RemixCompetitorAd({ watching, ads, now = Date.now() }: { watchin
   );
 }
 
-function AdCard({ ad, c, now }: RunningAd & { now: number }) {
+export function AdCard({ ad, c, now }: RunningAd & { now: number }) {
   // Meta's picture links expire: a dead one shows "No preview" until the next weekly check on /competitors
   const [broken, setBroken] = useState(false);
   const view = links.competitors({ ad: ad.id });
