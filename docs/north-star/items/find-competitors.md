@@ -152,7 +152,7 @@ Mode `suggest`, body `{ mode: "suggest", brand: { name, site, sells, serves, top
 2. The LLM (`openaiChat`, `OPENAI_MODEL`, JSON schema) proposes up to 8 more `{ name, site }` from the brand's own words. Each site must answer a safe fetch with a 200, so an invented domain is dropped.
 3. Jev scores every candidate, 10 at a time as `market` does. Its `pool` helper is private to `market/index.ts`; move it to `supabase/functions/_shared/pool.ts` and import it in both functions (market's tests stay green). Keep 0.6 and up, best first, 6 at most, minus anything in `exclude` (current list and `dismissed`).
 4. One more LLM call writes the why line for the kept ones: JSON `[{ key, why }]`, 160 characters max, about the buyer and the shared need, no figures, no promises.
-5. Jev null: refund the use and return `{ suggestions: [], note: "Suggestions are unavailable right now. Add one you know." }`.
+5. Jev null: keep the use (the propose call already answered and billed) and return `{ suggestions: [], note: "Suggestions are unavailable right now. Add one you know." }`.
 
 Jev question `compare` (noul), state `{ brand, sells, serves, country: "Singapore", candidate: { name, about } }`:
 

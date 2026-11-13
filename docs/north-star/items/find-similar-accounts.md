@@ -67,7 +67,7 @@ States:
 - Empty: "See how apps and creators like yours post on Instagram and TikTok, then remix their best." and the Find button (with the add box under it).
 - Finding: the button spins and "Looking on Instagram and TikTok, about two minutes..." shows at once; the job runs outside React, so leaving the page keeps it going.
 - Found: "Found 12 new accounts. Reading their posts now." Then the posts come in one account at a time, 30 each on the first read, under "Reading @x, about a minute, n more after it..." with skeleton cards until the first lands.
-- Jev answered nothing: "Couldn't judge the accounts right now, so nothing new was kept. This run wasn't counted."
+- Jev answered nothing: "Couldn't judge the accounts right now, so nothing new was kept." The uses stay counted: Apify and OpenAI already answered and billed.
 - Nothing new: "No new accounts this time."
 - 40 found accounts: the button is off with "You have 40. Take some out with Not this one to find others."
 - Over the month: "Apps like yours has used this month's US$40. It starts again on 1 December." (the server's line).

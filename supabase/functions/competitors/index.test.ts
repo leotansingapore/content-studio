@@ -324,10 +324,11 @@ describe("competitors suggest", () => {
     expect(db.refunded).toEqual([]);
   });
 
-  it("gives the use back with the note when Jev is down", async () => {
+  it("keeps the use, since OpenAI answered and was paid, and says so with the note when Jev is down", async () => {
     jevMode = "down";
     expect((await call({ mode: "suggest", brand, candidates })).body).toEqual({ suggestions: [], note: "Suggestions are unavailable right now. Add one you know." });
-    expect(db.refunded).toEqual(["competitor-suggest"]);
+    expect(db.spent).toEqual(["competitor-suggest"]);
+    expect(db.refunded).toEqual([]);
   });
 
   it("gives the use back when OpenAI fails, on either call", async () => {
@@ -761,11 +762,11 @@ describe("competitors similar", () => {
     expect(jevAccounts).not.toContain("thedoapp");
   });
 
-  it("keeps nothing and gives both uses back when Jev answers nothing", async () => {
+  it("keeps no account but keeps both uses, since Apify answered and was paid, when Jev answers nothing", async () => {
     jevMode = "down";
     const r = await call(body);
-    expect(r).toEqual({ status: 200, body: expect.objectContaining({ accounts: [], note: "Couldn't judge the accounts right now, so nothing new was kept. This run wasn't counted." }) });
-    expect(db.refunded).toEqual(["similar-find", "similar-find-global"]);
+    expect(r).toEqual({ status: 200, body: expect.objectContaining({ accounts: [], note: "Couldn't judge the accounts right now, so nothing new was kept.", month: expect.objectContaining({ cap: 40 }) }) });
+    expect(db.refunded).toEqual([]);
   });
 
   it("gives both uses back when no Apify run answered, and keeps them when one did", async () => {

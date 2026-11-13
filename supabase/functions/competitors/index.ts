@@ -189,10 +189,7 @@ async function suggest(admin: Admin, uid: string, body: unknown): Promise<Respon
   const all = [...known, ...opened.filter((c): c is Candidate => c !== null)];
   const scores = await pool(all, 10, async (c) => noulOf(await jev(compareAsk(brand, c), "competitors compare"), "compare"));
   const kept = suggestFilter(all, scores, exclude, brand);
-  if (kept === null) {
-    await giveBack();
-    return json({ suggestions: [], note: "Suggestions are unavailable right now. Add one you know." });
-  }
+  if (kept === null) return json({ suggestions: [], note: "Suggestions are unavailable right now. Add one you know." });
   if (!kept.length) return json({ suggestions: [] });
 
   const written = await ask({ model: OPENAI_MODEL, max_tokens: 900, response_format: WHY_FORMAT, messages: whyMessages(brand, kept) });
@@ -403,7 +400,7 @@ async function similar(admin: Admin, uid: string, body: unknown): Promise<Respon
     await giveBack();
     return fail(502, "failed", SIMILAR_FAILED);
   }
-  // Apify answered (and billed): from here the uses are kept, unless Jev answers nothing
+  // Apify answered (and billed): from here the uses are kept
   const found = tiktokCandidates(tt.flatMap((x) => (x.status === "fulfilled" ? x.value : [])));
   const igv = ig.status === "fulfilled" ? ig.value : { seeds: [], related: [] };
   // a TikTok seed is judged on what a search said about it, else on its name alone (a rival's, on its home page's words)
@@ -423,10 +420,7 @@ async function similar(admin: Admin, uid: string, body: unknown): Promise<Respon
     console.log(`competitors similar: ${accountKey(c)}${rivalOf.has(accountKey(c)) ? ` (${c.via})` : ""} | ${c.bio.replace(/\s+/g, " ").slice(0, 80)} | ${answers[k]?.similar?.noul ?? "unjudged"} | ${answers[k]?.kind?.choice ?? "-"}`));
   const kept = similarKeep(cands, answers);
   const failed = tt.filter((x) => x.status === "rejected").length + (ig.status === "rejected" ? 1 : 0);
-  if (kept === null) {
-    await giveBack();
-    return json({ accounts: [], phrases, failed, note: "Couldn't judge the accounts right now, so nothing new was kept. This run wasn't counted.", checkedAt: new Date().toISOString() });
-  }
+  if (kept === null) return json({ accounts: [], phrases, failed, note: "Couldn't judge the accounts right now, so nothing new was kept.", month: month.after, checkedAt: new Date().toISOString() });
   return json({ accounts: kept, phrases, failed, month: month.after, checkedAt: new Date().toISOString() });
 }
 
