@@ -641,6 +641,17 @@ export function openedToast(entry: Pick<DraftEntry, "draft" | "pillar">): { titl
   if (!entry.draft && !entry.pillar) return { title: "Idea loaded", description: "Your board idea is the topic. Pick a format and generate." };
   return entry.draft.trim() ? { title: "Draft restored", description: "Form repopulated. Edit and re-roll, or copy as-is." } : null;
 }
+/**
+ * Whose post a Remix this brief came from, and its angle, read back from the notes buildRemixUrl (topPosts.ts) writes,
+ * so the writer can say so. shortcut: reads that function's wording (pinned in GeneratePage.test.ts); give the link
+ * its own fields if the wording changes.
+ */
+export function remixFrom(ideaContext: string): { handle: string; angle: string | null } | null {
+  const by = ideaContext.match(/^Reverse-engineer this proven post by .*? \((@?[\w.]+)\)/);
+  if (!by) return null;
+  const angle = ideaContext.match(/Content angle to keep: (.+?)(?= Structure to follow: | How to adapt it for me: | Change the specifics |$)/);
+  return { handle: by[1].startsWith("@") ? by[1] : `@${by[1]}`, angle: angle?.[1].trim() || null };
+}
 /** A calendar day's posting slot: the day at that time; today with the time already gone, the day alone, never a past time. */
 export const daySlot = (day: string, time: string, now = new Date()): string => (new Date(`${day}T${time}`) < now ? day : `${day}T${time}`);
 /** Where a save leaves a post: a saved one keeps its own status and time; a new one written from a calendar day goes onto it. */
@@ -3477,6 +3488,7 @@ function Writer() {
   // The topic is the only required field: once it is in, Generate is one tap
   // from any step and the optional steps stay a Next away.
   const canGenerateEarly = wizardStep < LAST_STEP && pillarDetail.trim().length > 0 && !isStreaming;
+  const remix = remixFrom(ideaContext);
 
   const goNext = () =>
     setWizardStep((s) => Math.min(LAST_STEP, s + 1));
@@ -3984,6 +3996,12 @@ function Writer() {
           </CardTitle>
           {/* a link opens Write on this step, so say what the post is about here, not only two steps back */}
           {pillarDetail.trim() && <p className="text-sm text-muted-foreground">About: {pillarDetail.trim()}</p>}
+          {/* a Remix this brief says whose post it carries (Leo's sessions show the source chip instead) */}
+          {remix && !(leo && remixSource) && (
+            <p className="text-sm text-muted-foreground">
+              From {remix.handle}'s post{remix.angle ? `. Angle: ${remix.angle}` : ""}
+            </p>
+          )}
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">

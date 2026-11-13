@@ -280,3 +280,16 @@ describe("a post written from a calendar day (?day=)", () => {
     expect(savedSchedule({ status: "scheduled", scheduledFor: "2026-11-18T09:00" }, "2026-11-20T08:30")).toEqual({ status: "scheduled", scheduledFor: "2026-11-18T09:00" });
   });
 });
+
+describe("a remix of a top post names its source in the writer", () => {
+  it("reads the handle and the angle from the brief Remix this filled in, and nothing from any other brief", async () => {
+    const { remixFrom } = await import("./GeneratePage");
+    const { buildRemixUrl } = await import("@/lib/topPosts");
+    const post = { shortCode: "ABC", url: "", type: "Image", likes: 1, comments: 1, views: 1, caption: "Three CPF moves", idea: { hook: "Three CPF moves", why: "It names a number" } };
+    const ctx = (extras?: { angle?: string; structure?: string }) =>
+      new URL(buildRemixUrl(post as never, { name: "Sam Lee", handle: "@samlee.sg" }, extras), "http://x").searchParams.get("ctx")!;
+    expect(remixFrom(ctx({ angle: "Myth vs fact", structure: "Three numbered moves" }))).toEqual({ handle: "@samlee.sg", angle: "Myth vs fact" });
+    expect(remixFrom(ctx())).toEqual({ handle: "@samlee.sg", angle: null });
+    expect(remixFrom("Most people pay twice")).toBeNull();
+  });
+});
