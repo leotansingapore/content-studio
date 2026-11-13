@@ -22,7 +22,7 @@ const fake = vi.hoisted(() => {
     writeFails: "",
     image: null as null | Record<string, unknown>,
     imageFails: "",
-    calls: [] as { prompt: string; name: string }[],
+    calls: [] as { prompt: string; name: string; o?: unknown }[],
   };
 });
 vi.mock("@/lib/supabase", () => ({
@@ -51,14 +51,14 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   ...(await actual<typeof import("@/lib/aiImage")>()),
   imageJob: () => fake.image,
   imageBusy: () => false,
-  makeImage: async (_u: string, prompt: string, name: string) => {
-    fake.calls.push({ prompt, name });
+  makeImage: async (_u: string, prompt: string, name: string, _design?: string, _agent?: unknown, o?: unknown) => {
+    fake.calls.push({ prompt, name, o });
     await Promise.resolve();
     fake.image = fake.imageFails ? { prompt, state: "failed", error: fake.imageFails } : { prompt, state: "done", mediaKey: "cimg-photo1", preview: "data:image/jpeg;base64,eA" };
   },
 }));
 
-import { PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, photoAd, photoAdPrompt, startPhotoAd } from "./photoAd";
+import { PHOTO_EDGES, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, photoAd, photoAdPrompt, shownPhotoAd, startPhotoAd } from "./photoAd";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
 import { IMAGE_FIELDS, isStatic } from "@/lib/imageLayout";
@@ -84,6 +84,12 @@ describe("the photo prompt", () => {
   it("puts a typed field the layout draws on the picture too (a flyer's price)", () => {
     const flyer = staticFormatBySlug("tear-off-flyer")!;
     expect(photoAdPrompt(flyer, hilltop, { headline: "Cold brew, delivered.", price: "$6 a bottle" })).toContain('Headline: "Cold brew, delivered."; Price: "$6 a bottle".');
+  });
+
+  it("keeps every word clear of the top and bottom edges, which the 4:5 cut takes off", () => {
+    const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." });
+    expect(PHOTO_EDGES).toBe("Keep all text well clear of the top and bottom edges.");
+    expect(p).toContain(`"Still dark.". ${PHOTO_EDGES} ${PHOTO_PEOPLE}`);
   });
 
   it("ends on the people line and the spelling rule, word for word", () => {
@@ -140,7 +146,8 @@ describe("the photo run", () => {
     expect(p).toMatchObject({ slug: "street-poster", state: "done", mediaKey: "cimg-photo1" });
     const design = imageById(U, p.designId)!;
     expect(design).toMatchObject({ layout: "street-poster", words: { topic: "Rainy mornings", headline: "Still dark, still raining." } });
-    expect(fake.calls).toEqual([{ prompt: photoAdPrompt(poster, { name: "", color: DEFAULT_BRAND.color }, design.words), name: "Poster in the street: Still dark, still raining." }]);
+    // the words flag (no "No text" rule, no Soul v2) and kept cut to the examples' 4:5
+    expect(fake.calls).toEqual([{ prompt: photoAdPrompt(poster, { name: "", color: DEFAULT_BRAND.color }, design.words), name: "Poster in the street: Still dark, still raining.", o: { words: true, ratio: 0.8 } }]);
   });
 
   it("spends nothing on a picture when the words fail or come back empty, and says why", async () => {
@@ -165,5 +172,31 @@ describe("the photo run", () => {
     fake.imageFails = "The image was blocked by the safety filter. Change the prompt and try again.";
     await startPhotoAd(U, poster, { topic: "x" });
     expect(photoAd()).toMatchObject({ state: "failed", error: fake.imageFails });
+  });
+});
+
+describe("the run a format's page shows", () => {
+  const run = { seq: 3, slug: "street-poster", designId: "img-abcd1", state: "making" as const };
+  const picture = (o: Record<string, unknown> = {}) => ({ prompt: `${poster.scene} The brand colour is #000000.`, state: "working" as const, ...o });
+
+  it("is its own run, never another format's, and a live run outranks an older picture job", () => {
+    expect(shownPhotoAd(poster, run, null)).toBe(run);
+    expect(shownPhotoAd(chat, run, picture())).toBeNull();
+    // a chat photo made earlier in this visit is still the picture job while the poster's words are written
+    expect(shownPhotoAd(chat, run, picture({ prompt: `${chat.scene} The brand colour is #000000.`, state: "done", mediaKey: "cimg-chat1" }))).toBeNull();
+  });
+
+  it("after a reload forgot the run, is the picture job whose prompt opens with this format's scene", () => {
+    expect(shownPhotoAd(poster, null, picture())).toMatchObject({ slug: "street-poster", state: "making", designId: "" });
+    expect(shownPhotoAd(poster, null, picture({ state: "saving" }))).toMatchObject({ state: "making" });
+    expect(shownPhotoAd(poster, null, picture({ state: "done", mediaKey: "cimg-photo1", preview: "data:x" }))).toMatchObject({ state: "done", mediaKey: "cimg-photo1", preview: "data:x" });
+    expect(shownPhotoAd(poster, null, picture({ state: "failed", error: "The image didn't come through. Try again." }))).toMatchObject({ state: "failed", error: "The image didn't come through. Try again." });
+  });
+
+  it("is nothing for another format's picture, any other picture, or a fix", () => {
+    expect(shownPhotoAd(chat, null, picture())).toBeNull();
+    expect(shownPhotoAd(poster, null, picture({ prompt: "A family picnic at East Coast Park" }))).toBeNull();
+    expect(shownPhotoAd(poster, null, picture({ fix: "make the sky bluer" }))).toBeNull();
+    expect(shownPhotoAd(poster, null, null)).toBeNull();
   });
 });

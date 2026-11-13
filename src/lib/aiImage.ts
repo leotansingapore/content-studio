@@ -7,7 +7,7 @@
 
 import { callFn } from "@/lib/edgeFn";
 import { loadBrand } from "@/lib/carousel";
-import { addMedia, storePicture } from "@/lib/mediaLibrary";
+import { addMedia, centerCrop, storePicture } from "@/lib/mediaLibrary";
 import { leoUser } from "@/lib/useLeoOnly";
 import { memoryLine } from "@/lib/voiceMemory";
 import { scoped } from "@/lib/profiles";
@@ -30,6 +30,8 @@ export interface ImageJob {
   designId?: string;
   /** The agent's chat that asked for it: Activity logs it as the agent's (live-p6replay D6). */
   agent?: { thread: string; msg: string };
+  /** The shape it is kept in (width / height), cut from the middle: a photo ad's 4:5. A fix keeps it too. */
+  ratio?: number;
 }
 
 export const AI_FOLDER = "AI images";
@@ -38,7 +40,7 @@ const GIVE_UP_MS = 4 * 60_000;
 const PENDING = "cs-ai-image-making-"; // this device only, on purpose: the token is no use elsewhere
 
 /** A make or fix whose use is spent and whose picture isn't kept yet. */
-type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string; agent?: ImageJob["agent"] };
+type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string; agent?: ImageJob["agent"]; ratio?: number };
 type Ask = Omit<Pending, "token">;
 
 function readPending(scope: string): Pending | null {
@@ -84,15 +86,16 @@ function withMemory(userId: string, prompt: string): string {
   return memory ? `${prompt}\n\n${memory}` : prompt;
 }
 
-/** Where the logo sits on a picture: 12% of its width, bottom right, 3% in from the edges. */
-export function logoBox(w: number, h: number, logoW: number, logoH: number) {
-  const width = Math.round(w * 0.12);
+/** Where the logo sits on a picture: 12% of its width, bottom right, 3% in from the edges; of the part kept, when a ratio cuts it. */
+export function logoBox(w: number, h: number, logoW: number, logoH: number, ratio?: number) {
+  const area = ratio ? centerCrop(w, h, ratio) : { x: 0, y: 0, w, h };
+  const width = Math.round(area.w * 0.12);
   const height = Math.round((width * logoH) / Math.max(1, logoW));
-  const margin = Math.round(w * 0.03);
-  return { x: w - margin - width, y: h - margin - height, width, height };
+  const margin = Math.round(area.w * 0.03);
+  return { x: area.x + area.w - margin - width, y: area.y + area.h - margin - height, width, height };
 }
 
-async function stampLogo(pic: Blob, logo: string): Promise<Blob> {
+async function stampLogo(pic: Blob, logo: string, ratio?: number): Promise<Blob> {
   const [img, mark] = await Promise.all([createImageBitmap(pic), fetch(logo).then((r) => r.blob()).then((b) => createImageBitmap(b))]);
   const c = document.createElement("canvas");
   c.width = img.width;
@@ -100,7 +103,7 @@ async function stampLogo(pic: Blob, logo: string): Promise<Blob> {
   const g = c.getContext("2d");
   if (!g) return pic;
   g.drawImage(img, 0, 0);
-  const box = logoBox(img.width, img.height, mark.width, mark.height);
+  const box = logoBox(img.width, img.height, mark.width, mark.height, ratio);
   g.drawImage(mark, box.x, box.y, box.width, box.height);
   return new Promise((resolve) => c.toBlob((out) => resolve(out ?? pic), "image/png"));
 }
@@ -109,24 +112,29 @@ async function stampLogo(pic: Blob, logo: string): Promise<Blob> {
  * "Logo on AI pictures" (brand-kit, Leo only): the kit's logo on the picture before it is kept, a fix's result
  * included (Fix it edits the unstamped original). Anyone else's picture, or one the stamp fails on, as it came.
  */
-async function withLogo(userId: string, pic: Blob): Promise<Blob> {
+async function withLogo(userId: string, pic: Blob, ratio?: number): Promise<Blob> {
   try {
     if (!(await leoUser())) return pic;
     const kit = loadBrand(userId);
-    return kit?.logo && kit.stamp?.pictureLogo ? await stampLogo(pic, kit.logo) : pic;
+    return kit?.logo && kit.stamp?.pictureLogo ? await stampLogo(pic, kit.logo, ratio) : pic;
   } catch {
     return pic;
   }
 }
 
-export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"]): Promise<void> =>
-  run(userId, { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}) }, { mode: "start", prompt: withMemory(userId, prompt) });
+/** o.words: the picture prints the prompt's quoted lines (ai-image's words flag); o.ratio: kept cut to that shape (width / height). */
+export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"], o: { words?: true; ratio?: number } = {}): Promise<void> =>
+  run(
+    userId,
+    { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}), ...(o.ratio ? { ratio: o.ratio } : {}) },
+    { mode: "start", prompt: withMemory(userId, prompt), ...(o.words ? { words: true } : {}) },
+  );
 
 /** "Fix it": GPT Image 2.6 Flare edits the finished picture; the fixed one is saved to Media beside the original. */
 export function fixImage(userId: string, fix: string): Promise<void> {
   const j = job;
   if (!j?.token || j.state !== "done" || imageBusy()) return Promise.resolve();
-  return run(userId, { prompt: j.prompt, name: j.name ?? "AI image", fix }, { mode: "fix", token: j.token, fix }, j);
+  return run(userId, { prompt: j.prompt, name: j.name ?? "AI image", fix, ...(j.ratio ? { ratio: j.ratio } : {}) }, { mode: "fix", token: j.token, fix }, j);
 }
 
 async function run(userId: string, ask: Ask, body: Record<string, unknown>, before?: ImageJob): Promise<void> {
@@ -161,7 +169,9 @@ function failed(prompt: string, e: unknown, before?: ImageJob) {
   set(before ? { ...before, fixError: error } : { prompt, state: "failed", error });
 }
 
-async function finish(userId: string, scope: string, { token, prompt, name, fix, designId }: Pending, before?: ImageJob): Promise<void> {
+async function finish(userId: string, scope: string, { token, prompt, name, fix, designId, ratio: asked }: Pending, before?: ImageJob): Promise<void> {
+  // read back from this device after a reload, so only a real shape counts
+  const ratio = typeof asked === "number" && asked > 0 ? asked : undefined;
   try {
     let url = "";
     for (const until = Date.now() + GIVE_UP_MS; !url && Date.now() < until; ) {
@@ -175,14 +185,14 @@ async function finish(userId: string, scope: string, { token, prompt, name, fix,
     set({ prompt, state: "saving", fix, designId });
     const res = await fetch(url).catch(() => null);
     if (!res?.ok) throw new Error("The image was made but didn't download. Try again.");
-    const pic = await storePicture(await withLogo(userId, await res.blob()));
+    const pic = await storePicture(await withLogo(userId, await res.blob(), ratio), undefined, ratio);
     const saved = fix ? `${name} (fixed)`.slice(0, 80) : name;
     addMedia(userId, {
       key: pic.key, name: saved, folder: AI_FOLDER, alt: (fix ? `${prompt} Fixed: ${fix}` : prompt).slice(0, 250),
       width: pic.width, height: pic.height, addedAt: new Date().toISOString(),
     });
     keepPending(scope, null);
-    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name, designId });
+    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name, designId, ...(ratio ? { ratio } : {}) });
   } catch (e) {
     keepPending(scope, null);
     failed(prompt, e, before);

@@ -7,11 +7,16 @@ export const HF_MODEL = "higgsfield-ai/soul/v2/standard";
 export const MIN_PROMPT = 10;
 export const MAX_PROMPT = 1200;
 
-/** Leo's standing rule: people default to Singaporeans in Singapore, each one distinct. */
-export const PEOPLE_RULE =
+/**
+ * PEOPLE_RULE without its "No text" clause, for a picture that carries words ({mode: "start", words: true}: a static
+ * format made as a photo, whose prompt quotes every line to print and bars other logos itself).
+ */
+export const WORDS_PEOPLE_RULE =
   "Set in Singapore. Any people shown are Singaporean or other Asian (a natural mix of Chinese, Malay, Indian and Eurasian), " +
   "each one clearly different from the others in age, build, face, hair and clothes; good-looking, well-groomed, natural expressions. " +
-  "Polished lifestyle photograph. No text, no words, no logos, no watermarks.";
+  "Polished lifestyle photograph.";
+/** Leo's standing rule: people default to Singaporeans in Singapore, each one distinct. */
+export const PEOPLE_RULE = `${WORDS_PEOPLE_RULE} No text, no words, no logos, no watermarks.`;
 
 /** "Fix it" under a finished picture: Qwen Image 3 edits it from one instruction (the web stand-in for
  * Higgsfield's Photoshop /image-fixer skill, which needs a desktop app). */
@@ -21,7 +26,8 @@ export const MAX_FIX = 300;
 export const KEEP_RULE = "Change only what is asked and keep everything else in the picture exactly as it is. Anyone added is Singaporean or other Asian.";
 
 export type ImageRequest =
-  | { mode: "start"; prompt: string }
+  /** words: the picture prints the prompt's quoted lines, so no "No text" rule and no Soul v2, which can't print them. */
+  | { mode: "start"; prompt: string; words?: true }
   | { mode: "status"; token: string }
   | { mode: "fix"; token: string; fix: string };
 
@@ -43,7 +49,7 @@ export function parseImageRequest(raw: unknown): { ok: true; request: ImageReque
   const prompt = typeof b.prompt === "string" ? b.prompt.replace(/\s+/g, " ").trim() : "";
   if (prompt.length < MIN_PROMPT) return { ok: false, error: "Write a longer image prompt first." };
   if (prompt.length > MAX_PROMPT) return { ok: false, error: `Keep the image prompt under ${MAX_PROMPT} characters.` };
-  return { ok: true, request: { mode: "start", prompt } };
+  return { ok: true, request: { mode: "start", prompt, ...(b.words === true ? { words: true as const } : {}) } };
 }
 
 /** The body for Soul v2: the post's prompt plus the people rule, 3:4 (the nearest to a 4:5 slide), 1080p. */

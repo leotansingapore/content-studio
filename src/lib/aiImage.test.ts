@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
 const as = vi.hoisted(() => ({ user: null as null | { id: string; email: string } }));
 vi.mock("@/lib/useLeoOnly", () => ({ leoUser: async () => as.user }));
-vi.mock("@/lib/mediaLibrary", () => ({
+vi.mock("@/lib/mediaLibrary", async (actual) => ({
+  centerCrop: (await actual<typeof import("@/lib/mediaLibrary")>()).centerCrop,
   addMedia: vi.fn(),
   storePicture: vi.fn(async () => ({ key: "pic-1", url: "data:image/png;base64,x", width: 1080, height: 1440 })),
 }));
@@ -130,6 +131,8 @@ describe("a make and a fix for everyone else, pinned", () => {
       ["u1", { key: "pic-1", name: "Picnic at East Coast Park", folder: "AI images", alt: "A family picnic at East Coast Park", width: 1080, height: 1440, addedAt: "string" }],
       ["u1", { key: "pic-1", name: "Picnic at East Coast Park (fixed)", folder: "AI images", alt: "A family picnic at East Coast Park Fixed: make the sky bluer", width: 1080, height: 1440, addedAt: "string" }],
     ]);
+    // kept as made, nothing cut off
+    expect(vi.mocked(storePicture).mock.calls.map(([, , ratio]) => ratio)).toEqual([undefined, undefined]);
   });
 
   it("says why when Higgsfield fails, and keeps nothing", async () => {
@@ -199,6 +202,47 @@ describe("a reload while a picture is made (D4)", () => {
     start({ token: "t1" });
     await settle(making);
     expect(vi.mocked(callFn).mock.calls.filter(([, b]) => (b as { token?: string }).token === "t8")).toHaveLength(0);
+  });
+});
+
+describe("a photo ad: words on it, kept 4:5", () => {
+  const KEY = "cs-ai-image-making-u1";
+  const store = new Map<string, string>();
+  const done = { state: "done", url: "https://db/storage/v1/object/sign/cs-ai-images/u1/p.jpg" };
+  const shapes = () => vi.mocked(storePicture).mock.calls.map(([, , ratio]) => ratio);
+  beforeEach(() => {
+    store.clear();
+    const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", localStorage);
+    vi.stubGlobal("window", { localStorage, location: { search: "" } });
+  });
+
+  it("asks for the words, keeps the shape on this device until it lands, and cuts the made and the fixed picture to it", async () => {
+    let waiting: unknown = null;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      const b = body as Body;
+      if (b.mode === "start") return { token: "t1" };
+      if (b.mode === "fix") return { token: "t2" };
+      waiting ??= JSON.parse(store.get(KEY) ?? "null");
+      return done;
+    });
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8 }));
+    expect(starts()[0][1]).toEqual({ mode: "start", prompt: "A poster at a bus shelter", words: true });
+    expect(waiting).toEqual({ prompt: "A poster at a bus shelter", name: "Poster", ratio: 0.8, token: "t1" });
+    expect(imageJob()).toMatchObject({ state: "done", ratio: 0.8 });
+    await settle(fixImage("u1", "make the sky bluer"));
+    expect(shapes()).toEqual([0.8, 0.8]);
+  });
+
+  it("cuts a picture picked up after a reload to its shape, and ignores a shape that isn't one", async () => {
+    vi.mocked(callFn).mockImplementation(async () => done);
+    store.set(KEY, JSON.stringify({ token: "t9", prompt: "A poster", name: "Poster", ratio: 0.8 }));
+    resumeImage("u1");
+    await settle(Promise.resolve());
+    store.set(KEY, JSON.stringify({ token: "t8", prompt: "A poster", name: "Poster", ratio: "wide" }));
+    resumeImage("u1");
+    await settle(Promise.resolve());
+    expect(shapes()).toEqual([0.8, undefined]);
   });
 });
 
@@ -332,6 +376,18 @@ describe("Logo on AI pictures (brand-kit)", () => {
     kit(true);
     expect(await run()).toEqual(["stamped", "stamped"]);
     expect(drawn[1]).toEqual([{ width: 1080, height: 1440 }, ...Object.values(logoBox(1080, 1440, 1080, 1440))]);
+  });
+
+  it("keeps a photo ad's logo inside the 4:5 part it keeps, clear of the cut", async () => {
+    // GPT Image's 1152x1536 cut to 1152x1440 loses 48 px top and bottom
+    const box = logoBox(1152, 1536, 400, 200, 0.8);
+    expect(box).toEqual({ x: 979, y: 1384, width: 138, height: 69 });
+    expect(box.y + box.height).toBeLessThanOrEqual(48 + 1440);
+    kit(true);
+    vi.mocked(callFn).mockImplementation(async (_fn, body) =>
+      (body as Body).mode === "status" ? { state: "done", url: "https://cdn.higgsfield.ai/pic.png" } : { token: "t1" });
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8 }));
+    expect(drawn[1]).toEqual([{ width: 1080, height: 1440 }, ...Object.values(logoBox(1080, 1440, 1080, 1440, 0.8))]);
   });
 
   it("keeps the picture as made with the switch off or no logo", async () => {

@@ -17,11 +17,12 @@ const as = vi.hoisted(() => {
     },
     clear: () => store.clear(),
   };
-  return { user: null as null | undefined | { id: string; email: string }, left: {} as Record<string, number> };
+  return { user: null as null | undefined | { id: string; email: string }, left: {} as Record<string, number>, picture: null as null | Record<string, unknown> };
 });
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user, useLeoOnly: () => !!as.user }));
 // no canvas in node: the example is measured roughly, as the layout tests do
 vi.mock("@/lib/carouselRender", async (actual) => ({ ...(await actual<typeof import("@/lib/carouselRender")>()), createCanvasMeasure: () => (t: string, f: { size: number }) => t.length * f.size * 0.5 }));
+vi.mock("@/lib/aiImage", async (actual) => ({ ...(await actual<typeof import("@/lib/aiImage")>()), imageJob: () => as.picture }));
 vi.mock("@/lib/aiUsage", async (actual) => ({ ...(await actual<typeof import("@/lib/aiUsage")>()), useUsesLeft: () => (f: string) => as.left[f] ?? null }));
 vi.mock("@/lib/supabase", () => ({
   SUPABASE_URL: "https://abc.supabase.co",
@@ -42,6 +43,7 @@ const product = (o: Record<string, unknown> = {}) => ({ id: "pd-abcd1", name: "C
 afterEach(() => {
   as.user = null;
   as.left = {};
+  as.picture = null;
   localStorage.clear();
 });
 
@@ -87,6 +89,20 @@ describe("the static format page", () => {
     expect(button(page, "Make it as a photo")).toContain('disabled=""');
     expect(button(page, "Make it as a layout")).not.toContain('disabled=""');
     expect(page).toContain("Photos are back at 8am Singapore time.");
+  });
+
+  it("shows a photo still being made after a reload, from the picture job it picked up, and holds every other format's", () => {
+    as.user = { id: U, email: "leo@x.sg" };
+    as.picture = { prompt: `${staticFormatBySlug("street-poster")!.scene} The brand colour is #000000.`, state: "working" };
+    const page = html("street-poster");
+    expect(page).toContain("Making the photo...");
+    expect(page).toContain("You can leave this page.");
+    expect(button(page, "Make it as a photo")).toContain('disabled=""');
+    expect(page).not.toContain("A picture is already being made");
+    const other = html("general-ad");
+    expect(other).not.toContain("Making the photo");
+    expect(other).toContain("A picture is already being made");
+    expect(button(other, "Make it as a photo")).toContain('disabled=""');
   });
 
   it("offers no photo where the format needs the brand's own product photo and there is none", () => {

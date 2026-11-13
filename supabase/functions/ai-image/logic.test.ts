@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { PEOPLE_RULE, buildFixBody, buildImageBody, pictureUrl, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic";
+import { PEOPLE_RULE, WORDS_PEOPLE_RULE, buildFixBody, buildImageBody, pictureUrl, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic";
+import { gptImageBody } from "./openai";
+
+// The people rule every picture without words has always carried, pinned byte for byte before the words flag joined it.
+const RULE_BEFORE_WORDS =
+  "Set in Singapore. Any people shown are Singaporean or other Asian (a natural mix of Chinese, Malay, Indian and Eurasian), " +
+  "each one clearly different from the others in age, build, face, hair and clothes; good-looking, well-groomed, natural expressions. " +
+  "Polished lifestyle photograph. No text, no words, no logos, no watermarks.";
 
 describe("parseImageRequest", () => {
   it("starts a job from a tidied prompt", () => {
@@ -8,6 +15,13 @@ describe("parseImageRequest", () => {
       request: { mode: "start", prompt: "A couple at an HDB dining table" },
     });
     expect(parseImageRequest({ prompt: "A couple at an HDB dining table" })).toMatchObject({ ok: true, request: { mode: "start" } });
+  });
+
+  it("keeps the words flag only when it is exactly true", () => {
+    expect(parseImageRequest({ mode: "start", prompt: "A poster at a bus shelter", words: true })).toEqual({ ok: true, request: { mode: "start", prompt: "A poster at a bus shelter", words: true } });
+    for (const words of ["true", 1, "yes", null, false]) {
+      expect(parseImageRequest({ mode: "start", prompt: "A poster at a bus shelter", words })).toEqual({ ok: true, request: { mode: "start", prompt: "A poster at a bus shelter" } });
+    }
   });
 
   it("refuses a short or overlong prompt and a status id that isn't a UUID", () => {
@@ -26,6 +40,34 @@ describe("buildImageBody", () => {
     expect(body.prompt).toBe(`A couple at an HDB dining table\n\n${PEOPLE_RULE}`);
     expect(PEOPLE_RULE).toMatch(/Singapore/);
     expect(PEOPLE_RULE).toMatch(/clearly different from the others/);
+  });
+
+  it("sends every existing caller's prompt byte for byte as before the words flag", () => {
+    expect(PEOPLE_RULE).toBe(RULE_BEFORE_WORDS);
+    expect(buildImageBody("A couple at an HDB dining table")).toEqual({ prompt: `A couple at an HDB dining table\n\n${RULE_BEFORE_WORDS}`, aspect_ratio: "3:4", resolution: "1080p", batch_size: 1 });
+    expect(gptImageBody("A couple at an HDB dining table", "u1")).toEqual({
+      model: "gpt-image-2.6-flare",
+      prompt: `A couple at an HDB dining table\n\n${RULE_BEFORE_WORDS}`,
+      size: "1152x1536",
+      quality: "medium",
+      output_format: "jpeg",
+      output_compression: 90,
+      n: 1,
+      safety_identifier: "u1",
+    });
+  });
+});
+
+describe("a picture that carries words", () => {
+  it("gets the people rule without its No text clause, and nothing else changes", () => {
+    const body = gptImageBody("A poster at a bus shelter", "u1", true);
+    expect(body.prompt).toBe(`A poster at a bus shelter\n\n${WORDS_PEOPLE_RULE}`);
+    expect(body.prompt).not.toMatch(/No text|no words|no logos/);
+    // the people wording is all still there
+    expect(`${WORDS_PEOPLE_RULE} No text, no words, no logos, no watermarks.`).toBe(RULE_BEFORE_WORDS);
+    const { prompt: _a, ...rest } = body;
+    const { prompt: _b, ...plain } = gptImageBody("A poster at a bus shelter", "u1");
+    expect(rest).toEqual(plain);
   });
 });
 

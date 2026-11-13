@@ -1,4 +1,4 @@
-import { KEEP_RULE, PEOPLE_RULE } from "./logic.ts";
+import { KEEP_RULE, PEOPLE_RULE, WORDS_PEOPLE_RULE } from "./logic.ts";
 
 export const GPT_IMAGE_MODEL = "gpt-image-2.6-flare";
 export const OPENAI_IMAGES = "https://api.openai.com/v1/images";
@@ -9,9 +9,10 @@ const OUTPUT = { size: "1152x1536", quality: "medium", output_format: "jpeg", ou
 
 export const picturePath = (uid: string, id: string) => `${uid}/${id.toLowerCase()}.jpg`;
 
-export const gptImageBody = (prompt: string, uid: string): Record<string, unknown> => ({
+/** words: a picture that prints the prompt's quoted lines gets the people rule without its "No text" clause. */
+export const gptImageBody = (prompt: string, uid: string, words = false): Record<string, unknown> => ({
   model: GPT_IMAGE_MODEL,
-  prompt: `${prompt}\n\n${PEOPLE_RULE}`,
+  prompt: `${prompt}\n\n${words ? WORDS_PEOPLE_RULE : PEOPLE_RULE}`,
   ...OUTPUT,
   safety_identifier: uid,
 });

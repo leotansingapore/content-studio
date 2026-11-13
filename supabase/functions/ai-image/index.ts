@@ -1,6 +1,8 @@
 // "Make the image" on Write: one picture from the post's image prompt, with
 // GPT Image 2.6 Flare (about USD 0.04 each at 3:4, openai.ts), or Higgsfield Soul v2 when OpenAI can't.
-//   POST {mode:"start", prompt} -> {token}: counts against the "ai-image" daily cap
+//   POST {mode:"start", prompt, words?} -> {token}: counts against the "ai-image" daily cap. words: true (a static format
+//        made as a photo) prints the prompt's quoted lines: the people rule loses its "No text" clause, and when OpenAI
+//        can't make it the use comes back and it fails, never Soul v2, which can't print words.
 //   POST {mode:"status", token} -> {state:"working"} | {state:"done", url} | {state:"failed", error}
 //   POST {mode:"fix", token, fix} -> {token}: "Fix it" under a finished picture; GPT Image 2.6 Flare (Qwen Image 3
 //        when OpenAI can't) edits the picture that token made (the link is read from the cs-ai-images bucket or
@@ -224,9 +226,15 @@ Deno.serve(async (req) => {
       const r = usageRefusal(usage);
       return json(r.body, r.status);
     }
-    const made = await gpt("generations", gptImageBody(parsed.request.prompt, uid));
+    const words = parsed.request.words === true;
+    const made = await gpt("generations", gptImageBody(parsed.request.prompt, uid, words));
     if (made === "blocked") return json({ error: BLOCKED }, 422);
     if (made) return json({ token: await jobToken(signing, uid, made), usage: { used: usage.used, limit: usage.limit } });
+    // Soul v2 can't print words: a picture that carries them stops here, nothing made, and its use comes back
+    if (words) {
+      await refundUsage(admin, uid, "ai-image", day);
+      return json({ error: RETRY }, 502);
+    }
     let res: Response;
     try {
       res = await fetch(`${HF_BASE}/${HF_MODEL}`, {

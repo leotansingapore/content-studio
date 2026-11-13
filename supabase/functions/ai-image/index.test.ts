@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { GLOBAL_COUNTER_USER } from "../_shared/usageCaps";
-import { jobToken, tokenSecret } from "./logic";
+import { PEOPLE_RULE, WORDS_PEOPLE_RULE, jobToken, tokenSecret } from "./logic";
 
 // The handler's money path for a picture, a fix and an AI clip: the adviser's cap, the studio's, and Higgsfield.
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
@@ -121,6 +121,7 @@ describe("Make the image", () => {
     const { token } = await res.json();
     expect(oa.calls).toHaveLength(1);
     expect(oa.calls[0]).toMatchObject({ route: "generations", body: { model: "gpt-image-2.6-flare", size: "1152x1536", quality: "medium", safety_identifier: UID } });
+    expect(oa.calls[0].body.prompt).toBe(`A family picnic at East Coast Park at sunset\n\n${PEOPLE_RULE}`);
     expect(hf.submits).toEqual([]);
     expect([...db.kept.keys()]).toEqual([`${UID}/${token.split(".")[0]}.jpg`]);
     expect(await statusOf(token)).toEqual({ state: "done", url: expect.stringMatching(/^https:\/\/db\/storage\/v1\/object\/sign\/cs-ai-images\//) });
@@ -133,6 +134,30 @@ describe("Make the image", () => {
     expect(oa.calls).toHaveLength(1);
     expect(hf.submits).toEqual(["https://api.higgsfield.ai/higgsfield-ai/soul/v2/standard"]);
     expect(db.kept.size).toBe(0);
+  });
+
+  it("prints a photo ad's quoted words: the people rule goes without its No text clause", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    const res = await call({ prompt: 'A poster at a bus shelter. Headline: "Still dark."', words: true });
+    expect(res.status).toBe(200);
+    expect(oa.calls[0].body.prompt).toBe(`A poster at a bus shelter. Headline: "Still dark."\n\n${WORDS_PEOPLE_RULE}`);
+    expect(used(UID, "ai-image")).toBe(1);
+  });
+
+  it("fails a photo ad with the retry message and gives its use back when OpenAI can't make it, never asking Soul v2", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    const res = await call({ prompt: 'A poster at a bus shelter. Headline: "Still dark."', words: true });
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ error: "Couldn't make the image right now. Try again in a minute." });
+    expect(oa.calls).toHaveLength(1);
+    expect(hf.submits).toEqual([]);
+    expect(used(UID, "ai-image")).toBe(0);
+    // with no OpenAI key at all, the same
+    delete env.OPENAI_API_KEY;
+    expect((await call({ prompt: 'A poster at a bus shelter. Headline: "Still dark."', words: true })).status).toBe(502);
+    expect(hf.submits).toEqual([]);
+    expect(used(UID, "ai-image")).toBe(0);
   });
 
   it("says the safety filter stopped it, with nothing asked of Higgsfield", async () => {

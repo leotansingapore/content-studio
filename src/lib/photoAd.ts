@@ -2,13 +2,15 @@
 // make writes for the brand, sent to the picture maker (ai-image, GPT Image 2.6 Flare) as one prompt that quotes every
 // on-picture string, so the made ad reads like the format's examples. One remix make writes the words into a new drawn
 // design first (startImageWrite, the drawn make's own write, so that design stays in Your images too), then one
-// ai-image make keeps the photo in Media under AI images (makeImage). The run lives outside React, as MemeOptions'
-// pictures do, so leaving the page keeps it, and it mirrors its step into formatJob for /library's Making now. A reload
-// forgets the run; the picture's paid token is picked up by resumeImage and still lands in Media.
+// ai-image make with its words flag (no "No text" rule, no Soul v2 fallback) keeps the photo in Media under AI images,
+// cut from the model's 3:4 to the examples' 4:5 (makeImage's ratio; the prompt keeps words clear of the cut edges). The
+// run lives outside React, as MemeOptions' pictures do, so leaving the page keeps it, and it mirrors its step into
+// formatJob for /library's Making now. A reload forgets the run; the picture's paid token is picked up by resumeImage,
+// still lands in Media, and the page shows it again from the picture job (shownPhotoAd).
 
 import { useEffect, useState } from "react";
 import { staticFormatHref, type StaticFormat } from "@/data/staticFormats";
-import { AI_FOLDER, imageBusy, imageJob, makeImage } from "@/lib/aiImage";
+import { AI_FOLDER, imageBusy, imageJob, makeImage, type ImageJob } from "@/lib/aiImage";
 import { DEFAULT_BRAND, loadBrand } from "@/lib/carousel";
 import { setFormatJob } from "@/lib/formatJob";
 import { IMAGE_FIELDS, isStatic, mainWords, staticPhoto } from "@/lib/imageLayout";
@@ -17,6 +19,9 @@ import { links } from "@/lib/links";
 import { ownBrandName } from "@/lib/remixBrand";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic.ts";
 
+/** ai-image makes 3:4 and the photo is kept 4:5, cut from the middle: a little goes off the top and the bottom. */
+export const PHOTO_RATIO = 4 / 5;
+export const PHOTO_EDGES = "Keep all text well clear of the top and bottom edges.";
 export const PHOTO_PEOPLE = "People, when the scene shows any, are Singaporean adults.";
 export const PHOTO_RULE = "All text spelled exactly as quoted. No other logos, brands or watermarks.";
 
@@ -26,7 +31,8 @@ const quoted = (s: string) => `"${s.replace(/\s+/g, " ").trim().replace(/"/g, "'
 /**
  * The picture maker's prompt for a static format made as a photo: its scene, the brand's name and colour, every
  * on-picture string of its layout in draw order (IMAGE_FIELDS, a typed price included), each labelled and in double
- * quotes, then the people line and the spelling rule. Words the layout never draws (the topic, the caption) stay out,
+ * quotes, the edge line (the 4:5 cut must not clip a word), the people line and the spelling rule. Words the layout
+ * never draws (the topic, the caption) stay out,
  * and a brand with no name is given by its colour alone. Pure.
  */
 export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { name: string; color: string }, words: Record<string, string>): string {
@@ -37,6 +43,7 @@ export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { 
     f.scene,
     name ? `The brand is ${quoted(name)}, its colour ${brand.color}.` : `The brand colour is ${brand.color}.`,
     on.length ? `The words on it, in order: ${on.join("; ")}.` : "",
+    PHOTO_EDGES,
     PHOTO_PEOPLE,
     PHOTO_RULE,
   ]
@@ -47,7 +54,7 @@ export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { 
 export interface PhotoAd {
   seq: number;
   slug: string;
-  /** The drawn design its words were written into, kept in Your images. */
+  /** The drawn design its words were written into, kept in Your images ("" when shown from a resumed picture job). */
   designId: string;
   state: "writing" | "making" | "done" | "failed";
   error?: string;
@@ -74,6 +81,17 @@ const set = (next: PhotoAd) => {
 };
 export const photoAd = () => run;
 export const photoAdBusy = () => run?.state === "writing" || run?.state === "making";
+
+/**
+ * The run a format's page shows: its own, else, after a reload forgot the run, the picture job resumeImage picked up
+ * when that job's prompt opens with this format's scene (photoAdPrompt starts with it). A fix is never shown as a make.
+ */
+export function shownPhotoAd(f: Pick<StaticFormat, "slug" | "scene">, run: PhotoAd | null, picture: ImageJob | null): PhotoAd | null {
+  if (run) return run.slug === f.slug ? run : null;
+  if (!picture || picture.fix || !picture.prompt.startsWith(`${f.scene} `)) return null;
+  const state = picture.state === "done" ? "done" : picture.state === "failed" ? "failed" : "making";
+  return { seq: 0, slug: f.slug, designId: "", state, ...(picture.error ? { error: picture.error } : {}), ...(picture.mediaKey ? { mediaKey: picture.mediaKey, preview: picture.preview } : {}) };
+}
 
 export function usePhotoAd(): PhotoAd | null {
   const [p, setP] = useState(photoAd);
@@ -107,7 +125,7 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   const prompt = photoAdPrompt(f, { name: ownBrandName(userId), color: (loadBrand(userId) ?? DEFAULT_BRAND).color }, words);
   if (prompt.length > MAX_PROMPT) return set({ ...base, state: "failed", error: TOO_LONG });
   set({ ...base, state: "making" });
-  await makeImage(userId, prompt, `${f.name}: ${mainWords(slug, words)}`);
+  await makeImage(userId, prompt, `${f.name}: ${mainWords(slug, words)}`, undefined, undefined, { words: true, ratio: PHOTO_RATIO });
   const j = imageJob();
   if (j?.state !== "done" || !j.mediaKey) return set({ ...base, state: "failed", error: j?.error || NOT_MADE });
   set({ ...base, state: "done", mediaKey: j.mediaKey, preview: j.preview });

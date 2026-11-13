@@ -23,7 +23,7 @@ import { staticExampleUrl } from "@/lib/staticExample";
 import { isStatic } from "@/lib/imageLayout";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
-import { PHOTO_STEP, startPhotoAd, usePhotoAd } from "@/lib/photoAd";
+import { PHOTO_STEP, shownPhotoAd, startPhotoAd, usePhotoAd } from "@/lib/photoAd";
 import { loadProducts, type Products } from "@/lib/products";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { brandName } from "@/lib/remixBrand";
@@ -104,15 +104,16 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
   const bits = useMemo(() => productBits(loadProducts(userId)), [userId]);
   const photos = useMemo(() => loadMedia(userId).filter((m) => m.kind !== "video").length, [userId]);
   const photo = usePhotoAd();
-  const mine = photo?.slug === def.slug ? photo : null;
-  const running = photo?.state === "writing" || photo?.state === "making";
   const [picture, setPicture] = useState(imageJob);
   useEffect(() => onImageJob(setPicture), []);
-  // a photo whose use was spent before a reload still lands in Media
+  // a photo whose use was spent before a reload still lands in Media, and shows here again while it does
   useEffect(() => resumeImage(userId), [userId]);
+  const mine = shownPhotoAd(def, photo, picture);
+  const running = photo?.state === "writing" || photo?.state === "making";
+  const own = mine?.state === "writing" || mine?.state === "making";
   // one picture at a time: another format's photo, or a picture from elsewhere, holds this button until it's done
-  const picturing = running ? !mine : picture?.state === "working" || picture?.state === "saving";
-  const leftOf = useUsesLeft(running);
+  const picturing = !own && (running || picture?.state === "working" || picture?.state === "saving");
+  const leftOf = useUsesLeft(running || own);
   const left = leftOf("remix-make");
   const pictures = leftOf("ai-image");
   // a photo spends one of each: what is left is the lower of the two
@@ -171,12 +172,12 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                   <Button
                     variant={photoFirst ? "default" : "outline"}
                     onClick={() => void startPhotoAd(userId, def, action.state.format)}
-                    disabled={running || picturing || photoLeft === 0}
-                    className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${running && mine ? "disabled:opacity-100" : ""}`}
+                    disabled={own || picturing || photoLeft === 0}
+                    className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${own ? "disabled:opacity-100" : ""}`}
                   >
-                    {running && mine ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <CameraIcon className="h-4 w-4" />} Make it as a photo
+                    {own ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <CameraIcon className="h-4 w-4" />} Make it as a photo
                   </Button>
-                  {!(running && mine) && <PriceChip price={sumPrices(priceOf("remix-make"), priceOf("ai-image"))} left={photoLeft} />}
+                  {!own && <PriceChip price={sumPrices(priceOf("remix-make"), priceOf("ai-image"))} left={photoLeft} />}
                 </div>
               )}
               <div className="flex flex-wrap items-center gap-3">
@@ -192,9 +193,9 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
               </div>
               {reason && <p className="text-xs text-muted-foreground">{reason}</p>}
               <div aria-live="polite" className="text-sm">
-                {mine && (mine.state === "writing" || mine.state === "making") && (
+                {mine && own && (
                   <p className="text-muted-foreground">
-                    {PHOTO_STEP[mine.state]}
+                    {PHOTO_STEP[mine.state as "writing" | "making"]}
                     {mine.state === "making" && " About a minute. You can leave this page."}
                   </p>
                 )}
@@ -207,13 +208,15 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                       <Link to={links.media({ folder: AI_FOLDER, item: mine.mediaKey })} className="inline-flex font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
                         Open it in Media
                       </Link>
-                      <p className="text-xs text-muted-foreground">
-                        The same words as a layout are in{" "}
-                        <Link to={links.image({ image: mine.designId })} className="font-semibold text-primary hover:underline">
-                          Your images
-                        </Link>
-                        .
-                      </p>
+                      {mine.designId && (
+                        <p className="text-xs text-muted-foreground">
+                          The same words as a layout are in{" "}
+                          <Link to={links.image({ image: mine.designId })} className="font-semibold text-primary hover:underline">
+                            Your images
+                          </Link>
+                          .
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
