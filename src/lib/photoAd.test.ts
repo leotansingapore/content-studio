@@ -66,7 +66,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { AD_FACTS_MAX, ANGLE_POOL, OPENINGS_KEPT, openingOf, recentOpenings, rememberOpening, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_MARKS, PHOTO_RULE, TOO_LONG, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { AD_FACTS_MAX, ANGLE_POOL, OPENINGS_KEPT, openingOf, recentOpenings, rememberOpening, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_RULE, TOO_LONG, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -97,15 +97,15 @@ describe("the photo prompt", () => {
 
   it("asks for no edge margin: nothing is cut off the picture any more, so the words run straight into the closing lines", () => {
     const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." });
-    expect(p).toContain(`"Still dark.". ${PHOTO_MARKS}`);
+    expect(p).toContain(`"Still dark.". ${PHOTO_RULE}`);
     expect(p).not.toMatch(/edges?\b|cut/i);
   });
 
-  it("ends on the real-marks line and the only-these-words rule, word for word, and leaves who is in it to ai-image's rule", () => {
+  it("ends on the only-these-words rule, word for word, and leaves the setting and who is in it to ai-image's rule", () => {
     const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." });
-    expect(p.endsWith(" Singapore by its look alone: no real place names, transit, mall, bank or shop logos, or vehicle liveries. Only the quoted words, spelled exactly, and the logo are written on it: no prices, dates, phone numbers, web addresses or small print, on screens and footers too. No other logos or watermarks.")).toBe(true);
-    expect(p.endsWith(`${PHOTO_MARKS} ${PHOTO_RULE}`)).toBe(true);
+    expect(p.endsWith(" Only the quoted words, spelled exactly, and the logo are written on it: no prices, dates, phone numbers, web addresses or small print, on screens and footers too. No other logos or watermarks.")).toBe(true);
     expect(p).not.toContain("Singaporean adults");
+    expect(p).not.toContain("Singapore by its look");
   });
 
   it("hands the picture no price: every clause of the product line with a digit or a currency is left out, the rest kept", () => {
@@ -156,12 +156,10 @@ describe("the photo prompt", () => {
 });
 
 describe("each format's scene", () => {
-  it("asks for Singapore by its look, never a real station, line, mall or named place, and every prompt carries the real-marks line", () => {
+  it("never names a real station, line, mall, landmark or place: the setting is ai-image's ordinary Singapore", () => {
     for (const f of STATIC_FORMATS) {
-      expect(f.scene, f.slug).not.toMatch(/\b(MRT|LRT|platforms?|stations?|malls?|banks?|Orchard|Changi|Sentosa|Marina|Raffles|Bugis|Jurong|Tampines|Buona Vista|Chinatown)\b/i);
-      expect(photoAdPrompt(f, hilltop, {}), f.slug).toContain(PHOTO_MARKS);
+      expect(f.scene, f.slug).not.toMatch(/\b(MRT|LRT|platforms?|stations?|malls?|banks?|Orchard|Changi|Sentosa|Marina|Merlion|ArtScience|Singapore Flyer|skyline|Raffles|Bugis|Jurong|Tampines|Buona Vista|Chinatown)\b/i);
     }
-    expect(PHOTO_MARKS).toMatch(/no real place names, transit, mall, bank or shop logos, or vehicle liveries/);
   });
 
   it("is one plain sentence with no double quote, so it never reads as words to print", () => {

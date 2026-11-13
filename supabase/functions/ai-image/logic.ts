@@ -14,11 +14,15 @@ export const PEOPLE_RULE =
   "Polished lifestyle photograph. No text, no words, no logos, no watermarks.";
 /**
  * A picture that carries words ({mode: "start", words: true}: a static format made as a photo, whose prompt quotes every
- * line to print and sets its own look). People only where its scene calls for them: PEOPLE_RULE's mixed, good-looking
- * group and "polished lifestyle photograph" put the same smiling group around a phone into 5 of 6 ads (14 Nov).
+ * line to print and sets its own look). Singapore through ordinary cues, never a landmark ("Singapore by its look" gave
+ * Marina Bay Sands nearly every time, 14 Nov), and people only where its scene calls for them: PEOPLE_RULE's mixed,
+ * good-looking group and "polished lifestyle photograph" put the same smiling group around a phone into 5 of 6 ads.
  */
 export const WORDS_PEOPLE_RULE =
-  "Set in Singapore. People only where the scene calls for them: one or two adults at most, Singaporean or other Asian, " +
+  "Where the scene has a setting it is Singapore, shown through ordinary cues: HDB blocks, void decks, kopitiam tables, covered walkways, greenery, " +
+  "local shopfronts with no real names. No famous landmarks or skyline icons: no Marina Bay Sands, ArtScience Museum, Merlion, Gardens by the Bay, " +
+  "Singapore Flyer or CBD skyline. No real place names, transit, mall, bank or shop logos, or vehicle liveries. " +
+  "People only where the scene calls for them: one or two adults at most, Singaporean or other Asian, " +
   "in an everyday moment that fits who buys from the brand (at a desk, in a car, at a kopitiam table), never a posed group around a phone.";
 
 /** "Fix it" under a finished picture: Qwen Image 3 edits it from one instruction (the web stand-in for

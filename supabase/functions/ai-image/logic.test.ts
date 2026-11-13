@@ -97,6 +97,15 @@ describe("people in a picture that carries words", () => {
   });
 });
 
+describe("the setting of a picture that carries words", () => {
+  it("is Singapore through ordinary cues, never a landmark, a skyline icon or a real business's mark", () => {
+    expect(WORDS_PEOPLE_RULE).toMatch(/^Where the scene has a setting it is Singapore, shown through ordinary cues: HDB blocks, void decks, kopitiam tables, covered walkways, greenery, local shopfronts with no real names\./);
+    for (const icon of ["Marina Bay Sands", "ArtScience Museum", "Merlion", "Gardens by the Bay", "Singapore Flyer", "CBD skyline"]) expect(WORDS_PEOPLE_RULE).toContain(icon);
+    expect(WORDS_PEOPLE_RULE).toContain("No famous landmarks or skyline icons");
+    expect(WORDS_PEOPLE_RULE).toContain("No real place names, transit, mall, bank or shop logos, or vehicle liveries.");
+  });
+});
+
 describe("readStatus", () => {
   it("maps Higgsfield's states", () => {
     expect(readStatus({ status: "queued" })).toEqual({ state: "working" });

@@ -17,7 +17,7 @@
       "route": "generations",
       "body": {
         "model": "gpt-image-2.6-flare",
-        "prompt": "A poster at a bus shelter. Headline: \"Still dark.\"\n\nSet in Singapore. People only where the scene calls for them: one or two adults at most, Singaporean or other Asian, in an everyday moment that fits who buys from the brand (at a desk, in a car, at a kopitiam table), never a posed group around a phone.",
+        "prompt": "A poster at a bus shelter. Headline: \"Still dark.\"\n\nWhere the scene has a setting it is Singapore, shown through ordinary cues: HDB blocks, void decks, kopitiam tables, covered walkways, greenery, local shopfronts with no real names. No famous landmarks or skyline icons: no Marina Bay Sands, ArtScience Museum, Merlion, Gardens by the Bay, Singapore Flyer or CBD skyline. No real place names, transit, mall, bank or shop logos, or vehicle liveries. People only where the scene calls for them: one or two adults at most, Singaporean or other Asian, in an everyday moment that fits who buys from the brand (at a desk, in a car, at a kopitiam table), never a posed group around a phone.",
         "size": "1152x1440",
         "quality": "medium",
         "output_format": "jpeg",
