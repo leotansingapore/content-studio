@@ -102,6 +102,7 @@ const AutoDmPage = lazy(() => import("@/pages/AutoDmPage"));
 const ReelsPage = lazy(() => import("@/pages/ReelsPage"));
 const ReelsTeamPage = lazy(() => import("@/pages/ReelsTeamPage"));
 const AddBrandPage = lazy(() => import("@/pages/AddBrandPage"));
+const BrandsPage = lazy(() => import("@/pages/BrandsPage"));
 const VideoEditPage = lazy(() => import("@/pages/VideoEditPage"));
 // Public pages (no sign-in), each in its own chunk.
 const PreviewReviewPage = lazy(() => import("@/pages/PreviewReviewPage"));
@@ -269,6 +270,7 @@ export default function App() {
           <Route path="/automations" element={<AutomationsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/adlauncher" element={<AdLauncherPage />} />
+          <Route path="/brands" element={<BrandsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/studio" element={<StudioPage />} />
           <Route path="/grid" element={<GridPage />} />

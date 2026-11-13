@@ -14,8 +14,9 @@ const OLD_PATHS = [
   "/welcome", "/academy", "/create-guide", "/tutorial", "/feedback",
   "/settings", "/notifications", "/settings/post-choices", "/accounts", "/bio", "/links", "/connect", "/adlauncher", "/reels/team", "/automations", "/activity", "/skills",
 ];
-// Pages the nav gained since: Brand's Products and Demo videos tabs (sections of the brand kit drawn alone, 12 Nov).
-const NEW_PATHS = ["/brand/products", "/brand/demo-videos", "/settings/billing", "/settings/held"];
+// Pages the nav gained since: Brand's Products and Demo videos tabs (sections of the brand kit drawn alone, 12 Nov), and
+// /brands, every brand as a card (13 Nov).
+const NEW_PATHS = ["/brand/products", "/brand/demo-videos", "/settings/billing", "/settings/held", "/brands"];
 const LEO = "tanjunsing@gmail.com";
 const ANYONE = "someone@example.com";
 const pages = (id: string, email: string) => visiblePages(section(id).pages, email).map((p) => p.to);
@@ -114,7 +115,7 @@ describe("nav", () => {
   });
 
   it("shows owner-only pages to Leo's sign-ins only", () => {
-    expect(pages("home", ANYONE)).toEqual(["/home"]);
+    expect(pages("home", ANYONE)).toEqual(["/home", "/brands"]);
     expect(pages("write", ANYONE)).toEqual(["/studio", "/generate", "/generate/batch", "/generate/answer", "/generate/vsl", "/hooks", "/carousel", "/slideshow", "/design", "/design/campaigns", "/design/libraries", "/edit", "/make/hook-demo", "/clone", "/library", "/drafts", "/board", "/grid"]);
     expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan", "/launch", "/linkedin", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/inspiration", "/following", "/profiles"]);
@@ -125,7 +126,7 @@ describe("nav", () => {
     const leoOnly = SECTIONS.flatMap((s) => s.pages.filter((p) => p.owners).map((p) => p.to)).sort();
     expect(leoOnly).toEqual(["/activity", "/adlauncher", "/agent", "/audiences", "/automations", "/blitz", "/brand/demo-videos", "/brand/products", "/campaigns", "/competitors", "/ideas", "/image", "/make", "/north-star", "/people", "/recruit/auto-dm", "/research", "/saved", "/script", "/settings/held", "/skills", "/social-north-star"]);
     for (const email of [LEO, "leotanjs95@gmail.com"]) {
-      expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star"]);
+      expect(pages("home", email), email).toEqual(["/home", "/agent", "/north-star", "/brands"]);
       expect(pages("plan", email), email).toEqual(["/campaigns", "/calendar", "/plan", "/launch", "/linkedin", "/social-north-star", "/ideas", "/team"]);
       expect(pages("write", email).slice(0, 2), email).toEqual(["/studio", "/make"]);
       expect(pages("write", email).slice(-2), email).toEqual(["/blitz", "/people"]);

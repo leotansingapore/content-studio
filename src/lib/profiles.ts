@@ -82,7 +82,7 @@ export const isDemoBrand = (p: Pick<Profile, "boardBrand">) => Boolean(p.boardBr
  * The switcher's rows: names holding `query` in any case, under "Your brands" and "Demo brands" once the account has a
  * demo brand (no heading otherwise), each group gone when nothing in it matches.
  */
-export function brandGroups(list: Profile[], query = ""): { name: string | null; rows: Profile[] }[] {
+export function brandGroups<T extends Profile>(list: T[], query = ""): { name: string | null; rows: T[] }[] {
   const q = query.trim().toLowerCase();
   const hits = list.filter((p) => p.name.toLowerCase().includes(q));
   const groups = list.some(isDemoBrand)
@@ -167,7 +167,7 @@ export function setActiveProfile(userId: string, id: string): void {
 
 // Pages about no one brand (docs/deep-links.md, "Brand, on every page"): their address carries no ?profile=. Every
 // other studio page reads the open brand's things, so its address names it.
-const NOT_BRAND_PAGES = ["/north-star", "/marketing-north-star", "/seo-north-star", "/settings", "/welcome", "/academy", "/tutorial", "/create-guide", "/feedback", "/reels/team", "/brands/new", "/hub", "/adlauncher"];
+const NOT_BRAND_PAGES = ["/north-star", "/marketing-north-star", "/seo-north-star", "/settings", "/welcome", "/academy", "/tutorial", "/create-guide", "/feedback", "/reels/team", "/brands", "/hub", "/adlauncher"];
 
 export const brandPage = (pathname: string) => !NOT_BRAND_PAGES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 

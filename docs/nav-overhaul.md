@@ -60,6 +60,7 @@ as buttons over the chat.
 | /home | Overview | Home (no tabs) | everyone |
 | /agent | Agent | Chats in the sidebar (+ for a new one); Chats on the phone bar | Leo |
 | /north-star | North star | the workspace card's menu | Leo |
+| /brands | Brands | All brands in the brand switcher's menu (no tabs) | everyone |
 | /campaigns | Campaigns | Campaigns > Campaigns | Leo |
 | /calendar | Calendar | Campaigns > Calendar | everyone |
 | /plan | Weekly plan | Campaigns > Plans > Weekly plan | everyone |

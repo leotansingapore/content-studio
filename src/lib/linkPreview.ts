@@ -28,6 +28,7 @@ export const PAGES: Record<string, string> = {
   "/agent": "Agent",
   "/welcome": "Getting started",
   "/north-star": "North star",
+  "/brands": "Brands",
   "/generate": "Write a post",
   "/hooks": "My hooks",
   "/make/hook-demo": "Hook plus demo",

@@ -841,6 +841,18 @@ export function loadBrand(userId: string | null | undefined): CarouselBrand | nu
   }
 }
 
+/** Any brand's kit as stored (no posts-board overlay), whichever brand is open: for the list of every brand (/brands). */
+export function brandKitFor(userId: string | null | undefined, profileId: string): CarouselBrand | null {
+  const s = storage();
+  if (!s || !userId) return null;
+  try {
+    const raw = s.getItem(BRAND_KEY_PREFIX + (profileId === DEFAULT_PROFILE_ID ? userId : `${userId}~${profileId}`));
+    return raw ? sanitizeBrand(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function brandLogoFor(userId: string | null | undefined, profileId: string): string | null {
   const s = storage();
   if (!s || !userId) return null;

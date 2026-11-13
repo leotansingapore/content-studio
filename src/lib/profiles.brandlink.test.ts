@@ -66,12 +66,12 @@ describe("the open brand in the address", () => {
     expect(brandAddress("/calendar", "?profile=pnope", "", "me", KNOWN)).toBeNull();
   });
   it("keeps the param off pages about no one brand, and takes it off them", () => {
-    for (const p of ["/north-star", "/marketing-north-star", "/settings", "/welcome", "/academy", "/tutorial", "/create-guide", "/feedback", "/reels/team", "/brands/new", "/hub", "/hub/trends", "/adlauncher"]) {
+    for (const p of ["/north-star", "/marketing-north-star", "/settings", "/welcome", "/academy", "/tutorial", "/create-guide", "/feedback", "/reels/team", "/brands", "/brands/new", "/hub", "/hub/trends", "/adlauncher"]) {
       expect(brandPage(p)).toBe(false);
       expect(brandAddress(p, "", "", "me", KNOWN)).toBeNull();
     }
     expect(brandAddress("/north-star", "?item=x&profile=pab12", "#top", "pab12", KNOWN)).toBe("/north-star?item=x#top");
-    for (const p of ["/home", "/calendar", "/drafts", "/generate", "/reels", "/connect", "/skills", "/bio", "/accounts", "/profiles/abc", "/settingsx"]) expect(brandPage(p)).toBe(true);
+    for (const p of ["/home", "/calendar", "/drafts", "/generate", "/reels", "/connect", "/skills", "/bio", "/accounts", "/profiles/abc", "/settingsx", "/brand", "/brand/products"]) expect(brandPage(p)).toBe(true);
   });
   it("a switch writes the new brand into the address before its reload, so the reload can't switch back", () => {
     const p = addProfile("u1", "MoneyBees");

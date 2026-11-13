@@ -113,6 +113,8 @@ export const SECTIONS: NavSection[] = [
       { to: "/home", label: "Overview", title: "Home", bare: true },
       { to: "/agent", label: "Agent", icon: ChatIcon, owners: LEO_EMAILS, bare: true },
       { to: "/north-star", label: "North star", icon: StarIcon, owners: LEO_EMAILS, bare: true },
+      // every brand as a card, from All brands in the brand switcher; /brands/new (Add a brand) is its own full screen
+      { to: "/brands", label: "Brands", end: true, bare: true, was: "All brands brand switcher profiles workspaces unfinished drafts" },
     ],
   },
   {

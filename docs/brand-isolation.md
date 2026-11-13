@@ -40,6 +40,14 @@ A `brand-dna` edge function reads the site, with Jev making the decisions, the L
 
 What shipped on 16 Oct: `brand-dna` reads the first 300 KB of the home page, and only when every address the host name resolves to is public; it checks again before each redirect and each logo. Script blocks and CDATA come out in one linear pass, so a hostile page can't stall it. It returns the name, colour, the first of up to three PNG, JPEG or WebP logos (checked by their bytes, under 250 KB), and the social handles in the markup. The LLM writes the one-liner, audience, topics, edge and voice from the page's words, which are fenced as data, and Jev picks the life stage. The daily cap is 10. Its known limit: a host name could answer differently between the check and the connection (DNS rebinding), because the edge runtime's fetch can't be pinned to the address it checked. /brands/new reloads into its ready screen once the brand is made, so every page opens on it.
 
+## Phase 3: every brand on one page (13 Nov)
+
+/brands, from All brands in the brand switcher, after Holo's brand list: a card per brand (its logo, else its initial
+on its colour, its name and site), the open one marked, and New brand last. A card opens that brand on its calendar.
+A half-done Add a brand form is kept as a synced draft (`content-studio-brand-drafts-<uid>`, one key holding the
+list, merged item by item like the brand list), so it survives closing the tab and shows on every device as an
+Unfinished card that resumes it. Three at most, and never the logo: localStorage is near its quota on big accounts.
+
 ## Later
 
 Whole-brand access for invited advisers, and team review split by brand.
