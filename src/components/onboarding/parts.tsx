@@ -149,3 +149,12 @@ export function useLogoTile(logo: string | null | undefined): string {
   }, [logo]);
   return light ? "onboard-checker-dark" : "onboard-checker";
 }
+
+export function LogoTile({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
+  const tile = useLogoTile(src);
+  return (
+    <span className={`${tile} flex items-center justify-center ${className}`}>
+      <img src={src} alt={alt} className="max-h-full max-w-full object-contain" />
+    </span>
+  );
+}

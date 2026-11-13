@@ -63,6 +63,7 @@ import PeopleWhoSign from "@/components/brand/PeopleWhoSign";
 import BrandFontSection from "@/components/brand/BrandFontSection";
 import OnEveryPost from "@/components/brand/OnEveryPost";
 import KitFromSite, { kitLockLine } from "@/components/brand/KitFromSite";
+import { LogoTile } from "@/components/onboarding/parts";
 import { KIT_FEEDS, cachedKit, refreshKit, withKit, type KitRefresh } from "@/lib/brandKitFeed";
 import { activeProfile } from "@/lib/profiles";
 import { brandPartAddress } from "@/lib/links";
@@ -790,9 +791,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
             {kitLocked && feed && <p className="text-xs text-muted-foreground">{kitLockLine(feed)}</p>}
             <fieldset disabled={kitLocked} className="flex min-w-0 flex-wrap items-center gap-4 disabled:opacity-60">
               {brand.logo && (
-                <span className="flex h-20 w-32 items-center justify-center rounded-lg border border-border/70 bg-neutral-800 p-2">
-                  <img src={brand.logo} alt="Your logo" className="max-h-full max-w-full object-contain" />
-                </span>
+                <LogoTile src={brand.logo} alt="Your logo" className="h-20 w-32 rounded-lg border border-border/70 p-2" />
               )}
               <label className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm font-semibold hover:border-primary/40 [@media(pointer:coarse)]:h-11">
                 {brand.logo ? "Change logo" : "Add a logo"}

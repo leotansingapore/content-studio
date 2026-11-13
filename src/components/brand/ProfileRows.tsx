@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { CaretDownIcon, CaretRightIcon, ImageSquareIcon, TrashIcon } from "@phosphor-icons/react";
 import ProfessionField from "@/components/ProfessionField";
+import { LogoTile } from "@/components/onboarding/parts";
 import { shrinkImage } from "@/components/brand/shrinkImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,9 +35,7 @@ function Value({ row }: { row: OverviewRow }) {
   if (row.image) {
     return (
       <span className="flex items-center gap-3">
-        <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md border border-border/60 bg-neutral-800 p-1">
-          <img src={row.image} alt="Your logo" className="max-h-full max-w-full object-contain" />
-        </span>
+        <LogoTile src={row.image} alt="Your logo" className="h-9 w-14 shrink-0 rounded-md border border-border/60 p-1" />
         <span className="text-muted-foreground">{row.value}</span>
       </span>
     );
@@ -249,9 +248,7 @@ function LogoEdit({ uid, save }: { uid: string; save: (error: string | null) => 
   return (
     <div className="flex flex-wrap items-center gap-3">
       {logo && (
-        <span className="flex h-16 w-28 items-center justify-center rounded-lg border border-border/70 bg-neutral-800 p-2">
-          <img src={logo} alt="Your logo" className="max-h-full max-w-full object-contain" />
-        </span>
+        <LogoTile src={logo} alt="Your logo" className="h-16 w-28 rounded-lg border border-border/70 p-2" />
       )}
       <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent focus-within:ring-2 focus-within:ring-ring [@media(pointer:coarse)]:h-11">
         <ImageSquareIcon className="h-4 w-4" aria-hidden /> {busy ? "Reading..." : logo ? "Change logo" : "Add a logo"}
