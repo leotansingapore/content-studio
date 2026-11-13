@@ -59,18 +59,24 @@ const blobDataUrl = (b: Blob) =>
     r.readAsDataURL(b);
   });
 
-function readSheet(designId: string): Partial<AdForm> | null {
+export function readSheet(designId: string, words: [string, string]): Partial<AdForm> | null {
   try {
     const v = JSON.parse(sessionStorage.getItem(sheetKey(designId)) ?? "null");
-    return v && typeof v === "object" ? v : null;
+    if (!v || typeof v !== "object") return null;
+    const { words: was, ...f } = v as Partial<AdForm> & { words?: unknown };
+    if (!Array.isArray(was) || was[0] !== words[0] || was[1] !== words[1]) {
+      delete f.headline;
+      delete f.primaryText;
+    }
+    return f;
   } catch {
     return null;
   }
 }
 
-function keepSheet(designId: string, f: AdForm | null): void {
+export function keepSheet(designId: string, f: AdForm | null, words?: [string, string]): void {
   try {
-    if (f) sessionStorage.setItem(sheetKey(designId), JSON.stringify(f));
+    if (f) sessionStorage.setItem(sheetKey(designId), JSON.stringify({ ...f, words }));
     else sessionStorage.removeItem(sheetKey(designId));
   } catch {
     // private mode: the fields hold for as long as the sheet is open
@@ -101,6 +107,7 @@ export default function RunAsAdSheet(p: {
   masWarn: boolean;
   onClose: () => void;
 }) {
+  const [words] = useState<[string, string]>(() => [p.headline, p.text]);
   const [form, setForm] = useState<AdForm>(() => ({
     pageId: "",
     adAccountId: "",
@@ -113,7 +120,7 @@ export default function RunAsAdSheet(p: {
     dailyBudget: "",
     days: "7",
     approval: "",
-    ...readSheet(p.designId),
+    ...readSheet(p.designId, words),
   }));
   const [status, setStatus] = useState<AdlStatus | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -164,8 +171,8 @@ export default function RunAsAdSheet(p: {
 
   // what is typed is kept in this tab until Create or Cancel
   useEffect(() => {
-    if (step !== "done") keepSheet(p.designId, form);
-  }, [form, step, p.designId]);
+    if (step !== "done") keepSheet(p.designId, form, words);
+  }, [form, step, p.designId, words]);
 
   const set = (patch: Partial<AdForm>) => {
     setForm((f) => ({ ...f, ...patch }));
