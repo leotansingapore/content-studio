@@ -1,5 +1,17 @@
 [
   {
+    "id": "ec60d69037f1",
+    "title": "Received an e-mail about a tax refund? Don’t click on any links as it may be a scam, says IRAS",
+    "gist": "On Nov 10, IRAS warned the public about scam emails claiming tax refunds have been processed, such as an example promising $1,248. The tax authority stated that it never sends emails about refund amounts, as actual refunds are credited directly to bank or PayNow accounts. Links in these emails lead to phishing websites or malware downloads.",
+    "talkingPoint": "Clients may worry about fake tax refund notices that try to steal their banking details or plant malware. You can ask them if they have noticed suspicious emails lately and review how they track their tax matters safely.",
+    "clientMessage": "Hi [Client name], the national tax authority warned about scam emails telling people their tax refunds are ready. Scammers use these emails to steal banking details or plant malware. Actual tax refunds go directly into registered bank or PayNow accounts, and the authority does not email refund amounts. With fake government notices causing heavy losses recently, it pays to stay careful. If you want, we can look at your financial plan together to ensure your accounts and details stay well protected. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/got-an-e-mail-about-tax-refund-dont-click-on-any-links-as-it-may-be-a-scam-says-iras",
+    "publishedAt": "2026-11-12T09:53:00+00:00",
+    "topic": "Scams",
+    "clipping": "/news/ec60d69037f1.jpg"
+  },
+  {
     "id": "784100dc60b8",
     "title": "What you should know about income-payout funds",
     "gist": "In an October interview, Pimco chief investment officer Dan Ivascyn stated that market yields are the most attractive they have been over the past two decades. He noted that this gives long-term investors such as retirees an opportunity to lock in relatively high current income. Pimco data indicates a 95 per cent correlation between the starting yield of fixed-income assets and returns over three to five years.",
@@ -722,18 +734,6 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
-    "id": "38d77cf6f8ef",
-    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
-    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
-    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
-    "clientMessage": null,
-    "source": "Mothership",
-    "url": "https://mothership.sg/2026/02/2026-budget-summary",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "Cost of living",
-    "clipping": "/news/38d77cf6f8ef.jpg"
-  },
-  {
     "id": "146ce01a9327",
     "title": "Budget 2026 Highlights",
     "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
@@ -756,6 +756,18 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/6d46dc1c57d8.jpg"
+  },
+  {
+    "id": "38d77cf6f8ef",
+    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
+    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
+    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "clientMessage": null,
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/02/2026-budget-summary",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/38d77cf6f8ef.jpg"
   },
   {
     "id": "e98550debf11",
