@@ -9,11 +9,14 @@ import {
   isDemoBrand,
   DEFAULT_PROFILE_ID,
   loadProfiles,
+  linkBoardBrand,
   removeProfile,
   renameProfile,
   scoped,
+  scopeFor,
   setActiveProfile,
 } from "./profiles";
+import { localId, writeSharedBrands, type SharedBrand } from "./sharedBrands";
 import { isSyncedKeyFor } from "./cloudSync";
 import { loadDrafts, saveDrafts } from "./draftHistory";
 import { isVoiceProfileUsable, loadVoiceProfile, saveVoiceProfile } from "./voiceProfile";
@@ -183,5 +186,62 @@ describe("the switcher's groups", () => {
 
   it("gives no heading to an account with no demo brands", () => {
     expect(brandGroups(list.slice(0, 2))).toEqual([{ name: null, rows: list.slice(0, 2) }]);
+  });
+});
+
+describe("a brand shared with this account (docs/shared-brands.md)", () => {
+  const OWNER = "0f8fad5b-d9cb-469f-a165-70867728950e";
+  const BRAND = "11111111-2222-4333-8444-555555555555";
+  const shared: SharedBrand = { brand: BRAND, owner: OWNER, profile: "pabc1", name: "Acme", role: "member" };
+  const sharedMe: SharedBrand = { brand: "22222222-2222-4333-8444-555555555555", owner: OWNER, profile: "me", name: "Owner Co", role: "member" };
+  const LIST = `content-studio-profiles-${UID}`;
+
+  it("joins the brand list under its own id, and opening it reads and writes the owner's keys", () => {
+    writeSharedBrands(UID, [shared, sharedMe, { ...shared, brand: "33333333-2222-4333-8444-555555555555", role: "owner" }]);
+    expect(loadProfiles(UID).map((p) => p.id)).toEqual([DEFAULT_PROFILE_ID, localId(BRAND), localId(sharedMe.brand)]);
+    setActiveProfile(UID, localId(BRAND));
+    expect(scoped(UID)).toBe(`${OWNER}~pabc1`);
+    saveDrafts(UID, [{ id: "x" } as never]);
+    expect(window.localStorage.getItem(`content-studio-drafts-${OWNER}~pabc1`)).toContain('"x"');
+    setActiveProfile(UID, localId(sharedMe.brand));
+    expect(scoped(UID)).toBe(OWNER);
+    expect(scopeFor(UID, localId(BRAND))).toBe(`${OWNER}~pabc1`);
+    expect(scopeFor(UID, DEFAULT_PROFILE_ID)).toBe(UID);
+  });
+
+  it("never reaches the account's synced brand list, whichever way the list is saved (review finding 12)", async () => {
+    writeSharedBrands(UID, [shared]);
+    const mine = addProfile(UID, "Mine");
+    renameProfile(UID, mine.id, "Mine too");
+    linkBoardBrand(UID, mine.id, "moneybees");
+    await removeProfile(UID, mine.id);
+    const saved = JSON.parse(window.localStorage.getItem(LIST) ?? "[]") as { id: string }[];
+    expect(saved.some((p) => p.id === localId(BRAND))).toBe(false);
+    expect(saved.some((p) => "shared" in p)).toBe(false);
+  });
+
+  it("can't be renamed or removed from here: only the owner does that, and a member leaves", async () => {
+    writeSharedBrands(UID, [shared]);
+    window.localStorage.setItem(`content-studio-plan-${OWNER}~pabc1`, "kept");
+    expect(renameProfile(UID, localId(BRAND), "Mine now").find((p) => p.id === localId(BRAND))?.name).toBe("Acme");
+    await removeProfile(UID, localId(BRAND));
+    expect(window.localStorage.getItem(`content-studio-plan-${OWNER}~pabc1`)).toBe("kept");
+    expect(callFn).not.toHaveBeenCalled();
+  });
+
+  it("is gone once this device no longer lists it, and the studio falls back to the default brand", () => {
+    writeSharedBrands(UID, [shared]);
+    setActiveProfile(UID, localId(BRAND));
+    writeSharedBrands(UID, []);
+    expect(activeProfile(UID).id).toBe(DEFAULT_PROFILE_ID);
+    expect(scoped(UID)).toBe(UID);
+  });
+
+  it("sits under its own heading in the switcher", () => {
+    writeSharedBrands(UID, [shared]);
+    expect(brandGroups(loadProfiles(UID)).map((g) => [g.name, g.rows.map((r) => r.id)])).toEqual([
+      ["Your brands", [DEFAULT_PROFILE_ID]],
+      ["Shared with you", [localId(BRAND)]],
+    ]);
   });
 });

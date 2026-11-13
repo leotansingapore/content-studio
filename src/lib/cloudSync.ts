@@ -20,6 +20,8 @@
 import { capDrafts, DRAFTS_PREFIX } from "@/lib/brandDrafts";
 import { supabase } from "@/lib/supabase";
 import { listMerger, type SyncBase, type SyncMerger } from "@/lib/syncMerge";
+import { createBrandSync, type BrandBackend, type BrandSync } from "@/lib/brandSync";
+import { fetchMyBrands, readSharedBrands, SHARED_CACHE, writeSharedBrands, type SharedBrand } from "@/lib/sharedBrands";
 
 const SYNC_PREFIX = "content-studio-";
 const META_KEY = "cs-sync-meta"; // deliberately outside SYNC_PREFIX
@@ -42,6 +44,8 @@ export function registerSyncMerge(prefix: string, merger: SyncMerger) {
   if (!MERGERS.some((m) => m.prefix === prefix)) MERGERS.push({ prefix, merger });
 }
 const mergerFor = (key: string) => MERGERS.find((m) => key.startsWith(m.prefix))?.merger;
+/** The merge a key is saved with (posts lists), for a shared brand's sync. */
+export const syncMergerFor = mergerFor;
 
 // What was removed (Leo, 6 Nov: deleted plans and removed brands came back from any device still holding a copy, since
 // the pull pushed up every key the cloud lacked). One synced list per account, merged like posts. Each entry keeps the
@@ -629,8 +633,21 @@ export function supabaseBackend(userId: string): SyncBackend {
   };
 }
 
+/** A shared brand's rows through 037's functions, for its sync on a member's device (brandSync.ts). */
+export function brandBackend(brand: string): BrandBackend {
+  return {
+    rows: (keys) => supabase.rpc("cs_brand_rows", { p_brand: brand, p_keys: keys ?? null }),
+    swap: (key, data, stamp, seen) => supabase.rpc("cs_brand_swap", { p_brand: brand, p_key: key, p_data: data, p_stamp: stamp, p_seen: seen }),
+    drop: (key, seen) => supabase.rpc("cs_brand_drop", { p_brand: brand, p_key: key, p_seen: seen }),
+  };
+}
+
 let active: CloudSync | null = null;
 let rawStorage: SyncStorage | null = null;
+// One sync per shared brand this account is a member of (docs/shared-brands.md); the owner's own devices run none.
+const brandEngines = new Map<string, BrandSync>();
+/** A save to a shared brand didn't land; ProtectedRoute tells the person. */
+export const SHARED_LOST_EVENT = "cs-shared-lost";
 // Starts and stops run one at a time, so a quick sign-out/sign-in can't overlap.
 let chain: Promise<void> = Promise.resolve();
 
@@ -641,17 +658,23 @@ function installStoragePatch(): SyncStorage {
   storage.setItem = (key: string, value: string) => {
     rawSet(key, value);
     active?.noteWrite(key);
+    for (const e of brandEngines.values()) e.noteWrite(key);
   };
   storage.removeItem = (key: string) => {
     rawRemove(key);
     active?.noteWrite(key);
+    for (const e of brandEngines.values()) e.noteWrite(key);
   };
-  window.addEventListener("online", () => active?.retryNow());
+  window.addEventListener("online", () => {
+    active?.retryNow();
+    for (const e of brandEngines.values()) e.retryNow();
+  });
   // Best-effort send when the tab hides or closes; unsent keys are saved either way.
   // ...and a tab coming back merges in what other devices saved meanwhile (posts lists)
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") void active?.flush();
-    else void active?.refreshMerged();
+    const hidden = document.visibilityState === "hidden";
+    void (hidden ? active?.flush() : active?.refreshMerged());
+    for (const e of brandEngines.values()) void (hidden ? e.flush() : e.refresh());
   });
   return {
     get length() {
@@ -667,12 +690,72 @@ function installStoragePatch(): SyncStorage {
 async function stopActive() {
   const engine = active;
   active = null;
-  if (!engine) return;
+  const brands = [...brandEngines.values()];
+  brandEngines.clear();
+  if (!engine && !brands.length) return;
   // Don't hold up sign-out on a slow network; unsent keys stay saved on this device.
   await Promise.race([
-    engine.stop(),
+    Promise.all([engine?.stop(), ...brands.map((b) => b.stop())]),
     new Promise((resolve) => setTimeout(resolve, SIGN_OUT_WAIT_MS)),
   ]);
+  // a shared brand's copies leave with the account (the next person on this browser must not upload them), unless a
+  // change made here is still unsent: then they wait for this account's next sign-in
+  for (const b of brands) if (!b.waiting()) b.teardown();
+}
+
+const noBackend: BrandBackend = {
+  rows: async () => ({ data: null, error: null }),
+  swap: async () => ({ data: null, error: null }),
+  drop: async () => ({ data: null, error: null }),
+};
+const brandSync = (userId: string, b: SharedBrand, backend: BrandBackend) =>
+  createBrandSync({
+    userId,
+    brand: b,
+    storage: rawStorage!,
+    backend,
+    mergerFor,
+    onLost: (key, why) => window.dispatchEvent(new CustomEvent(SHARED_LOST_EVENT, { detail: { key, why } })),
+    onGone: () => dropSharedBrand(userId, b.brand),
+  });
+
+/** Another account's shared-brand copies left on this browser go before anything syncs, so they are never uploaded as
+ * this account's own (a member signing out, then the owner signing in on the same browser). */
+function clearForeignShared(userId: string) {
+  const s = rawStorage!;
+  const caches: string[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const k = s.key(i);
+    if (k?.startsWith(SHARED_CACHE) && k !== SHARED_CACHE + userId) caches.push(k);
+  }
+  for (const k of caches) {
+    const other = k.slice(SHARED_CACHE.length);
+    for (const b of readSharedBrands(other, s)) if (b.role === "member") brandSync(other, b, noBackend).teardown();
+    s.removeItem(k);
+  }
+}
+
+/** Reads which brands this account is on, keeps the answer on the device, and starts a sync for each one it is a
+ * member of, waiting for their first pull. A brand it was on and isn't any more loses its copies here. */
+async function startBrandSyncs(userId: string) {
+  const before = readSharedBrands(userId, rawStorage);
+  const fresh = await Promise.race([fetchMyBrands(), new Promise<null>((r) => setTimeout(() => r(null), 4_000))]);
+  if (fresh) {
+    writeSharedBrands(userId, fresh, rawStorage);
+    for (const b of before) if (b.role === "member" && !fresh.some((f) => f.brand === b.brand && f.role === "member")) brandSync(userId, b, noBackend).teardown();
+  }
+  for (const b of (fresh ?? before).filter((x) => x.role === "member")) brandEngines.set(b.brand, brandSync(userId, b, brandBackend(b.brand)));
+  await Promise.all([...brandEngines.values()].map((e) => e.start()));
+}
+
+/** This account is off a shared brand (it left, was removed, or the brand went): its sync stops and its copies go. */
+export function dropSharedBrand(userId: string, brand: string) {
+  const engine = brandEngines.get(brand);
+  brandEngines.delete(brand);
+  const b = readSharedBrands(userId, rawStorage).find((x) => x.brand === brand);
+  if (engine) engine.teardown();
+  else if (b && rawStorage) brandSync(userId, b, noBackend).teardown();
+  writeSharedBrands(userId, readSharedBrands(userId, rawStorage).filter((x) => x.brand !== brand), rawStorage);
 }
 
 export function initCloudSync(userId: string): Promise<void> {
@@ -683,9 +766,11 @@ export function initCloudSync(userId: string): Promise<void> {
       if (active?.userId === userId) return;
       await stopActive();
       rawStorage ??= installStoragePatch();
+      clearForeignShared(userId);
       const engine = createCloudSync(userId, rawStorage, supabaseBackend(userId));
       active = engine;
-      await engine.start();
+      // side by side: a shared brand's keys are never the main sync's, so neither waits on the other
+      await Promise.all([engine.start(), startBrandSyncs(userId).catch(() => undefined)]);
     });
   return chain;
 }

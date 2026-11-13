@@ -11,6 +11,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { disconnectBrand } from "@/lib/socialConnect";
+import { localId, readSharedBrands, scopeOf } from "@/lib/sharedBrands";
 
 export interface Profile {
   id: string;
@@ -18,6 +19,8 @@ export interface Profile {
   createdAt: string;
   /** The posts-board brand this brand owns (moneybees-reels studio/api/_db.js BRANDS id), for /reels. */
   boardBrand?: string;
+  /** Another account's brand this one is a member of (docs/shared-brands.md): never stored in this account's list. */
+  shared?: { brand: string; owner: string; profile: string };
 }
 
 export const DEFAULT_PROFILE_ID = "me";
@@ -37,23 +40,34 @@ function storage(): Storage | null {
   }
 }
 
+/** The brands shared with this account that this device knows of (sharedBrands.ts keeps them, outside the sync). */
+const sharedProfiles = (userId: string): Profile[] =>
+  readSharedBrands(userId)
+    .filter((b) => b.role === "member")
+    .map((b) => ({ id: localId(b.brand), name: b.name, createdAt: "", shared: { brand: b.brand, owner: b.owner, profile: b.profile } }));
+
 export function loadProfiles(userId: string | null | undefined): Profile[] {
   const fallback: Profile = { id: DEFAULT_PROFILE_ID, name: "Me", createdAt: "" };
   const s = storage();
   if (!s || !userId) return [fallback];
+  let own: Profile[];
   try {
     const parsed = JSON.parse(s.getItem(LIST_PREFIX + userId) ?? "[]");
-    const list = Array.isArray(parsed) ? (parsed as Profile[]).filter((p) => p && p.id && p.name) : [];
-    return list.some((p) => p.id === DEFAULT_PROFILE_ID) ? list : [fallback, ...list];
+    const list = Array.isArray(parsed) ? (parsed as Profile[]).filter((p) => p && p.id && p.name && !p.shared) : [];
+    own = list.some((p) => p.id === DEFAULT_PROFILE_ID) ? list : [fallback, ...list];
   } catch {
-    return [fallback];
+    own = [fallback];
   }
+  return [...own, ...sharedProfiles(userId)];
 }
 
+/** Writes this account's own brands: a shared one is never stored here, so the sync can't bring it back after leaving. */
 function saveProfiles(userId: string, list: Profile[]): Profile[] {
-  storage()?.setItem(LIST_PREFIX + userId, JSON.stringify(list));
-  return list;
+  storage()?.setItem(LIST_PREFIX + userId, JSON.stringify(list.filter((p) => !p.shared)));
+  return loadProfiles(userId);
 }
+
+const isShared = (userId: string, id: string) => !!loadProfiles(userId).find((p) => p.id === id)?.shared;
 
 export function addProfile(userId: string, name: string): Profile {
   // Base-36 time + a random tail: never shaped like a UUID, which cloudSync
@@ -85,15 +99,23 @@ export const isDemoBrand = (p: Pick<Profile, "boardBrand">) => Boolean(p.boardBr
 export function brandGroups<T extends Profile>(list: T[], query = ""): { name: string | null; rows: T[] }[] {
   const q = query.trim().toLowerCase();
   const hits = list.filter((p) => p.name.toLowerCase().includes(q));
-  const groups = list.some(isDemoBrand)
-    ? [{ name: "Your brands", rows: hits.filter((p) => !isDemoBrand(p)) }, { name: "Demo brands", rows: hits.filter(isDemoBrand) }]
+  const mine = hits.filter((p) => !p.shared);
+  const shared = hits.filter((p) => p.shared);
+  const headed = list.some(isDemoBrand) || list.some((p) => p.shared);
+  const groups = headed
+    ? [
+        { name: "Your brands", rows: mine.filter((p) => !isDemoBrand(p)) },
+        { name: "Demo brands", rows: mine.filter(isDemoBrand) },
+        { name: "Shared with you", rows: shared },
+      ]
     : [{ name: null, rows: hits }];
   return groups.filter((g) => g.rows.length);
 }
 
 export function renameProfile(userId: string, id: string, name: string): Profile[] {
   const trimmed = name.trim().slice(0, 40);
-  if (!trimmed) return loadProfiles(userId);
+  // a shared brand is named by its owner
+  if (!trimmed || isShared(userId, id)) return loadProfiles(userId);
   return saveProfiles(userId, loadProfiles(userId).map((p) => (p.id === id ? { ...p, name: trimmed } : p)));
 }
 
@@ -103,7 +125,8 @@ export function renameProfile(userId: string, id: string, name: string): Profile
  * them; when that fails nothing is removed and the error says why.
  */
 export async function removeProfile(userId: string, id: string, cleanup?: (id: string) => Promise<void>): Promise<Profile[]> {
-  if (id === DEFAULT_PROFILE_ID) return loadProfiles(userId);
+  // the default brand stays; a shared brand is the owner's to remove (a member leaves it instead)
+  if (id === DEFAULT_PROFILE_ID || isShared(userId, id)) return loadProfiles(userId);
   await disconnectBrand(id);
   // the brand's server rows (its bio page, tracked links): a failure stops here, before anything local goes
   await cleanup?.(id);
@@ -242,9 +265,16 @@ export function profileForBusiness(userId: string, business: string | null): str
   return loadProfiles(userId).find((p) => key(p.name) === key(business) || (p.boardBrand && key(p.boardBrand) === key(business)))?.id ?? null;
 }
 
+/** The id a brand's stores key their data on: the account's own id for "me", id~brand for its other brands, and the
+ * owner's own scope for a brand shared with it (so every page that uses scoped() works on the shared copy). */
+export function scopeFor(userId: string, profileId: string): string {
+  if (profileId === DEFAULT_PROFILE_ID) return userId;
+  const shared = loadProfiles(userId).find((p) => p.id === profileId)?.shared;
+  return shared ? scopeOf(shared.owner, shared.profile) : `${userId}~${profileId}`;
+}
+
 /** The id per-profile stores key their data on. */
 export function scoped<T extends string | null | undefined>(userId: T): T {
   if (!userId) return userId;
-  const id = activeProfileId(userId);
-  return (id === DEFAULT_PROFILE_ID ? userId : `${userId}~${id}`) as T;
+  return scopeFor(userId, activeProfileId(userId)) as T;
 }

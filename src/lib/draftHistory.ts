@@ -7,7 +7,7 @@
 // Once the SUPABASE handoff lands (content_studio_drafts table), this
 // module can swap to Supabase reads/writes without touching callers.
 
-import { scoped, DEFAULT_PROFILE_ID } from "@/lib/profiles";
+import { scoped, scopeFor, DEFAULT_PROFILE_ID } from "@/lib/profiles";
 import { addDays, keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
 import type { ShotBeat } from "../../supabase/functions/clone-reel/logic.ts";
 import type { Numbers } from "../../supabase/functions/social/metrics.ts";
@@ -285,7 +285,7 @@ function safeStorage(): Storage | null {
 
 /** Another brand's posts as stored, for the Calendar's all-brands view (they are edited in their own brand). */
 export function draftsOfBrand(userId: string, profileId: string): DraftEntry[] {
-  const key = `${KEY_PREFIX}${profileId === DEFAULT_PROFILE_ID ? userId : `${userId}~${profileId}`}`;
+  const key = `${KEY_PREFIX}${scopeFor(userId, profileId)}`;
   try {
     const parsed = JSON.parse(safeStorage()?.getItem(key) ?? "[]");
     return Array.isArray(parsed) ? (parsed as DraftEntry[]) : [];
