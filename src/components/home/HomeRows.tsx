@@ -8,10 +8,11 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CalendarDotsIcon, CaretRightIcon, FilmSlateIcon, ImageIcon, ImageBrokenIcon, StackIcon, MegaphoneIcon, RepeatIcon, TextTIcon, type Icon as IconType } from "@phosphor-icons/react";
 import LibraryThumb, { readThumbSources, useFontsReady, useOnScreen, type ThumbSources } from "@/components/library/LibraryThumb";
+import FormatPreview from "@/components/make/FormatPreview";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
 import { FORMATS, formatHref, type FormatDef, type FormatKind } from "@/data/formats";
-import { STATIC_FORMATS, staticFormatHref, type StaticFormat } from "@/data/staticFormats";
+import { STATIC_FORMATS, STATIC_SHOTS, staticFormatHref, staticShotSrc, type StaticFormat } from "@/data/staticFormats";
 import { adlStatus, loadLaunches, type AdlStatus } from "@/lib/adlauncher";
 import { type CompetitorAd, type CompetitorAdsState, canReadAds, loadCompetitorAds, runLabel, toAdLike } from "@/lib/competitorAds";
 import { type Competitor, loadCompetitors } from "@/lib/competitors";
@@ -132,15 +133,23 @@ export interface FormatTile {
   line: string;
   to: string;
   icon: IconType;
+  /** The format's example picture, when it has one; `video` plays its clip while on screen. */
+  poster?: string;
+  video?: boolean;
 }
+
+// a maker everyone can open that is also a catalogue format shows that format's example
+const POSTER_OF = new Map(FORMATS.filter((f) => f.ready && f.preview).map((f) => [formatHref(f), f] as const));
 
 /** The ready video formats (gallery order) and ready static ads taken in turn, `n` at most. */
 export function homeFormats(formats: FormatDef[], statics: StaticFormat[], n = FORMAT_TILES): FormatTile[] {
-  const video = formats
+  const video: FormatTile[] = formats
     .filter((f) => f.ready)
     .sort((a, b) => a.group - b.group)
-    .map((f) => ({ key: f.slug, name: f.name, line: f.blurb, to: formatHref(f), icon: KIND_ICONS[f.kind] }));
-  const still = statics.filter((f) => f.ready).map((f) => ({ key: `static-${f.slug}`, name: f.name, line: f.blurb, to: staticFormatHref(f.slug), icon: ImageIcon }));
+    .map((f) => ({ key: f.slug, name: f.name, line: f.blurb, to: formatHref(f), icon: KIND_ICONS[f.kind], poster: f.preview ? `/formats/${f.slug}.webp` : undefined, video: f.kind === "video" }));
+  const still: FormatTile[] = statics
+    .filter((f) => f.ready)
+    .map((f) => ({ key: `static-${f.slug}`, name: f.name, line: f.blurb, to: staticFormatHref(f.slug), icon: ImageIcon, poster: STATIC_SHOTS[f.slug] ? staticShotSrc(f.slug, 1) : undefined }));
   return Array.from({ length: Math.max(video.length, still.length) }, (_, i) => [video[i], still[i]])
     .flat()
     .filter((t): t is FormatTile => Boolean(t))
@@ -149,7 +158,33 @@ export function homeFormats(formats: FormatDef[], statics: StaticFormat[], n = F
 
 /** Everyone else's: the makers every sign-in can open (createFormats.ts), Create's six then the rest, `n` at most. */
 export const customerFormats = (n = FORMAT_TILES): FormatTile[] =>
-  [...CREATE_FORMATS, ...MORE_FORMATS].slice(0, n).map((w) => ({ key: w.to, name: w.name, line: w.blurb, to: w.to, icon: w.icon }));
+  [...CREATE_FORMATS, ...MORE_FORMATS].slice(0, n).map((w) => {
+    const f = POSTER_OF.get(w.to);
+    return { key: w.to, name: w.name, line: w.blurb, to: w.to, icon: w.icon, poster: f ? `/formats/${f.slug}.webp` : undefined, video: f?.kind === "video" };
+  });
+
+/** One format tile: its example (playing while on screen) when it has one, else its icon; then its name and line. */
+function FormatTileLink({ t }: { t: FormatTile }) {
+  const [active, setActive] = useState(false);
+  if (!t.poster)
+    return (
+      <Link to={t.to} className={TILE}>
+        <t.icon className="h-4 w-4 text-primary" aria-hidden />
+        <span className="text-sm font-semibold text-foreground">{t.name}</span>
+        <span className="line-clamp-2 text-xs text-muted-foreground">{t.line}</span>
+      </Link>
+    );
+  const slug = t.key.replace(/^static-/, "");
+  return (
+    <Link to={t.to} onMouseEnter={() => setActive(true)} onMouseLeave={() => setActive(false)} onFocus={() => setActive(true)} onBlur={() => setActive(false)} className={cn(TILE, "p-1.5")}>
+      <span className="relative block aspect-[4/5] w-full overflow-hidden rounded-lg bg-muted">
+        <FormatPreview slug={slug} poster={t.poster} video={t.video} active={active} fallback={<t.icon className="m-auto h-6 w-6 text-primary" aria-hidden />} />
+      </span>
+      <span className="px-1 text-sm font-semibold text-foreground">{t.name}</span>
+      <span className="line-clamp-2 px-1 pb-1 text-xs text-muted-foreground">{t.line}</span>
+    </Link>
+  );
+}
 
 export function StartFromFormat({ tiles, all = links.make() }: { tiles: FormatTile[]; all?: string }) {
   return (
@@ -157,11 +192,7 @@ export function StartFromFormat({ tiles, all = links.make() }: { tiles: FormatTi
       <ul className={cn(STRIP, "lg:grid-cols-4")}>
         {tiles.map((t) => (
           <li key={t.key} className={CELL}>
-            <Link to={t.to} className={TILE}>
-              <t.icon className="h-4 w-4 text-primary" aria-hidden />
-              <span className="text-sm font-semibold text-foreground">{t.name}</span>
-              <span className="line-clamp-2 text-xs text-muted-foreground">{t.line}</span>
-            </Link>
+            <FormatTileLink t={t} />
           </li>
         ))}
       </ul>

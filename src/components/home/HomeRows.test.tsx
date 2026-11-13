@@ -104,6 +104,13 @@ describe("Start from a format", () => {
     expect(tiles[1].to).toBe("/make/static/s1");
   });
 
+  it("shows a format's example picture when it has one, and its icon when it has none", () => {
+    const withPoster = [{ ...fmt("v1", 1), preview: true as const }, fmt("v2", 1)];
+    const out = html(<StartFromFormat tiles={homeFormats(withPoster, [])} />);
+    expect(out).toContain('src="/formats/v1.webp"');
+    expect(out).not.toContain('src="/formats/v2.webp"');
+  });
+
   it("draws each tile with its name and line, and All formats to /make", () => {
     const out = html(<StartFromFormat tiles={homeFormats(video, [])} />);
     expect(hrefs(out)).toEqual(["/make", "/x/v1", "/x/v3", "/x/v4", "/x/v5", "/x/v6", "/x/v7", "/x/v8", "/x/v9"]);
