@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBySlug } from "@/data/formats";
 import { useToast } from "@/hooks/use-toast";
+import { adviserBrand } from "@/lib/profession";
 import { slideFileName, slidesZipName } from "@/lib/carousel";
 import { downloadBlob, zipBlob } from "@/lib/carouselRender";
 import { scanCompliance } from "@/lib/compliance";
@@ -313,7 +314,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
                 </div>
               )}
               <Label htmlFor="make-topic" className={FIELD_LABEL}>Topic</Label>
-              <Input id="make-topic" value={words.topic} maxLength={200} placeholder="Like 5 things to check before you buy a hospital plan" onChange={(e) => setWords({ ...words, topic: e.target.value })} />
+              <Input id="make-topic" value={words.topic} maxLength={200} placeholder={adviserBrand() ? "Like 5 things to check before you buy a hospital plan" : "Like 5 things to know before your first order"} onChange={(e) => setWords({ ...words, topic: e.target.value })} />
               <p className="text-xs text-muted-foreground">Writes slides on your topic over {overWhat}.</p>
             </div>
           )}

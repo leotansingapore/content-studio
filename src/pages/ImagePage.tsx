@@ -42,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
+import { adviserBrand } from "@/lib/profession";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { AI_FOLDER, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
 import { DEFAULT_BRAND, loadBrand, slugify } from "@/lib/carousel";
@@ -607,7 +608,7 @@ function ImageEditor({ userId }: { userId: string }) {
           {!source && (
             <div className="space-y-1.5">
               <Label htmlFor="image-topic" className={FIELD_LABEL}>What it's about</Label>
-              <Input id="image-topic" value={topic} maxLength={200} disabled={writing} placeholder={meme ? "Saving for a BTO" : "Like why a hospital plan has a co-pay"} onChange={(e) => setWord("topic", e.target.value)} />
+              <Input id="image-topic" value={topic} maxLength={200} disabled={writing} placeholder={adviserBrand() ? (meme ? "Saving for a BTO" : "Like why a hospital plan has a co-pay") : meme ? "When the order finally arrives" : "Like the one question customers ask most"} onChange={(e) => setWord("topic", e.target.value)} />
             </div>
           )}
           <div className="space-y-1.5">
