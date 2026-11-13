@@ -63,8 +63,8 @@ describe("a picture that carries words", () => {
     const body = gptImageBody("A poster at a bus shelter", "u1", true);
     expect(body.prompt).toBe(`A poster at a bus shelter\n\n${WORDS_PEOPLE_RULE}`);
     expect(body.prompt).not.toMatch(/No text|no words|no logos/);
-    // the people wording is all still there
-    expect(`${WORDS_PEOPLE_RULE} No text, no words, no logos, no watermarks.`).toBe(RULE_BEFORE_WORDS);
+    // every picture without words keeps the rule it always had
+    expect(PEOPLE_RULE).toBe(RULE_BEFORE_WORDS);
     const { prompt: _a, ...rest } = body;
     const { prompt: _b, ...plain } = gptImageBody("A poster at a bus shelter", "u1");
     expect(rest).toEqual({ ...plain, size: "1152x1440" });
@@ -84,6 +84,16 @@ describe("a picture that carries words", () => {
     expect(parseImageRequest({ mode: "fix", token: "t", fix: "make the sky bluer", words: "yes" })).toEqual({ ok: true, request: { mode: "fix", token: "t", fix: "make the sky bluer" } });
     expect(gptFixBody("https://x/p.jpg", "make the sky bluer", "u1", true)).toEqual({ ...gptFixBody("https://x/p.jpg", "make the sky bluer", "u1"), size: "1152x1440" });
     expect(gptRefBody("A poster", "u1", { logo: "data:image/png;base64,iVBORw0KGgo=" }).size).toBe("1152x1440");
+  });
+});
+
+describe("people in a picture that carries words", () => {
+  it("come only where the scene calls for them, one or two adults in an everyday moment, never a posed group or a polished look", () => {
+    expect(WORDS_PEOPLE_RULE).toContain("People only where the scene calls for them: one or two adults at most, Singaporean or other Asian");
+    expect(WORDS_PEOPLE_RULE).toContain("never a posed group around a phone");
+    expect(WORDS_PEOPLE_RULE).not.toMatch(/good-looking|well-groomed|lifestyle|natural mix|clearly different/);
+    expect(gptImageBody("A poster", "u1", true).prompt).toBe(`A poster\n\n${WORDS_PEOPLE_RULE}`);
+    expect(gptImageBody("A poster", "u1").prompt).toBe(`A poster\n\n${RULE_BEFORE_WORDS}`);
   });
 });
 

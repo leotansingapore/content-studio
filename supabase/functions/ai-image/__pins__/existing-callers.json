@@ -17,7 +17,7 @@
       "route": "generations",
       "body": {
         "model": "gpt-image-2.6-flare",
-        "prompt": "A poster at a bus shelter. Headline: \"Still dark.\"\n\nSet in Singapore. Any people shown are Singaporean or other Asian (a natural mix of Chinese, Malay, Indian and Eurasian), each one clearly different from the others in age, build, face, hair and clothes; good-looking, well-groomed, natural expressions. Polished lifestyle photograph.",
+        "prompt": "A poster at a bus shelter. Headline: \"Still dark.\"\n\nSet in Singapore. People only where the scene calls for them: one or two adults at most, Singaporean or other Asian, in an everyday moment that fits who buys from the brand (at a desk, in a car, at a kopitiam table), never a posed group around a phone.",
         "size": "1152x1440",
         "quality": "medium",
         "output_format": "jpeg",

@@ -31,7 +31,6 @@ import { isOn, loadFacts } from "@/lib/voiceMemory";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic.ts";
 import { STATIC_ANGLES, type AdProduct, type Subject } from "../../supabase/functions/remix/logic.ts";
 
-export const PHOTO_PEOPLE = "Any people are Singaporean adults.";
 /** A real Singapore look without a real business or place on it (a 13 Nov poster drew a real station's sign and operator mark). */
 export const PHOTO_MARKS = "Singapore by its look alone: no real place names, transit, mall, bank or shop logos, or vehicle liveries.";
 /** The only writing on the picture (a 13 Nov poster printed a price nobody asked for beside the logo). */
@@ -79,7 +78,7 @@ export const productLine = (p: { name: string; what: string }) => {
  * The picture maker's prompt for a static format made as a photo: its scene, the brand's name and colour, the product the
  * ad is about when there is one, what to show of what it sells (SUBJECT_LINES, on a format with room for a picture of
  * it), every on-picture string of its layout in draw order (IMAGE_FIELDS, a typed price included), each labelled and in
- * double quotes, the people line, the real-marks line and the spelling rule. Words the layout never draws (the topic,
+ * double quotes, the real-marks line and the spelling rule (ai-image adds who may be in it). Words the layout never draws (the topic,
  * the caption) stay out, and a brand with no name is given by its colour alone. Pure.
  */
 export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { name: string; color: string }, words: Record<string, string>, product?: { name: string; what: string }, subject?: Subject): string {
@@ -92,7 +91,6 @@ export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { 
     product ? productLine(typedPrice(f.slug) ? product : { name: product.name.split(/\s+/).filter((w) => !PRICED.test(w)).join(" "), what: withoutPrices(product.what) }) : "",
     subject && staticPhoto(f.slug) ? SUBJECT_LINES[subject] : "",
     on.length ? `The words on it, in order: ${on.join("; ")}.` : "",
-    PHOTO_PEOPLE,
     PHOTO_MARKS,
     PHOTO_RULE,
   ]

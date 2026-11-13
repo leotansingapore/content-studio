@@ -7,16 +7,19 @@ export const HF_MODEL = "higgsfield-ai/soul/v2/standard";
 export const MIN_PROMPT = 10;
 export const MAX_PROMPT = 1200;
 
-/**
- * PEOPLE_RULE without its "No text" clause, for a picture that carries words ({mode: "start", words: true}: a static
- * format made as a photo, whose prompt quotes every line to print and bars other logos itself).
- */
-export const WORDS_PEOPLE_RULE =
+/** Leo's standing rule for a picture with no words (Write, slideshows, B-roll, presenters): Singaporeans in Singapore, each distinct. */
+export const PEOPLE_RULE =
   "Set in Singapore. Any people shown are Singaporean or other Asian (a natural mix of Chinese, Malay, Indian and Eurasian), " +
   "each one clearly different from the others in age, build, face, hair and clothes; good-looking, well-groomed, natural expressions. " +
-  "Polished lifestyle photograph.";
-/** Leo's standing rule: people default to Singaporeans in Singapore, each one distinct. */
-export const PEOPLE_RULE = `${WORDS_PEOPLE_RULE} No text, no words, no logos, no watermarks.`;
+  "Polished lifestyle photograph. No text, no words, no logos, no watermarks.";
+/**
+ * A picture that carries words ({mode: "start", words: true}: a static format made as a photo, whose prompt quotes every
+ * line to print and sets its own look). People only where its scene calls for them: PEOPLE_RULE's mixed, good-looking
+ * group and "polished lifestyle photograph" put the same smiling group around a phone into 5 of 6 ads (14 Nov).
+ */
+export const WORDS_PEOPLE_RULE =
+  "Set in Singapore. People only where the scene calls for them: one or two adults at most, Singaporean or other Asian, " +
+  "in an everyday moment that fits who buys from the brand (at a desk, in a car, at a kopitiam table), never a posed group around a phone.";
 
 /** "Fix it" under a finished picture: Qwen Image 3 edits it from one instruction (the web stand-in for
  * Higgsfield's Photoshop /image-fixer skill, which needs a desktop app). */
