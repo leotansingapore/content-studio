@@ -569,10 +569,11 @@ export const logoPicks = (html: string, base: URL, name = ""): LogoPick[] => {
     type: attr(t, "type").toLowerCase(),
   }));
   for (const l of links.filter((l) => l.rel.includes("apple-touch-icon") && l.href).sort((a, b) => b.size - a.size)) img(l.href, "touch icon", 40);
-  for (const l of links.filter((l) => /\bicon\b/.test(l.rel) && !l.rel.includes("apple") && l.href).sort((a, b) => b.size - a.size)) {
+  const icons = links.filter((l) => /\bicon\b/.test(l.rel) && !l.rel.includes("apple") && l.href).sort((a, b) => b.size - a.size);
+  for (const l of icons) {
     const vector = /svg/.test(`${l.type} ${fileOf(l.href)}`);
-    if (/\.ico$/.test(fileOf(l.href)) || /icon$/.test(l.type) || (l.size && l.size < 96 && !vector)) continue;
-    img(l.href, "icon", l.rel.includes("mask") ? 12 : 20);
+    if (l.size && l.size < 96 && !vector) continue;
+    img(l.href, "icon", /\.ico$/.test(fileOf(l.href)) || /icon$/.test(l.type) ? 10 : l.rel.includes("mask") ? 12 : 20);
   }
 
   const seen = new Set<string>();
@@ -587,6 +588,24 @@ export const logoPicks = (html: string, base: URL, name = ""): LogoPick[] => {
     .slice(0, 5)
     .map((p): LogoPick => (p.kind === "img" ? { kind: "img", src: p.src, from: p.from } : { kind: "svg", svg: p.svg, from: p.from }));
 };
+
+export function icoPng(b: Uint8Array): Uint8Array | null {
+  if (b.length < 22 || b[0] !== 0 || b[1] !== 0 || b[2] !== 1 || b[3] !== 0) return null;
+  const view = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  const count = Math.min(view.getUint16(4, true), 64);
+  let best: { size: number; at: number; length: number } | null = null;
+  for (let i = 0; i < count; i++) {
+    const e = 6 + i * 16;
+    if (e + 16 > b.length) break;
+    const size = b[e] || 256;
+    const length = view.getUint32(e + 8, true);
+    const at = view.getUint32(e + 12, true);
+    if (at + 8 > b.length || length < 8 || at + length > b.length) continue;
+    const png = b[at] === 0x89 && b[at + 1] === 0x50 && b[at + 2] === 0x4e && b[at + 3] === 0x47;
+    if (png && size >= 48 && (!best || size > best.size)) best = { size, at, length };
+  }
+  return best ? b.subarray(best.at, best.at + best.length) : null;
+}
 
 export const svgFile = (text: string): boolean => {
   const at = text.search(/<svg\b/i);

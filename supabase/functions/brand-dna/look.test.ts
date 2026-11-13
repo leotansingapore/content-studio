@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colourGap, logoPicks, logoWindow, lookColours, lookFonts, parseColour, stylesheetLinks, svgDataUrl, svgFile, TWIN_GAP } from "./look.ts";
+import { colourGap, icoPng, logoPicks, logoWindow, lookColours, lookFonts, parseColour, stylesheetLinks, svgDataUrl, svgFile, TWIN_GAP } from "./look.ts";
 
 const base = new URL("https://acme.sg/");
 const unpack = (url: string | null) => (url ? new TextDecoder().decode(Uint8Array.from(atob(url.split(",")[1]), (c) => c.charCodeAt(0))) : "");
@@ -90,9 +90,14 @@ describe("logoPicks", () => {
   const HEAD = `<link rel="icon" href="/favicon-32.png" sizes="32x32"><link rel="icon" href="/favicon.ico"><link rel="icon" href="/icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple.png"><meta property="og:image" content="/share.jpg">`;
 
-  it("takes the header's home link picture first, then the touch icon and big icons, never the share picture or small icons", () => {
+  it("takes the header's home link picture first, then the touch icon and big icons, the favicon last, never the share picture or small icons", () => {
     const html = `${HEAD}<header><a href="/" class="site-header__link"><img src="/img/acme.png" alt="Acme Wealth"></a><nav><a href="/about">About</a></nav></header>`;
-    expect(picked(html)).toEqual(["home link https://acme.sg/img/acme.png", "touch icon https://acme.sg/apple.png", "icon https://acme.sg/icon-192.png"]);
+    expect(picked(html)).toEqual(["home link https://acme.sg/img/acme.png", "touch icon https://acme.sg/apple.png", "icon https://acme.sg/icon-192.png", "icon https://acme.sg/favicon.ico"]);
+  });
+
+  it("keeps a favicon the page names, even one saved as .ico, as the last thing to try", () => {
+    const html = '<link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="2400x2400"/><header><a href="/"><svg viewBox="0 0 256 256" fill="currentColor"><path d="M0 0h256v256H0z"/></svg></a></header>';
+    expect(picked(html)).toEqual(["icon https://acme.sg/favicon.ico"]);
   });
 
   it("takes a drawing in the home link, then a picture that calls itself the logo, then the site's schema logo", () => {
@@ -148,6 +153,44 @@ describe("logoWindow", () => {
     const svg = `<header><a href="/"><svg viewBox="0 0 10 10"><title>Tony Robbins Logo</title><path d="M0 0h10v10z"/></svg></a></header>`;
     expect(logoPicks(svg, new URL("https://www.tonyrobbins.com/"), "Carat")).toHaveLength(1);
     expect(logoPicks(svg, new URL("https://acme.sg/"), "Acme Wealth")).toEqual([]);
+  });
+});
+
+describe("icoPng", () => {
+  const png = (n: number) => new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...new Array(n).fill(7)]);
+  const ico = (entries: { size: number; data: Uint8Array }[]) => {
+    const head = 6 + entries.length * 16;
+    const total = head + entries.reduce((n, e) => n + e.data.length, 0);
+    const out = new Uint8Array(total);
+    const view = new DataView(out.buffer);
+    view.setUint16(2, 1, true);
+    view.setUint16(4, entries.length, true);
+    let at = head;
+    entries.forEach((e, i) => {
+      const o = 6 + i * 16;
+      out[o] = e.size >= 256 ? 0 : e.size;
+      out[o + 1] = out[o];
+      view.setUint32(o + 8, e.data.length, true);
+      view.setUint32(o + 12, at, true);
+      out.set(e.data, at);
+      at += e.data.length;
+    });
+    return out;
+  };
+
+  it("takes the biggest PNG inside an icon file, at least 48 px", () => {
+    const big = png(40);
+    const got = icoPng(ico([{ size: 32, data: png(10) }, { size: 256, data: big }, { size: 64, data: png(20) }]));
+    expect(got && Array.from(got)).toEqual(Array.from(big));
+  });
+
+  it("gives nothing for small icons, old bitmap icons, broken ones or files that aren't icons", () => {
+    expect(icoPng(ico([{ size: 32, data: png(10) }]))).toBeNull();
+    expect(icoPng(ico([{ size: 64, data: new Uint8Array([40, 0, 0, 0, 64, 0, 0, 0, 1, 2]) }]))).toBeNull();
+    expect(icoPng(png(30))).toBeNull();
+    const broken = ico([{ size: 64, data: png(20) }]);
+    new DataView(broken.buffer).setUint32(6 + 12, 9_999_999, true);
+    expect(icoPng(broken)).toBeNull();
   });
 });
 

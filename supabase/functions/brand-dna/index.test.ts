@@ -154,7 +154,7 @@ describe("brand-dna", () => {
     const r = await call({ url: "late.sg" });
     expect(r.status).toBe(200);
     expect(r.body.logo).toMatch(/^data:image\/svg\+xml;base64,/);
-    expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice"]);
+    expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice", "colours", "fonts"]);
   });
 
   it("still returns what the page itself shows when the LLM fails", async () => {
@@ -202,7 +202,7 @@ describe("brand-dna phase 4 (Leo only)", () => {
     expect(seen).toEqual([]);
     expect(db.spent).toEqual([]);
     const r = await call({ url: "acme.sg" }, "u1");
-    expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice"]);
+    expect(Object.keys(r.body)).toEqual(["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice", "colours", "fonts"]);
     // no page past the home page
     expect(seen.filter((u) => /acme\.sg\/(about|services|blog|contact)/.test(u))).toEqual([]);
   });
@@ -348,7 +348,7 @@ describe("brand-dna phase 4 (Leo only)", () => {
 });
 
 describe("the brand's look: logo, colours and fonts", () => {
-  const KEYS = ["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice"];
+  const KEYS = ["url", "name", "colour", "logo", "handles", "oneLiner", "audience", "audienceDetail", "topics", "edge", "voice", "colours", "fonts"];
   const LOOK = `<html lang="en"><title>Acme Wealth | Plans</title><meta property="og:image" content="/og.jpg">
 <link rel="stylesheet" href="/css/one.css"><link rel="stylesheet" href="/css/two.css"><link rel="stylesheet" href="/css/three.css"><link rel="stylesheet" href="/css/four.css">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&amp;display=swap" rel="stylesheet">
@@ -366,22 +366,22 @@ describe("the brand's look: logo, colours and fonts", () => {
   };
   const unpack = (url: string) => Buffer.from(url.split(",")[1], "base64").toString("utf8");
 
-  it("gives a listed uid colours and fonts after pagesRead and lang, from the page and up to 3 stylesheets", async () => {
+  it("gives a listed uid pagesRead and lang after the colours and fonts everyone gets, from the page and up to 3 stylesheets", async () => {
     look();
     const r = await call({ url: "acme.sg" }, "leo");
     expect(r.status).toBe(200);
-    expect(Object.keys(r.body)).toEqual([...KEYS, "pagesRead", "lang", "colours", "fonts"]);
+    expect(Object.keys(r.body)).toEqual([...KEYS, "pagesRead", "lang"]);
     expect(r.body).toMatchObject({ colour: "#0b7a55", colours: ["#0b7a55"], fonts: ["Fraunces", "Inter"], pagesRead: ["https://acme.sg/"], lang: null });
     expect(seen).toEqual(expect.arrayContaining(["https://acme.sg/css/one.css", "https://acme.sg/css/two.css", "https://acme.sg/css/three.css"]));
     expect(seen.filter((u) => u.endsWith(".css") || u.includes("fonts.googleapis"))).toHaveLength(3);
     expect(db.spent).toEqual(["brand-dna"]);
   });
 
-  it("keeps an unlisted uid's answer to the same 11 keys, with the site's colour", async () => {
+  it("gives an unlisted uid the same 13 keys, the site's colours and fonts included", async () => {
     look();
     const r = await call({ url: "acme.sg" }, "u1");
     expect(Object.keys(r.body)).toEqual(KEYS);
-    expect(r.body.colour).toBe("#0b7a55");
+    expect(r.body).toMatchObject({ colour: "#0b7a55", colours: ["#0b7a55"], fonts: ["Fraunces", "Inter"] });
   });
 
   it("returns the header's inline drawing as an SVG data URL and never fetches the share picture", async () => {

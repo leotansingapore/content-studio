@@ -35,17 +35,17 @@ import {
   parseAudienceAsk, parseAudiences, parseProducts, parseWritten, pickPages, productClues, productMessages, PRODUCTS_FORMAT, readSite, type SiteFacts, siteUrl,
   withOffers, WRITE_FORMAT, writeMessages,
 } from "./logic.ts";
-import { colourful, type LogoPick, logoPicks, logoWindow, lookColours, lookFonts, stylesheetLinks, svgDataUrl, svgFile } from "./look.ts";
+import { colourful, icoPng, type LogoPick, logoPicks, logoWindow, lookColours, lookFonts, stylesheetLinks, svgDataUrl, svgFile } from "./look.ts";
 
 const PAGE_BYTES = 300_000;
 const HOME_BYTES = 1_000_000;
 // under the brand kit's 350,000-character limit once base64 grows it by a third
-const LOGO_BYTES = 250_000;
+const LOGO_BYTES = 2_000_000;
 const IMAGE_BYTES = 2_000_000;
 const STYLE_BYTES = 300_000;
 const HTML = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5";
 const IMAGES = "image/png,image/webp,image/jpeg;q=0.8";
-const LOGOS = "image/png,image/webp,image/svg+xml,image/jpeg;q=0.8";
+const LOGOS = "image/png,image/webp,image/svg+xml,image/jpeg;q=0.8,image/*;q=0.5";
 const CSS = "text/css,*/*;q=0.1";
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -88,9 +88,10 @@ const logoFrom = async (picks: LogoPick[], page: string): Promise<{ dataUrl: str
     fetched++;
     const got = await fetchCapped(u, LOGO_BYTES + 1, LOGOS, deadline).catch(() => null);
     if (!got || got.bytes.byteLength > LOGO_BYTES) continue;
-    const type = imageType(got.bytes);
+    const bytes = icoPng(got.bytes) ?? got.bytes;
+    const type = imageType(bytes);
     if (type) {
-      if (got.bytes.byteLength >= 200) return { dataUrl: dataUrl(got.bytes, type), svg: "" };
+      if (bytes.byteLength >= 200) return { dataUrl: dataUrl(bytes, type), svg: "" };
       continue;
     }
     const text = new TextDecoder().decode(got.bytes);
@@ -330,7 +331,8 @@ Deno.serve(async (req) => {
 
   const top = html.slice(0, PAGE_BYTES);
   const shown = safely("logo", () => logoWindow(html), top);
-  const picks = safely("logo", () => logoPicks(shown, page.url, site.name), [] as LogoPick[]);
+  const found = safely("logo", () => logoPicks(shown, page.url, site.name), [] as LogoPick[]);
+  const picks: LogoPick[] = found.length ? found : [{ kind: "img", src: new URL("/favicon.ico", page.url).href, from: "icon" }];
   // the words (LLM) and the logo download run side by side; either may come back empty
   const [written, logo, css] = await Promise.all([
     openaiChat({ model: OPENAI_MODEL, max_tokens: 700, response_format: WRITE_FORMAT, messages: writeMessages(site, page.url.href, fenced?.block) }, { signal: AbortSignal.timeout(40_000) })
@@ -356,6 +358,8 @@ Deno.serve(async (req) => {
     topics: written?.topics ?? [],
     edge: written?.edge ?? "",
     voice: written?.voice ?? "",
-    ...(listed ? { pagesRead: fenced?.read ?? [page.url.href], lang: site.lang, colours, fonts: safely("fonts", () => lookFonts(top, css).slice(0, 3), [] as string[]) } : {}),
+    colours,
+    fonts: safely("fonts", () => lookFonts(top, css).slice(0, 3), [] as string[]),
+    ...(listed ? { pagesRead: fenced?.read ?? [page.url.href], lang: site.lang } : {}),
   });
 });

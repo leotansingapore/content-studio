@@ -13,7 +13,13 @@
       "WhatsApp"
     ],
     "edge": "One app on your phone",
-    "voice": "Plain. Direct."
+    "voice": "Plain. Direct.",
+    "colours": [],
+    "fonts": [
+      "Inter",
+      "Montserrat",
+      "Rubik"
+    ]
   },
   "openai": {
     "model": "gpt-6-luna",
