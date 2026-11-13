@@ -8,7 +8,7 @@ import { forgetMarketShown } from "@/lib/market";
 import { disablePushHere } from "@/lib/notify";
 import { forgetMe } from "@/lib/reelsBoard";
 import { forgetSocialConnect } from "@/lib/socialConnect";
-import { openBillingPortal, paywallFor, type SubRow } from "@/lib/subscription";
+import { openBillingPortal, paywallFor, PLANS_URL, type SubRow } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 
 export default function Paywall({ row, email }: { row: SubRow; email: string }) {
@@ -20,6 +20,7 @@ export default function Paywall({ row, email }: { row: SubRow; email: string }) 
     setBusy(true);
     setProblem("");
     try {
+      if (p.action === "plans") return window.location.assign(PLANS_URL);
       await openBillingPortal(p.action === "restart");
     } catch (e) {
       setProblem(e instanceof Error ? e.message : "Couldn't open billing. Try again in a minute.");

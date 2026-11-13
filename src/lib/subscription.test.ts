@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { billingLine, billingSummary, gateOf, paywallFor } from "./subscription";
+import { describe, expect, it, vi } from "vitest";
+
+const covers = vi.hoisted(() => ({ answer: true, asked: 0 }));
+vi.mock("@/lib/sharedBrands", () => ({ teamCoversMe: async () => (covers.asked++, covers.answer) }));
+import { billingLine, billingSummary, gateOf, paywallFor, paywallRow } from "./subscription";
 
 const NOW = Date.parse("2026-11-12T04:00:00Z");
 const at = (days: number) => new Date(NOW + days * 86_400_000).toISOString();
@@ -51,5 +54,33 @@ describe("the paywall", () => {
     expect(paywallFor({ status: "past_due", stripe_customer_id: "cus_1" })).toMatchObject({ action: "portal", button: "Update your card" });
     expect(paywallFor({ status: "unpaid" }).action).toBe("portal");
     expect(paywallFor({ status: "paused" })).toMatchObject({ action: "portal", button: "Manage billing" });
+  });
+});
+
+describe("an account made by an invite (docs/shared-brands.md)", () => {
+  it("is told its team access ended and pointed at the plans, not at a checkout it has no customer for", () => {
+    expect(paywallFor({ status: "member" })).toEqual({
+      title: "Your team access has ended",
+      body: "The brand you were invited to isn't shared with you any more, or its owner's plan has ended. Ask them, or start your own plan.",
+      button: "See plans",
+      action: "plans",
+    });
+  });
+
+  it("opens while a team covers it, asking the server only for member accounts", async () => {
+    covers.asked = 0;
+    covers.answer = true;
+    expect(await paywallRow({ status: "member" }, false)).toBeNull();
+    // an invited account whose row is missing is a member too
+    expect(await paywallRow(null, true)).toBeNull();
+    covers.answer = false;
+    expect(await paywallRow({ status: "member" }, false)).toEqual({ status: "member" });
+    expect(await paywallRow(null, true)).toEqual({ status: "member" });
+    expect(covers.asked).toBe(4);
+    // everyone else: the row alone, as before
+    expect(await paywallRow(null, false)).toBeNull();
+    expect(await paywallRow({ status: "active" }, false)).toBeNull();
+    expect(await paywallRow({ status: "canceled" }, true)).toEqual({ status: "canceled" });
+    expect(covers.asked).toBe(4);
   });
 });

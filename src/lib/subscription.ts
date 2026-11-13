@@ -3,8 +3,9 @@
 // (supabase/functions/_shared/subscription.ts), so the gate and the functions can't disagree. An account with no
 // row came from before billing and is never gated; a lookup that fails counts as no row (fail open).
 import { callFn } from "@/lib/edgeFn";
+import { teamCoversMe } from "@/lib/sharedBrands";
 import { supabase } from "@/lib/supabase";
-import { daysLeft, gateOf, graceEnds, siteOf, type SubRow } from "../../supabase/functions/_shared/subscription.ts";
+import { daysLeft, gateOf, graceEnds, hasAccess, MEMBER, siteOf, type SubRow } from "../../supabase/functions/_shared/subscription.ts";
 
 export { gateOf, type SubRow };
 
@@ -26,8 +27,21 @@ let known: SubRow | null = null;
 
 /** This sign-in's row as ProtectedRoute last read it; null for an account with none. */
 export const subscriptionNow = (): SubRow | null => known;
-/** Whether Settings shows Billing: only for an account that came in through checkout. */
-export const billingShown = (): boolean => known !== null;
+/** Whether Settings shows Billing: only for an account that came in through checkout (a team member's has nothing to bill). */
+export const billingShown = (): boolean => known !== null && known.status !== MEMBER;
+
+/** Whether this sign-in may invite people to its brands: its own plan gives access (brand-team checks it again). */
+export const invitesAllowed = (): boolean => known !== null && hasAccess(known, Date.now());
+
+/**
+ * The row the paywall shows, or null to open the studio. An account made by an invite (a `member` row, or no row but
+ * `postmosis_invited_by` on it) opens while an owner's plan covers it, which only the server can say
+ * (docs/shared-brands.md); every other account is its own row's, as gateOf decides.
+ */
+export async function paywallRow(row: SubRow | null, invited: boolean): Promise<SubRow | null> {
+  if (row?.status === MEMBER || (!row && invited)) return (await teamCoversMe()) ? null : (row ?? { status: MEMBER });
+  return gateOf(row, Date.now()) === "paywall" ? row : null;
+}
 
 /** Reads the signed-in account's own row (RLS allows nothing else). Any error, or 4 seconds without an answer, is null. */
 export async function loadSubscription(userId: string): Promise<SubRow | null> {
@@ -86,7 +100,17 @@ export function billingSummary(row: SubRow | null, now: number): string {
 }
 
 /** The paywall's words and its one button: a new checkout once the subscription has ended, the portal otherwise. */
-export function paywallFor(row: SubRow): { title: string; body: string; button: string; action: "portal" | "restart" } {
+export const PLANS_URL = "https://postmosis.com/pricing";
+
+export function paywallFor(row: SubRow): { title: string; body: string; button: string; action: "portal" | "restart" | "plans" } {
+  if (row.status === MEMBER) {
+    return {
+      title: "Your team access has ended",
+      body: "The brand you were invited to isn't shared with you any more, or its owner's plan has ended. Ask them, or start your own plan.",
+      button: "See plans",
+      action: "plans",
+    };
+  }
   if (row.status === "canceled" || row.status === "incomplete_expired") {
     return { title: "Your subscription has ended", body: "Your posts and brand kit are still here.", button: `Subscribe again, ${PRICE} a month`, action: "restart" };
   }
