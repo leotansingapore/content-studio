@@ -35,6 +35,7 @@ import { isPositioningUsable, loadPositioning } from "@/lib/positioning";
 import { scoped } from "@/lib/profiles";
 import { speakerFor } from "@/lib/remixBrand";
 import type { WrittenPost } from "../../supabase/functions/idea-dump/logic.ts";
+import { mentionFor } from "@/lib/postChoices";
 
 export const ERROR_LINE = "Couldn't write next week's posts. Try again.";
 export const PAUSED_LINE = "Writing paused until 8am. Today's limit for writing posts is used.";
@@ -181,7 +182,7 @@ async function writeChunk(userId: string, audienceDetail: string, chunk: { week:
   try {
     const r = await callFn<{ posts?: WrittenPost[] }>(
       "idea-dump",
-      { mode: "campaign", posts: chunk.map((t, k) => postAsk(t.post, k + 1)), context, avoid },
+      { mode: "campaign", posts: chunk.map((t, k) => postAsk(t.post, k + 1)), context, avoid, ...(mentionFor(userId) ? {} : { mention: false }) },
       ERROR_LINE,
     );
     const got = new Map((Array.isArray(r?.posts) ? r.posts : []).filter((w) => w && typeof w.hook === "string").map((w) => [w.n, w]));

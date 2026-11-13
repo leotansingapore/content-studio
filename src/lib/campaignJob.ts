@@ -14,6 +14,7 @@ import { hookFormula } from "@/lib/hookFormulas";
 import { findWords } from "@/lib/platformCounters";
 import { speakerFor } from "@/lib/remixBrand";
 import type { WrittenPost } from "../../supabase/functions/idea-dump/logic.ts";
+import { mentionFor } from "@/lib/postChoices";
 
 export const BATCH = 7;
 export const FAILED_POST = "This post could not be written.";
@@ -84,6 +85,7 @@ export function campaignRequest(userId: string, c: Campaign, batch: CampaignPost
     // the goal is the campaign's copy from Add: a later goal change never rewrites an open campaign
     context: { ...planContextFor(userId, c.platforms[0]), platforms: c.platforms, goal: c.goal ?? "", audience: saved ? audienceLine(saved, speakerFor(userId)) : c.audienceName },
     avoid: c.posts.filter((p) => p.hook && !asked.has(p.n)).map((p) => p.hook as string).slice(-AVOID_HOOKS),
+    ...(mentionFor(userId) ? {} : { mention: false }),
   };
 }
 

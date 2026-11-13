@@ -802,6 +802,24 @@ describe("mode campaign", () => {
     expect(p).not.toMatch(/adviser/i);
   });
 
+  it("keeps the business's name and products out when Name your business is off, and asks exactly as before when it is on", () => {
+    const named = { ...CAMPAIGN_ASK, context: { ...BUSINESS_CONTEXT, name: "ActivityTracker", product: "ActivityTracker Pro: one app for a rep's clients", audience: "Sales reps" } };
+    const on = fullPrompt(buildCampaignPrompt(campaignRequest(named)));
+    expect(campaignRequest(named).mention).toBe(true);
+    expect(fullPrompt(buildCampaignPrompt(campaignRequest({ ...named, mention: true })))).toBe(on);
+    expect(on).toContain("Name: ActivityTracker");
+    expect(on).toContain("ActivityTracker Pro");
+    expect(on).toContain("says the business's name once");
+    const off = fullPrompt(buildCampaignPrompt(campaignRequest({ ...named, mention: false })));
+    expect(campaignRequest({ ...named, mention: false }).mention).toBe(false);
+    expect(off).not.toContain("Name: ActivityTracker");
+    expect(off).not.toContain("ActivityTracker Pro");
+    expect(off).not.toContain("says the business's name once");
+    expect(off).not.toContain("ActivityTracker said once");
+    expect(off).toContain("- Never name the business, its people or anything it sells: keep the words on the problem and what helps.");
+    expect(campaignRequest({ ...named, mention: "no" }).mention).toBe(true);
+  });
+
   it("asks a person's campaign and swap exactly as pinned (never update these with vitest -u)", async () => {
     await expect(promptText(buildCampaignPrompt(campaignRequest()))).toMatchFileSnapshot("./fixtures/campaign-prompt-person.txt");
     const list = { name: "The list", template: "{N} things I wish I knew before {milestone}." };

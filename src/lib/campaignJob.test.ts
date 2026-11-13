@@ -126,6 +126,13 @@ describe("startDrafting", () => {
     expect(line()).toContain(" How they talk about it: I want to see who I need to call.");
   });
 
+  it("tells the writer to leave the business's name out only when Post choices says never", () => {
+    const c = campaign();
+    expect(job.campaignRequest(UID, c, c.posts.slice(0, 1))).not.toHaveProperty("mention");
+    local.setItem(`content-studio-post-choices-${UID}`, JSON.stringify({ who: "anyone", mention: "never", influencers: "always", captions: "bold", textStyles: [] }));
+    expect(job.campaignRequest(UID, c, c.posts.slice(0, 1))).toMatchObject({ mention: false });
+  });
+
   it("names the audience by its name when the saved one is gone, and sends no goal when the campaign copied none", async () => {
     seed(campaign({ goal: undefined }, 3));
     fn.answers.push(wrote([1, 2, 3]));
