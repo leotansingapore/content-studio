@@ -381,6 +381,7 @@ export const AI_USE_LABELS: Record<UsageFeature | Phase6Cap, string> = {
   "team-comment": "Team notes",
   "brand-dna": "Brand reads",
   "remix-make": "Remixes",
+  "remix-make-refund": "Remixes given back",
   "remix-teardown": "Post breakdowns",
   "remix-fit": "Brand fit checks",
   "remix-link": "Links read",

@@ -1728,8 +1728,9 @@ function fieldsWithin(raw: unknown, limits: Record<string, number>, optional: st
   return out;
 }
 
-/** What the person reads when a static layout's words still don't fit after shapeFix's second try; the use is given back. */
+/** What the person reads when a static layout's words still don't fit after shapeFix's second try: the use given back, or kept. */
 export const UNFIT = "The words didn't fit this layout, so nothing was used. Try again, or shorten your note.";
+export const UNFIT_KEPT = "The words didn't fit this layout. Try again, or shorten your note.";
 
 /**
  * The second try for a static layout's words that validateMake turned away: each empty or too-long field by name, so the

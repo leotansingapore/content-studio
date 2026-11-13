@@ -615,6 +615,14 @@
       "limit": 30
     }
   },
+  "remix-make-refund": {
+    "limit": 3,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 3
+    }
+  },
   "remix-teardown": {
     "limit": 40,
     "answer": {

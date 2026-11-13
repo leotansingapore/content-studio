@@ -142,6 +142,9 @@ export const DAILY_LIMITS = {
   "brand-dna": 10,
   // North star phase 1, declared up front (Leo only, NORTH_STAR_USERS). One remix written in one format (remix make).
   "remix-make": 30,
+  // remix-make uses given back when a static layout's words don't fit its limits after the server's own fix pass, on a
+  // make the caller didn't steer (no note, no original): at most 3 a day, so the cap still holds (remix index.ts).
+  "remix-make-refund": 3,
   // A post broken down into its hook, beats and what not to reuse, before a remix (remix teardown, OpenAI + Jev).
   "remix-teardown": 40,
   // Whether a post fits the adviser's brand before a remix (remix fit): one Jev call, refunded when Jev has no answer.

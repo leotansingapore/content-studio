@@ -49,7 +49,7 @@ export async function readUsage(): Promise<Usage | null> {
 export const NOT_AI: UsageFeature[] = [
   "social-connect", "social-read", "social-automation-write", "social-schedule", "social-presign", "team-comment",
   "feeds", "stock-search", "mentions", "yt-captions", "track-accounts", "reel-style", "reel-video",
-  "telegram-connect", "telegram-schedule", "telegram-presign",
+  "telegram-connect", "telegram-schedule", "telegram-presign", "remix-make-refund",
 ];
 
 /**

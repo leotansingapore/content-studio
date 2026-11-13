@@ -400,6 +400,33 @@ describe("phase 3's shapes", () => {
     openai.answers = [{ refuse: false, reason: "", words: over, ...CAP }, { refuse: false, reason: "", words: over, ...CAP }];
     expect(await send(vs)).toMatchObject({ status: 422, body: { code: "unusable", error: "The words didn't fit this layout, so nothing was used. Try again, or shorten your note." } });
     expect(used()).toBe(1);
+    expect(db.rows.get(`${UID}|remix-make-refund|${db.today()}`)).toBe(1);
+  });
+
+  it("gives a static layout's unfitting use back 3 times a day at most, and never for a make the caller steered", async () => {
+    const vs = { mode: "make", as: "image", layout: "us-vs-them", topic: "Office snacks", brand: { name: "Tok Tok Kueh", speaker: "business" } };
+    const over = { headline: "A vending machine, or kueh at the meeting.", them: "Vending machine", us: "Tok Tok Kueh's Ang Ku Kueh, steamed daily", oldA: "Packed snacks", newA: "Steamed fresh", oldB: "Same biscuits", newB: "A new kueh daily", oldC: "Wrappers left", newC: "Served on a tray", close: "Bring kueh to the meeting." };
+    const unfit = () => [{ refuse: false, reason: "", words: over, ...CAP }, { refuse: false, reason: "", words: over, ...CAP }];
+    const KEPT = "The words didn't fit this layout. Try again, or shorten your note.";
+    openai.mode = "queue";
+    for (let i = 1; i <= 3; i++) {
+      openai.answers = unfit();
+      expect(await send(vs), `try ${i}`).toMatchObject({ status: 422, body: { error: expect.stringContaining("nothing was used") } });
+      expect(used(), `try ${i}`).toBe(0);
+    }
+    // the fourth unfitting answer of the day keeps its use, and says nothing about it being free
+    openai.answers = unfit();
+    expect(await send(vs)).toMatchObject({ status: 422, body: { code: "unusable", error: KEPT } });
+    expect(used()).toBe(1);
+    expect(db.rows.get(`${UID}|remix-make-refund|${db.today()}`)).toBe(3);
+    // a steered make (a note, or an original ad) keeps its use and leaves the day's three alone
+    db.rows.clear();
+    openai.answers = unfit();
+    expect(await send({ ...vs, note: "Write every label in full sentences" })).toMatchObject({ status: 422, body: { error: KEPT } });
+    openai.answers = unfit();
+    expect(await send({ ...vs, topic: undefined, source: AD })).toMatchObject({ status: 422, body: { error: KEPT } });
+    expect(used()).toBe(2);
+    expect(db.rows.get(`${UID}|remix-make-refund|${db.today()}`)).toBeUndefined();
   });
 
   it("never asks a business's image the MAS question, which is about licensed advisers", async () => {

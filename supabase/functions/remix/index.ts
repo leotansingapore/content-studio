@@ -32,7 +32,7 @@
 // Logic: ./logic.ts, ./overlap.ts, ./teardown.ts and ./creatorFit.ts (tested).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { consumeUsage, countUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { openaiChat } from "../_shared/openaiChat.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
@@ -80,6 +80,7 @@ import {
   isStaticLayout,
   shapeFix,
   UNFIT,
+  UNFIT_KEPT,
   validateMake,
   withSpoken,
   type MadeResult,
@@ -272,10 +273,12 @@ Deno.serve(async (req) => {
       return fail("refused", `${what} can't be turned into something safe to post. ${make.source ? "Pick another one." : "Try another one."}`, 422);
     }
     if (!first) {
-      // a static layout's words its own limits turned away twice: the writer's miss, never the person's, so the use comes back
+      // a static layout's words its own limits turned away twice: the writer's miss when the caller steered nothing (no note,
+      // no original), so the use comes back, at most 3 times a day on its own counter so the daily cap still bites
       if (answered && make.as === "image" && isStaticLayout(make.layout)) {
-        await refundUsage(admin, uid, "remix-make", charged.day);
-        return fail("unusable", UNFIT, 422);
+        const back = !make.note && !make.source && (await countUsage(admin, uid, "remix-make-refund")).allowed;
+        if (back) await refundUsage(admin, uid, "remix-make", charged.day);
+        return fail("unusable", back ? UNFIT : UNFIT_KEPT, 422);
       }
       if (answered) return fail("unusable", "That remix came back in a shape that can't be used. Try again.", 422);
       await refundUsage(admin, uid, "remix-make", charged.day);

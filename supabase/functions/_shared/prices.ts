@@ -195,6 +195,8 @@ export const NO_PRICE: UsageFeature[] = [
   "script-desk",
   // Research reads public Instagram pages on Leo's Mac, and a search runs his own Claude Code
   "research",
+  // a counter of remix-make uses given back, never a call of its own
+  "remix-make-refund",
 ];
 
 /** Write's own generation: uncapped, on the academy project (generate-social-content). Unverified. */
