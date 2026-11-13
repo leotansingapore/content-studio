@@ -339,7 +339,7 @@ describe("what the picture shows of what the brand sells", () => {
   });
 
   it("shows software on its own plain screen, a product itself and a service being done, never a stock person with a phone", () => {
-    expect(SUBJECT_LINES.software).toContain("wherever the picture shows what is sold, it is the product's own screen on a phone or laptop, a plain, plausible interface in the brand colour showing the thing the words name, not people holding phones. No real app's interface and no readable small print.");
+    expect(SUBJECT_LINES.software).toContain("wherever the picture shows what is sold, it is the product's own screen on a phone or laptop, a plain, plausible interface in the brand colour showing the thing the words name, not people holding phones. No real app's interface, no other app's icons or logos inside the screen, only the brand's own, and no readable small print.");
     expect(SUBJECT_LINES.product).toContain("show the product itself");
     expect(SUBJECT_LINES.service).toContain("show the service being done");
     const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." }, undefined, "software");
@@ -375,7 +375,7 @@ describe("what the picture shows of what the brand sells", () => {
   it("leaves out the product line first, then what to show, never the words, to stay inside the cap", async () => {
     localStorage.setItem(`content-studio-products-${U}`, JSON.stringify({ items: [{ id: "pd-long111", name: "Activity Tracker", what: "w ".repeat(100), forWho: "", pictures: [], sources: [], use: true, from: "you", addedAt: "" }] }));
     fake.writeSubject = "software";
-    for (const [n, product, subject] of [[20, true, true], [60, false, true], [100, false, false]] as const) {
+    for (const [n, product, subject] of [[10, true, true], [40, false, true], [100, false, false]] as const) {
       fake.writeWords = { headline: "word ".repeat(n).trim(), line: "Hilltop cold brew." };
       fake.calls = [];
       await startPhotoAd(U, poster, { topic: "x" });

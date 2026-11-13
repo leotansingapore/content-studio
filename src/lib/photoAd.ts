@@ -57,7 +57,7 @@ const quoted = (s: string) => `"${s.replace(/\s+/g, " ").trim().replace(/"/g, "'
  * screen, a product itself, a service being done. Never a stock person holding a phone (13 Nov poster).
  */
 export const SUBJECT_LINES: Record<Subject, string> = {
-  software: "What it sells is software: wherever the picture shows what is sold, it is the product's own screen on a phone or laptop, a plain, plausible interface in the brand colour showing the thing the words name, not people holding phones. No real app's interface and no readable small print.",
+  software: "What it sells is software: wherever the picture shows what is sold, it is the product's own screen on a phone or laptop, a plain, plausible interface in the brand colour showing the thing the words name, not people holding phones. No real app's interface, no other app's icons or logos inside the screen, only the brand's own, and no readable small print.",
   product: "What it sells is a physical product: show the product itself, held or in use, not a person holding a phone.",
   service: "What it sells is a service: show the service being done for someone, not a person holding a phone.",
 };
