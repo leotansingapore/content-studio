@@ -65,7 +65,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { ANGLE_POOL, PHOTO_EDGES, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { ANGLE_POOL, PHOTO_EDGES, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -100,10 +100,10 @@ describe("the photo prompt", () => {
     expect(p).toContain(`"Still dark.". ${PHOTO_EDGES} ${PHOTO_PEOPLE}`);
   });
 
-  it("ends on the people line and the spelling rule, word for word", () => {
+  it("ends on the people line, the real-marks line and the spelling rule, word for word", () => {
     const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." });
-    expect(p.endsWith(" People, when the scene shows any, are Singaporean adults. All text spelled exactly as quoted. No other logos, brands or watermarks.")).toBe(true);
-    expect(p.endsWith(`${PHOTO_PEOPLE} ${PHOTO_RULE}`)).toBe(true);
+    expect(p.endsWith(" People, when the scene shows any, are Singaporean adults. Singapore by its look alone: no real place names on signs, and no real transit, mall, bank or shop logos or vehicle liveries. All text spelled exactly as quoted. No other logos, brands or watermarks.")).toBe(true);
+    expect(p.endsWith(`${PHOTO_PEOPLE} ${PHOTO_MARKS} ${PHOTO_RULE}`)).toBe(true);
   });
 
   it("keeps every quoted line whole: a double quote inside becomes a single one, and a line break a space", () => {
@@ -131,6 +131,14 @@ describe("the photo prompt", () => {
 });
 
 describe("each format's scene", () => {
+  it("asks for Singapore by its look, never a real station, line, mall or named place, and every prompt carries the real-marks line", () => {
+    for (const f of STATIC_FORMATS) {
+      expect(f.scene, f.slug).not.toMatch(/\b(MRT|LRT|platforms?|stations?|malls?|banks?|Orchard|Changi|Sentosa|Marina|Raffles|Bugis|Jurong|Tampines|Buona Vista|Chinatown)\b/i);
+      expect(photoAdPrompt(f, hilltop, {}), f.slug).toContain(PHOTO_MARKS);
+    }
+    expect(PHOTO_MARKS).toMatch(/no real place names on signs, and no real transit, mall, bank or shop logos or vehicle liveries/);
+  });
+
   it("is one plain sentence with no double quote, so it never reads as words to print", () => {
     for (const f of STATIC_FORMATS) {
       expect(f.scene, f.slug).toMatch(/^An? [\x20-\x7e]+\.$/);
@@ -213,7 +221,7 @@ describe("the photo run", () => {
 
     it("drops the product line, never the words, when both would run past ai-image's prompt cap", async () => {
       keep({ ...tracker, what: "w".repeat(200) });
-      fake.writeWords = { headline: "word ".repeat(150).trim(), line: "Hilltop cold brew." };
+      fake.writeWords = { headline: "word ".repeat(125).trim(), line: "Hilltop cold brew." };
       await startPhotoAd(U, poster, { topic: "x" });
       expect(photoAd()).toMatchObject({ state: "done" });
       expect(fake.calls[0].prompt).not.toContain("The ad shows the brand's product");

@@ -32,6 +32,8 @@ import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 export const PHOTO_RATIO = 4 / 5;
 export const PHOTO_EDGES = "Keep all text well clear of the top and bottom edges.";
 export const PHOTO_PEOPLE = "People, when the scene shows any, are Singaporean adults.";
+/** A real Singapore look without a real business or place on it (a 13 Nov poster drew a real station's sign and operator mark). */
+export const PHOTO_MARKS = "Singapore by its look alone: no real place names on signs, and no real transit, mall, bank or shop logos or vehicle liveries.";
 export const PHOTO_RULE = "All text spelled exactly as quoted. No other logos, brands or watermarks.";
 
 /** One string as the prompt quotes it: on one line, a double quote inside it made a single one so the quote stays whole. */
@@ -46,9 +48,9 @@ export const productLine = (p: { name: string; what: string }) => {
 /**
  * The picture maker's prompt for a static format made as a photo: its scene, the brand's name and colour, the product the
  * ad is about when there is one, every on-picture string of its layout in draw order (IMAGE_FIELDS, a typed price
- * included), each labelled and in double quotes, the edge line (the 4:5 cut must not clip a word), the people line and
- * the spelling rule. Words the layout never draws (the topic, the caption) stay out, and a brand with no name is given by
- * its colour alone. Pure.
+ * included), each labelled and in double quotes, the edge line (the 4:5 cut must not clip a word), the people line, the
+ * real-marks line and the spelling rule. Words the layout never draws (the topic, the caption) stay out, and a brand with
+ * no name is given by its colour alone. Pure.
  */
 export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { name: string; color: string }, words: Record<string, string>, product?: { name: string; what: string }): string {
   const fields = isStatic(f.slug) ? IMAGE_FIELDS[f.slug] : [];
@@ -61,6 +63,7 @@ export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { 
     on.length ? `The words on it, in order: ${on.join("; ")}.` : "",
     PHOTO_EDGES,
     PHOTO_PEOPLE,
+    PHOTO_MARKS,
     PHOTO_RULE,
   ]
     .filter(Boolean)
