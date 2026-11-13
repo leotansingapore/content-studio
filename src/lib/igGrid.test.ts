@@ -36,6 +36,16 @@ describe("gridTiles", () => {
     const many = Array.from({ length: 30 }, (_, i) => d(`p${i}`, { status: "posted", postedAt: `2026-09-${String(i + 1).padStart(2, "0")}` }));
     expect(gridTiles(many)).toHaveLength(18);
   });
+
+  it("keeps every post when uncapped, so the header counts all of them", () => {
+    const many = [
+      ...Array.from({ length: 25 }, (_, i) => d(`s${i}`, { status: "scheduled", scheduledFor: `2026-11-${String(i + 1).padStart(2, "0")}` })),
+      ...Array.from({ length: 10 }, (_, i) => d(`p${i}`, { status: "posted", postedAt: `2026-09-${String(i + 1).padStart(2, "0")}` })),
+    ];
+    const all = gridTiles(many, Infinity);
+    expect(all.filter((t) => t.kind === "planned")).toHaveLength(25);
+    expect(all.filter((t) => t.kind === "posted")).toHaveLength(10);
+  });
 });
 
 describe("gridWindow", () => {

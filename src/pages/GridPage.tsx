@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { supabase } from "@/lib/supabase";
 import { loadDrafts, type DraftEntry } from "@/lib/draftHistory";
-import { gridTiles } from "@/lib/igGrid";
+import { GRID_SIZE, gridTiles } from "@/lib/igGrid";
 import { DEFAULT_BRAND, loadBrand, loadCarousels, type CarouselBrand, type SavedCarousel } from "@/lib/carousel";
 import { layoutSlide, readableOn, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
@@ -46,7 +46,8 @@ export default function GridPage() {
     });
   }, []);
 
-  const tiles = useMemo(() => gridTiles(drafts), [drafts]);
+  const all = useMemo(() => gridTiles(drafts, Infinity), [drafts]);
+  const tiles = useMemo(() => all.slice(0, GRID_SIZE), [all]);
   const showOf = (d: DraftEntry) => shows.find((x) => x.draftId === d.id);
   const looks = useMemo(() => new Map(shows.map((x) => [x.id, lookOf(userId ?? "", x)])), [shows, userId]);
   const fontsReady = useFontsReady(shows.length > 0);
@@ -61,14 +62,14 @@ export default function GridPage() {
     if (d.id.startsWith("video-")) return videos.find((v) => `video-${v.id}` === d.id)?.thumb || null;
     return null;
   };
-  const planned = tiles.filter((t) => t.kind === "planned").length;
+  const planned = all.filter((t) => t.kind === "planned").length;
 
   return (
     <div className="space-y-5">
       {/* the Library's one header row: the switch says Grid, so the title is for screen readers */}
       <LibraryHeader
         title="Instagram grid"
-        left={userId && <span className="text-xs text-muted-foreground">{planned} planned{tiles.length > planned ? `, ${tiles.length - planned} posted` : ""}</span>}
+        left={userId && <span className="text-xs text-muted-foreground">{planned} planned{all.length > planned ? `, ${all.length - planned} posted` : ""}</span>}
       />
 
       {userId && tiles.length === 0 ? (
