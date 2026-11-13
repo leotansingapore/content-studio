@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatBySlug } from "@/data/formats";
 import { links } from "@/lib/links";
+import { adviserBrand } from "@/lib/profession";
 import { notifyBusy, notifyJob, onNotifyJob, startNotify, type NotifyAsk, type NotifyJob } from "@/lib/notifyJob";
 import { LABEL_MAX, LINE_MAX, STACK_MAX, STACK_MIN, WORD_MAX, stackLines, stackTimes } from "@/lib/notifyStack";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
@@ -28,6 +29,8 @@ const KEY = "cs-make-notify";
 const FIELD_LABEL = "text-xs font-semibold text-muted-foreground";
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const EXAMPLES = ["What if I get retrenched?", "Who pays if I end up in hospital?", "Am I saving enough for the kids?", "Will my CPF last?", "What if something happens to me?", "Is my family covered?"];
+/** The same worries for a brand that isn't an adviser's (adviserBrand), whose customers don't ask about CPF. */
+const EXAMPLES_ANY = ["Am I doing this right?", "What if it doesn't work?", "Is it worth the money?", "Where do I even start?", "What if I get it wrong?", "Who can I ask?"];
 
 type Typed = { lines: string[]; word: string; label: string };
 const START: Typed = { lines: ["", "", ""], word: "", label: "Brain" };
@@ -72,6 +75,7 @@ export default function NotificationStack({ userId }: { userId: string; source: 
   const busy = !!job && notifyBusy();
   const [bg] = useUrlState<WallBg>("bg", "stock", { allowed: ["stock", "mine"] });
   const [typed, setTyped] = useTyped();
+  const adviser = adviserBrand(userId);
   const [file, setFile] = useState<File | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   // a file picked from the failure's "Pick my video" makes it at once; one picked in the setup waits for Make it
@@ -130,7 +134,7 @@ export default function NotificationStack({ userId }: { userId: string; source: 
             <p className={FIELD_LABEL}>Their worries, one per card</p>
             {typed.lines.map((l, i) => (
               <div key={i} className="flex items-center gap-1.5">
-                <Input value={l} maxLength={LINE_MAX} placeholder={EXAMPLES[i]} aria-label={`Card ${i + 1}`} onChange={(e) => setLine(i, e.target.value)} />
+                <Input value={l} maxLength={LINE_MAX} placeholder={(adviser ? EXAMPLES : EXAMPLES_ANY)[i]} aria-label={`Card ${i + 1}`} onChange={(e) => setLine(i, e.target.value)} />
                 {typed.lines.length > STACK_MIN && (
                   <Button size="icon" variant="ghost" aria-label={`Remove card ${i + 1}`} onClick={() => setTyped({ ...typed, lines: typed.lines.filter((_, j) => j !== i) })}
                     className={`shrink-0 text-muted-foreground ${TOUCH}`}>
@@ -151,7 +155,7 @@ export default function NotificationStack({ userId }: { userId: string; source: 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="make-notify-word" className={FIELD_LABEL}>Closing word</Label>
-              <Input id="make-notify-word" value={typed.word} maxLength={WORD_MAX} placeholder="Covered." onChange={(e) => setTyped({ ...typed, word: e.target.value })} />
+              <Input id="make-notify-word" value={typed.word} maxLength={WORD_MAX} placeholder={adviser ? "Covered." : "Sorted."} onChange={(e) => setTyped({ ...typed, word: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="make-notify-label" className={FIELD_LABEL}>Label on each card</Label>
