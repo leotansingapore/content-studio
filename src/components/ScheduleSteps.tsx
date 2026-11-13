@@ -183,6 +183,19 @@ function doneFor(post: PostView, o: { inbox: boolean; now: boolean; names: strin
 const scoreFormat = (format: string) => (format === "carousel" || format === "short-video" ? format : undefined);
 const scoreTone = (v: number) => (v >= 7.5 ? "border-success/40 bg-success/10 text-success" : v >= 5 ? "border-primary/40 bg-primary/10 text-primary" : "border-destructive/40 bg-destructive/10 text-destructive");
 
+const isNetwork = (p: string) => (SOCIAL_PLATFORMS as readonly string[]).includes(p);
+
+/**
+ * The Where step's rows: the post's own network first, then every network that is ticked or has an account. A post
+ * with no network (a board idea) or one we cannot post to gets no row of its own; with nothing ticked and nothing
+ * connected, every network is offered, so there is always one to connect.
+ */
+export function networkRows(platform: string, ticked: string[], connected: string[]): string[] {
+  const order = [platform, ...SOCIAL_PLATFORMS.filter((p) => p !== platform)].filter(isNetwork);
+  const rows = order.filter((p) => ticked.includes(p) || connected.includes(p));
+  return rows.length ? rows : order;
+}
+
 export function ScheduleSteps({
   userId,
   draft,
@@ -211,7 +224,7 @@ export function ScheduleSteps({
   const [state, setState] = useState<"loading" | "off" | "error" | "ready">("loading");
   const [accounts, setAccounts] = useState<AccountView[]>([]);
   // the draft's own network, the networks it has versions for and the one the link names; Default accounts' networks join once loaded
-  const [ticked, setTicked] = useState<string[]>(() => [...new Set([draft.platform, ...Object.keys(draft.versions ?? {}), ...(urlNet && (SOCIAL_PLATFORMS as readonly string[]).includes(urlNet) ? [urlNet] : [])])]);
+  const [ticked, setTicked] = useState<string[]>(() => [...new Set([draft.platform, ...Object.keys(draft.versions ?? {}), ...(urlNet ? [urlNet] : [])])].filter(isNetwork));
   // accounts picked by hand per network; a network not here takes its Default account, else every working one
   const [chosen, setChosen] = useState<Record<string, string[]>>({});
   const [prep, setPrep] = useState<{ done: number; total: number } | null>(carousel ? { done: 0, total: carousel.slides.length } : null);
@@ -329,8 +342,7 @@ export function ScheduleSteps({
   }, [profileId, userId]);
 
   // ---- what the steps hold ----
-  const order = [draft.platform, ...SOCIAL_PLATFORMS.filter((p) => p !== draft.platform)];
-  const rows = order.filter((p) => ticked.includes(p) || accounts.some((a) => a.platform === p));
+  const rows = networkRows(draft.platform, ticked, accounts.map((a) => a.platform));
   const tabs = rows.filter((p) => ticked.includes(p));
   // the Default account picked on /accounts first (publish-accounts)
   const accountsOf = (p: string) => {

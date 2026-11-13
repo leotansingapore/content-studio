@@ -593,3 +593,19 @@ describe("Post it for me on Leo's sign-in", () => {
     expect(actions()).toEqual(["status"]);
   });
 });
+
+describe("networkRows", () => {
+  it("gives a post with no network no blank row, and offers every network when none is ticked or connected", async () => {
+    const { networkRows } = await import("./ScheduleSteps");
+    const all = networkRows("", [], []);
+    expect(all).not.toContain("");
+    expect(all.length).toBeGreaterThan(1);
+    expect(networkRows("", [""], ["instagram"])).toEqual(["instagram"]);
+  });
+  it("keeps the post's own network first, then the ticked and connected ones", async () => {
+    const { networkRows } = await import("./ScheduleSteps");
+    expect(networkRows("linkedin", ["linkedin"], ["instagram"])[0]).toBe("linkedin");
+    expect(networkRows("linkedin", ["linkedin"], ["instagram"])).toContain("instagram");
+    expect(networkRows("fax", ["fax"], [])).not.toContain("fax");
+  });
+});
