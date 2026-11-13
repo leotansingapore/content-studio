@@ -7,6 +7,7 @@ import { CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterChip } from "@/components/ui/filter-chip";
+import { useUsesLeft } from "@/lib/aiUsage";
 import { keptHooks, HOOKS_CHANGED } from "@/lib/hookWriter";
 import { links } from "@/lib/links";
 import { PRICES, priceText, type Price } from "@/lib/prices";
@@ -37,7 +38,10 @@ export default function SlideshowBatchCard({ userId, base, hasMedia, onOpen }: {
   const running = !!batch && batchBusy();
   const offered = useMemo(() => BATCH_LOOKS.filter((l) => l !== "mine" || hasMedia), [hasMedia]);
   const chosen = picked.filter((t) => hooks.some((h) => h.text === t));
-  const plan = batchPlan(chosen.length, looks);
+  const left = useUsesLeft(running || slideshowBusy());
+  const makesLeft = left("remix-make") ?? MAKES;
+  const aiLeft = left("slide-pictures") ?? AI_SETS;
+  const plan = batchPlan(chosen.length, looks, makesLeft, aiLeft);
   const reason = plan.reason ?? (slideshowBusy() ? "Wait for the slideshow being made." : null);
   const ai = PRICES["slide-pictures"] as Price;
 
@@ -95,8 +99,8 @@ export default function SlideshowBatchCard({ userId, base, hasMedia, onOpen }: {
             {/* the spend before the press: makes and, for AI looks, picture credit and today's picture sets */}
             {plan.count > 0 && !plan.reason && (
               <p className="text-xs text-muted-foreground">
-                {plan.count} slideshows, made one after another, using {plan.count} of today&apos;s {MAKES} slideshow makes.
-                {plan.ai > 0 ? ` ${priceText({ ...ai, usd: ai.usd * plan.ai })} of AI picture credit, using ${plan.ai} of today's ${AI_SETS} sets.` : ""}
+                {plan.count} slideshows, made one after another, using {plan.count} of the {makesLeft} slideshow makes left today.
+                {plan.ai > 0 ? ` ${priceText({ ...ai, usd: ai.usd * plan.ai })} of AI picture credit, using ${plan.ai} of the ${aiLeft} sets left today.` : ""}
               </p>
             )}
             {reason && chosen.length > 0 && <p className="text-xs font-medium text-amber-700 dark:text-amber-300">{reason}</p>}

@@ -18,14 +18,15 @@ export const MAX_BATCH = 12;
 export const MAX_BATCH_HOOKS = 6;
 
 /** What a batch of `hooks` x `looks` makes and spends, and why it can't run yet. */
-export function batchPlan(hooks: number, looks: BatchLook[]): { count: number; ai: number; reason: string | null } {
+export function batchPlan(hooks: number, looks: BatchLook[], makesLeft: number = MAKES, aiLeft: number = AI_SETS): { count: number; ai: number; reason: string | null } {
   const count = hooks * looks.length;
   const ai = hooks * looks.filter(isAiLook).length;
   const reason =
     !hooks ? "Pick at least one hook."
     : !looks.length ? "Pick at least one look."
     : count > MAX_BATCH ? `That's ${count} slideshows. A batch makes at most ${MAX_BATCH}.`
-    : ai > AI_SETS ? `That's ${ai} sets of AI pictures. Today allows ${AI_SETS}.`
+    : count > makesLeft ? `That's ${count} slideshows. Today has ${makesLeft} makes left.`
+    : ai > aiLeft ? `That's ${ai} sets of AI pictures. Today has ${aiLeft} left.`
     : null;
   return { count, ai, reason };
 }

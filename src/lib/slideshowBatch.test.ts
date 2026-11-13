@@ -45,7 +45,14 @@ describe("the plan", () => {
     expect(batchPlan(0, ["stock"]).reason).toBe("Pick at least one hook.");
     expect(batchPlan(2, []).reason).toBe("Pick at least one look.");
     expect(batchPlan(5, ["stock", "sea", "dark"]).reason).toBe("That's 15 slideshows. A batch makes at most 12.");
-    expect(batchPlan(3, ["ai-felt", "ai-comic"]).reason).toBe("That's 6 sets of AI pictures. Today allows 5.");
+    expect(batchPlan(3, ["ai-felt", "ai-comic"]).reason).toBe("That's 6 sets of AI pictures. Today has 5 left.");
+  });
+
+  it("checks against what is left today, not the full daily caps", () => {
+    expect(batchPlan(2, ["ai-felt", "ai-comic"], 30, 2).reason).toBe("That's 4 sets of AI pictures. Today has 2 left.");
+    expect(batchPlan(1, ["ai-felt", "ai-comic"], 30, 2).reason).toBeNull();
+    expect(batchPlan(4, ["stock", "sea", "dark"], 5).reason).toBe("That's 12 slideshows. Today has 5 makes left.");
+    expect(batchPlan(1, ["stock", "sea", "dark"], 5).reason).toBeNull();
   });
 });
 
