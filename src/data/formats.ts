@@ -100,7 +100,7 @@ const TALKS: { slug: string; talk: "news" | "stage" | "spokesperson"; name: stri
   { slug: "spokesperson", talk: "spokesperson", name: "Spokesperson", blurb: "Someone presenting your offer, with its picture on screen." },
 ];
 
-/** Each editor template's Create section: a clip from a prompt is Make your own, one with someone talking is a person. */
+/** Each editor template's Create section: a clip from a prompt is Make your own, one with someone talking is a person, a cartoon is animated. */
 export const TEMPLATE_SECTIONS: Record<string, FormatSection> = {
   "product-commercial-shotlist": "own",
   "timeline-shot-script": "own",
@@ -114,6 +114,7 @@ export const TEMPLATE_SECTIONS: Record<string, FormatSection> = {
       "whiteboard-presenter", "baby-podcast", "laptop-presenter", "phone-app-presenter",
     ].map((id) => [id, "person"]),
   ),
+  "singing-ad": "animated",
 };
 
 const VideoFormatPage = lazy(() => import("@/pages/VideoFormatPage"));

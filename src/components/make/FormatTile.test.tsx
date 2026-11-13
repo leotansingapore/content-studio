@@ -16,11 +16,12 @@ describe("a video format card's drawn tile", () => {
     expect(tileOf(bySlug("clips")).motif).toBe("footage");
   });
 
-  it("gives every animated story its own look's colours", () => {
-    const looks = FORMATS.filter((f) => f.section === "animated");
+  it("gives every animated story its own look's colours, and the singing ad a character in theme tokens", () => {
+    const looks = FORMATS.filter((f) => f.section === "animated" && f.slug.startsWith("look-"));
     expect(looks.length).toBeGreaterThan(0);
     for (const f of looks) expect(tileOf(f), f.slug).toEqual({ motif: "character", colours: LOOK_COLOURS[f.slug.slice(5)] });
     expect(new Set(looks.map((f) => tileOf(f).colours!.join())).size).toBe(looks.length);
+    expect(tileOf(bySlug("template-singing-ad"))).toEqual({ motif: "character", colours: undefined });
   });
 
   it("draws three frames, in the look's colours for a story and in theme tokens otherwise", () => {

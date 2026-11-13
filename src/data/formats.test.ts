@@ -188,13 +188,15 @@ describe("the Create page's sections (Fastlane's Studio > Create, 11 Nov)", () =
     for (const f of templateFormats(TEMPLATES)) expect(ids, f.slug).toContain(f.section);
   });
 
-  it("gives every animated story card a look the server can draw", () => {
+  it("gives every animated story card a look the server can draw, or a cartoon template (the singing ad)", () => {
     for (const f of FORMATS.filter((x) => x.section === "animated")) {
-      const look = new URLSearchParams(f.opens?.().split("?")[1]).get("look")!;
-      expect(EXPLAINER_LOOKS[look as keyof typeof EXPLAINER_LOOKS]?.style, f.slug).toBeTruthy();
+      const q = new URLSearchParams(f.opens?.().split("?")[1]);
+      if (q.get("kind") === "template") expect(f.slug, f.slug).toBe(`template-${q.get("template")}`);
+      else expect(EXPLAINER_LOOKS[q.get("look") as keyof typeof EXPLAINER_LOOKS]?.style, f.slug).toBeTruthy();
       expect(f.ready, f.slug).toBe(true);
     }
-    expect(FORMATS.filter((x) => x.section === "animated")).toHaveLength(16);
+    expect(FORMATS.filter((x) => x.section === "animated").map((f) => f.slug).filter((s) => !s.startsWith("look-"))).toEqual(["template-singing-ad"]);
+    expect(FORMATS.filter((x) => x.section === "animated")).toHaveLength(17);
   });
 
   it("groups the cards by section with counts that add up to the whole list, leaving empty sections out", () => {

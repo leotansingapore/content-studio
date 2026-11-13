@@ -80,8 +80,9 @@ the page's shape:
 - Gates kept: the templates are `leoOnly` (the server refuses them for anyone not on NORTH_STAR_USERS) and a look is
   read for NORTH_STAR_USERS only. Jev's Recommended look and the slideshows' AI looks keep to the first eight looks
   (`LOOK_IDS`); `ALL_LOOK_IDS` is every look.
-- Skipped: Singing ad (no music model here) and Character swap (Leo, 21 Oct: no face swap). Not built: the format
-  search box and the "Needs an app" requirement (no card of ours needs an app).
+- Skipped: Character swap (Leo, 21 Oct: no face swap). Not built: the format search box and the "Needs an app"
+  requirement (no card of ours needs an app). Added 13 Nov: Singing ad (template `singing-ad`, animated: Seedance 2.5
+  sings with its own audio), Laptop presenter and Phone with your app (person templates that show the brand's screenshot).
 
 ## Build
 

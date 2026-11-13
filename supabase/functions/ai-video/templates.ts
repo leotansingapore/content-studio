@@ -560,6 +560,34 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
   },
 ];
 
+// Fastlane's singing ad (13 Nov), our own: Seedance 2.5 makes the voice with the picture, so the character sings
+const SINGING_TEMPLATES: VideoTemplate[] = [
+  {
+    id: "singing-ad",
+    title: "Singing ad",
+    blurb: "A cartoon character sings a short, catchy jingle about your product.",
+    fields: [
+      { key: "product", label: "Your product", placeholder: "Hilltop's cold brew in a glass bottle", required: true },
+      { ...LINE, label: "The words they sing", placeholder: "Hilltop cold brew, smooth and slow, keeps you going on the go", maxWords: 14 },
+      { ...PERSON, label: "Who sings it", placeholder: "The bottle itself, with big eyes and a grin" },
+    ],
+    photos: ["product"],
+    warnings: ["Two short lines fit in 8 seconds. A longer song gets cut off.", "Your product's name can come out sung oddly. Spell it the way it sounds."],
+    structure: [
+      "Opening line: the length, vertical 9:16, a bright, polished 3D cartoon, a locked-off camera, one continuous shot",
+      "The singer: one animated character, the product itself with a face or a mascot that suits it, rounded shapes and big expressive eyes, described once",
+      "Setting: a simple, colourful set that suits the product, uncluttered",
+      "Beats in order: a short bouncy musical intro, then the character sings the words in time with the beat, then a happy pose beside the product",
+      "Each sung line inside the beat where it is sung",
+      "Sound: an upbeat jingle tune with a light backing track, the character's voice clear and in tune",
+    ],
+    guidance: ["One singer, front and centre, mouth moving in time with every word.", "A simple, catchy tune, like a radio jingle.", "Bold, friendly colours and even light."],
+    avoid: ["Real people", "Spoken words in place of singing", "Printed words or logos", "A second singer"],
+    leoOnly: true,
+    rule: "The words are sung, never spoken: the character sings them once, in order, to the jingle's tune. With no words given, write two short rhyming lines about the product.",
+  },
+];
+
 export const TEMPLATES: VideoTemplate[] = [
   {
     id: "ugc-creator-review",
@@ -782,6 +810,7 @@ export const TEMPLATES: VideoTemplate[] = [
   },
   ...PHASE3_TEMPLATES,
   ...PERSON_TEMPLATES,
+  ...SINGING_TEMPLATES,
 ];
 
 export const templateById = (id: unknown) => TEMPLATES.find((t) => t.id === id);

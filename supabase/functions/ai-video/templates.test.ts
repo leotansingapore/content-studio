@@ -10,6 +10,8 @@ const ok = (body: Record<string, unknown>) => parseVideoRequest({ mode: "templat
 const ON_CAMERA = [
   "reaction-claim", "unboxing", "notes-presenter", "comment-reply", "question-box",
   "car-call", "front-camera-chat", "car-split", "whiteboard-presenter", "baby-podcast", "laptop-presenter", "phone-app-presenter",
+  // Fastlane's singing ad (13 Nov), Leo's like the rest
+  "singing-ad",
 ];
 
 const TODAY = [
@@ -137,6 +139,17 @@ describe("the people on camera (Fastlane's Studio > Create, 11 Nov)", () => {
     // a template without its own lock keeps the product's
     expect(clipPrompt(written, "product", templateById("unboxing"))).toContain(referenceLock("product"));
     expect(clipPrompt(written, null, templateById("laptop-presenter"))).not.toContain("@image1 is a screenshot");
+  });
+
+  it("has the singing ad's character sing the words, never speak them, two short lines at most", () => {
+    const t = templateById("singing-ad")!;
+    expect([t.needsPhoto, t.photos, t.silent]).toEqual([undefined, ["product"], undefined]);
+    const s = templateSystem(t, 8, null);
+    expect(s).toMatch(/The words are sung, never spoken: the character sings them once, in order, to the jingle's tune\./);
+    expect(s).toContain("Sound: an upbeat jingle tune");
+    expect(ok({ template: "singing-ad", seconds: 8, fields: { product: "Cold brew", line: "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen" } }))
+      .toEqual({ ok: false, error: 'Keep "The words they sing" to 14 words.' });
+    expect(ok({ template: "singing-ad", seconds: 8, fields: { product: "Cold brew" } })).toMatchObject({ ok: true });
   });
 
   it("asks for a product photo before an unboxing, and leaves the sticker's room on a reply", () => {
