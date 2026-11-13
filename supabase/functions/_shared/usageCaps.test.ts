@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
-import { claimForever, claimOnce, consumeUsage, DAILY_LIMITS, refundUsage, usageRefusal, type RpcClient, type UsageClient } from "./usageCaps";
+import { claimForever, claimOnce, consumeUsage, countUsage, DAILY_LIMITS, isOwnerId, OWNER_AI_IMAGE_LIMIT, refundUsage, usageRefusal, type RpcClient, type UsageClient } from "./usageCaps";
 
 const client = (result: { data: unknown; error: unknown } | Error): RpcClient & { calls: unknown[] } => {
   const calls: unknown[] = [];
@@ -276,5 +276,43 @@ describe("the edge functions that spend", () => {
     expect(named).toContain("film-edit");
     expect(named).toContain("ai-music-global");
     expect(named.length).toBeGreaterThanOrEqual(50);
+  });
+});
+
+// Every cap as it stood before the owner's picture cap: the table, and what a use of each asks the counter for and says.
+describe("every cap, pinned", () => {
+  it("asks the counter for its own daily limit and answers with it", async () => {
+    const asked: Record<string, unknown> = {};
+    for (const feature of Object.keys(DAILY_LIMITS) as (keyof typeof DAILY_LIMITS)[]) {
+      const admin = client({ data: 1, error: null });
+      const r = await consumeUsage(admin, "u1", feature);
+      asked[feature] = { limit: (admin.calls[0] as { args: { p_limit: number } }).args.p_limit, answer: r };
+    }
+    await expect(JSON.stringify(asked, null, 2)).toMatchFileSnapshot("./__pins__/daily-limits.json");
+  });
+});
+
+describe("the owner's picture cap", () => {
+  it("is one number, 40, beside the 5 everyone else keeps", () => {
+    expect(OWNER_AI_IMAGE_LIMIT).toBe(40);
+    expect(DAILY_LIMITS["ai-image"]).toBe(5);
+  });
+
+  it("is asked of the counter, and said back, only when a caller passes it", async () => {
+    const admin = client({ data: 6, error: null });
+    expect(await consumeUsage(admin, "u1", "ai-image", OWNER_AI_IMAGE_LIMIT)).toEqual({ allowed: true, used: 6, limit: 40 });
+    expect(await countUsage(admin, "u1", "ai-image", OWNER_AI_IMAGE_LIMIT)).toEqual({ allowed: true, used: 6, limit: 40 });
+    expect(await consumeUsage(admin, "u1", "ai-image", undefined)).toEqual({ allowed: true, used: 6, limit: 5 });
+    expect(admin.calls.map((c) => (c as { args: { p_limit: number } }).args.p_limit)).toEqual([40, 40, 5]);
+    const full = await consumeUsage(client({ data: null, error: null }), "u1", "ai-image", OWNER_AI_IMAGE_LIMIT);
+    expect(usageRefusal(full as Extract<typeof full, { allowed: false }>).body).toEqual({ code: "daily_limit", error: "You've used all 40 for today. It resets at 8am Singapore time." });
+  });
+
+  it("goes to an id listed in NORTH_STAR_USERS itself, never to everyone through an \"*\"", () => {
+    expect(isOwnerId("40f07a18-a, 13b28b1d-b", "13b28b1d-b")).toBe(true);
+    expect(isOwnerId("40f07a18-a", "40f07a18-a")).toBe(true);
+    for (const [list, uid] of [["*", "u1"], ["*,u2", "u1"], ["u1x", "u1"], ["", "u1"], [undefined, "u1"], ["u1", ""]] as const) {
+      expect(isOwnerId(list, uid), `${list} ${uid}`).toBe(false);
+    }
   });
 });

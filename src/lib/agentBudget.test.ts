@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { NEEDS, UNREAD_LINE, budgetAnswer, cheaperFor, leftOf, meterLine, needsOf, refusal, shortOf, type Plan } from "@/lib/agentBudget";
+import { NEEDS, UNREAD_LINE, budgetAnswer, cheaperFor, leftOf, limitOf, meterLine, needsOf, refusal, shortOf, type Plan } from "@/lib/agentBudget";
 import { explainerPrice } from "@/data/formats";
 import { AVATAR_MAX, priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
 
@@ -139,5 +139,23 @@ describe("budgetAnswer and meterLine", () => {
     expect(meterLine(10)).toEqual({ text: "10 of 100 agent messages left today", warn: true });
     expect(meterLine(0)).toEqual({ text: "Agent actions are used up until 8am Singapore time. Questions still get answers.", warn: true });
     expect(meterLine(null)).toBeNull();
+  });
+});
+
+describe("the owner's picture cap in the agent's numbers", () => {
+  it("says Leo's 40 pictures where his sign-in is stored, and everyone else's 5", () => {
+    expect([limitOf("ai-image", true), limitOf("ai-image", false), limitOf("no-such-cap", true)]).toEqual([40, 5, undefined]);
+    expect(limitOf("ai-video", true)).toBe(limitOf("ai-video", false));
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null });
+    try {
+      const usage = today({ "ai-image": 7 });
+      expect(budgetAnswer(usage, NOW)).toContain("0 of 5 AI pictures");
+      store.set("sb-hgdbflprrficdoyxmdxe-auth-token", JSON.stringify({ user: { id: "u1", email: "leotanjs95@gmail.com" } }));
+      expect(budgetAnswer(usage, NOW)).toContain("33 of 40 AI pictures");
+      expect(leftOf(usage, "ai-image", NOW)).toBe(33);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

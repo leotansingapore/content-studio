@@ -90,6 +90,7 @@ beforeEach(() => {
   oa.calls.length = 0;
   oa.reply = () => answer({}, 500);
   delete env.OPENAI_API_KEY;
+  env.NORTH_STAR_USERS = UID;
   hf.submits.length = 0;
   hf.cancels.length = 0;
   hf.failAt = 0;
@@ -106,11 +107,38 @@ const statusOf = async (token: string) => (await call({ mode: "status", token })
 
 describe("Make the image", () => {
   it("is refused over the adviser's cap without asking Higgsfield for a picture", async () => {
+    env.NORTH_STAR_USERS = "40f07a18-0000-4000-8000-000000000000";
     db.rows.set(`${UID}|ai-image|${db.today()}`, 5);
     const res = await call({ prompt: "A family picnic at East Coast Park at sunset" });
     expect(res.status).toBe(429);
     expect(await res.json()).toMatchObject({ code: "daily_limit" });
     expect(hf.submits).toEqual([]);
+  });
+
+  it("gives an id in NORTH_STAR_USERS the owner's 40 pictures a day, and only pictures: a fix stays at 5", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    db.rows.set(`${UID}|ai-image|${db.today()}`, 5);
+    const res = await call({ prompt: "A family picnic at East Coast Park at sunset" });
+    expect(res.status).toBe(200);
+    expect((await res.json()).usage).toEqual({ used: 6, limit: 40 });
+    db.rows.set(`${UID}|ai-image|${db.today()}`, 40);
+    const over = await call({ prompt: "A family picnic at East Coast Park at sunset" });
+    expect(over.status).toBe(429);
+    expect(await over.json()).toEqual({ code: "daily_limit", error: "You've used all 40 for today. It resets at 8am Singapore time." });
+    db.rows.set(`${UID}|ai-image-fix|${db.today()}`, 5);
+    db.kept.set(`${UID}/${PICTURE}.jpg`, new Date().toISOString());
+    expect((await call(await fixBody())).status).toBe(429);
+  });
+
+  it("raises nobody's cap for an \"*\" in NORTH_STAR_USERS or an id it doesn't list", async () => {
+    for (const list of ["*", "someone-else", "", `${UID}x`]) {
+      env.NORTH_STAR_USERS = list;
+      db.rows.set(`${UID}|ai-image|${db.today()}`, 5);
+      const res = await call({ prompt: "A family picnic at East Coast Park at sunset" });
+      expect(res.status, list).toBe(429);
+      expect(await res.json()).toMatchObject({ error: "You've used all 5 for today. It resets at 8am Singapore time." });
+    }
   });
 
   it("makes the picture on GPT Image 2.6 Flare, keeps it, and status hands back its link without Higgsfield", async () => {

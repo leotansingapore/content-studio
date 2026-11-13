@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NOT_AI, readUsageWeek, usesLeft, utcDay } from "@/lib/aiUsage";
-import { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps";
+import { NOT_AI, limitFor, ownerSignedIn, readUsageWeek, usesLeft, utcDay } from "@/lib/aiUsage";
+import { DAILY_LIMITS, OWNER_AI_IMAGE_LIMIT, type UsageFeature } from "../../supabase/functions/_shared/usageCaps";
 
 const db = vi.hoisted(() => ({ rows: [] as unknown[] | null, error: null as unknown, asked: [] as unknown[][] }));
 vi.mock("@/lib/supabase", () => {
@@ -8,7 +8,7 @@ vi.mock("@/lib/supabase", () => {
     select: (...a: unknown[]) => (db.asked.push(["select", ...a]), query),
     gte: async (...a: unknown[]) => (db.asked.push(["gte", ...a]), { data: db.rows, error: db.error }),
   };
-  return { supabase: { from: (t: string) => (db.asked.push(["from", t]), query) } };
+  return { SUPABASE_URL: "https://abc.supabase.co", supabase: { from: (t: string) => (db.asked.push(["from", t]), query) } };
 });
 
 describe("uses left today", () => {
@@ -77,5 +77,42 @@ describe("AI runs in the last 7 days", () => {
 
   it("names only caps that exist, so renaming one fails here", () => {
     for (const f of NOT_AI) expect(DAILY_LIMITS).toHaveProperty(f);
+  });
+});
+
+describe("the owner's picture cap", () => {
+  const now = new Date("2026-10-08T03:00:00Z");
+  const FEATURES = Object.keys(DAILY_LIMITS) as UsageFeature[];
+
+  it("leaves Leo the server's 40 pictures a day, less what he used", () => {
+    const u = { day: "2026-10-08", used: { "ai-image": 7 } };
+    expect(usesLeft(u, "ai-image", now, true)).toBe(OWNER_AI_IMAGE_LIMIT - 7);
+    expect(usesLeft(u, "ai-image", now, false)).toBe(0);
+    expect(limitFor("ai-image", true)).toBe(40);
+  });
+
+  it("changes no other cap, for Leo or anyone, and no cap at all for anyone else", () => {
+    const none = { day: "2026-10-08", used: {} };
+    for (const f of FEATURES) {
+      expect(usesLeft(none, f, now, false), f).toBe(DAILY_LIMITS[f]);
+      expect(limitFor(f, false), f).toBe(DAILY_LIMITS[f]);
+      if (f !== "ai-image") expect([usesLeft(none, f, now, true), limitFor(f, true)], f).toEqual([DAILY_LIMITS[f], DAILY_LIMITS[f]]);
+    }
+  });
+
+  it("is Leo's when this device's stored session is one of his emails, and nobody else's", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null });
+    const u = { day: "2026-10-08", used: { "ai-image": 7 } };
+    try {
+      expect([ownerSignedIn(), usesLeft(u, "ai-image", now)]).toEqual([false, 0]);
+      store.set("sb-abc-auth-token", JSON.stringify({ user: { id: "u2", email: "someone@example.com" } }));
+      expect([ownerSignedIn(), usesLeft(u, "ai-image", now)]).toEqual([false, 0]);
+      store.set("sb-abc-auth-token", JSON.stringify({ user: { id: "u1", email: "TanJunSing@gmail.com" } }));
+      expect([ownerSignedIn(), usesLeft(u, "ai-image", now)]).toEqual([true, 33]);
+      expect(usesLeft(u, "ai-voice", now)).toBe(DAILY_LIMITS["ai-voice"]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

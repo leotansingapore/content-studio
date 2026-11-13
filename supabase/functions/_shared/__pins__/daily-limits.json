@@ -1,0 +1,1090 @@
+{
+  "reel-clone": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "reel-concepts": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "storyboard": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "write-post": {
+    "limit": 200,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 200
+    }
+  },
+  "reel-visuals": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "reel-style": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "reel-video": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "idea-dump": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "repurpose-long": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "carousel": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "video-transcribe": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "vibe-edit": {
+    "limit": 100,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 100
+    }
+  },
+  "video-clips": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "video-translate": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "video-cutaways": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "video-publish": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "motion-picks": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "feeds": {
+    "limit": 60,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 60
+    }
+  },
+  "mentions": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "yt-captions": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "track-accounts": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "market-check": {
+    "limit": 3,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 3
+    }
+  },
+  "market-check-global": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "market-suggest": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "engage-picks": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "week-pick": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "assistant-act": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "stock-search": {
+    "limit": 100,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 100
+    }
+  },
+  "broll-picks": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "montage-beats": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "montage-pick": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "cold-open": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "video-captions": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "video-watch": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "ai-image": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "ai-image-fix": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "ai-image-fix-global": {
+    "limit": 40,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 40
+    }
+  },
+  "ai-broll": {
+    "limit": 3,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 3
+    }
+  },
+  "ai-broll-global": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "slide-pictures": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "slide-pictures-global": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "ai-voice": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "ai-music": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "ai-music-global": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "music-mood": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "post-score": {
+    "limit": 40,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 40
+    }
+  },
+  "linkedin-strategy": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "hook-writer": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "writing-judge": {
+    "limit": 60,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 60
+    }
+  },
+  "profile-score": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "fact-check": {
+    "limit": 60,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 60
+    }
+  },
+  "engage-replies": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "engage-dms": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "engage-comments": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "engage-connect": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "ai-video": {
+    "limit": 2,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 2
+    }
+  },
+  "ai-video-global": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "ai-video-script": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "ai-clip": {
+    "limit": 2,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 2
+    }
+  },
+  "ai-clip-global": {
+    "limit": 8,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 8
+    }
+  },
+  "scene-move": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "scene-move-global": {
+    "limit": 40,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 40
+    }
+  },
+  "social-connect": {
+    "limit": 3,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 3
+    }
+  },
+  "social-read": {
+    "limit": 300,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 300
+    }
+  },
+  "social-automation-write": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "social-schedule": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "social-presign": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "slide-campaign-make": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "slide-campaign-post": {
+    "limit": 12,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 12
+    }
+  },
+  "slide-campaign-write": {
+    "limit": 500,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 500
+    }
+  },
+  "slide-phone": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "telegram-connect": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "telegram-schedule": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "telegram-presign": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "team-comment": {
+    "limit": 60,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 60
+    }
+  },
+  "brand-dna": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "remix-make": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "remix-teardown": {
+    "limit": 40,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 40
+    }
+  },
+  "remix-fit": {
+    "limit": 100,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 100
+    }
+  },
+  "remix-link": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "remix-image": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "competitor-read": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "competitor-suggest": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "competitor-ads": {
+    "limit": 15,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 15
+    }
+  },
+  "competitor-ads-global": {
+    "limit": 60,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 60
+    }
+  },
+  "competitor-posts": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "competitor-posts-global": {
+    "limit": 60,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 60
+    }
+  },
+  "similar-find": {
+    "limit": 3,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 3
+    }
+  },
+  "similar-find-global": {
+    "limit": 6,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 6
+    }
+  },
+  "similar-posts": {
+    "limit": 130,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 130
+    }
+  },
+  "similar-posts-global": {
+    "limit": 200,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 200
+    }
+  },
+  "social-plays": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "social-plays-global": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "space-ads": {
+    "limit": 2,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 2
+    }
+  },
+  "space-ads-global": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "ad-labels": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "niche-match": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "viral-search": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "viral-search-global": {
+    "limit": 40,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 40
+    }
+  },
+  "post-tags": {
+    "limit": 60,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 60
+    }
+  },
+  "brief-pick": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "creator-fit": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "carousel-fit": {
+    "limit": 6,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 6
+    }
+  },
+  "search-topics": {
+    "limit": 2,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 2
+    }
+  },
+  "search-topics-global": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "remix-patterns": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "own-words": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "page-read": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "thread-copy": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "edit-ask": {
+    "limit": 60,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 60
+    }
+  },
+  "caption-keywords": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "likeness-check": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "ai-presenter": {
+    "limit": 12,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 12
+    }
+  },
+  "ai-presenter-global": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "brand-products": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "brand-image": {
+    "limit": 100,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 100
+    }
+  },
+  "media-sort": {
+    "limit": 200,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 200
+    }
+  },
+  "post-translate": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "audience-suggest": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "campaign-angles": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "campaign-draft": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "campaign-swap": {
+    "limit": 40,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 40
+    }
+  },
+  "ideas-daily": {
+    "limit": 15,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 15
+    }
+  },
+  "agent-act": {
+    "limit": 100,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 100
+    }
+  },
+  "mcp-calls": {
+    "limit": 500,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 500
+    }
+  },
+  "skill-answer": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "launch-film": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "film-edit": {
+    "limit": 60,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 60
+    }
+  },
+  "edit-read": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "edit-version": {
+    "limit": 6,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 6
+    }
+  },
+  "winner-check": {
+    "limit": 5,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 5
+    }
+  },
+  "post-match": {
+    "limit": 20,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 20
+    }
+  },
+  "post-grade": {
+    "limit": 30,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 30
+    }
+  },
+  "post-angles": {
+    "limit": 10,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 10
+    }
+  },
+  "script-desk": {
+    "limit": 200,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 200
+    }
+  },
+  "research": {
+    "limit": 400,
+    "answer": {
+      "allowed": true,
+      "used": 1,
+      "limit": 400
+    }
+  }
+}

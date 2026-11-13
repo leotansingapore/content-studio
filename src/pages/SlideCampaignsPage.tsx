@@ -8,7 +8,7 @@ import { CircleNotchIcon, PlusIcon } from "@phosphor-icons/react";
 import { Segmented } from "@/components/design/fields";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useUsesLeft } from "@/lib/aiUsage";
+import { limitFor, ownerSignedIn, useUsesLeft } from "@/lib/aiUsage";
 import { callFn } from "@/lib/edgeFn";
 import { activeProfileId } from "@/lib/profiles";
 import { socialConnectShown } from "@/lib/socialConnect";
@@ -16,7 +16,6 @@ import { supabase } from "@/lib/supabase";
 import { useUrlState } from "@/lib/urlState";
 import { useSignedInUser } from "@/lib/useLeoOnly";
 import { cadence, STATUS_LABEL, when } from "@/lib/campaignLabels";
-import { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps.ts";
 
 export interface CampaignRowView {
   id: string;
@@ -74,7 +73,8 @@ export default function SlideCampaignsPage() {
   )
     .map(([f, label]) => {
       const n = left(f);
-      return n === null ? null : `${DAILY_LIMITS[f] - n} of ${DAILY_LIMITS[f]} ${label}`;
+      const cap = limitFor(f, ownerSignedIn());
+      return n === null ? null : `${cap - n} of ${cap} ${label}`;
     })
     .filter(Boolean)
     .join(", ");

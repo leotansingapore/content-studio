@@ -3,7 +3,7 @@
 // every price comes from the price table (prices.ts, explainerPrice), never typed.
 
 import { explainerPrice } from "@/data/formats";
-import { usesLeft, type Usage } from "@/lib/aiUsage";
+import { limitFor, ownerSignedIn, usesLeft, type Usage } from "@/lib/aiUsage";
 import { BATCH } from "@/lib/campaignJob";
 import { AVATAR_MAX, priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
 import { DEFAULT_LENGTH, talkCaps } from "@/lib/talkingHead";
@@ -56,8 +56,9 @@ export function needsOf(plan: Plan, o: { write?: boolean; presenter?: boolean; p
   return NEEDS[plan];
 }
 
-/** Today's limit for a cap; undefined for one DAILY_LIMITS does not hold. */
-export const limitOf = (f: string): number | undefined => (DAILY_LIMITS as Record<string, number | undefined>)[f];
+/** Today's limit for a cap (the owner's picture cap on Leo's sign-in, as usesLeft); undefined for one DAILY_LIMITS does not hold. */
+export const limitOf = (f: string, owner = ownerSignedIn()): number | undefined =>
+  (DAILY_LIMITS as Record<string, number | undefined>)[f] === undefined ? undefined : limitFor(f as UsageFeature, owner);
 
 /** Uses left today; null when today's counts weren't read or the cap is unknown, and then the server decides. */
 export const leftOf = (u: Usage | null, f: Cap, now = new Date()): number | null =>

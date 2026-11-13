@@ -1,6 +1,7 @@
 // "Make the image" on Write: one picture from the post's image prompt, with
 // GPT Image 2.6 Flare (about USD 0.04 each at 3:4, openai.ts), or Higgsfield Soul v2 when OpenAI can't.
-//   POST {mode:"start", prompt, words?, refs?} -> {token}: counts against the "ai-image" daily cap. words: true (a static
+//   POST {mode:"start", prompt, words?, refs?} -> {token}: counts against the "ai-image" daily cap (OWNER_AI_IMAGE_LIMIT
+//        for an id in NORTH_STAR_USERS). words: true (a static
 //        format made as a photo) prints the prompt's quoted lines: the people rule loses its "No text" clause, and when
 //        OpenAI can't make it the use comes back and it fails, never Soul v2, which can't print words. refs (with words
 //        only): the brand's logo and the product's picture as data URLs, sent to GPT Image's edits as references for a whole new picture; when
@@ -26,7 +27,7 @@
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { GLOBAL_COUNTER_USER, OWNER_AI_IMAGE_LIMIT, consumeUsage, isOwnerId, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { MOTION_MODEL, PICTURE_MODEL, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll.ts";
 import { FIX_MODEL, HF_BASE, HF_MODEL, buildFixBody, buildImageBody, jobToken, openJobToken, parseImageRequest, pictureUrl, readStatus, tokenSecret } from "./logic.ts";
 import { parseSlides, slidePictureBody } from "./slides.ts";
@@ -236,7 +237,9 @@ Deno.serve(async (req) => {
       return json({ token: await jobToken(signing, uid, fixed), usage: { used: mine.used, limit: mine.limit } });
     }
 
-    const usage = await consumeUsage(admin, uid, "ai-image");
+    // the owner dogfoods photo ads across every brand on one account: a NORTH_STAR_USERS id gets the owner's picture cap
+    const cap = isOwnerId(Deno.env.get("NORTH_STAR_USERS"), uid) ? OWNER_AI_IMAGE_LIMIT : undefined;
+    const usage = await consumeUsage(admin, uid, "ai-image", cap);
     if (!usage.allowed) {
       const r = usageRefusal(usage);
       return json(r.body, r.status);

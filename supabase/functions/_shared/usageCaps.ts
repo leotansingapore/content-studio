@@ -269,6 +269,16 @@ export const DAILY_LIMITS = {
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
 
+/**
+ * The owner's own "ai-image" cap (Leo, dogfooding photo ads across every brand on one account): ai-image's start uses it
+ * for an id listed in NORTH_STAR_USERS, and the app shows it on Leo's sign-in (aiUsage.ts). Everyone else keeps
+ * DAILY_LIMITS["ai-image"]; no other feature has one.
+ */
+export const OWNER_AI_IMAGE_LIMIT = 40;
+
+/** True only when `uid` itself is in the comma-separated list: an "*" entry raises nobody's cap. */
+export const isOwnerId = (list: string | undefined, uid: string): boolean => !!uid && (list ?? "").split(",").map((s) => s.trim()).includes(uid);
+
 /** cs_ai_usage.user_id must be a real account, so the across-everyone counters live on the owner's. */
 export const GLOBAL_COUNTER_USER = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
 
@@ -280,15 +290,17 @@ export type UsageResult =
   | { allowed: true; used: number; limit: number }
   | { allowed: false; limit: number; reason: "limit" | "unavailable" | "lapsed" };
 
+/** `limit`: today's cap for this call, the feature's own unless the caller has a reason (OWNER_AI_IMAGE_LIMIT). */
 export async function consumeUsage(
   admin: RpcClient,
   userId: string,
   feature: UsageFeature,
+  limit: number = DAILY_LIMITS[feature],
 ): Promise<UsageResult> {
   // Postmosis billing (docs/postmosis-billing.md): the app's paywall is only a screen, so a customer whose
   // subscription has lapsed is refused here, before a use is counted. No row, or a failed read, refuses nobody.
-  if (lapsed(await readSubscription(admin, userId), Date.now())) return { allowed: false, limit: DAILY_LIMITS[feature], reason: "lapsed" };
-  return countUsage(admin, userId, feature);
+  if (lapsed(await readSubscription(admin, userId), Date.now())) return { allowed: false, limit, reason: "lapsed" };
+  return countUsage(admin, userId, feature, limit);
 }
 
 /** consumeUsage without the billing check, for the one thing a lapsed customer must still do: remove a brand's accounts. */
@@ -296,8 +308,8 @@ export async function countUsage(
   admin: RpcClient,
   userId: string,
   feature: UsageFeature,
+  limit: number = DAILY_LIMITS[feature],
 ): Promise<UsageResult> {
-  const limit = DAILY_LIMITS[feature];
   try {
     const { data, error } = await admin.rpc("cs_consume_ai_usage", {
       p_user: userId,

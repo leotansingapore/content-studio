@@ -5,8 +5,10 @@
 // turns over at 8am Singapore time.
 
 import { useEffect, useState } from "react";
+import { leoOnly } from "@/lib/leoOnly";
 import { supabase } from "@/lib/supabase";
-import { DAILY_LIMITS, type UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
+import { storedUser } from "@/lib/useLeoOnly";
+import { DAILY_LIMITS, OWNER_AI_IMAGE_LIMIT, type UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
 export interface Usage {
   day: string;
@@ -15,11 +17,23 @@ export interface Usage {
 
 export const utcDay = (d = new Date()) => d.toISOString().slice(0, 10);
 
-/** Uses left today, or null before today's count has been read. */
-export function usesLeft(u: Usage | null, feature: UsageFeature, now = new Date()): number | null {
+/** Whether this device's stored session is Leo's sign-in: the email list, never the localhost ?asLeo flag. */
+export function ownerSignedIn(): boolean {
+  try {
+    return leoOnly(storedUser()?.email);
+  } catch {
+    return false; // a page test's stand-in for useLeoOnly without the stored session: not the owner, so today's caps
+  }
+}
+
+/** Today's cap: the server's own for the feature, and on Leo's sign-in its owner's picture cap (ai-image start). */
+export const limitFor = (feature: UsageFeature, owner: boolean): number => (owner && feature === "ai-image" ? OWNER_AI_IMAGE_LIMIT : DAILY_LIMITS[feature]);
+
+/** Uses left today, or null before today's count has been read. `owner` defaults to ownerSignedIn(), so every caller agrees with the server's cap. */
+export function usesLeft(u: Usage | null, feature: UsageFeature, now = new Date(), owner = ownerSignedIn()): number | null {
   if (!u) return null;
   const used = u.day === utcDay(now) ? (u.used[feature] ?? 0) : 0;
-  return Math.max(0, DAILY_LIMITS[feature] - used);
+  return Math.max(0, limitFor(feature, owner) - used);
 }
 
 /** Today's counts for the signed-in person, or null when they can't be read (then nothing is shown). */

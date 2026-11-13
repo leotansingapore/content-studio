@@ -6,7 +6,7 @@
 import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { CaretRightIcon } from "@phosphor-icons/react";
-import { readUsage, usesLeft, type Usage } from "@/lib/aiUsage";
+import { limitFor, ownerSignedIn, readUsage, usesLeft, type Usage } from "@/lib/aiUsage";
 import { AUTOPILOT_CHANGED, loadAutopilot } from "@/lib/autopilot";
 import { AUTONOMY_CHANGED, SHADOW_CHANGED, loadAutonomy, loadShadow, saveAutonomy, type Autonomy } from "@/lib/autonomy";
 import { loadIdeas, onIdeasChanged } from "@/lib/ideasInbox";
@@ -17,7 +17,7 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import { useScrollToHash } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 import NotFoundPage from "@/pages/NotFoundPage";
-import { DAILY_LIMITS, type UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
+import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 const CARD = "divide-y divide-border/60 rounded-xl border border-border/60 bg-card shadow-card";
@@ -170,7 +170,7 @@ function Automations({ userId }: { userId: string }) {
               {usage === undefined ? (
                 <span aria-hidden className="h-4 w-32 animate-pulse rounded bg-muted" />
               ) : (
-                <span className="text-sm tabular-nums text-muted-foreground">{left === null ? "-" : `${left} of ${DAILY_LIMITS[l.feature]} left today`}</span>
+                <span className="text-sm tabular-nums text-muted-foreground">{left === null ? "-" : `${left} of ${limitFor(l.feature, ownerSignedIn())} left today`}</span>
               )}
             </Row>
           );
