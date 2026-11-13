@@ -188,6 +188,17 @@ describe("svgDataUrl", () => {
     expect(svgDataUrl("<p>no drawing</p>")).toBeNull();
   });
 
+  it("paints a logo the page colours with CSS, so it doesn't come out blank on its own", () => {
+    const white = unpack(svgDataUrl('<svg viewBox="0 0 188 16" fill="none" class="fill-current text-white"><title>Tony Robbins Logo</title><path d="M0 0h10v10z"></path></svg>'));
+    expect(white).toContain('fill="currentColor"');
+    expect(white).toContain('color="#ffffff"');
+    expect(white).not.toContain('fill="none"');
+    expect(unpack(svgDataUrl('<svg viewBox="0 0 10 10" class="h-6 fill-current"><path d="M0 0h10v10z"/></svg>'))).toContain('color="#000000"');
+    expect(unpack(svgDataUrl('<svg viewBox="0 0 10 10" class="fill-current text-[#0E7490]"><path d="M0 0h10v10z"/></svg>'))).toContain('color="#0E7490"');
+    expect(unpack(svgDataUrl('<svg viewBox="0 0 10 10" fill="#123456" class="fill-current text-white"><path d="M0 0h10v10z"/></svg>'))).toContain('fill="#123456"');
+    expect(unpack(svgDataUrl('<svg viewBox="0 0 10 10" fill="none" class="logo"><path d="M0 0h10v10z" stroke="#000"/></svg>'))).toContain('fill="none"');
+  });
+
   it("reads an SVG file with its XML prolog, keeping non-ASCII text intact", () => {
     const file = '<?xml version="1.0" encoding="UTF-8"?>\n<!-- Generator: Illustrator --><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text>Café ☕</text></svg>';
     expect(svgFile(file)).toBe(true);

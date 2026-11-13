@@ -671,6 +671,19 @@ const base64 = (bytes: Uint8Array): string => {
   return btoa(bin);
 };
 
+const TEXT_INK: Record<string, string> = { white: "#ffffff", black: "#000000" };
+
+const paintCurrent = (tag: string): string => {
+  const cls = tag.match(/\sclass\s*=\s*(["'])([^"']{0,500})\1/i)?.[2] ?? "";
+  if (!/(?:^|\s)fill-current(?:\s|$)/.test(cls)) return tag;
+  const named = cls.match(/(?:^|\s)text-(white|black)(?:\s|$)/)?.[1];
+  const hex = cls.match(/(?:^|\s)text-\[(#[0-9a-f]{6}|#[0-9a-f]{3})\](?:\s|$)/i)?.[1];
+  let out = tag.replace(/\sfill\s*=\s*(["'])\s*none\s*\1/i, "");
+  if (!/\sfill\s*=/i.test(out)) out = out.replace(/^<svg/i, '<svg fill="currentColor"');
+  if (!/\scolor\s*=/i.test(out)) out = out.replace(/^<svg/i, `<svg color="${hex ?? TEXT_INK[named ?? "black"]}"`);
+  return out;
+};
+
 export const svgDataUrl = (svg: string, page = ""): string | null => {
   const from = svg.search(/<svg\b/i);
   const to = svg.toLowerCase().lastIndexOf("</svg>");
@@ -706,6 +719,7 @@ export const svgDataUrl = (svg: string, page = ""): string | null => {
       .replace(/^<svg/i, `<svg width="${Math.round(box[2] * k)}" height="${Math.round(box[3] * k)}"`);
     if (!/\sviewBox\s*=/i.test(tag)) tag = tag.replace(/^<svg/i, `<svg viewBox="${box.join(" ")}"`);
   }
+  tag = paintCurrent(tag);
   if (!/\sxmlns\s*=/i.test(tag)) tag = tag.replace(/^<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
   if (/xlink:/i.test(s + defs.join("")) && !/\sxmlns:xlink\s*=/i.test(tag)) tag = tag.replace(/^<svg/i, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
   const clean = sanitize(`${tag}${defs.length ? `<defs>${defs.join("")}</defs>` : ""}${s.slice(open.length)}`);
