@@ -328,7 +328,15 @@ export default function AccountsPage() {
             Loading your accounts...
           </p>
         )}
-        {state === "off" && <p className="text-sm text-muted-foreground">Social accounts aren't switched on for you yet.</p>}
+        {/* the next step while posting is off (law 10): How to post's last step schedules with the networks' own free tools */}
+        {state === "off" && (
+          <p className="text-sm text-muted-foreground">
+            Social accounts aren't switched on for you yet.{" "}
+            <Link to="/create-guide#schedule" className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-2 hover:underline">
+              Schedule without them
+            </Link>
+          </p>
+        )}
         {state === "error" && (
           <>
             <p className="text-sm text-destructive">{error}</p>
