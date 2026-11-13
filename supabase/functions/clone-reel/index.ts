@@ -25,7 +25,7 @@
 // Logic: ./logic.ts (tested). The Apify reader: ./source.ts (shared with remix and remix-link).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { consumeUsage, usageRefusal, type UsageResult } from "../_shared/usageCaps.ts";
+import { claimOnce, consumeUsage, refundUsage, usageRefusal, type UsageFeature, type UsageResult } from "../_shared/usageCaps.ts";
 import {
   BACKGROUND_LIMIT_MS,
   CLONE_ERRORS,
@@ -119,8 +119,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ code: "bad_request", error: "Use POST." }, 405);
   const startedAt = Date.now();
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  let paid: { uid: string; feature: UsageFeature; day: string } | null = null;
+  const refund = async () => {
+    if (paid) await refundUsage(admin, paid.uid, paid.feature, paid.day);
+    paid = null;
+  };
   try {
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
@@ -190,8 +195,19 @@ Deno.serve(async (req) => {
     if (decision === "refuse") return failure("not_cloned");
 
     // Counted once per request, just before its first paid call.
+    const feature = styleOnly ? "reel-style" : concept ? "reel-concepts" : "reel-clone";
+    const day = new Date(startedAt).toISOString().slice(0, 10);
+    const waiting = `wait:${feature}:${parsed.lookupKey}`;
     let usage: UsageResult | null = null;
-    const charge = async () => (usage ??= await consumeUsage(admin, uid, styleOnly ? "reel-style" : concept ? "reel-concepts" : "reel-clone"));
+    let prepaid = false;
+    const charge = async (): Promise<UsageResult> => {
+      if (!usage) {
+        prepaid = await refundUsage(admin, uid, waiting as UsageFeature, day);
+        usage = prepaid ? { allowed: true, used: 0, limit: 0 } : await consumeUsage(admin, uid, feature);
+        if (usage.allowed) paid = { uid, feature, day };
+      }
+      return usage;
+    };
 
     if (decision !== "use") {
       const apifyKey = Deno.env.get("APIFY_API_KEY");
@@ -214,11 +230,22 @@ Deno.serve(async (req) => {
         const outcome = await withinBudget(work, FETCH_BUDGET_MS - (Date.now() - startedAt));
         if (outcome.kind === "done") {
           ({ row, videoUrl } = outcome.value);
+        } else if (outcome.kind === "timeout" && !row) {
+          paid = null;
+          await claimOnce(admin, uid, waiting);
+          keepRunning(prepaid ? work : work.catch(async (e) => {
+            await Promise.all([refundUsage(admin, uid, feature, day), refundUsage(admin, uid, waiting as UsageFeature, day)]);
+            throw e;
+          }));
+          return failure("timeout");
         } else {
           if (outcome.kind === "timeout") keepRunning(work);
           const code = outcome.kind === "timeout" ? "timeout" : outcome.code;
           // Stale numbers beat no answer: fall back to the cached post when the refresh fails.
-          if (!row) return failure(code);
+          if (!row) {
+            if (!prepaid) await refund();
+            return failure(code);
+          }
           console.warn("refresh failed, using cached post", parsed.lookupKey, code);
         }
       }
@@ -235,7 +262,10 @@ Deno.serve(async (req) => {
       return json(refusal.body, refusal.status);
     }
     const aiMs = aiTimeoutMs(Date.now() - startedAt);
-    if (aiMs === 0) return failure("timeout");
+    if (aiMs === 0) {
+      await refund();
+      return failure("timeout");
+    }
 
     const source = toCloneSource(row!);
     if (concept) {
@@ -246,7 +276,7 @@ Deno.serve(async (req) => {
         aiMs,
       );
       console.log("clone-reel concept ok", parsed.platform, decision, `${Date.now() - startedAt}ms`);
-      const response: ConceptResponse = { myVersion, usage: { used: charged.used, limit: charged.limit } };
+      const response: ConceptResponse = { myVersion, usage: prepaid ? null : { used: charged.used, limit: charged.limit } };
       return json(response);
     }
     const output = await write(
@@ -260,10 +290,11 @@ Deno.serve(async (req) => {
       source: { ...source, videoUrl },
       ...output,
       cached: decision === "use",
-      usage: { used: charged.used, limit: charged.limit },
+      usage: prepaid ? null : { used: charged.used, limit: charged.limit },
     };
     return json(response);
   } catch (e) {
+    await refund();
     if (e instanceof CloneFailure) return failure(e.code);
     console.error("clone-reel failed", e);
     return failure("server_error");

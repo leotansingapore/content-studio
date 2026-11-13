@@ -7,23 +7,51 @@ const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const LEO = "leo-uid";
 const URL_ = "https://www.tiktok.com/@leila_tuck/video/7682935406396001567";
 
-const db = vi.hoisted(() => ({
-  spent: [] as string[],
-  admin: {
+const db = vi.hoisted(() => {
+  // cs_ai_usage in memory, keyed user|feature|day: the consume RPC, one row read and the conditional update
+  const rows = new Map<string, number>();
+  const spent: string[] = [];
+  const today = () => new Date().toISOString().slice(0, 10);
+  const key = (q: Record<string, unknown>) => `${q.user_id}|${q.feature}|${q.day}`;
+  const admin = {
     auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
-    rpc: async (_fn: string, a: Record<string, unknown>) => (db.spent.push(String(a.p_feature)), { data: db.spent.length, error: null }),
-  },
-  handler: null as null | ((r: Request) => Promise<Response>),
-}));
+    rpc: async (_fn: string, a: Record<string, unknown>) => {
+      spent.push(String(a.p_feature));
+      const k = `${a.p_user}|${a.p_feature}|${today()}`;
+      const n = rows.get(k) ?? 0;
+      if (n >= Number(a.p_limit)) return { data: null, error: null };
+      rows.set(k, n + 1);
+      return { data: n + 1, error: null };
+    },
+    from: () => ({
+      select: () => ({ match: async (q: Record<string, unknown>) => ({ data: rows.has(key(q)) ? [{ count: rows.get(key(q)) }] : [], error: null }) }),
+      update: (v: { count: number }) => ({
+        match: (q: Record<string, unknown>) => ({
+          select: async () => {
+            const hit = rows.get(key(q)) === q.count;
+            if (hit) rows.set(key(q), v.count);
+            return { data: hit ? [v] : [], error: null };
+          },
+        }),
+      }),
+    }),
+  };
+  return { admin, rows, spent, today, handler: null as null | ((r: Request) => Promise<Response>) };
+});
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
-// cs_reel_sources and the Apify read: `cached` is what the cache holds, a read always comes back with `row()`
-const reader = vi.hoisted(() => ({ cached: null as unknown, reads: 0 }));
-vi.mock("./source.ts", async (original) => ({
-  ...(await original<typeof import("./source.ts")>()),
-  findSource: async () => reader.cached,
-  fetchSource: async () => (reader.reads++, { row: row(), videoUrl: null }),
-}));
+// cs_reel_sources and the Apify read: `cached` is what the cache holds, a read comes back with `row()` unless `read`
+// says otherwise, and `outcome` (when set) is what the 55 s budget sees instead of the read
+const reader = vi.hoisted(() => ({ cached: null as unknown, reads: 0, read: null as null | (() => Promise<unknown>), outcome: null as unknown }));
+vi.mock("./source.ts", async (original) => {
+  const real = await original<typeof import("./source.ts")>();
+  return {
+    ...real,
+    findSource: async () => reader.cached,
+    fetchSource: async () => (reader.reads++, reader.read ? reader.read() : { row: row(), videoUrl: null }),
+    withinBudget: (async (work: Promise<unknown>, ms: number) => (reader.outcome ? reader.outcome : real.withinBudget(work as never, ms))) as typeof real.withinBudget,
+  };
+});
 
 const row = (): SourceRow => ({
   platform: "tiktok",
@@ -65,6 +93,9 @@ afterAll(() => {
 });
 beforeEach(() => {
   db.spent.length = 0;
+  db.rows.clear();
+  reader.read = null;
+  reader.outcome = null;
   openai.length = 0;
   asked.length = 0;
   prompts.length = 0;
@@ -91,6 +122,42 @@ describe("Clone a reel", () => {
     expect(db.spent).toEqual([]);
     expect(openai).toEqual([]);
     expect(reader.reads).toBe(0);
+  });
+
+  const used = (feature = "reel-clone") => db.rows.get(`${UID}|${feature}|${db.today()}`) ?? 0;
+
+  it("gives the use back when the post can't be read or the write fails", async () => {
+    reader.outcome = { kind: "failed", code: "not_found" };
+    expect((await clone()).status).toBe(404);
+    expect(used()).toBe(0);
+    reader.outcome = null;
+    expect((await clone()).status).toBe(502);
+    expect(db.spent).toEqual(["reel-clone", "reel-clone"]);
+    expect(used()).toBe(0);
+  });
+
+  it("counts a clone retried after the slow answer once, and gives it back when the slow read fails", async () => {
+    let finish!: (v: unknown) => void;
+    reader.read = () => new Promise((resolve) => (finish = resolve));
+    reader.outcome = { kind: "timeout" };
+    expect((await clone()).status).toBe(504);
+    expect(used()).toBe(1);
+    finish({ row: row(), videoUrl: null });
+    reader.outcome = null;
+    reader.cached = row();
+    await clone();
+    expect(db.spent.filter((f) => f === "reel-clone")).toEqual(["reel-clone"]);
+    expect(used()).toBe(0);
+
+    db.rows.clear();
+    db.spent.length = 0;
+    reader.cached = null;
+    let fail!: (e: unknown) => void;
+    reader.read = () => new Promise((_, reject) => (fail = reject));
+    reader.outcome = { kind: "timeout" };
+    expect((await clone()).status).toBe(504);
+    fail(new Error("run ended"));
+    await vi.waitFor(() => expect([used(), used(`wait:reel-clone:tiktok:7682935406396001567`)]).toEqual([0, 0]));
   });
 
   it("writes with the angle and saved positioning sent, and asks as before without them", async () => {
