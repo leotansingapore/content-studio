@@ -66,7 +66,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { AD_FACTS_MAX, ANGLE_POOL, OPENINGS_KEPT, openingOf, recentOpenings, rememberOpening, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_RULE, TOO_LONG, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { AD_FACTS_MAX, ANGLE_POOL, OPENINGS_KEPT, openingOf, recentOpenings, rememberOpening, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_RULE, TOO_LONG, unquoted, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -130,6 +130,20 @@ describe("the photo prompt", () => {
   it("says the quoted words and the logo are the only writing, with no prices, dates, phone numbers, web addresses or small print on screens and footers", () => {
     expect(PHOTO_RULE).toBe("Only the quoted words, spelled exactly, and the logo are written on it: no prices, dates, phone numbers, web addresses or small print, on screens and footers too. No other logos or watermarks.");
     for (const f of STATIC_FORMATS) expect(photoAdPrompt(f, hilltop, {}), f.slug).toContain(PHOTO_RULE);
+  });
+
+  it("prints a bubble or chat line with no quote marks of its own: the prompt's quotes are only delimiters", () => {
+    const concern = staticFormatBySlug("concern-answer")!;
+    const p = photoAdPrompt(concern, hilltop, { question: "'Do I need separate apps for chats and follow-ups?", answer: '"One app keeps both."', fact: "\u201CStreaks show the work.\u201D" });
+    expect(p).toContain('"Do I need separate apps for chats and follow-ups?"');
+    expect(p).toContain('"One app keeps both."');
+    expect(p).toContain('"Streaks show the work."');
+    expect(p).not.toMatch(/"'|'"|\u201C|\u201D/);
+    expect(unquoted("'Is it worth it?'")).toBe("Is it worth it?");
+    // an apostrophe inside or at the end of a word stays
+    expect(unquoted("Your dogs' favourite van")).toBe("Your dogs' favourite van");
+    expect(unquoted("We're sorry")).toBe("We're sorry");
+    expect(unquoted("Pay the bills, not the boss'")).toBe("Pay the bills, not the boss'");
   });
 
   it("keeps every quoted line whole: a double quote inside becomes a single one, and a line break a space", () => {

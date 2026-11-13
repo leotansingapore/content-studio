@@ -49,8 +49,18 @@ export function withoutPrices(text: string): string {
 /** A format that prints a price the brand typed itself (the tear-off flyer): only there may a figure reach the picture. */
 const typedPrice = (slug: string) => isStatic(slug) && IMAGE_FIELDS[slug].some((x) => x.key === "price" && x.typed);
 
-/** One string as the prompt quotes it: on one line, a double quote inside it made a single one so the quote stays whole. */
-const quoted = (s: string) => `"${s.replace(/\s+/g, " ").trim().replace(/"/g, "'")}"`;
+/**
+ * A line as printed: no quote marks around it, since the prompt's own quotes are only delimiters (a 14 Nov doubt bubble
+ * printed the writer's opening quote and no closing one). A line wrapped in double quotes, or opening on a single one,
+ * loses them; an apostrophe inside or at the end of a word stays.
+ */
+export function unquoted(s: string): string {
+  const t = s.replace(/\s+/g, " ").trim().replace(/^[\u201C\u201D"]+|[\u201C\u201D"]+$/g, "").trim();
+  return /^['\u2018\u2019]/.test(t) ? t.replace(/^['\u2018\u2019]+|['\u2018\u2019]+$/g, "").trim() : t;
+}
+
+/** One string as the prompt quotes it: on one line, with no quote marks of its own around it, and a double quote inside it made a single one so the quote stays whole. */
+const quoted = (s: string) => `"${unquoted(s).replace(/"/g, "'")}"`;
 
 /**
  * What the picture shows of what the brand sells, on a format with room for it (StaticFormat.room): software on its own plain
