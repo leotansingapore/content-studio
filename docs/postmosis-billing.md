@@ -84,7 +84,7 @@ Everything else is held in `cs_held_checkouts` and changes no row:
 | `customer_mismatch` | The email belongs to an account whose row has lapsed, and the checkout is from a different Stripe customer (or the row has none on file). Otherwise a stranger could pay under a lapsed customer's email and put their own Stripe customer on the row, and the owner's Billing page would open the stranger's portal. |
 | `second_subscription` | The account's row still gives access (a paying customer or a `comp` account), whichever Stripe customer paid. Cancelling the second one locks nobody out. |
 
-A held checkout gates nobody. The webhook keeps its `status` in step with Stripe. The payer sees the same "check your inbox" page either way.
+A held checkout gates nobody. The webhook keeps its `status` in step with Stripe until billing attaches the subscription to an account (rule b, once the customer's own row has lapsed), after which the hold's `status` stops changing and the row is the one to read. The payer sees the same "check your inbox" page either way.
 
 A lapsed customer who pays again through the public pricing page, signed out, is therefore held as `customer_mismatch` (Stripe makes a new customer for them). Attach it by hand once they confirm, or refund it and point them at the paywall's button.
 
@@ -110,7 +110,9 @@ Attaching puts that account under billing from then on: it is gated if the subsc
 
 ### The held payments page
 
-Leo's sign-ins see Settings > Held payments (`/settings/held`): every unresolved held checkout, newest first, up to 200. Each shows the email, the reason in plain words, Stripe's status, when it was held, and a link to the subscription in Stripe's dashboard. The link opens Stripe's test mode while `POSTMOSIS_STRIPE_PUBLISHABLE_KEY` is a test key.
+Leo's sign-ins see Settings > Held payments (`/settings/held`): every unresolved held checkout, newest first, up to 200. Each shows the email, the reason in plain words, Stripe's status, when it was held, and a link to the subscription in Stripe's dashboard. The link opens Stripe's test mode while `POSTMOSIS_STRIPE_SECRET_KEY` is a test key (or, with no secret key set, the publishable key is).
+
+A hold whose subscription billing has since put on an account (it is some row's `stripe_subscription_id`) is listed last, marked On its account, without its frozen status: refunding it would cancel the account's only plan. Mark it resolved with the `update` above.
 
 - It only reads. Attaching and refunding stay in Stripe and the SQL above.
 - It sends no alert.
@@ -261,7 +263,7 @@ To stop only new sign-ups and leave existing customers alone, take the links off
 - Trial reminder and failed-payment emails are Stripe's. The app sends none.
 - The billing line shows the list price. With a promotion code Stripe charges less than the line says. The portal shows the exact amount.
 - An account created by a checkout is marked email-confirmed before anyone has proved the inbox, although signing in still needs it.
-- A customer who pays twice under one email has the second subscription held, not merged. It never attaches by itself when it came through the public pricing page (a different Stripe customer): refund it or attach it by hand.
+- A customer who pays twice under one email has the second subscription held, not merged. It never attaches by itself when it came through the public pricing page (a different Stripe customer): refund it or attach it by hand. One from the same Stripe customer (two restarts from the paywall) attaches by itself once the first one lapses, and its hold stays unresolved until someone marks it; the held payments page flags it as On its account.
 - A lapsed row with no Stripe customer on file (made by hand) cannot restart from the paywall; the button answers "There's no subscription on this account." Give it a `comp` row or delete the row.
 - The paywall offers a new checkout only for `canceled` and `incomplete_expired`. For `past_due` and `unpaid` it opens the portal to fix the card, because Stripe is still collecting on that subscription.
 - A lapsed customer's connected social accounts stay connected at Zernio and keep costing until they remove the brand or the accounts are disconnected by hand.

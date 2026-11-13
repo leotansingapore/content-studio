@@ -1,8 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { publishableKeyOf } from "../_shared/billing.ts";
-import { HELD_COLUMNS, handleHeld, type HeldRow } from "./logic.ts";
+import { HELD_COLUMNS, handleHeld, testModeOf, type HeldRow } from "./logic.ts";
 
 const admin = () => createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+const env = (k: string) => Deno.env.get(k);
 
 Deno.serve((req) =>
   handleHeld(req, {
@@ -12,6 +13,11 @@ Deno.serve((req) =>
       if (error) throw error;
       return (data ?? []) as HeldRow[];
     },
-    test: publishableKeyOf((k) => Deno.env.get(k))?.startsWith("pk_test_") ?? false,
+    onAccounts: async (subscriptions) => {
+      const { data, error } = await admin().from("cs_subscriptions").select("stripe_subscription_id").in("stripe_subscription_id", subscriptions);
+      if (error) throw error;
+      return (data ?? []).map((r: { stripe_subscription_id: string }) => r.stripe_subscription_id);
+    },
+    test: testModeOf(env, publishableKeyOf(env)),
   })
 );

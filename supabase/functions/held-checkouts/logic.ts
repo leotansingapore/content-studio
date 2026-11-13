@@ -23,6 +23,7 @@ export type HeldView = {
   at: string;
   updated: string;
   link: string;
+  attached: boolean;
 };
 
 export type HeldList = { rows: HeldView[]; more: boolean; test: boolean };
@@ -30,6 +31,7 @@ export type HeldList = { rows: HeldView[]; more: boolean; test: boolean };
 export type HeldDeps = {
   email: (jwt: string) => Promise<string | null>;
   unresolved: (limit: number) => Promise<HeldRow[]>;
+  onAccounts: (subscriptions: string[]) => Promise<string[]>;
   test: boolean;
 };
 
@@ -44,7 +46,12 @@ const json = (body: unknown, status = 200) =>
 export const stripeLink = (subscription: string, test: boolean): string =>
   `https://dashboard.stripe.com/${test ? "test/" : ""}subscriptions/${encodeURIComponent(subscription)}`;
 
-export const viewOf = (row: HeldRow, test: boolean): HeldView => ({
+export const testModeOf = (get: (k: string) => string | undefined, publishable: string | null): boolean => {
+  const secret = (get("POSTMOSIS_STRIPE_SECRET_KEY") ?? "").trim();
+  return secret ? /^(sk|rk)_test_/.test(secret) : (publishable ?? "").startsWith("pk_test_");
+};
+
+export const viewOf = (row: HeldRow, test: boolean, attached = false): HeldView => ({
   subscription: row.stripe_subscription_id,
   customer: row.stripe_customer_id,
   email: row.email,
@@ -53,6 +60,7 @@ export const viewOf = (row: HeldRow, test: boolean): HeldView => ({
   at: row.created_at,
   updated: row.updated_at,
   link: stripeLink(row.stripe_subscription_id, test),
+  attached,
 });
 
 export async function handleHeld(req: Request, d: HeldDeps): Promise<Response> {
@@ -69,7 +77,10 @@ export async function handleHeld(req: Request, d: HeldDeps): Promise<Response> {
   if (!isLeoEmail(email)) return json({ code: "not_allowed", error: "This list is Leo's." }, 403);
   try {
     const rows = await d.unresolved(HELD_LIMIT + 1);
-    const list: HeldList = { rows: rows.slice(0, HELD_LIMIT).map((r) => viewOf(r, d.test)), more: rows.length > HELD_LIMIT, test: d.test };
+    const shown = rows.slice(0, HELD_LIMIT);
+    const on = new Set(shown.length ? await d.onAccounts(shown.map((r) => r.stripe_subscription_id)) : []);
+    const views = shown.map((r) => viewOf(r, d.test, on.has(r.stripe_subscription_id)));
+    const list: HeldList = { rows: [...views.filter((v) => !v.attached), ...views.filter((v) => v.attached)], more: rows.length > HELD_LIMIT, test: d.test };
     return json(list);
   } catch {
     return json({ code: "read_failed", error: "Couldn't read held payments. Try again in a minute." }, 500);

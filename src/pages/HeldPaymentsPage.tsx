@@ -55,9 +55,13 @@ function HeldPayments() {
             <li key={r.subscription} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="min-w-0 space-y-1">
                 <p className="truncate text-sm font-semibold text-foreground">{r.email}</p>
-                <p className="text-sm text-muted-foreground">{reasonWords(r.reason)}</p>
+                <p className="text-sm text-muted-foreground">{r.attached ? "Billing has since put this on its account. Don't refund it; mark it resolved." : reasonWords(r.reason)}</p>
                 <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground">{r.status}</span>
+                  {r.attached ? (
+                    <span className="rounded-full bg-success/10 px-2 py-0.5 font-medium text-success">On its account</span>
+                  ) : (
+                    <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground">{r.status}</span>
+                  )}
                   <span>{heldWhen(r.at)}</span>
                   <span className="font-mono">{r.subscription}</span>
                 </p>

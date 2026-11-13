@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HELD_LIMIT, handleHeld, stripeLink, type HeldDeps, type HeldRow } from "./logic.ts";
+import { HELD_LIMIT, handleHeld, stripeLink, testModeOf, type HeldDeps, type HeldRow } from "./logic.ts";
 import { LEO_EMAILS } from "../_shared/leo.ts";
 
 const ROW: HeldRow = {
@@ -16,16 +16,21 @@ const post = (jwt?: string) => new Request("https://x.test/functions/v1/held-che
 
 function deps(over: Partial<HeldDeps> = {}) {
   const asked: number[] = [];
+  const looked: string[][] = [];
   const d: HeldDeps = {
     email: async (jwt) => ({ leo: LEO_EMAILS[0], leo2: ` ${LEO_EMAILS[1].toUpperCase()} `, mei: "mei@example.test" })[jwt] ?? null,
     unresolved: async (limit) => {
       asked.push(limit);
       return [ROW];
     },
+    onAccounts: async (ids) => {
+      looked.push(ids);
+      return [];
+    },
     test: false,
     ...over,
   };
-  return { d, asked };
+  return { d, asked, looked };
 }
 
 describe("held-checkouts", () => {
@@ -59,7 +64,7 @@ describe("held-checkouts", () => {
       expect(res.status).toBe(200);
       expect(res.headers.get("Cache-Control")).toBe("no-store");
       expect(await res.json()).toEqual({
-        rows: [{ subscription: ROW.stripe_subscription_id, customer: ROW.stripe_customer_id, email: ROW.email, status: "trialing", reason: ROW.reason, at: ROW.created_at, updated: ROW.updated_at, link: "https://dashboard.stripe.com/subscriptions/sub_1Qa2b3C4d5" }],
+        rows: [{ subscription: ROW.stripe_subscription_id, customer: ROW.stripe_customer_id, email: ROW.email, status: "trialing", reason: ROW.reason, at: ROW.created_at, updated: ROW.updated_at, link: "https://dashboard.stripe.com/subscriptions/sub_1Qa2b3C4d5", attached: false }],
         more: false,
         test: false,
       });
@@ -83,10 +88,34 @@ describe("held-checkouts", () => {
     expect(body.more).toBe(true);
   });
 
+  it("marks a hold that billing has since put on an account, and lists it after the ones that need Leo", async () => {
+    const later = { ...ROW, stripe_subscription_id: "sub_attached", created_at: "2026-11-13T03:00:00Z", reason: "second_subscription", status: "active" };
+    const { d } = deps({ unresolved: async () => [later, ROW], onAccounts: async () => ["sub_attached"] });
+    const body = await (await handleHeld(post("leo"), d)).json();
+    expect(body.rows.map((r: { subscription: string; attached: boolean }) => [r.subscription, r.attached])).toEqual([["sub_1Qa2b3C4d5", false], ["sub_attached", true]]);
+    const seen = deps();
+    await handleHeld(post("leo"), seen.d);
+    expect(seen.looked).toEqual([["sub_1Qa2b3C4d5"]]);
+    const none = deps({ unresolved: async () => [], onAccounts: async () => { throw new Error("should not be asked"); } });
+    expect((await (await handleHeld(post("leo"), none.d)).json()).rows).toEqual([]);
+  });
+
+  it("takes Stripe's mode from the secret key that makes the subscriptions, and from the publishable key only without one", () => {
+    const env = (vars: Record<string, string>) => (k: string) => vars[k];
+    expect(testModeOf(env({ POSTMOSIS_STRIPE_SECRET_KEY: "sk_test_abc" }), null)).toBe(true);
+    expect(testModeOf(env({ POSTMOSIS_STRIPE_SECRET_KEY: "rk_test_abc" }), null)).toBe(true);
+    expect(testModeOf(env({ POSTMOSIS_STRIPE_SECRET_KEY: "sk_live_abc" }), "pk_test_abcdefgh")).toBe(false);
+    expect(testModeOf(env({}), "pk_test_abcdefgh")).toBe(true);
+    expect(testModeOf(env({}), "pk_live_abcdefgh")).toBe(false);
+    expect(testModeOf(env({}), null)).toBe(false);
+  });
+
   it("says the read failed in plain words when the table can't be read", async () => {
     const { d } = deps({ unresolved: async () => { throw new Error("relation does not exist"); } });
     const res = await handleHeld(post("leo"), d);
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ code: "read_failed", error: "Couldn't read held payments. Try again in a minute." });
+    const accounts = deps({ onAccounts: async () => { throw new Error("cs_subscriptions down"); } });
+    expect((await handleHeld(post("leo"), accounts.d)).status).toBe(500);
   });
 });
