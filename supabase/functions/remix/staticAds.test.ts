@@ -169,6 +169,27 @@ describe("a static ad's angle", () => {
     expect(req({ as: "image", layout: "street-poster", topic: "x", subject: "software" }).subject).toBeUndefined();
   });
 
+  it("tells the writer the brand's last openings with the sample's, once each, on a static layout only, and nothing else changes without them", () => {
+    const r = { ...req({ as: "image", layout: "street-poster", topic: "x", avoid: "Still dark, still", openings: ["Heading home with follow-ups", "heading home with follow-ups", "Your memory keeps no", 7, "a".repeat(80)], brand: BIZ }), angle: "Name the pain" };
+    expect(r.openings).toEqual(["Heading home with follow-ups", "Your memory keeps no", "a".repeat(40)]);
+    expect(buildMakePrompt(r).system).toContain(`- Never open with "Still dark, still", "Heading home with follow-ups", "Your memory keeps no", "${"a".repeat(40)}" or those same opening words: start your own way.`);
+    // the sample's alone reads as it did before
+    expect(buildMakePrompt({ ...r, openings: undefined }).system).toContain('- Never open with "Still dark, still" or those same opening words: start your own way.');
+    expect(req({ as: "image", layout: "headline", topic: "x", openings: ["Heading home with"] }).openings).toBeUndefined();
+    expect(req({ as: "image", layout: "street-poster", topic: "x", openings: Array(9).fill(0).map((_, i) => `opening ${"abcdefghi"[i]}`) }).openings).toHaveLength(5);
+  });
+
+  it("prescribes no moment, setting or hook of its own on any layout: the angle and the picture prompt set those", () => {
+    for (const layout of STATIC_LAYOUTS) {
+      for (const brand of [BRAND, BIZ]) {
+        const { system } = buildMakePrompt(req({ as: "image", layout, topic: "x", brand }));
+        expect(system, layout).not.toMatch(/moment the buyer|walks past|at night|lit street|Mornings at work|confession about a familiar struggle/);
+      }
+    }
+    const poster = buildMakePrompt(req({ as: "image", layout: "street-poster", topic: "x", brand: BIZ })).system;
+    expect(poster).toContain("Write the words for one static ad picture. It is a poster: a big headline, the product and a small line.\n- words.headline: the poster's headline, at most 12 words.\n");
+  });
+
   it("asks Jev to pick from the offered angles only, and falls back to the first", () => {
     const q = angleQuestion(["The offer", "Bust a myth"]);
     expect(q.angle).toMatchObject({ type: "choice", criteria: { "The offer": STATIC_ANGLES["The offer"], "Bust a myth": STATIC_ANGLES["Bust a myth"] } });
@@ -178,7 +199,7 @@ describe("a static ad's angle", () => {
     expect(pickAngle(choice("The moment"), ["The offer", "Bust a myth"])).toBe("The offer");
     expect(pickAngle(null, ["The offer", "Bust a myth"])).toBe("The offer");
     const state = angleState(req({ as: "image", layout: "street-poster", topic: "Prospecting", brand: BIZ }));
-    expect(state).toEqual({ brand: expect.stringContaining("Name: Hilltop Coffee"), ad: expect.stringMatching(/^A static ad that is a poster in a lit street display/), topic: "Prospecting" });
+    expect(state).toEqual({ brand: expect.stringContaining("Name: Hilltop Coffee"), ad: "A static ad that is a poster: a big headline, the product and a small line.", topic: "Prospecting" });
   });
 });
 
@@ -239,7 +260,7 @@ describe("static ad formats as image layouts", () => {
     const system = (layout: string, brand: Record<string, unknown> = BRAND) => buildMakePrompt(req({ as: "image", layout, topic: "Afternoon coffee", brand })).system;
     const CLIENT = "- Nobody in the picture is the adviser's client or speaks as one";
     // what a business's chat formats say, which for an adviser would be an invented testimonial
-    const AS_A_USER = ["as what they use for it", "the other recommends the brand", "the assistant's reply recommends the brand", "a reply from another member that recommends the brand", "saying why they use the brand", "shared to the buyer's phone by a friend", "a small confession about a familiar struggle"];
+    const AS_A_USER = ["as what they use for it", "the other recommends the brand", "the assistant's reply recommends the brand", "a reply from another member that recommends the brand", "saying why they use the brand", "shared to the buyer's phone by a friend", "in a desktop notes window, in the first person, plain and personal"];
     for (const layout of STATIC_LAYOUTS) {
       const person = system(layout);
       expect(person, layout).toContain(CLIENT);

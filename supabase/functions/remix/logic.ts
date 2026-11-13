@@ -348,6 +348,8 @@ export interface MakeRequest {
   subject?: Subject;
   /** image with a static layout only: the opening words of the format's sample ad, which the words never start with. */
   avoid?: string;
+  /** image with a static layout only: the brand's last openings on this format (first four words each), never reused. */
+  openings?: string[];
   /** Every format but hooks: a HOOK_FORMULA_COPY id the opening line follows (remix-variations); an unknown id is dropped. */
   formula?: string;
   /** edit only, and always sent there. */
@@ -660,7 +662,10 @@ function parseShape(as: MakeAs, r: Item, speaker: Speaker): Partial<MakeRequest>
     const shows = line(r.shows, 800);
     const angles = isStaticLayout(layout) && Array.isArray(r.angles) ? [...new Set(r.angles.filter(isAngle))] : [];
     const avoid = isStaticLayout(layout) ? line(r.avoid, 60) : "";
-    return { ...(layout ? { layout } : {}), ...(shows ? { shows } : {}), ...(angles.length ? { angles } : {}), ...(avoid ? { avoid } : {}) };
+    // cut, never ellipsed: a quoted opening is matched word for word
+    const said = isStaticLayout(layout) && Array.isArray(r.openings) ? r.openings.filter((o): o is string => typeof o === "string").map((o) => o.replace(/\s+/g, " ").trim().slice(0, 40)).filter(Boolean).slice(0, 5) : [];
+    const openings = said.filter((o, i) => said.findIndex((x) => x.toLowerCase() === o.toLowerCase()) === i);
+    return { ...(layout ? { layout } : {}), ...(shows ? { shows } : {}), ...(angles.length ? { angles } : {}), ...(avoid ? { avoid } : {}), ...(openings.length ? { openings } : {}) };
   }
   if (as === "meme") {
     const layout = MEME_LAYOUTS.find((x) => x === r.layout);
@@ -986,7 +991,7 @@ const STATIC_RULES: Record<StaticLayout, string[]> = {
     "- words.footer: a small line at the foot, at most 10 words: the brand and what it is.",
   ],
   "lofi-note": [
-    "a scrappy note typed in a desktop notes window, in the first person: a small confession about a familiar struggle, and where the brand fits in.",
+    "a scrappy note typed in a desktop notes window, in the first person, plain and personal.",
     "- words.title: the note's heading, at most 8 words, shown in capitals.",
     "- words.body: the note, at most 40 words, in short plain sentences, naming the brand and what it does, only from the facts given.",
     "- words.last: the line it ends on, at most 12 words.",
@@ -1055,7 +1060,7 @@ const STATIC_RULES: Record<StaticLayout, string[]> = {
   ],
   "article-page": [
     "the brand's own magazine page: a small section label, a big headline and a short deck under it, over a hero picture.",
-    "- words.kicker: the section label, at most 4 words, like Mornings at work.",
+    "- words.kicker: the section label, at most 4 words, like Field notes.",
     "- words.headline: the headline, at most 16 words.",
     "- words.deck: the deck under the headline, at most 30 words, naming the brand and what it does, only from the facts given.",
   ],
@@ -1065,8 +1070,8 @@ const STATIC_RULES: Record<StaticLayout, string[]> = {
     "- words.line: one line under it, at most 14 words, naming the brand.",
   ],
   "street-poster": [
-    "a poster in a lit street display at night, where the buyer walks past: a big headline, the product and a small line.",
-    "- words.headline: the poster's headline, at most 12 words, about the moment the buyer is in.",
+    "a poster: a big headline, the product and a small line.",
+    "- words.headline: the poster's headline, at most 12 words.",
     "- words.line: a small line under the product, at most 10 words: the brand and what it is.",
   ],
   "lettered-object": [
@@ -1129,6 +1134,12 @@ const PERSON_STATIC_RULES: Partial<Record<StaticLayout, string[]>> = {
   ],
 };
 
+/** The openings a static make must not reuse: the format's sample's, then the brand's own last ones on this format. */
+function openingRule(req: MakeRequest): string[] {
+  const banned = [req.avoid, ...(req.openings ?? [])].filter((o): o is string => !!o);
+  return banned.length ? [`- Never open with ${banned.map((o) => `"${o.replace(/"/g, "'")}"`).join(", ")} or those same opening words: start your own way.`] : [];
+}
+
 /** A static ad format's words: its own rules, then the image rules every ad picture keeps. */
 function staticRules(req: MakeRequest, layout: StaticLayout): string[] {
   const person = req.brand.speaker === "person";
@@ -1149,7 +1160,7 @@ function staticRules(req: MakeRequest, layout: StaticLayout): string[] {
         ]
       : []),
     ...(req.angle ? [`- The ad's angle is ${req.angle}: ${STATIC_ANGLES[req.angle]}. The headline and every line take this angle, over any angle a line above suggests.`] : []),
-    ...(req.avoid ? [`- Never open with "${req.avoid.replace(/"/g, "'")}" or those same opening words: start your own way.`] : []),
+    ...openingRule(req),
     ...(req.product && req.brand.mention
       ? [`- The ad is about ${req.product.name}, from the facts given. Name it once, in the line that says what the brand does, with one concrete thing it does, never a general line about the brand. Every field keeps its word limit: use the product's shortest name, and leave the brand's name out of that line before going over.`]
       : []),

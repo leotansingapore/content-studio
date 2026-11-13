@@ -66,7 +66,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { AD_FACTS_MAX, ANGLE_POOL, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { AD_FACTS_MAX, ANGLE_POOL, OPENINGS_KEPT, openingOf, recentOpenings, rememberOpening, SUBJECT_LINES, subjectOf, brandAdFacts, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, withoutPrices, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -454,6 +454,37 @@ describe("the angle each make takes", () => {
     await startPhotoAd(U, poster, { topic: "x" });
     expect(fake.asks[1].angles).toEqual(["The moment", "Before and after", "The offer", "Name the pain"]);
     expect(usedAngles(U, "street-poster")).toEqual(["The moment", "Make them smile"]);
+  });
+
+  it("keeps the brand's last 5 openings per format beside its angles, the latest first, once each", () => {
+    expect(openingOf("  Heading home with follow-ups scattered across chats?")).toBe("Heading home with follow-ups");
+    rememberAngle(U, "street-poster", "The offer");
+    for (const h of ["One two three four five", "Heading home with follow-ups scattered", "heading home WITH follow-ups again", "A b c d e", "F g h i", "J k l m", "N o p q"]) rememberOpening(U, "street-poster", h);
+    rememberOpening(U, "text-chat", "Hey you up yet");
+    expect(recentOpenings(U, "street-poster")).toEqual(["N o p q", "J k l m", "F g h i", "A b c d", "heading home WITH follow-ups"]);
+    expect(recentOpenings(U, "street-poster")).toHaveLength(OPENINGS_KEPT);
+    expect(recentOpenings(U, "text-chat")).toEqual(["Hey you up yet"]);
+    // the angles beside them are untouched, and an angle kept afterwards keeps the openings
+    expect(usedAngles(U, "street-poster")).toEqual(["The offer"]);
+    rememberAngle(U, "street-poster", "Bust a myth");
+    expect(recentOpenings(U, "street-poster")[0]).toBe("N o p q");
+    expect(JSON.parse(localStorage.getItem(`content-studio-static-angles-${U}`)!)).toMatchObject({ "street-poster": ["Bust a myth", "The offer"], openings: { "text-chat": ["Hey you up yet"] } });
+  });
+
+  it("tells the writer the brand's last openings on the format, and keeps this make's once its words are written", async () => {
+    fake.writeAngle = "Name the pain";
+    fake.writeWords = { headline: "Heading home with follow-ups scattered across chats?", line: "Hilltop cold brew." };
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.asks[0]).not.toHaveProperty("openings");
+    expect(recentOpenings(U, "street-poster")).toEqual(["Heading home with follow-ups"]);
+    fake.writeWords = { headline: "Your memory keeps no score.", line: "Hilltop cold brew." };
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.asks[1].openings).toEqual(["Heading home with follow-ups"]);
+    expect(recentOpenings(U, "street-poster")).toEqual(["Your memory keeps no", "Heading home with follow-ups"]);
+    // words that failed are no opening
+    fake.writeFails = "Couldn't write it.";
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(recentOpenings(U, "street-poster")).toHaveLength(2);
   });
 
   it("keeps the angle of words whose picture failed, and remembers nothing when the writer sent none back", async () => {

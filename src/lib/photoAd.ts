@@ -127,6 +127,35 @@ export function rememberAngle(userId: string, slug: string, angle: string): void
   }
 }
 
+/** How many of the brand's last openings on a format the writer is told not to reuse (three posters opened "Heading home with"). */
+export const OPENINGS_KEPT = 5;
+/** An opening as kept: the first four words of the ad's main line. */
+export const openingOf = (main: string) => main.replace(/\s+/g, " ").trim().split(" ").slice(0, 4).join(" ");
+
+/** The brand's last openings on a format, the latest first, kept beside its angles in the same synced key. */
+export function recentOpenings(userId: string, slug: string): string[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(ANGLES + scoped(userId)) ?? "{}")?.openings?.[slug];
+    return Array.isArray(list) ? list.filter((o): o is string => typeof o === "string" && !!o.trim()).slice(0, OPENINGS_KEPT) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function rememberOpening(userId: string, slug: string, main: string): void {
+  const opening = openingOf(main);
+  if (!opening) return;
+  try {
+    const raw = JSON.parse(localStorage.getItem(ANGLES + scoped(userId)) ?? "{}");
+    const all = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    const kept = all.openings && typeof all.openings === "object" && !Array.isArray(all.openings) ? all.openings : {};
+    const list = [opening, ...recentOpenings(userId, slug).filter((o) => o.toLowerCase() !== opening.toLowerCase())].slice(0, OPENINGS_KEPT);
+    localStorage.setItem(ANGLES + scoped(userId), JSON.stringify({ ...all, openings: { ...kept, [slug]: list } }));
+  } catch {
+    // storage full: the next make just isn't told this opening
+  }
+}
+
 /** The angles in the order to offer them: the never used first (the format's own examples' angles ahead), then the oldest used. Pure. */
 export function angleOrder(slug: string, used: string[]): string[] {
   const all = [...new Set([...(STATIC_SHOTS[slug] ?? []).map(([, a]) => a), ...Object.keys(STATIC_ANGLES)])].filter((a) => a in STATIC_ANGLES);
@@ -245,12 +274,14 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   const product = sold ? adFacts(sold) : (brandAdFacts(userId) ?? undefined);
   const angles = format.angle && format.angle in STATIC_ANGLES ? [format.angle] : angleOrder(slug, usedAngles(userId, slug)).slice(0, ANGLE_POOL);
   const avoid = sampleOpening(f);
-  await startImageWrite(userId, { designId: design.id, source: null, topic: format.topic, layout: slug, mention: imageMention(userId), note: "", size: design.size, read: false, angles, ...(avoid ? { avoid } : {}), ...(product ? { product } : {}) });
+  const openings = recentOpenings(userId, slug);
+  await startImageWrite(userId, { designId: design.id, source: null, topic: format.topic, layout: slug, mention: imageMention(userId), note: "", size: design.size, read: false, angles, ...(avoid ? { avoid } : {}), ...(openings.length ? { openings } : {}), ...(product ? { product } : {}) });
   const w = imageWrite();
   const words = imageById(userId, design.id)?.words ?? {};
   if (w?.designId !== design.id || w.state !== "done" || !mainWords(slug, words)) return set({ ...base, state: "failed", error: w?.error || WRITE_FAILED });
-  // the words are written: their angle counts as used whatever happens to the picture
+  // the words are written: their angle and opening count as used whatever happens to the picture
   if (w.angle) rememberAngle(userId, slug, w.angle);
+  rememberOpening(userId, slug, mainWords(slug, words));
   const made = { ...base, ...(w.angle ? { angle: w.angle } : {}) };
   const kit = loadBrand(userId) ?? DEFAULT_BRAND;
   const brand = { name: ownBrandName(userId), color: kit.color };

@@ -303,9 +303,11 @@ export interface ImageWriteAsk {
   read: boolean;
   /** A static format's photo make: the brand's product the ad is about (products.ts adFacts). */
   product?: AdProduct;
-  /** A static format's photo make: the angles it may take, least recently used first, and the sample's opening words. */
+  /** A static format's photo make: the angles it may take, least recently used first, the sample's opening words, and the
+   * brand's own last openings on the format. */
   angles?: string[];
   avoid?: string;
+  openings?: string[];
 }
 
 export interface ImageWrite {
@@ -367,6 +369,7 @@ export async function startImageWrite(userId: string, ask: ImageWriteAsk): Promi
       ...(ask.product ? { product: ask.product } : {}),
       ...(ask.angles?.length ? { angles: ask.angles } : {}),
       ...(ask.avoid ? { avoid: ask.avoid } : {}),
+      ...(ask.openings?.length ? { openings: ask.openings } : {}),
     });
     const res = await requestMake(body);
     if (res?.result?.as !== "image") throw new Error(WRITE_FAILED);
