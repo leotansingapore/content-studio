@@ -53,9 +53,9 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
     const quality = CLIP_QUALITIES.find((q) => q === o.quality);
     return seconds && quality ? about(creditsUsd(clipCredits(seconds, quality))) : null;
   },
-  "ai-image": about(0.006), // Higgsfield Soul v2 at 1080p (ai-image/index.ts)
-  // Qwen Image 3 edit at 2k on Higgsfield: US$0.04 at 1k, US$0.075 at 2k (open.higgsfield.ai/models/alibaba/qwen-image-3/edit, read 2026-10-21)
-  "ai-image-fix": about(0.075),
+  "ai-image": about(0.04), // GPT Image 2.6 Flare, 3:4 at medium: US$0.041 measured 2026-11-13 (ai-image/openai.ts)
+  // GPT Image 2.6 Flare edit, 3:4 at medium: US$0.052 measured 2026-11-13; Qwen Image 3 edit at 2k is US$0.075 when OpenAI can't
+  "ai-image-fix": about(0.05),
   "ai-broll": about(0.13), // Soul v2 picture + DoP lite 5 s (ai-image/broll.ts)
   "slide-pictures": about(0.06), // up to 10 Soul v2 pictures at 0.09 credits each (ai-image/slides.ts)
   // Eleven Music at about US$0.15 a minute, and tracks stop at 2 minutes (usageCaps.ts, text-voice MAX_MUSIC_SECONDS).
@@ -119,9 +119,9 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "competitor-posts": upTo(0.123), // TikTok 33 x US$3.70 per 1,000 + US$0.001; Instagram US$0.092
   // Apps like yours (find-similar-accounts.md). A find: up to 12 + 60 Instagram profiles at US$2.60 per 1,000 (Free
   // plan, apify.com/apify/instagram-profile-scraper, read 2026-11-01) US$0.187, 8 TikTok searches of 30 results at
-  // US$3.70 per 1,000 + US$0.001 a run US$0.896, one gpt-6-sol call and up to about 300 Jev questions about US$0.03.
+  // US$3.70 per 1,000 + US$0.001 a run US$0.896, one gpt-6-sol call and up to about 300 Jev questions about US$0.02.
   // With fewer than 3 seeds, one more OpenAI call names the brand's rivals, priced as suggest's are: US$0.01, unverified.
-  "similar-find": upTo(1.13),
+  "similar-find": upTo(1.1),
   "similar-posts": upTo(0.123), // as competitor-posts; a weekly 10-post refresh costs less but is priced the same
   // The social north star (social-north-star.md). Jev labels up to 150 references and 60 of the brand's own posts:
   // about 4,600 input tokens a cover (real requests, jev-images-api memory, 26 Oct) plus about 600 for the words and the

@@ -1,4 +1,4 @@
-// "Make the image" on Write: the ai-image edge function asks Higgsfield for one
+// "Make the image" on Write: the ai-image edge function asks GPT Image 2.6 Flare for one
 // picture from the post's image prompt; this polls until it is ready, keeps it
 // in the media library (folder "AI images") and says how it went. The job lives
 // outside React, so it carries on while the adviser moves to another page, and
@@ -107,7 +107,7 @@ async function stampLogo(pic: Blob, logo: string): Promise<Blob> {
 
 /**
  * "Logo on AI pictures" (brand-kit, Leo only): the kit's logo on the picture before it is kept, a fix's result
- * included (Fix it edits Higgsfield's unstamped original). Anyone else's picture, or one the stamp fails on, as it came.
+ * included (Fix it edits the unstamped original). Anyone else's picture, or one the stamp fails on, as it came.
  */
 async function withLogo(userId: string, pic: Blob): Promise<Blob> {
   try {
@@ -122,7 +122,7 @@ async function withLogo(userId: string, pic: Blob): Promise<Blob> {
 export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"]): Promise<void> =>
   run(userId, { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}) }, { mode: "start", prompt: withMemory(userId, prompt) });
 
-/** "Fix it": Qwen Image 3 edits the finished picture; the fixed one is saved to Media beside the original. */
+/** "Fix it": GPT Image 2.6 Flare edits the finished picture; the fixed one is saved to Media beside the original. */
 export function fixImage(userId: string, fix: string): Promise<void> {
   const j = job;
   if (!j?.token || j.state !== "done" || imageBusy()) return Promise.resolve();

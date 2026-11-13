@@ -85,17 +85,17 @@ describe("the format registry", () => {
 
   it("shows the brief's chips at the default options", () => {
     expect(chip("slideshow")).toBe("Under US$0.01");
-    expect(chip("text-over-clip")).toBe("About US$1.64");
-    expect(chip("talking-head")).toBe("About US$2.78");
+    expect(chip("text-over-clip")).toBe("About US$1.65");
+    expect(chip("talking-head")).toBe("About US$2.82");
     expect(chip("explainer")).toBe("About US$0.06");
-    expect(chip("news-anchor")).toBe("About US$4.16");
+    expect(chip("news-anchor")).toBe("About US$4.19");
     expect(chip("own-media")).toBe("About US$0.03");
     expect(chip("clips")).toBe("About US$0.40");
     expect(chip("green-screen")).toBe("Under US$0.01");
     expect(chip(`template-${TEMPLATES[0].id}`)).toBe("About US$3.70");
     expect(chip("carousel")).toBeNull();
-    expect(chip("launch-film")).toBe("Under US$0.01");
-    expect(chip("same-edit")).toBe("About US$2.77");
+    expect(chip("launch-film")).toBe("About US$0.06");
+    expect(chip("same-edit")).toBe("About US$2.78");
   });
 
   it("takes needs from the fixed list, and a template that needs a photo says so", () => {

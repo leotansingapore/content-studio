@@ -13,7 +13,16 @@ const db = vi.hoisted(() => {
   const down = new Set<string>(); // features whose counter can't be read
   const today = () => new Date().toISOString().slice(0, 10);
   const key = (q: Record<string, unknown>) => `${q.user_id}|${q.feature}|${q.day}`;
+  const kept = new Map<string, string>();
+  const bucket = {
+    upload: async (path: string) => (kept.set(path, new Date().toISOString()), { data: { path }, error: null }),
+    createSignedUrl: async (path: string) =>
+      kept.has(path) ? { data: { signedUrl: `https://db/storage/v1/object/sign/cs-ai-images/${path}?token=t` }, error: null } : { data: null, error: { message: "Object not found" } },
+    list: async (folder: string) => ({ data: [...kept].filter(([k]) => k.startsWith(`${folder}/`)).map(([k, at]) => ({ name: k.slice(folder.length + 1), created_at: at })), error: null }),
+    remove: async (paths: string[]) => (paths.forEach((k) => kept.delete(k)), { data: [], error: null }),
+  };
   const admin = {
+    storage: { from: () => bucket },
     auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
     rpc: async (_fn: string, a: Record<string, unknown>) => {
       if (down.has(String(a.p_feature))) return { data: null, error: { message: "down" } };
@@ -36,13 +45,15 @@ const db = vi.hoisted(() => {
       }),
     }),
   };
-  return { admin, rows, down, today, handler: null as null | ((r: Request) => Promise<Response>) };
+  return { admin, rows, down, kept, today, handler: null as null | ((r: Request) => Promise<Response>) };
 });
 vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
 
 // Higgsfield: a status read answers `status`, a cancel is kept in `cancels`; every other call is a submit, kept in
 // `submits`, and the one numbered `failAt` is refused
 const hf: { submits: string[]; cancels: string[]; failAt: number; status: unknown } = { submits: [], cancels: [], failAt: 0, status: null };
+const oa: { calls: { route: string; body: Record<string, unknown> }[]; reply: () => Response } = { calls: [], reply: () => answer({}, 500) };
+const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, HF_API_KEY: "k", HF_API_SECRET: "s", AI_BROLL_ENABLED: "1", NORTH_STAR_USERS: UID };
 const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 answer({});
 
@@ -51,9 +62,12 @@ answer({});
 {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
-  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, HF_API_KEY: "k", HF_API_SECRET: "s", AI_BROLL_ENABLED: "1", NORTH_STAR_USERS: UID };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async (u: string) => {
+  vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
+    if (String(u).startsWith("https://api.openai.com/v1/images/")) {
+      oa.calls.push({ route: String(u).split("/").pop()!, body: JSON.parse(String(init?.body)) });
+      return oa.reply();
+    }
     if (String(u).endsWith("/status")) return answer(hf.status);
     if (String(u).endsWith("/cancel")) return (hf.cancels.push(String(u)), answer({}));
     hf.submits.push(String(u));
@@ -61,6 +75,7 @@ answer({});
     return answer({ request_id: "1f2e3d4c-5b6a-4978-8a9b-0c1d2e3f4a5b" });
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(console, "log").mockImplementation(() => {});
   await import("./index.ts");
 }
 afterAll(() => {
@@ -71,6 +86,10 @@ afterAll(() => {
 beforeEach(() => {
   db.rows.clear();
   db.down.clear();
+  db.kept.clear();
+  oa.calls.length = 0;
+  oa.reply = () => answer({}, 500);
+  delete env.OPENAI_API_KEY;
   hf.submits.length = 0;
   hf.cancels.length = 0;
   hf.failAt = 0;
@@ -82,6 +101,9 @@ const call = (body: unknown) =>
 const used = (user: string, feature: string) => db.rows.get(`${user}|${feature}|${db.today()}`) ?? 0;
 const fixBody = async () => ({ mode: "fix", token: await jobToken(await tokenSecret(SERVICE_KEY), UID, PICTURE), fix: "make the sky bluer" });
 
+const picture = () => answer({ data: [{ b64_json: btoa("jpeg bytes") }], usage: { output_tokens: 1347 } });
+const statusOf = async (token: string) => (await call({ mode: "status", token })).json();
+
 describe("Make the image", () => {
   it("is refused over the adviser's cap without asking Higgsfield for a picture", async () => {
     db.rows.set(`${UID}|ai-image|${db.today()}`, 5);
@@ -90,9 +112,74 @@ describe("Make the image", () => {
     expect(await res.json()).toMatchObject({ code: "daily_limit" });
     expect(hf.submits).toEqual([]);
   });
+
+  it("makes the picture on GPT Image 2.6 Flare, keeps it, and status hands back its link without Higgsfield", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    const res = await call({ prompt: "A family picnic at East Coast Park at sunset" });
+    expect(res.status).toBe(200);
+    const { token } = await res.json();
+    expect(oa.calls).toHaveLength(1);
+    expect(oa.calls[0]).toMatchObject({ route: "generations", body: { model: "gpt-image-2.6-flare", size: "1152x1536", quality: "medium", safety_identifier: UID } });
+    expect(hf.submits).toEqual([]);
+    expect([...db.kept.keys()]).toEqual([`${UID}/${token.split(".")[0]}.jpg`]);
+    expect(await statusOf(token)).toEqual({ state: "done", url: expect.stringMatching(/^https:\/\/db\/storage\/v1\/object\/sign\/cs-ai-images\//) });
+  });
+
+  it("falls back to Soul v2 on Higgsfield when OpenAI can't take it", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    const res = await call({ prompt: "A family picnic at East Coast Park at sunset" });
+    expect(res.status).toBe(200);
+    expect(oa.calls).toHaveLength(1);
+    expect(hf.submits).toEqual(["https://api.higgsfield.ai/higgsfield-ai/soul/v2/standard"]);
+    expect(db.kept.size).toBe(0);
+  });
+
+  it("says the safety filter stopped it, with nothing asked of Higgsfield", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = () => answer({ error: { type: "image_generation_user_error", code: "moderation_blocked" } }, 400);
+    const res = await call({ prompt: "A family picnic at East Coast Park at sunset" });
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ error: expect.stringMatching(/safety filter/) });
+    expect(hf.submits).toEqual([]);
+  });
+
+  it("clears the adviser's kept pictures older than 7 days when it keeps a new one", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    db.kept.set(`${UID}/old.jpg`, new Date(Date.now() - 8 * 86_400_000).toISOString());
+    db.kept.set(`${UID}/recent.jpg`, new Date(Date.now() - 6 * 86_400_000).toISOString());
+    await call({ prompt: "A family picnic at East Coast Park at sunset" });
+    expect([...db.kept.keys()].filter((k) => !k.endsWith("old.jpg") && !k.endsWith("recent.jpg"))).toHaveLength(1);
+    expect(db.kept.has(`${UID}/old.jpg`)).toBe(false);
+    expect(db.kept.has(`${UID}/recent.jpg`)).toBe(true);
+  });
 });
 
 describe("Fix it", () => {
+  it("edits a kept picture on GPT Image 2.6 Flare from its own link, with nothing asked of Higgsfield", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    db.kept.set(`${UID}/${PICTURE}.jpg`, new Date().toISOString());
+    const res = await call(await fixBody());
+    expect(res.status).toBe(200);
+    expect(oa.calls[0]).toMatchObject({ route: "edits", body: { model: "gpt-image-2.6-flare", images: [{ image_url: expect.stringContaining(`cs-ai-images/${UID}/${PICTURE}.jpg`) }] } });
+    expect(oa.calls[0].body.prompt).toMatch(/^make the sky bluer\n\nChange only what is asked/);
+    expect(hf.submits).toEqual([]);
+    expect(await statusOf((await res.json()).token)).toMatchObject({ state: "done" });
+    expect([used(UID, "ai-image-fix"), used(GLOBAL_COUNTER_USER, "ai-image-fix-global")]).toEqual([1, 1]);
+  });
+
+  it("edits a Higgsfield picture on GPT Image 2.6 Flare, and on Qwen Image 3 when OpenAI can't", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    expect((await call(await fixBody())).status).toBe(200);
+    expect(oa.calls[0].body.images).toEqual([{ image_url: "https://cdn.higgsfield.ai/pic.png" }]);
+    oa.reply = () => answer({}, 503);
+    expect((await call(await fixBody())).status).toBe(200);
+    expect(hf.submits).toEqual(["https://api.higgsfield.ai/alibaba/qwen-image-3/edit"]);
+  });
+
   it("spends nothing when the picture it would fix can't be read back from Higgsfield", async () => {
     hf.status = { status: "in_progress" };
     const res = await call(await fixBody());

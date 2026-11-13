@@ -18,7 +18,7 @@ export const PEOPLE_RULE =
 export const FIX_MODEL = "alibaba/qwen-image-3/edit";
 export const MIN_FIX = 3;
 export const MAX_FIX = 300;
-const KEEP_RULE = "Change only what is asked and keep everything else in the picture exactly as it is. Anyone added is Singaporean or other Asian.";
+export const KEEP_RULE = "Change only what is asked and keep everything else in the picture exactly as it is. Anyone added is Singaporean or other Asian.";
 
 export type ImageRequest =
   | { mode: "start"; prompt: string }

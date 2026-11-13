@@ -621,7 +621,7 @@ describe("budget before the card and again on the press", () => {
   it("refuses a talking video with no videos left, before any script, with two cheaper chips", async () => {
     fake.usage = { day: today(), used: { "ai-video": 2 } };
     const id = await say("make a video of me explaining CPF LIFE", { act: "make", format: "speaking" });
-    expect(last(id).text).toBe("A talking video needs 1 AI video, and you have none left today. They come back at 8am Singapore time.\nA picture post is under US$0.01 (5 of 5 pictures left), or a script you film yourself is under US$0.01.");
+    expect(last(id).text).toBe("A talking video needs 1 AI video, and you have none left today. They come back at 8am Singapore time.\nA picture post is about US$0.04 (5 of 5 pictures left), or a script you film yourself is under US$0.01.");
     expect(last(id).go?.map((g) => g.label)).toEqual(["Make the picture post", "Write the script"]);
     expect(last(id).card).toBeUndefined();
     expect(priced()).toEqual([]);
@@ -840,7 +840,7 @@ describe("cards change before the press", () => {
     expect(cardMsg(id).card).toMatchObject({ credits: 44 });
     // a new AI presenter's picture is in the price: estimateScript's own figure, about 17 s in two 10 s Speak parts
     expect(cardMsg(id).card!.price).toEqual(estimateScript(40, { presenter: true }).price);
-    expect(priceText(cardMsg(id).card!.price!)).toBe("About US$2.78");
+    expect(priceText(cardMsg(id).card!.price!)).toBe("About US$2.81");
     expect(fieldsOf(cardMsg(id).card!).length).toBe(15);
     expect(editCard(UID, id, cardMsg(id).id, { script: "too short" })).toBe("Write at least 19 words for a video.");
     expect(editCard(UID, id, cardMsg(id).id, { script: `${words40} ${words40}` })).toBe("70 words at most.");

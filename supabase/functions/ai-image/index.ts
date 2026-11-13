@@ -1,9 +1,10 @@
 // "Make the image" on Write: one picture from the post's image prompt, with
-// Higgsfield Soul v2 (about USD 0.006 each at 1080p, by Higgsfield's estimate).
+// GPT Image 2.6 Flare (about USD 0.04 each at 3:4, openai.ts), or Higgsfield Soul v2 when OpenAI can't.
 //   POST {mode:"start", prompt} -> {token}: counts against the "ai-image" daily cap
 //   POST {mode:"status", token} -> {state:"working"} | {state:"done", url} | {state:"failed", error}
-//   POST {mode:"fix", token, fix} -> {token}: "Fix it" under a finished picture; Qwen Image 3 edits the picture
-//        that token made (the link is read from Higgsfield, so only the adviser's own pictures). Counts against
+//   POST {mode:"fix", token, fix} -> {token}: "Fix it" under a finished picture; GPT Image 2.6 Flare (Qwen Image 3
+//        when OpenAI can't) edits the picture that token made (the link is read from the cs-ai-images bucket or
+//        Higgsfield, so only the adviser's own pictures). Counts against
 //        "ai-image-fix" and "ai-image-fix-global".
 //   POST {mode:"broll", search, line, aspect} -> {token}: an AI B-roll clip for a line stock had nothing
 //        for (broll.ts): a Soul v2 picture, waited for here, then DoP lite moves it; the token is the
@@ -11,12 +12,12 @@
 //        Refused unless the AI_BROLL_ENABLED secret is "1" (set 2026-10-10, when the Higgsfield pool was topped up).
 //   POST {mode:"slides", pictures, look, aspect} -> {tokens}: a made slideshow's pictures in one look (slides.ts),
 //        any signed-in adviser; counts once against "slide-pictures" and "slide-pictures-global" for up to 10.
-// The token is the Higgsfield request id signed for the adviser who started it
+// The token is the kept picture's id or the Higgsfield request id, signed for the adviser who started it
 // (logic.ts jobToken), so nobody else can read the job.
-// The browser polls status, then downloads the picture straight from Higgsfield's
-// CDN (it allows any site) into the media library.
+// The browser polls status, then downloads the picture from its signed bucket link or Higgsfield's
+// CDN (both allow any site) into the media library.
 //
-// Secrets: HF_API_KEY, HF_API_SECRET. Deploy WITH JWT verification:
+// Secrets: OPENAI_API_KEY, HF_API_KEY, HF_API_SECRET. Deploy WITH JWT verification:
 //   supabase functions deploy ai-image --project-ref hgdbflprrficdoyxmdxe --use-api
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
@@ -25,6 +26,7 @@ import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "..
 import { MOTION_MODEL, PICTURE_MODEL, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll.ts";
 import { FIX_MODEL, HF_BASE, HF_MODEL, buildFixBody, buildImageBody, jobToken, openJobToken, parseImageRequest, pictureUrl, readStatus, tokenSecret } from "./logic.ts";
 import { parseSlides, slidePictureBody } from "./slides.ts";
+import { GPT_IMAGE_MODEL, IMAGE_BUCKET, OPENAI_IMAGES, gptFixBody, gptImageBody, picturePath, readGptImage, stalePictures } from "./openai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,6 +38,7 @@ function json(body: unknown, status = 200): Response {
 }
 
 const RETRY = "Couldn't make the image right now. Try again in a minute.";
+const BLOCKED = "The image was blocked by the safety filter. Change the prompt and try again.";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -78,6 +81,35 @@ Deno.serve(async (req) => {
       }
       const id = (await res.json().catch(() => null))?.request_id;
       return typeof id === "string" ? id : 502;
+    };
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    const pictures = admin.storage.from(IMAGE_BUCKET);
+    const keptUrl = async (id: string) => (await pictures.createSignedUrl(picturePath(uid, id), 3600)).data?.signedUrl ?? null;
+    const gpt = async (route: "generations" | "edits", payload: Record<string, unknown>): Promise<string | "blocked" | null> => {
+      if (!openaiKey) return null;
+      const res = await fetch(`${OPENAI_IMAGES}/${route}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${openaiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(120_000),
+      }).catch(() => null);
+      const data = await res?.json().catch(() => null);
+      const got = readGptImage(res?.status ?? 0, data);
+      if (!got.ok) {
+        console.error("ai-image openai", route, res?.status, JSON.stringify(data?.error ?? null).slice(0, 300));
+        return got.blocked ? "blocked" : null;
+      }
+      const id = crypto.randomUUID();
+      const { error } = await pictures.upload(picturePath(uid, id), got.jpeg, { contentType: "image/jpeg" });
+      if (error) {
+        console.error("ai-image keep", error.message);
+        return null;
+      }
+      console.log(`ai-image: ${route} by ${GPT_IMAGE_MODEL}`);
+      const { data: files } = await pictures.list(uid, { limit: 100, sortBy: { column: "created_at", order: "asc" } });
+      const stale = stalePictures(uid, files ?? [], Date.now());
+      if (stale.length) await pictures.remove(stale);
+      return id;
     };
 
     if (broll?.ok) {
@@ -146,6 +178,8 @@ Deno.serve(async (req) => {
     if (parsed.request.mode === "status") {
       const id = await openJobToken(signing, uid, parsed.request.token);
       if (!id) return json({ error: "That image job isn't known." }, 404);
+      const kept = await keptUrl(id);
+      if (kept) return json({ state: "done", url: kept });
       let res: Response;
       try {
         res = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) });
@@ -161,8 +195,9 @@ Deno.serve(async (req) => {
       // the token proves this adviser made the picture; its link comes from Higgsfield, never the browser
       const id = await openJobToken(signing, uid, parsed.request.token);
       if (!id) return json({ error: "That picture isn't known." }, 404);
-      const st = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) }).catch(() => null);
-      const url = st?.ok ? pictureUrl(await st.json().catch(() => null)) : null;
+      const kept = await keptUrl(id);
+      const st = kept ? null : await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) }).catch(() => null);
+      const url = kept ?? (st?.ok ? pictureUrl(await st.json().catch(() => null)) : null);
       if (!url) return json({ error: "That picture can't be fixed. Make a new one first." }, 400);
       const mine = await consumeUsage(admin, uid, "ai-image-fix");
       if (!mine.allowed) {
@@ -176,6 +211,9 @@ Deno.serve(async (req) => {
         const refusal = usageRefusal(everyone);
         return json(refusal.body, refusal.status);
       }
+      const redone = await gpt("edits", gptFixBody(url, parsed.request.fix, uid));
+      if (redone === "blocked") return json({ error: BLOCKED }, 422);
+      if (redone) return json({ token: await jobToken(signing, uid, redone), usage: { used: mine.used, limit: mine.limit } });
       const fixed = await submit(FIX_MODEL, buildFixBody(url, parsed.request.fix));
       if (typeof fixed !== "string") return json({ error: fixed === 403 ? "Image credits have run out. Tell your studio admin." : RETRY }, 502);
       return json({ token: await jobToken(signing, uid, fixed), usage: { used: mine.used, limit: mine.limit } });
@@ -186,6 +224,9 @@ Deno.serve(async (req) => {
       const r = usageRefusal(usage);
       return json(r.body, r.status);
     }
+    const made = await gpt("generations", gptImageBody(parsed.request.prompt, uid));
+    if (made === "blocked") return json({ error: BLOCKED }, 422);
+    if (made) return json({ token: await jobToken(signing, uid, made), usage: { used: usage.used, limit: usage.limit } });
     let res: Response;
     try {
       res = await fetch(`${HF_BASE}/${HF_MODEL}`, {

@@ -60,7 +60,7 @@ describe("Winner found", () => {
     expect(out).toContain(">Winner found</h3>");
     expect(out).toContain('aria-label="About Winner found"');
     expect(out).toContain(">Make 3 versions</button>");
-    expect(out).toContain("Under US$0.01");
+    expect(out).toContain("About US$0.02");
     expect(as.made).toBe(0);
   });
   // live-p7a D24: the sheet priced the same 3 makes "About US$0.01" (with the breakdown a post without one gets
@@ -72,8 +72,8 @@ describe("Winner found", () => {
       saveDrafts("u1", [{ ...draft, createdAt: "2026-10-20T00:00:00.000Z", status: "posted" }]);
       const sheet = (breakdown: boolean) => chipText({ price: makePrice(["post", "post", "post"], breakdown), left: 10, uses: 3, leo: true }).text;
       expect(chipText({ price: versionsPrice("u1", "w1", 5), left: 10, uses: 3, leo: true }).text).toBe(sheet(true));
-      expect(sheet(true)).toMatch(/^About US\$0\.01/);
-      expect(html([card("ready")])).toContain("About US$0.01");
+      expect(sheet(true)).toMatch(/^About US\$0\.03/);
+      expect(html([card("ready")])).toContain("About US$0.03");
       // no breakdowns left today: the makes go on without one
       expect(versionsPrice("u1", "w1", 0)).toEqual(makePrice(["post", "post", "post"]));
     } finally {

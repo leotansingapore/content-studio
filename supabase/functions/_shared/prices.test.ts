@@ -39,7 +39,7 @@ describe("the price table", () => {
   });
 
   it("prices Apps like yours from the Apify unit costs, its across-everyone counters free", () => {
-    expect(priceOf("similar-find")).toEqual({ usd: 1.13, kind: "upTo" }); // 1.11 plus the rivals step's OpenAI call
+    expect(priceOf("similar-find")).toEqual({ usd: 1.1, kind: "upTo" }); // 1.09 plus the rivals step's OpenAI call
     expect(priceOf("similar-posts")).toEqual(priceOf("competitor-posts"));
     expect(priceOf("similar-find-global")).toBeNull();
     expect(priceOf("similar-posts-global")).toBeNull();
@@ -57,7 +57,7 @@ describe("the price table", () => {
     expect(priceText(priceOf("edit-ask") as { usd: number; kind: "about" })).toBe("Under US$0.01");
     expect(priceOf("page-read")).toBeNull();
     expect(priceOf("caption-keywords")).toBeNull();
-    expect(priceOf("ai-image-fix")).toEqual({ usd: 0.075, kind: "about" });
+    expect(priceOf("ai-image-fix")).toEqual({ usd: 0.05, kind: "about" });
     expect(priceOf("ai-voice")).toEqual({ usd: 0.02, kind: "about" });
   });
 
@@ -184,7 +184,7 @@ describe("priceText", () => {
     // 4 s at 480p is 13.2 credits, US$0.825, which shows as US$0.82
     expect(priceText({ usd: creditsUsd(clipCredits(4, "480p")), kind: "from" })).toBe("From US$0.82");
     expect(priceText({ usd: creditsUsd(88), kind: "upTo" })).toBe("Up to US$5.50");
-    expect(priceText(priceOf("ai-image") as { usd: number; kind: "about" })).toBe("Under US$0.01");
+    expect(priceText(priceOf("ai-image") as { usd: number; kind: "about" })).toBe("About US$0.04");
     expect(priceText(WRITE_PRICE)).toBe("About US$0.01");
   });
 });

@@ -202,7 +202,7 @@ describe("the Make row", () => {
 
   it("prices one remix per format plus the video, from the price table only", () => {
     expect(videoPrice("post")).toBeNull();
-    expect(videoPrice("speaking")).toEqual({ usd: AVATAR_MAX.usd + (priceOf("ai-voice") as { usd: number }).usd + 0.006, kind: "upTo" });
+    expect(videoPrice("speaking")).toEqual({ usd: AVATAR_MAX.usd + (priceOf("ai-voice") as { usd: number }).usd + 0.04, kind: "upTo" });
     expect(videoPrice("explainer")?.kind).toBe("about");
     const make = priceOf("remix-make") as { usd: number };
     expect(makePrice(["post", "carousel"])).toEqual({ usd: make.usd * 2, kind: "about" });
