@@ -62,11 +62,48 @@ describe("Calendar's header, in Fastlane's order", () => {
     expect(out.indexOf("data-add-note-phone")).toBeGreaterThan(out.indexOf('aria-label="Previous month"'));
     expect(out).toMatch(/<button type="button" data-add-note-phone[^>]*sm:hidden[^>]*>.*?Add note<\/button>/);
   });
-  it("shows This week as a line under the header, not a card", () => {
-    expect(html()).toMatch(/<section aria-label="This week" class="space-y-1.5">/);
+  it("shows This week on the one status line between the header and the grid, not a card", () => {
+    const out = html();
+    expect(out).toMatch(/<div data-status-line="true" class="flex flex-wrap [^"]*"><section aria-label="This week" class="flex flex-wrap [^"]*">/);
+    expect(out.indexOf("data-status-line")).toBeGreaterThan(out.indexOf('id="calendar-filters"'));
+    expect(out.indexOf("data-status-line")).toBeLessThan(out.indexOf('aria-label="Month calendar"'));
+    expect(out).toContain(">This week:</span>");
+  });
+  it("keeps the page heading for screen readers at every width: the tab row already says Calendar", () => {
+    expect(html()).toMatch(/<header class="sr-only"><h1[^>]*>Calendar<\/h1><\/header>/);
   });
   it("recommends 3 posting times a week", () => {
     expect(SLOT_DEFAULT).toBe(3);
     expect([...SLOT_CHOICES]).toEqual([3, 5, 7]);
+  });
+});
+
+// today is Thu 22 Oct 2026: October's grid runs Mon 28 Sep to Sun 8 Nov
+describe("Calendar's days", () => {
+  const adds = (out: string) =>
+    [...out.matchAll(/<a [^>]*aria-label="Add a post on ([^"]+)"[^>]*>/g)].map((m) => ({ label: m[1], day: m[0].match(/href="\/generate\?day=(\d{4}-\d{2}-\d{2})"/)?.[1] }));
+  const cell = (out: string, day: string) => out.match(new RegExp(`<div data-day="${day}"[^>]*class="([^"]*)"`))![1];
+
+  it("offers Add on today and every later day of the month grid, named by its date, and on no past day", () => {
+    const found = adds(html());
+    expect(found).toHaveLength(18);
+    expect(found[0].day).toBe("2026-10-22");
+    expect(found[0].label).toMatch(/22/);
+    expect(found.every((a) => a.day! >= "2026-10-22")).toBe(true);
+    expect(new Set(found.map((a) => a.day)).size).toBe(18);
+  });
+  it("offers Add from today on in the week view", () => {
+    expect(adds(html("/calendar?view=week")).map((a) => a.day)).toEqual(["2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"]);
+  });
+  it("offers no Add in Upcoming", () => {
+    expect(adds(html("/calendar?view=upcoming"))).toHaveLength(0);
+  });
+  it("dims past days and labels today, in both grids", () => {
+    for (const out of [html(), html("/calendar?view=week")]) {
+      expect(cell(out, "2026-10-21")).toContain("bg-muted/40");
+      expect(cell(out, "2026-10-22")).toContain("bg-card");
+      expect(out.match(/>Today<\/span>/g)).toHaveLength(1);
+      expect(out).toMatch(/aria-label="Open [^"]*22[^"]*, today"/);
+    }
   });
 });

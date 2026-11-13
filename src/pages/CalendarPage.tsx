@@ -114,6 +114,7 @@ import {
   ArrowUUpLeftIcon,
   XIcon,
   SlidersHorizontalIcon,
+  PlusIcon,
 } from "@phosphor-icons/react";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -529,6 +530,10 @@ export default function CalendarPage() {
   useEffect(() => {
     if (hash === "#needs-you" && leo && needsYouShown) document.getElementById("needs-you")?.scrollIntoView({ block: "start", behavior: "smooth" });
   }, [hash, leo, needsYouShown]);
+  // The by-hand and auto-post rows fold behind their counts on the status line: ?needs=open, or Leo's #needs-you link, shows them
+  const [needsParam, setNeedsParam] = useUrlState("needs", hash === "#needs-you" && leo ? "open" : "closed", { allowed: ["closed", "open"] });
+  const needsMore = handDue.length + autoRows.length > 0;
+  const needsOpen = needsMore && needsParam === "open";
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   // "Cancel auto-post" asks once more, as the chip's Cancel post does: Zernio can't bring a cancelled post back
   const [cancelAsk, setCancelAsk] = useState<string | null>(null);
@@ -906,6 +911,7 @@ export default function CalendarPage() {
 
   // Needs you's auto-post rows: Retry and Open, Retry and Cancel auto-post, Mark posted.
   const rowButton = "h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11";
+  const needsChip = `gap-1.5 border-warning/40 bg-warning/5 ${rowButton}`;
   const openRow = (id: string) => {
     update({ post: id, schedule: null, step: null, network: null, preview: null, ...(view === "upcoming" ? { view: "month" } : {}) }, { push: true });
     requestAnimationFrame(() => editorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
@@ -1382,7 +1388,7 @@ export default function CalendarPage() {
     <button
       type="button"
       onClick={() => openDay(key)}
-      aria-label={`Open ${dayLabel(key)}`}
+      aria-label={`Open ${dayLabel(key)}${key === todayKey ? ", today" : ""}`}
       aria-expanded={dayOpen === key}
       title="Open this day"
       className={`${className} hover:ring-2 hover:ring-border`}
@@ -1390,6 +1396,25 @@ export default function CalendarPage() {
       {keyToDate(key).getDate()}
     </button>
   );
+
+  // Add on every day from today: the day panel's "Write a post for this day", one tap sooner. On a day that already
+  // holds something (`quiet`) it is a small plus in the day's corner that waits for the pointer or the keyboard; touch
+  // screens and phones always show it, full width (Button is 44px on touch).
+  const addPost = (key: string, quiet: boolean) => (
+    <Button asChild variant="ghost" size="sm" className={`h-7 w-full gap-1 px-1 text-[11px] font-semibold text-muted-foreground ${
+      quiet
+        ? "sm:absolute sm:right-1 sm:top-1 sm:h-5 sm:w-5 sm:p-0 sm:opacity-0 sm:focus-visible:opacity-100 sm:group-hover:opacity-100 [@media(pointer:coarse)]:static [@media(pointer:coarse)]:w-full [@media(pointer:coarse)]:opacity-100"
+        : ""
+    }`}>
+      <Link to={`/generate?day=${key}`} aria-label={`Add a post on ${dayLabel(key)}`} title="Write a post for this day">
+        <PlusIcon aria-hidden /> {!quiet && <span className="hidden sm:inline">Add</span>}
+      </Link>
+    </Button>
+  );
+  const holdsPosts = (key: string) => {
+    const t = dayThings(key);
+    return t.events.length + t.ghosts.length + t.reels.length + t.feed.length + t.team.length + t.slots.length + (planned.get(key)?.length ?? 0) > 0;
+  };
 
   // An open posting slot: tap it to write a post that lands at that time.
   // Drop a post or draft on it and it moves to that slot's day and time (not just the day, as the cell would).
@@ -1680,9 +1705,9 @@ export default function CalendarPage() {
   const dropHighlight = (key: string) => (dragOver === key ? "bg-primary/10 ring-2 ring-inset ring-primary" : "");
 
   return (
-    <div className="space-y-6">
-      {/* on phones the tab row above already says Calendar: the heading stays for screen readers */}
-      <header className="sr-only sm:not-sr-only">
+    <div className="space-y-3">
+      {/* the tab row above already says Calendar: the heading stays for screen readers, and the grid starts higher */}
+      <header className="sr-only">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Calendar
         </h1>
@@ -1784,40 +1809,126 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {needsYouShown && (
-        <section id={leo ? "needs-you" : undefined} aria-label="Needs you" className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
-          <p className="text-sm font-semibold text-foreground">Needs you</p>
-          {teamToApprove.length > 0 && (
-            <button
-              type="button"
-              onClick={() => openTeam(teamToApprove[0].id)}
-              className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-foreground">
-                  {TEAM_TO_REVIEW}
-                  <span className="ml-1.5 font-semibold tabular-nums text-muted-foreground">{teamToApprove.length}</span>
-                </span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  Next: {teamToApprove[0].title} · {dayLabel(teamToApprove[0].day)}
-                </span>
-              </span>
-              <span className="shrink-0 text-xs font-semibold text-primary">Review</span>
-            </button>
+      {/* One line between the header and the grid: what needs you (each count opens its review), this week, the goal's
+          next step and the posting-times choice. Nothing here is a card, so the grid starts right under it. */}
+      {(needsYouShown || status === "all") && (
+        <div data-status-line className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          {needsYouShown && (
+            <section id={leo ? "needs-you" : undefined} aria-label="Needs you" className="flex scroll-mt-4 flex-wrap items-center gap-1.5">
+              <span className="text-sm font-semibold text-foreground">Needs you</span>
+              {teamToApprove.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => openTeam(teamToApprove[0].id)}
+                  title={`Next: ${teamToApprove[0].title}, ${dayLabel(teamToApprove[0].day)}`}
+                  className={needsChip}
+                >
+                  {TEAM_TO_REVIEW} <span className="tabular-nums text-warning">{teamToApprove.length}</span>
+                </Button>
+              )}
+              {waitingGroups.map((g) => (
+                <Button key={g.business} asChild size="sm" variant="outline" className={needsChip}>
+                  <Link to={groupHref(g)}>
+                    <span className="max-w-[14rem] truncate">{postsToReview(g.business)}</span> <span className="tabular-nums text-warning">{g.items.length}</span>
+                  </Link>
+                </Button>
+              ))}
+              {needsMore && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  aria-expanded={needsOpen}
+                  aria-controls="needs-you-more"
+                  onClick={() => setNeedsParam(needsOpen ? "closed" : "open")}
+                  className={needsChip}
+                >
+                  <HandIcon className="text-warning" aria-hidden />
+                  {[handDue.length > 0 && `Post by hand ${handDue.length}`, autoRows.length > 0 && `Auto-posts to check ${autoRows.length}`].filter(Boolean).join(", ")}
+                  <CaretDownIcon className={`transition-transform ${needsOpen ? "rotate-180" : ""}`} aria-hidden />
+                </Button>
+              )}
+            </section>
           )}
-          {waitingGroups.map((g) => (
-            <Link
-              key={g.business}
-              to={groupHref(g)}
-              className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
-            >
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                {postsToReview(g.business)}
-                <span className="ml-1.5 font-semibold tabular-nums text-muted-foreground">{g.items.length}</span>
-              </span>
-              <span className="shrink-0 text-xs font-semibold text-primary">Review</span>
-            </Link>
-          ))}
+          {status === "all" && (
+            <section aria-label="This week" className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+              <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-foreground">
+                <CalendarBlankIcon className="h-4 w-4 text-muted-foreground" aria-hidden />
+                <span className="font-semibold">This week:</span>
+                <span>{glance.going ? `${glance.going} going out` : "nothing going out"}</span>
+                {glance.posted > 0 && <span className="text-muted-foreground">· {glance.posted} posted</span>}
+                {glance.going > 0 && glance.emptyDays.length > 0 && (
+                  <span className="text-muted-foreground">
+                    · nothing on {glance.emptyDays.map((d) => keyToDate(d).toLocaleDateString(undefined, { weekday: "short" })).join(", ")}
+                  </span>
+                )}
+              </p>
+              {progress.goal > 0 && (
+                <>
+                  <span className="font-medium text-foreground">
+                    {profileName}: {progress.planned} of {progress.goal} planned
+                  </span>
+                  <span
+                    role="progressbar"
+                    aria-label={`${profileName} weekly goal`}
+                    aria-valuemin={0}
+                    aria-valuemax={progress.goal}
+                    aria-valuenow={progress.planned}
+                    className="relative h-1.5 w-24 overflow-hidden rounded-full bg-muted"
+                  >
+                    <span className="absolute inset-y-0 left-0 bg-success" style={{ width: `${(100 * progress.met) / progress.goal}%` }} />
+                    <span
+                      className="absolute inset-y-0 bg-primary"
+                      style={{
+                        left: `${(100 * progress.met) / progress.goal}%`,
+                        width: `${(100 * Math.max(0, progress.planned - progress.met)) / progress.goal}%`,
+                      }}
+                    />
+                  </span>
+                  <span>{progress.toDo > 0 ? `${progress.toDo} to go` : "goal met"}</span>
+                  {progress.toDo > 0 && (
+                    // the week's one next step is a button, not a link in a line of small print
+                    <Button asChild size="sm" className="h-9 sm:h-8 [@media(pointer:coarse)]:h-11">
+                      <Link to={nextSlotThisWeek ? `/generate?day=${nextSlotThisWeek.date}&time=${nextSlotThisWeek.time}` : "/generate"}>
+                        {nextSlotThisWeek ? `Write for ${dayLabel(nextSlotThisWeek.date)}, ${timeLabel(nextSlotThisWeek.time)}` : "Write a post"}
+                      </Link>
+                    </Button>
+                  )}
+                </>
+              )}
+              {runningOut.map((r) => (
+                <span key={r.business} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  {/* the calendar is one business, so the line needs no name ("Me nothing planned" read as broken) */}
+                  <span>{r.last ? `Planned to ${dayLabel(r.last)}, then nothing` : `Nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
+                  {/* one Write button on the line: the goal's, when it shows, already is this week's next step */}
+                  {!(r.last && progress.goal > 0 && progress.toDo > 0) && (
+                    <Button asChild size="sm" className="h-9 sm:h-8 [@media(pointer:coarse)]:h-11">
+                      <Link to={r.last ? "/generate" : newPostHref(userId)}>Write a post</Link>
+                    </Button>
+                  )}
+                </span>
+              ))}
+              {!kitTimes && userId && (
+                // the three choices sit behind one control; the recommended one is named in the list (law 13)
+                <Select value="" onValueChange={(v) => makeSlots(Number(v))}>
+                  <SelectTrigger aria-label="Set posting times" className="h-9 w-auto gap-1.5 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+                    <SelectValue placeholder="Set posting times" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SLOT_CHOICES.map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n === SLOT_DEFAULT ? `${n} a week, recommended` : `${n} a week`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+      {needsOpen && (
+        <div id="needs-you-more" className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
           {handDue.map((r) => (
             <Link
               key={r.id}
@@ -1841,98 +1952,7 @@ export default function CalendarPage() {
               <span className="flex shrink-0 flex-wrap gap-1.5">{rowActions(r)}</span>
             </div>
           ))}
-        </section>
-      )}
-
-      {status === "all" && (
-        // a line under the header, as Fastlane's calendar has, not a card of its own
-        <section aria-label="This week" className="space-y-1.5">
-          <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-foreground">
-            <CalendarBlankIcon className="h-4 w-4 text-muted-foreground" aria-hidden />
-            <span className="font-semibold">This week:</span>
-            <span>{glance.going ? `${glance.going} going out` : "nothing going out"}</span>
-            {glance.posted > 0 && <span className="text-muted-foreground">· {glance.posted} posted</span>}
-            {glance.going > 0 && glance.emptyDays.length > 0 && (
-              <span className="text-muted-foreground">
-                · nothing on {glance.emptyDays.map((d) => keyToDate(d).toLocaleDateString(undefined, { weekday: "short" })).join(", ")}
-              </span>
-            )}
-          </p>
-          {progress.goal > 0 && (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">
-                {profileName}: {progress.planned} of {progress.goal} planned
-              </span>
-              <span
-                role="progressbar"
-                aria-label={`${profileName} weekly goal`}
-                aria-valuemin={0}
-                aria-valuemax={progress.goal}
-                aria-valuenow={progress.planned}
-                className="relative h-1.5 w-24 overflow-hidden rounded-full bg-muted"
-              >
-                <span className="absolute inset-y-0 left-0 bg-success" style={{ width: `${(100 * progress.met) / progress.goal}%` }} />
-                <span
-                  className="absolute inset-y-0 bg-primary"
-                  style={{
-                    left: `${(100 * progress.met) / progress.goal}%`,
-                    width: `${(100 * Math.max(0, progress.planned - progress.met)) / progress.goal}%`,
-                  }}
-                />
-              </span>
-              <span>{progress.toDo > 0 ? `${progress.toDo} to go` : "goal met"}</span>
-              {progress.toDo > 0 && (
-                // the week's one next step is a button, not a link in a line of small print
-                <Button asChild size="sm" className="h-9 [@media(pointer:coarse)]:h-11">
-                  <Link to={nextSlotThisWeek ? `/generate?day=${nextSlotThisWeek.date}&time=${nextSlotThisWeek.time}` : "/generate"}>
-                    {nextSlotThisWeek ? `Write for ${dayLabel(nextSlotThisWeek.date)}, ${timeLabel(nextSlotThisWeek.time)}` : "Write a post"}
-                  </Link>
-                </Button>
-              )}
-            </div>
-          )}
-          {!kitTimes && userId && (
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>No posting times yet. Make them:</span>
-              {SLOT_CHOICES.map((n) => (
-                // one is picked for you (law 13): the other two stay a tap away, quieter
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => makeSlots(n)}
-                  className={`h-9 rounded-md border px-2.5 font-semibold sm:h-8 [@media(pointer:coarse)]:h-11 ${
-                    n === SLOT_DEFAULT ? "border-primary/50 bg-primary/10 text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {n === SLOT_DEFAULT ? `${n} a week, recommended` : `${n} a week`}
-                </button>
-              ))}
-            </div>
-          )}
-          {runningOut.length > 0 && (
-            <ul className="space-y-1" aria-label={`Running out in the next ${COVER_DAYS / 7} weeks`}>
-              {runningOut.map((r) => (
-                <li key={r.business} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                  {/* the calendar is one business, so the line needs no name ("Me nothing planned" read as broken) */}
-                  <span>{r.last ? `Planned to ${dayLabel(r.last)}, then nothing` : `Nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
-                  {r.last ? (
-                    // the goal row above already carries this week's Write button: never two for the same thing
-                    !(progress.goal > 0 && progress.toDo > 0) && (
-                      <Button asChild size="sm" className="h-9 [@media(pointer:coarse)]:h-11">
-                        <Link to="/generate">Write a post</Link>
-                      </Button>
-                    )
-                  ) : (
-                    // an empty calendar's one next step is a button, not a link in a line of small print
-                    <Button asChild size="sm" className="h-9 [@media(pointer:coarse)]:h-11">
-                      <Link to={newPostHref(userId)}>Write a post</Link>
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        </div>
       )}
 
       <div className={`grid gap-4 ${unscheduled.length > 0 || visibleWaiting.length > 0 ? "xl:grid-cols-[minmax(0,1fr)_15rem]" : ""}`}>
@@ -2205,26 +2225,31 @@ export default function CalendarPage() {
                         ...t.slots.map((time) => () => slotChip(key, time, false)),
                       ];
                       const dots = dayDots(key);
+                      const past = key < todayKey;
                       return (
                         <div
                           key={key}
                           data-day={key}
                           {...dropProps(key)}
                           onClick={cellClick(key)}
-                          className={`min-h-[56px] cursor-pointer border-b border-r border-border/50 p-1 sm:min-h-[84px] sm:p-1.5 ${
-                            inMonth ? "bg-card" : "bg-muted/20"
+                          className={`group relative min-h-[56px] cursor-pointer border-b border-r border-border/50 p-1 sm:min-h-[84px] sm:p-1.5 ${
+                            past ? "bg-muted/40" : inMonth ? "bg-card" : "bg-muted/20"
                           } ${dayOpen === key ? "ring-2 ring-inset ring-primary/60" : ""} ${dropHighlight(key)}`}
                         >
-                          {dayNumber(
-                            key,
-                            `mb-1 flex h-7 w-7 items-center justify-center rounded-full text-[11px] sm:h-5 sm:w-5 ${
-                              isToday
-                                ? "bg-primary font-bold text-primary-foreground"
-                                : inMonth
-                                  ? "text-foreground"
-                                  : "text-muted-foreground"
-                            }`,
-                          )}
+                          <div className="mb-1 flex items-center gap-1">
+                            {dayNumber(
+                              key,
+                              `flex h-7 w-7 items-center justify-center rounded-full text-[11px] sm:h-5 sm:w-5 ${
+                                isToday
+                                  ? "bg-primary font-bold text-primary-foreground"
+                                  : inMonth && !past
+                                    ? "text-foreground"
+                                    : "text-muted-foreground"
+                              }`,
+                            )}
+                            {/* the phone's cell has no room for the word: the number's own name says today there */}
+                            {isToday && <span className="hidden text-[10px] font-semibold text-primary sm:inline">Today</span>}
+                          </div>
                           <div className="flex flex-wrap gap-1 px-0.5 sm:hidden" aria-hidden>
                             {dots.slice(0, 6).map((d) => (
                               <span key={d.id} className={`h-1.5 w-1.5 rounded-full ${d.tone}`} />
@@ -2246,6 +2271,7 @@ export default function CalendarPage() {
                               </button>
                             )}
                           </div>
+                          {!past && addPost(key, holdsPosts(key))}
                         </div>
                       );
                     })}
@@ -2279,18 +2305,19 @@ export default function CalendarPage() {
                       data-day={key}
                       {...dropProps(key)}
                       onClick={cellClick(key)}
-                      className={`flex cursor-pointer gap-3 border-b border-border/50 p-2 sm:min-h-[220px] sm:flex-col sm:gap-1.5 sm:border-r ${
-                        key < todayKey ? "bg-muted/20" : "bg-card"
+                      className={`group relative flex cursor-pointer gap-3 border-b border-border/50 p-2 sm:min-h-[220px] sm:flex-col sm:gap-1.5 sm:border-r ${
+                        key < todayKey ? "bg-muted/40" : "bg-card"
                       } ${dayOpen === key ? "ring-2 ring-inset ring-primary/60" : ""} ${dropHighlight(key)}`}
                     >
                       <div className="w-12 shrink-0 text-center sm:w-auto sm:text-left">
                         <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           {keyToDate(key).toLocaleDateString(undefined, { weekday: "short" })}
+                          {isToday && <span className="block text-primary sm:ml-1 sm:inline">Today</span>}
                         </div>
                         {dayNumber(
                           key,
                           `mx-auto mt-0.5 grid h-9 w-9 place-items-center rounded-full text-sm sm:mx-0 sm:h-7 sm:w-7 ${
-                            isToday ? "bg-primary font-bold text-primary-foreground" : "text-foreground"
+                            isToday ? "bg-primary font-bold text-primary-foreground" : key < todayKey ? "text-muted-foreground" : "text-foreground"
                           }`,
                         )}
                       </div>
@@ -2314,6 +2341,7 @@ export default function CalendarPage() {
                         {visibleFeed.filter((f) => f.date === key).map((f) => feedChip(f, true))}
                         {(teamByDate.get(key) ?? []).map((p) => teamChip(p, true))}
                         {key >= todayKey && slotsOn && (slotsByDate.get(key) ?? []).map((time) => slotChip(key, time, true))}
+                        {key >= todayKey && addPost(key, holdsPosts(key))}
                       </div>
                     </div>
                   );
