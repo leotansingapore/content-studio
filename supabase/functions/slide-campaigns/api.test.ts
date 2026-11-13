@@ -208,6 +208,14 @@ describe("slideshow campaigns", () => {
     expect(c.last_error).toBe("Today's campaign posts are used up. It posts again tomorrow.");
   });
 
+  it("a tick for an owner whose subscription has lapsed posts nothing, counts nothing and says billing stopped it", async () => {
+    const c = live();
+    st.db.cs_subscriptions = [{ user_id: A, status: "canceled", past_due_since: null }];
+    expect(await tick(admin)).toEqual({ made: 0, failed: 1 });
+    expect([st.writes, st.drawn, schedules().length, used(A, "slide-campaign-post")]).toEqual([0, 0, 0, 0]);
+    expect(c.last_error).toBe("Your subscription isn't active, so this post didn't go out. Sort out billing in the studio and it posts again.");
+  });
+
   it("a post meant for the profile that the compliance scan flags goes to drafts, and says why", async () => {
     const consent = { mode: "direct", consent_at: new Date().toISOString(), music: true };
     const clean = live({ publish: consent });

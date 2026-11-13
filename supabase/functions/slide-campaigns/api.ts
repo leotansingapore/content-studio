@@ -408,7 +408,7 @@ export async function tick(admin: SupabaseClient): Promise<{ made: number; faile
     if (!posting(c.owner_id)) error = "Posting was switched off for this account.";
     else if (due) {
       const usage = await consumeUsage(admin, c.owner_id, "slide-campaign-post");
-      if (!usage.allowed) error = "Today's campaign posts are used up. It posts again tomorrow.";
+      if (!usage.allowed) error = usage.reason === "lapsed" ? "Your subscription isn't active, so this post didn't go out. Sort out billing in the studio and it posts again." : "Today's campaign posts are used up. It posts again tomorrow.";
       else
         try {
           review = (await makeRun(admin, c, "post", at)).review ?? null;
