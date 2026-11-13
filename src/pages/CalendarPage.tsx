@@ -1113,9 +1113,11 @@ export default function CalendarPage() {
           <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
             <Link to={`/generate?draft=${encodeURIComponent(d.id)}`}>Open</Link>
           </Button>
+          {/* outlined, as the day panel's Write: the status line's Write button stays the page's one filled button */}
           {!posted && (
             <Button
               size="sm"
+              variant="outline"
               onClick={() => markPosted(d.id)}
               disabled={reviews.blockReason(d) !== null}
               title={reviews.blockReason(d) ?? undefined}
@@ -1532,7 +1534,7 @@ export default function CalendarPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           {key >= todayKey && (
-            <Button asChild size="sm" className="h-9 gap-1.5 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+            <Button asChild size="sm" variant="outline" className="h-9 gap-1.5 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
               <Link to={`/generate?day=${key}`}>
                 <PencilLineIcon className="h-3.5 w-3.5" /> Write a post for this day
               </Link>
