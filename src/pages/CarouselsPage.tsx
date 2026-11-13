@@ -196,6 +196,7 @@ export default function CarouselsPage() {
 
   const back = `${location.pathname}${location.search}`;
   const hasMore = data.total !== null && data.rows.length < data.total;
+  const totalLine = data.total !== null ? `${data.total.toLocaleString()} carousels` : "";
   const thisSearch = searchQuery(params);
   const searchSaved = shelf.searches.some((s) => s.query === thisSearch);
 
@@ -281,11 +282,11 @@ export default function CarouselsPage() {
                 @{f.creator} <XIcon aria-label="Clear creator" className="h-3 w-3" />
               </FilterChip>
             )}
+            {/* phones: on the Filters line, which has room; the sort line beside it has none (law 11) */}
+            {totalLine && <span className="text-xs tabular-nums text-muted-foreground sm:hidden">{totalLine}</span>}
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">
-              {data.total !== null ? `${data.total.toLocaleString()} carousels` : ""}
-            </span>
+            <span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">{totalLine}</span>
             <Select value={f.sort} onValueChange={(v) => set("sort", v === (f.view === "trending" ? "score" : "published") ? null : v)}>
               <SelectTrigger className="h-9 w-[200px]" aria-label="Sort by">
                 <SelectValue />
