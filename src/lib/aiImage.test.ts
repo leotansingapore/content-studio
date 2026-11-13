@@ -517,11 +517,65 @@ describe("Logo on AI pictures (brand-kit)", () => {
     expect(drawn[1]).toEqual([{ width: 1080, height: 1440 }, ...Object.values(logoBox(1080, 1440, 1080, 1440, 0.8))]);
   });
 
+  it("never stamps a photo ad, or its fix, whose logo the model was given to place itself, and sends the logo once", async () => {
+    kit(true);
+    let kept: unknown = null;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      if ((body as Body).mode !== "status") return { token: "t1" };
+      kept ??= JSON.parse(store.get("cs-ai-image-making-u1") ?? "null");
+      return { state: "done", url: "https://cdn.higgsfield.ai/pic.png" };
+    });
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8, refs: { logo: LOGO } }));
+    await settle(fixImage("u1", "make the sky bluer"));
+    expect(starts().map(([, b]) => b)).toEqual([
+      { mode: "start", prompt: "A poster at a bus shelter", words: true, refs: { logo: LOGO } },
+      { mode: "fix", token: "t1", fix: "make the sky bluer" },
+    ]);
+    // the logo never sits in this device's pending token
+    expect(kept).toEqual({ prompt: "A poster at a bus shelter", name: "Poster", ratio: 0.8, bare: true, token: "t1" });
+    expect(await Promise.all(vi.mocked(storePicture).mock.calls.map(([b]) => (b as Blob).text()))).toEqual(["png", "png"]);
+    expect(drawn).toEqual([]);
+  });
+
   it("keeps the picture as made with the switch off or no logo", async () => {
     kit(false);
     expect(await run()).toEqual(["png", "png"]);
     vi.mocked(storePicture).mockClear();
     kit(true, "");
     expect(await run()).toEqual(["png", "png"]);
+  });
+});
+
+// Every caller before the photo ad's reference pictures: the start and fix bodies sent to ai-image, and the paid token
+// kept on this device, byte for byte.
+describe("existing callers, pinned", () => {
+  const store = new Map<string, string>();
+  beforeEach(() => {
+    store.clear();
+    const localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+    vi.stubGlobal("localStorage", localStorage);
+    vi.stubGlobal("window", { localStorage, location: { search: "" } });
+  });
+
+  it("send the same start and fix bodies and keep the same token", async () => {
+    const kept: string[] = [];
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => {
+      if ((body as Body).mode !== "status") return { token: "t1" };
+      kept.push(store.get("cs-ai-image-making-u1") ?? "");
+      return { state: "done", url: "https://cdn.higgsfield.ai/pic.png" };
+    });
+    await settle(makeImage("u1", "A family picnic at East Coast Park", "Picnic", "img-1", { thread: "th1", msg: "m1" }));
+    await settle(fixImage("u1", "make the sky bluer"));
+    await settle(makeImage("u1", "A poster at a bus shelter", "Poster", undefined, undefined, { words: true, ratio: 0.8 }));
+    await settle(autoImage("u1", "A laptop on a desk", "Portfolio", "d1"));
+    expect(JSON.stringify(starts().map(([fn, b]) => [fn, b]))).toBe(
+      '[["ai-image",{"mode":"start","prompt":"A family picnic at East Coast Park"}],["ai-image",{"mode":"fix","token":"t1","fix":"make the sky bluer"}],["ai-image",{"mode":"start","prompt":"A poster at a bus shelter","words":true}],["ai-image",{"mode":"start","prompt":"A laptop on a desk"}]]',
+    );
+    expect([...new Set(kept)]).toEqual([
+      '{"prompt":"A family picnic at East Coast Park","name":"Picnic","designId":"img-1","agent":{"thread":"th1","msg":"m1"},"token":"t1"}',
+      '{"prompt":"A family picnic at East Coast Park","name":"Picnic","fix":"make the sky bluer","token":"t1"}',
+      '{"prompt":"A poster at a bus shelter","name":"Poster","ratio":0.8,"token":"t1"}',
+      '{"prompt":"A laptop on a desk","name":"Portfolio","attachTo":"d1","token":"t1"}',
+    ]);
   });
 });

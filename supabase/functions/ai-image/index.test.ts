@@ -160,6 +160,33 @@ describe("Make the image", () => {
     expect(used(UID, "ai-image")).toBe(0);
   });
 
+  it("hands a photo ad's logo to GPT Image as an edit's reference, and makes it from the words alone when that fails", async () => {
+    const LOGO = "data:image/png;base64,iVBORw0KGgo=";
+    const ad = { prompt: 'A poster at a bus shelter. Headline: "Still dark."', words: true, refs: { logo: LOGO } };
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    expect((await call(ad)).status).toBe(200);
+    expect(oa.calls).toHaveLength(1);
+    expect(oa.calls[0]).toMatchObject({ route: "edits", body: { images: [{ image_url: LOGO }], size: "1152x1536" } });
+    expect(oa.calls[0].body.prompt).toMatch(/^A poster at a bus shelter\. Headline: "Still dark\."\n\nThe picture given is the brand's logo\./);
+    expect(used(UID, "ai-image")).toBe(1);
+    // the edit refused: one more call, today's words picture, and still one use
+    oa.calls.length = 0;
+    let n = 0;
+    oa.reply = () => (++n === 1 ? answer({ error: { code: "invalid_request" } }, 400) : picture());
+    expect((await call(ad)).status).toBe(200);
+    expect(oa.calls.map((c) => c.route)).toEqual(["edits", "generations"]);
+    expect(oa.calls[1].body).toEqual({ ...oa.calls[1].body, prompt: `A poster at a bus shelter. Headline: "Still dark."\n\n${WORDS_PEOPLE_RULE}` });
+    expect(oa.calls[1].body).not.toHaveProperty("images");
+    expect(used(UID, "ai-image")).toBe(2);
+    // the safety filter on the edit stops it there
+    oa.calls.length = 0;
+    oa.reply = () => answer({ error: { code: "moderation_blocked" } }, 400);
+    expect((await call(ad)).status).toBe(422);
+    expect(oa.calls).toHaveLength(1);
+    expect(hf.submits).toEqual([]);
+  });
+
   it("gives the use back when Higgsfield refuses the picture after OpenAI couldn't make it", async () => {
     env.OPENAI_API_KEY = "sk-test";
     hf.failAt = 1;
@@ -319,5 +346,23 @@ describe("a slideshow's AI pictures", () => {
     expect(res.status).toBe(502);
     expect(hf.cancels).toHaveLength(1);
     expect([used(UID, "slide-pictures"), used(GLOBAL_COUNTER_USER, "slide-pictures-global")]).toEqual([0, 0]);
+  });
+});
+
+// Every existing caller (no refs): what OpenAI is sent for a picture, a photo ad's words and a fix, and what the app gets
+// back, pinned before the photo ad's reference pictures joined the start.
+describe("existing callers, pinned", () => {
+  it("send OpenAI the same bodies and get the same answers back", async () => {
+    env.OPENAI_API_KEY = "sk-test";
+    oa.reply = picture;
+    db.kept.set(`${UID}/${PICTURE}.jpg`, new Date().toISOString());
+    const answers = [
+      await call({ mode: "start", prompt: "A family picnic at East Coast Park at sunset" }),
+      await call({ mode: "start", prompt: 'A poster at a bus shelter. Headline: "Still dark."', words: true }),
+      await call(await fixBody()),
+    ];
+    const bodies = oa.calls.map((c) => ({ ...c, body: { ...c.body, ...(c.body.images ? { images: "<the kept picture's signed link>" } : {}) } }));
+    const replies = await Promise.all(answers.map(async (r) => ({ status: r.status, keys: Object.keys(await r.json()) })));
+    await expect(JSON.stringify({ bodies, replies }, null, 2)).toMatchFileSnapshot("./__pins__/existing-callers.json");
   });
 });

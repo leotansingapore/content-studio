@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PEOPLE_RULE, WORDS_PEOPLE_RULE, buildFixBody, buildImageBody, pictureUrl, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic";
-import { gptImageBody } from "./openai";
+import { MAX_REF_CHARS, PEOPLE_RULE, WORDS_PEOPLE_RULE, buildFixBody, buildImageBody, pictureUrl, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic";
+import { REF_LINES, gptImageBody, gptRefBody } from "./openai";
 
 // The people rule every picture without words has always carried, pinned byte for byte before the words flag joined it.
 const RULE_BEFORE_WORDS =
@@ -133,5 +133,28 @@ describe("fix mode", () => {
     expect(pictureUrl({ status: "completed", video: { url: "https://cdn.example/a.mp4" } })).toBeNull();
     expect(pictureUrl({ status: "in_progress" })).toBeNull();
     expect(pictureUrl({ status: "completed", images: [{ url: "http://cdn.example/a.png" }] })).toBeNull();
+  });
+});
+
+describe("a photo ad's reference pictures", () => {
+  const LOGO = "data:image/png;base64,iVBORw0KGgo=";
+  const ask = (refs: unknown, words: unknown = true) => parseImageRequest({ mode: "start", prompt: "A poster at a bus shelter", words, refs });
+
+  it("keeps the brand's logo only with the words flag, and only as a picture's data URL within its limit", () => {
+    expect(ask({ logo: LOGO })).toEqual({ ok: true, request: { mode: "start", prompt: "A poster at a bus shelter", words: true, refs: { logo: LOGO } } });
+    expect(ask({ logo: "data:image/webp;base64,UklGRg==" })).toMatchObject({ request: { refs: { logo: "data:image/webp;base64,UklGRg==" } } });
+    // without the words flag a start is today's, refs and all left out
+    expect(ask({ logo: LOGO }, false)).toEqual({ ok: true, request: { mode: "start", prompt: "A poster at a bus shelter" } });
+    for (const logo of ["https://example.com/logo.png", "data:image/svg+xml;base64,PHN2Zz4=", "data:image/png;base64,<script>", `data:image/png;base64,${"A".repeat(MAX_REF_CHARS)}`, 7]) {
+      expect(ask({ logo }), String(logo).slice(0, 30)).toEqual({ ok: true, request: { mode: "start", prompt: "A poster at a bus shelter", words: true } });
+    }
+    expect(ask("logo")).toEqual({ ok: true, request: { mode: "start", prompt: "A poster at a bus shelter", words: true } });
+  });
+
+  it("goes to GPT Image as an edit's one picture, said once after the prompt, before the people rule without No text", () => {
+    const body = gptRefBody("A poster at a bus shelter", "u1", { logo: LOGO });
+    expect(body).toEqual({ ...gptImageBody("A poster at a bus shelter", "u1", true), prompt: body.prompt, images: [{ image_url: LOGO }] });
+    expect(body.prompt).toBe(`A poster at a bus shelter\n\nThe picture given ${REF_LINES.logo}\n\n${WORDS_PEOPLE_RULE}`);
+    expect(REF_LINES.logo).toMatch(/exact logo on the ad once, unaltered/);
   });
 });

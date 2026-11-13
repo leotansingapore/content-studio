@@ -34,6 +34,8 @@ export interface ImageJob {
   agent?: { thread: string; msg: string };
   /** The shape it is kept in (width / height), cut from the middle: a photo ad's 4:5. A fix keeps it too. */
   ratio?: number;
+  /** The model was handed the brand's logo to place itself, so the logo stamp stays off it and its fixes. */
+  bare?: true;
   attached?: { draft: string; key: string };
 }
 
@@ -43,7 +45,7 @@ const GIVE_UP_MS = 4 * 60_000;
 const PENDING = "cs-ai-image-making-"; // this device only, on purpose: the token is no use elsewhere
 
 /** A make or fix whose use is spent and whose picture isn't kept yet. */
-type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string; agent?: ImageJob["agent"]; ratio?: number; attachTo?: string; replace?: string };
+type Pending = { token: string; prompt: string; name: string; fix?: string; designId?: string; agent?: ImageJob["agent"]; ratio?: number; bare?: true; attachTo?: string; replace?: string };
 type Ask = Omit<Pending, "token">;
 
 function readPending(scope: string): Pending | null {
@@ -126,12 +128,15 @@ async function withLogo(userId: string, pic: Blob, ratio?: number): Promise<Blob
   }
 }
 
-/** o.words: the picture prints the prompt's quoted lines (ai-image's words flag); o.ratio: kept cut to that shape (width / height). */
-export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"], o: { words?: true; ratio?: number } = {}): Promise<void> =>
+/**
+ * o.words: the picture prints the prompt's quoted lines (ai-image's words flag); o.ratio: kept cut to that shape (width /
+ * height); o.refs (with words): pictures the model puts in the ad, the brand's logo, which then is never stamped on too.
+ */
+export const makeImage = async (userId: string, prompt: string, name: string, designId?: string, agent?: ImageJob["agent"], o: { words?: true; ratio?: number; refs?: { logo?: string } } = {}): Promise<void> =>
   run(
     userId,
-    { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}), ...(o.ratio ? { ratio: o.ratio } : {}) },
-    { mode: "start", prompt: withMemory(userId, prompt), ...(o.words ? { words: true } : {}) },
+    { prompt, name: name.slice(0, 80) || "AI image", ...(designId ? { designId } : {}), ...(agent ? { agent } : {}), ...(o.ratio ? { ratio: o.ratio } : {}), ...(o.words && o.refs?.logo ? { bare: true as const } : {}) },
+    { mode: "start", prompt: withMemory(userId, prompt), ...(o.words ? { words: true, ...(o.refs?.logo ? { refs: o.refs } : {}) } : {}) },
   );
 
 export const brandLine = (kit: { color?: string; palette?: { hex?: string }[] } | null): string => {
@@ -169,7 +174,7 @@ export function fixImage(userId: string, fix: string): Promise<void> {
   const j = job;
   if (!j?.token || j.state !== "done" || imageBusy()) return Promise.resolve();
   const swap = j.attached ? { attachTo: j.attached.draft, replace: j.attached.key } : {};
-  return run(userId, { prompt: j.prompt, name: j.name ?? "AI image", fix, ...(j.ratio ? { ratio: j.ratio } : {}), ...swap }, { mode: "fix", token: j.token, fix }, j);
+  return run(userId, { prompt: j.prompt, name: j.name ?? "AI image", fix, ...(j.ratio ? { ratio: j.ratio } : {}), ...(j.bare ? { bare: true as const } : {}), ...swap }, { mode: "fix", token: j.token, fix }, j);
 }
 
 const attachPicture = async (userId: string, draft: string, pic: Blob, replace?: string): Promise<ImageJob["attached"]> => {
@@ -217,7 +222,7 @@ function failed(prompt: string, e: unknown, before?: ImageJob) {
   set(before ? { ...before, fixError: error } : { prompt, state: "failed", error });
 }
 
-async function finish(userId: string, scope: string, { token, prompt, name, fix, designId, ratio: asked, attachTo, replace }: Pending, before?: ImageJob): Promise<void> {
+async function finish(userId: string, scope: string, { token, prompt, name, fix, designId, ratio: asked, bare, attachTo, replace }: Pending, before?: ImageJob): Promise<void> {
   // read back from this device after a reload, so only a real shape counts
   const ratio = typeof asked === "number" && asked > 0 ? asked : undefined;
   try {
@@ -233,7 +238,8 @@ async function finish(userId: string, scope: string, { token, prompt, name, fix,
     set({ prompt, state: "saving", fix, designId });
     const res = await fetch(url).catch(() => null);
     if (!res?.ok) throw new Error("The image was made but didn't download. Try again.");
-    const blob = await withLogo(userId, await res.blob(), ratio);
+    const raw = await res.blob();
+    const blob = bare === true ? raw : await withLogo(userId, raw, ratio);
     const pic = await storePicture(blob, undefined, ratio);
     const saved = fix ? `${name} (fixed)`.slice(0, 80) : name;
     addMedia(userId, {
@@ -244,7 +250,7 @@ async function finish(userId: string, scope: string, { token, prompt, name, fix,
     attachNext = undefined;
     const attached = target ? await attachPicture(userId, target, blob, replace) : undefined;
     keepPending(scope, null);
-    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name, designId, ...(ratio ? { ratio } : {}), ...(attached ? { attached } : {}) });
+    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name, designId, ...(ratio ? { ratio } : {}), ...(bare === true ? { bare } : {}), ...(attached ? { attached } : {}) });
   } catch (e) {
     keepPending(scope, null);
     failed(prompt, e, before);

@@ -1,0 +1,67 @@
+{
+  "bodies": [
+    {
+      "route": "generations",
+      "body": {
+        "model": "gpt-image-2.6-flare",
+        "prompt": "A family picnic at East Coast Park at sunset\n\nSet in Singapore. Any people shown are Singaporean or other Asian (a natural mix of Chinese, Malay, Indian and Eurasian), each one clearly different from the others in age, build, face, hair and clothes; good-looking, well-groomed, natural expressions. Polished lifestyle photograph. No text, no words, no logos, no watermarks.",
+        "size": "1152x1536",
+        "quality": "medium",
+        "output_format": "jpeg",
+        "output_compression": 90,
+        "n": 1,
+        "safety_identifier": "6d80f027-3395-480c-86a1-8827d3d6cce3"
+      }
+    },
+    {
+      "route": "generations",
+      "body": {
+        "model": "gpt-image-2.6-flare",
+        "prompt": "A poster at a bus shelter. Headline: \"Still dark.\"\n\nSet in Singapore. Any people shown are Singaporean or other Asian (a natural mix of Chinese, Malay, Indian and Eurasian), each one clearly different from the others in age, build, face, hair and clothes; good-looking, well-groomed, natural expressions. Polished lifestyle photograph.",
+        "size": "1152x1536",
+        "quality": "medium",
+        "output_format": "jpeg",
+        "output_compression": 90,
+        "n": 1,
+        "safety_identifier": "6d80f027-3395-480c-86a1-8827d3d6cce3"
+      }
+    },
+    {
+      "route": "edits",
+      "body": {
+        "model": "gpt-image-2.6-flare",
+        "prompt": "make the sky bluer\n\nChange only what is asked and keep everything else in the picture exactly as it is. Anyone added is Singaporean or other Asian.",
+        "images": "<the kept picture's signed link>",
+        "size": "1152x1536",
+        "quality": "medium",
+        "output_format": "jpeg",
+        "output_compression": 90,
+        "n": 1,
+        "safety_identifier": "6d80f027-3395-480c-86a1-8827d3d6cce3"
+      }
+    }
+  ],
+  "replies": [
+    {
+      "status": 200,
+      "keys": [
+        "token",
+        "usage"
+      ]
+    },
+    {
+      "status": 200,
+      "keys": [
+        "token",
+        "usage"
+      ]
+    },
+    {
+      "status": 200,
+      "keys": [
+        "token",
+        "usage"
+      ]
+    }
+  ]
+}

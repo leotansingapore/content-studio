@@ -1,8 +1,10 @@
 // "Make the image" on Write: one picture from the post's image prompt, with
 // GPT Image 2.6 Flare (about USD 0.04 each at 3:4, openai.ts), or Higgsfield Soul v2 when OpenAI can't.
-//   POST {mode:"start", prompt, words?} -> {token}: counts against the "ai-image" daily cap. words: true (a static format
-//        made as a photo) prints the prompt's quoted lines: the people rule loses its "No text" clause, and when OpenAI
-//        can't make it the use comes back and it fails, never Soul v2, which can't print words.
+//   POST {mode:"start", prompt, words?, refs?} -> {token}: counts against the "ai-image" daily cap. words: true (a static
+//        format made as a photo) prints the prompt's quoted lines: the people rule loses its "No text" clause, and when
+//        OpenAI can't make it the use comes back and it fails, never Soul v2, which can't print words. refs (with words
+//        only): the brand's logo as a data URL, sent to GPT Image's edits as a reference for a whole new picture; when
+//        that call fails the picture is made from the words alone, as before.
 //   POST {mode:"status", token} -> {state:"working"} | {state:"done", url} | {state:"failed", error}
 //   POST {mode:"fix", token, fix} -> {token}: "Fix it" under a finished picture; GPT Image 2.6 Flare (Qwen Image 3
 //        when OpenAI can't) edits the picture that token made (the link is read from the cs-ai-images bucket or
@@ -28,7 +30,7 @@ import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "..
 import { MOTION_MODEL, PICTURE_MODEL, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll.ts";
 import { FIX_MODEL, HF_BASE, HF_MODEL, buildFixBody, buildImageBody, jobToken, openJobToken, parseImageRequest, pictureUrl, readStatus, tokenSecret } from "./logic.ts";
 import { parseSlides, slidePictureBody } from "./slides.ts";
-import { GPT_IMAGE_MODEL, IMAGE_BUCKET, OPENAI_IMAGES, gptFixBody, gptImageBody, picturePath, readGptImage, stalePictures } from "./openai.ts";
+import { GPT_IMAGE_MODEL, IMAGE_BUCKET, OPENAI_IMAGES, gptFixBody, gptImageBody, gptRefBody, picturePath, readGptImage, stalePictures } from "./openai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -240,7 +242,11 @@ Deno.serve(async (req) => {
       return json(r.body, r.status);
     }
     const words = parsed.request.words === true;
-    const made = await gpt("generations", gptImageBody(parsed.request.prompt, uid, words));
+    const refs = parsed.request.refs;
+    let made = refs ? await gpt("edits", gptRefBody(parsed.request.prompt, uid, refs)) : null;
+    // a model that won't take the references still makes the ad: the brand's name stays in the words
+    if (refs && made === null) console.log("ai-image: made without its reference pictures");
+    made ??= await gpt("generations", gptImageBody(parsed.request.prompt, uid, words));
     if (made === "blocked") return json({ error: BLOCKED }, 422);
     if (made) return json({ token: await jobToken(signing, uid, made), usage: { used: usage.used, limit: usage.limit } });
     // Soul v2 can't print words: a picture that carries them stops here, nothing made, and its use comes back

@@ -150,6 +150,18 @@ describe("the photo run", () => {
     expect(fake.calls).toEqual([{ prompt: photoAdPrompt(poster, { name: "", color: DEFAULT_BRAND.color }, design.words), name: "Poster in the street: Still dark, still raining.", o: { words: true, ratio: 0.8 } }]);
   });
 
+  it("hands the model the brand kit's logo to place, and no picture at all for a kit without one", async () => {
+    const LOGO = "data:image/png;base64,iVBORw0KGgo=";
+    localStorage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#F26B1D", name: "ActivityTracker", handle: "", logo: LOGO }));
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.calls[0].o).toEqual({ words: true, ratio: 0.8, refs: { logo: LOGO } });
+    // the name and colour still go in the words, so the picture reads the same when the model can't take the logo
+    expect(fake.calls[0].prompt).toContain('The brand is "ActivityTracker", its colour #F26B1D.');
+    localStorage.setItem(`content-studio-carousel-brand-${U}`, JSON.stringify({ color: "#F26B1D", name: "ActivityTracker", handle: "" }));
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.calls[1].o).toEqual({ words: true, ratio: 0.8 });
+  });
+
   it("spends nothing on a picture when the words fail or come back empty, and says why", async () => {
     fake.writeFails = "Today's remixes are used up.";
     await startPhotoAd(U, poster, { topic: "x" });

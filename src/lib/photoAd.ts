@@ -2,7 +2,8 @@
 // make writes for the brand, sent to the picture maker (ai-image, GPT Image 2.6 Flare) as one prompt that quotes every
 // on-picture string, so the made ad reads like the format's examples. One remix make writes the words into a new drawn
 // design first (startImageWrite, the drawn make's own write, so that design stays in Your images too), then one
-// ai-image make with its words flag (no "No text" rule, no Soul v2 fallback) keeps the photo in Media under AI images,
+// ai-image make with its words flag (no "No text" rule, no Soul v2 fallback), and the brand kit's logo as a picture for
+// the model to place where the format carries a brand mark, keeps the photo in Media under AI images,
 // cut from the model's 3:4 to the examples' 4:5 (makeImage's ratio; the prompt keeps words clear of the cut edges). The
 // run lives outside React, as MemeOptions' pictures do, so leaving the page keeps it, and it mirrors its step into
 // formatJob for /library's Making now. A reload forgets the run; the picture's paid token is picked up by resumeImage,
@@ -122,10 +123,12 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   const w = imageWrite();
   const words = imageById(userId, design.id)?.words ?? {};
   if (w?.designId !== design.id || w.state !== "done" || !mainWords(slug, words)) return set({ ...base, state: "failed", error: w?.error || WRITE_FAILED });
-  const prompt = photoAdPrompt(f, { name: ownBrandName(userId), color: (loadBrand(userId) ?? DEFAULT_BRAND).color }, words);
+  const kit = loadBrand(userId) ?? DEFAULT_BRAND;
+  const prompt = photoAdPrompt(f, { name: ownBrandName(userId), color: kit.color }, words);
   if (prompt.length > MAX_PROMPT) return set({ ...base, state: "failed", error: TOO_LONG });
   set({ ...base, state: "making" });
-  await makeImage(userId, prompt, `${f.name}: ${mainWords(slug, words)}`, undefined, undefined, { words: true, ratio: PHOTO_RATIO });
+  // the kit's logo goes as a picture the model places itself (ai-image refs); with none, the name in the words is the mark
+  await makeImage(userId, prompt, `${f.name}: ${mainWords(slug, words)}`, undefined, undefined, { words: true, ratio: PHOTO_RATIO, ...(kit.logo ? { refs: { logo: kit.logo } } : {}) });
   const j = imageJob();
   if (j?.state !== "done" || !j.mediaKey) return set({ ...base, state: "failed", error: j?.error || NOT_MADE });
   set({ ...base, state: "done", mediaKey: j.mediaKey, preview: j.preview });

@@ -1,4 +1,4 @@
-import { KEEP_RULE, PEOPLE_RULE, WORDS_PEOPLE_RULE } from "./logic.ts";
+import { KEEP_RULE, PEOPLE_RULE, WORDS_PEOPLE_RULE, type Refs } from "./logic.ts";
 
 export const GPT_IMAGE_MODEL = "gpt-image-2.6-flare";
 export const OPENAI_IMAGES = "https://api.openai.com/v1/images";
@@ -16,6 +16,24 @@ export const gptImageBody = (prompt: string, uid: string, words = false): Record
   ...OUTPUT,
   safety_identifier: uid,
 });
+
+/** What each reference picture is, after "The picture given": GPT Image keeps them in the order sent. */
+export const REF_LINES: Record<keyof Refs, string> = {
+  logo: "is the brand's logo. Put that exact logo on the ad once, unaltered: the same shape, colours and lettering, never redrawn or restyled. Place it where this kind of ad carries its brand mark: a poster's footer bar, a page's header or masthead, or a corner.",
+};
+
+/** A photo ad with reference pictures: an edit that makes a whole new picture from the prompt, with each picture said once. */
+export const gptRefBody = (prompt: string, uid: string, refs: Refs): Record<string, unknown> => {
+  const given = (Object.keys(REF_LINES) as (keyof Refs)[]).filter((k) => refs[k]);
+  const lines = given.map((k, i) => `The ${given.length > 1 ? `${["first", "second"][i]} ` : ""}picture given ${REF_LINES[k]}`);
+  return {
+    model: GPT_IMAGE_MODEL,
+    prompt: [prompt, ...lines, WORDS_PEOPLE_RULE].join("\n\n"),
+    images: given.map((k) => ({ image_url: refs[k] })),
+    ...OUTPUT,
+    safety_identifier: uid,
+  };
+};
 
 export const gptFixBody = (imageUrl: string, fix: string, uid: string): Record<string, unknown> => ({
   model: GPT_IMAGE_MODEL,
