@@ -1738,15 +1738,17 @@ export default function CarouselPage() {
                       <ArrowUUpLeftIcon className="h-3.5 w-3.5" /> Undo AI changes
                     </Button>
                   )}
+                  {/* outline: the download is the screen's one filled button */}
                   <Button
                     size="sm"
+                    variant="outline"
                     onClick={() => void tighten()}
                     disabled={busy || ai.status === "limit" || tightenLeft === 0}
-                    className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 disabled:opacity-60"
+                    className="gap-1.5 disabled:opacity-60"
                   >
                     {busy ? (
                       <>
-                        <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> Tightening…
+                        <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> Tightening…
                       </>
                     ) : (
                       <>
