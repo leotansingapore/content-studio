@@ -2,7 +2,8 @@ import { deleteBioPage } from "@/lib/bioPage";
 import { pauseBrandCampaigns, stopBrandTelegram } from "@/lib/brandRemoval";
 import { deleteBrandLinks } from "@/lib/trackedLinks";
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, CaretUpDownIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { Link } from "react-router-dom";
+import { CheckIcon, CaretUpDownIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlusIcon, SquaresFourIcon, TrashIcon } from "@phosphor-icons/react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { socialConnectShown } from "@/lib/socialConnect";
@@ -156,6 +157,14 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
           >
             <PlusIcon className="h-4 w-4" /> Add a brand
           </a>
+          {/* every brand as a card, and the unfinished ones (/brands) */}
+          <Link
+            to="/brands"
+            onClick={() => setOpen(false)}
+            className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-foreground hover:bg-accent [@media(pointer:coarse)]:h-11"
+          >
+            <SquaresFourIcon className="h-4 w-4" /> All brands
+          </Link>
         </div>
       )}
     </div>
