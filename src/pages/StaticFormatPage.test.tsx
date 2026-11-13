@@ -17,9 +17,23 @@ const as = vi.hoisted(() => {
     },
     clear: () => store.clear(),
   };
-  return { user: null as null | undefined | { id: string; email: string }, left: {} as Record<string, number>, picture: null as null | Record<string, unknown>, run: null as null | Record<string, unknown> };
+  return {
+    user: null as null | undefined | { id: string; email: string },
+    left: {} as Record<string, number>,
+    picture: null as null | Record<string, unknown>,
+    run: null as null | Record<string, unknown>,
+    buttons: [] as { children?: unknown; onClick?: () => void }[],
+    starts: [] as unknown[][],
+  };
 });
-vi.mock("@/lib/photoAd", async (actual) => ({ ...(await actual<typeof import("@/lib/photoAd")>()), usePhotoAd: () => as.run }));
+vi.mock("@/lib/photoAd", async (actual) => ({ ...(await actual<typeof import("@/lib/photoAd")>()), usePhotoAd: () => as.run, startPhotoAd: async (...a: unknown[]) => void as.starts.push(a) }));
+// every button's props, so a press can be made without a DOM; the real button still renders
+vi.mock("@/components/ui/button", async (actual) => {
+  const real = await actual<typeof import("@/components/ui/button")>();
+  const { createElement: h, forwardRef } = await import("react");
+  const Button = forwardRef<HTMLButtonElement, Record<string, unknown>>((p, ref) => (as.buttons.push(p), h(real.Button, { ...p, ref })));
+  return { ...real, Button };
+});
 vi.mock("@/lib/useLeoOnly", async (actual) => ({ ...(await actual<typeof import("@/lib/useLeoOnly")>()), useLeoUser: () => as.user, useLeoOnly: () => !!as.user }));
 // no canvas in node: the example is measured roughly, as the layout tests do
 vi.mock("@/lib/carouselRender", async (actual) => ({ ...(await actual<typeof import("@/lib/carouselRender")>()), createCanvasMeasure: () => (t: string, f: { size: number }) => t.length * f.size * 0.5 }));
@@ -49,6 +63,8 @@ afterEach(() => {
   as.left = {};
   as.picture = null;
   as.run = null;
+  as.buttons = [];
+  as.starts = [];
   localStorage.clear();
 });
 
@@ -119,6 +135,34 @@ describe("the static format page", () => {
     expect(page).toMatch(/ready\.<\/p><p[^>]*>Angle: Answer the doubt<\/p>/);
     as.run = { ...as.run, angle: undefined };
     expect(html("street-poster")).not.toMatch(/ready\.<\/p><p[^>]*>Angle:/);
+  });
+
+  it("offers another angle on the done card at the photo's own price, held while no photo can start", () => {
+    as.user = { id: U, email: "leo@x.sg" };
+    as.run = { seq: 1, slug: "street-poster", designId: "img-abc123", state: "done", mediaKey: "cimg-photo1", angle: "The offer" };
+    const page = html("street-poster");
+    const again = button(page, "Another angle");
+    expect(again).not.toBe("");
+    expect(again).not.toContain('disabled=""');
+    expect(again).not.toContain(PRIMARY);
+    // priced the same as the first press, right beside it
+    expect(page).toMatch(/Another angle<\/button><span[^>]*>About US\$0\.05<\/span>/);
+    // a press makes the next photo with the note as typed, with nothing retyped
+    localStorage.setItem(noteKey("street-poster"), "For agents who prospect daily");
+    as.buttons = [];
+    html("street-poster");
+    as.buttons.find((b) => JSON.stringify(b.children).includes("Another angle"))!.onClick!();
+    expect(as.starts).toEqual([[U, staticFormatBySlug("street-poster"), { topic: "For agents who prospect daily" }]]);
+    localStorage.clear();
+    as.left = { "ai-image": 0 };
+    expect(button(html("street-poster"), "Another angle")).toContain('disabled=""');
+    as.left = {};
+    as.picture = { prompt: "A family picnic", state: "working" };
+    expect(button(html("street-poster"), "Another angle")).toContain('disabled=""');
+    // nothing to redo before a photo is done
+    as.picture = null;
+    as.run = { ...as.run, state: "making" };
+    expect(html("street-poster")).not.toContain("Another angle");
   });
 
   it("offers no photo where the format needs the brand's own product photo and there is none", () => {

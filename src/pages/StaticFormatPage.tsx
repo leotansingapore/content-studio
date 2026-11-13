@@ -3,7 +3,8 @@
 // what it works with, an optional note (kept on this device, cs-static-note-<slug>), and two ways to make it, each with
 // its price. "Make it as a photo" (src/lib/photoAd.ts) writes the words for the brand with the note, then the picture
 // maker makes the format's scene with those words on it; it stays on this page, shows each step, and ends with a link to
-// the photo in Media. "Make it as a layout" hands the agent a request that sends on arrival (links.agent({ ask }) with
+// the photo in Media, the angle it took, and "Another angle", which makes the next one with the same note at the same
+// price. "Make it as a layout" hands the agent a request that sends on arrival (links.agent({ ask }) with
 // navigation state { send, from, layout, topic }), and the design the agent makes on that layout lands in Your images.
 // The photo is the dominant button, since the examples it matches are photos; the layout takes over when today's
 // pictures are used up. A format that needs a photo, with none on this brand yet, offers only "Add a photo", which opens
@@ -11,7 +12,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { CameraIcon, CaretLeftIcon, CaretRightIcon, CircleNotchIcon, ImageSquareIcon, SparkleIcon } from "@phosphor-icons/react";
+import { CameraIcon, CaretLeftIcon, CaretRightIcon, CircleNotchIcon, ImageSquareIcon, ShuffleIcon, SparkleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -223,6 +224,19 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
                           .
                         </p>
                       )}
+                      {/* the next angle with the same note, priced as the first press */}
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void startPhotoAd(userId, def, action.format)}
+                          disabled={picturing || photoLeft === 0}
+                          className="gap-1.5 [@media(pointer:coarse)]:min-h-11"
+                        >
+                          <ShuffleIcon className="h-4 w-4" /> Another angle
+                        </Button>
+                        <PriceChip price={sumPrices(priceOf("remix-make"), priceOf("ai-image"))} left={photoLeft} />
+                      </div>
                     </div>
                   </div>
                 )}
