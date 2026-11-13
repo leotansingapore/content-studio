@@ -112,7 +112,7 @@ export default function CreateGuidePage() {
   const posting = socialConnectShown();
   const n = (step: number) => (top ? step : step - 1);
   useEffect(() => {
-    document.title = "Create the post - Postmosis";
+    document.title = "How to post - Postmosis";
     return () => {
       document.title = "Postmosis";
     };
@@ -123,7 +123,7 @@ export default function CreateGuidePage() {
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <SparkleIcon className="h-6 w-6 text-primary" />
-          Create the post, end to end
+          How to post
         </h1>
       </header>
 
