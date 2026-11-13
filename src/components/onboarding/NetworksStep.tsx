@@ -90,15 +90,15 @@ export function NetworksStep({
                 type="button"
                 aria-pressed={on}
                 onClick={() => onToggle(n)}
-                className={`group relative flex w-[calc(50%-6px)] flex-col overflow-hidden rounded-[20px] border-2 text-left transition-colors sm:w-[200px] ${on ? "border-success bg-success/[0.07]" : "border-transparent bg-card hover:border-border"}`}
+                className={`group relative flex w-[calc(50%-6px)] flex-col overflow-hidden rounded-[20px] border-2 text-left transition-colors sm:w-[200px] ${on ? "border-success bg-card bg-[linear-gradient(hsl(var(--success)/0.07),hsl(var(--success)/0.07))]" : "border-transparent bg-card hover:border-border"}`}
               >
                 {on && (
-                  <span className="absolute right-3 top-3 z-10 grid h-6 w-6 place-items-center rounded-full bg-success text-white motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-200">
+                  <span className="absolute right-3 top-3 z-10 grid h-6 w-6 place-items-center rounded-full bg-success text-white dark:text-black motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-200">
                     <CheckIcon size={14} weight="bold" />
                   </span>
                 )}
                 <span className="grid h-[92px] w-full place-items-center bg-gradient-to-br from-primary/10 via-brand/10 to-primary/5">
-                  <span className={`grid h-14 w-14 place-items-center rounded-2xl shadow-card transition-transform motion-safe:group-hover:scale-105 ${on ? "bg-success text-white" : "bg-card text-primary"}`}>
+                  <span className={`grid h-14 w-14 place-items-center rounded-2xl shadow-card transition-transform motion-safe:group-hover:scale-105 ${on ? "bg-success text-white dark:text-black" : "bg-card text-primary"}`}>
                     <Glyph size={28} weight={on ? "fill" : "duotone"} />
                   </span>
                 </span>
