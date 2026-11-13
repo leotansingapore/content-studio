@@ -67,7 +67,7 @@ beforeAll(async () => {
     if (JSON.parse(String(init?.body)).stream) {
       return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: "A line." } }] })}\n\ndata: [DONE]\n\n`);
     }
-    return Response.json({ model: "gpt-6-luna", choices: [{ message: { content } }] });
+    return Response.json({ model: "gpt-6-sol", choices: [{ message: { content } }] });
   });
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});

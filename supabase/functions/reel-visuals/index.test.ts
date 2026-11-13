@@ -57,7 +57,7 @@ beforeAll(async () => {
     const reply = ai.replies.shift();
     if (reply === "drop") throw new TypeError("connection reset");
     if (typeof reply === "number") return answer({ error: "down" }, reply);
-    return answer({ model: "gpt-6-luna", choices: [{ message: { content: JSON.stringify(reply ?? {}) } }] });
+    return answer({ model: "gpt-6-sol", choices: [{ message: { content: JSON.stringify(reply ?? {}) } }] });
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "log").mockImplementation(() => {});
@@ -103,7 +103,7 @@ describe("today's breakdown and style read (pinned)", () => {
     expect(await res.json()).toEqual({ visuals: VISUALS, usage: { used: 1, limit: 20 } });
     expect(used(UID, "reel-visuals")).toBe(1);
     expect(ai.sent).toHaveLength(1);
-    expect(ai.sent[0]).toMatchObject({ model: "gpt-6-luna", max_completion_tokens: 5500, response_format: { json_schema: { name: "reel_visuals" } } });
+    expect(ai.sent[0]).toMatchObject({ model: "gpt-6-sol", max_completion_tokens: 5500, response_format: { json_schema: { name: "reel_visuals" } } });
     expect(ai.asked).toEqual([]);
   });
 

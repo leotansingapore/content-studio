@@ -123,7 +123,7 @@ beforeAll(async () => {
     if (url.startsWith("https://api.openai.com/")) {
       net.openai++;
       if (net.visionStatus !== 200) return new Response("{}", { status: net.visionStatus });
-      return Response.json({ model: "gpt-6-luna", choices: [{ message: { content: JSON.stringify(net.vision) } }] });
+      return Response.json({ model: "gpt-6-sol", choices: [{ message: { content: JSON.stringify(net.vision) } }] });
     }
     throw new Error(`unexpected fetch ${url}`);
   });

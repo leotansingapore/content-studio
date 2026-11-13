@@ -66,7 +66,7 @@ let filmSystem: typeof FilmModule.filmSystem;
     if (next === "throw") throw new Error("The operation timed out.");
     if (typeof next === "number") return new Response('{"error":"busy"}', { status: next });
     const message = typeof next.refusal === "string" ? { content: null, refusal: next.refusal } : { content: JSON.stringify(next) };
-    return Response.json({ model: body.model === "gpt-4.1" ? "gpt-4.1" : "gpt-6-luna", usage: { prompt_tokens: 5200, completion_tokens: 2100 }, choices: [{ message }] });
+    return Response.json({ model: body.model === "gpt-4.1" ? "gpt-4.1" : "gpt-6-sol", usage: { prompt_tokens: 5200, completion_tokens: 2100 }, choices: [{ message }] });
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -201,8 +201,8 @@ describe("film-directions", () => {
     expect([out.recommended, out.product]).toEqual([1, "data"]);
     expect(used("launch-film")).toBe(1);
     const sent = openai()[0].body as { model: string; response_format: { type: string; json_schema: { strict: boolean } }; max_completion_tokens: number };
-    expect([sent.model, sent.response_format.type, sent.response_format.json_schema.strict]).toEqual(["gpt-6-luna", "json_schema", true]);
-    expect(logged.some((l) => l.startsWith("video-assist film-directions gpt-6-luna 5200 in 2100 out"))).toBe(true);
+    expect([sent.model, sent.response_format.type, sent.response_format.json_schema.strict]).toEqual(["gpt-6-sol", "json_schema", true]);
+    expect(logged.some((l) => l.startsWith("video-assist film-directions gpt-6-sol 5200 in 2100 out"))).toBe(true);
   });
 
   it("asks Jev the spec's Recommended question over the three lines, and tags none under 0.4 or without an answer", async () => {

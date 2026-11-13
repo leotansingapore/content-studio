@@ -97,18 +97,18 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "engage-comments": upTo(0.02),
   "engage-connect": upTo(0.02),
   "profile-score": about(0.003), // Jev plus one OpenAI call, about 0.3 US cents (writing-judge/index.ts)
-  // gpt-6-luna (OPENAI_MODEL's default) at US$0.10 in / US$0.50 out per million (OpenAI pricing page, read 2026-10-21):
+  // gpt-6-sol (OPENAI_MODEL's default) at US$2 in / US$10 out per million (developers.openai.com, read 2026-11-13):
   // about 5,500 in and 700 out for up to 5 pages, plus two Jev calls under US$0.001 at US$0.042 per million
-  "brand-dna": about(0.001),
-  // a slideshow campaign run (slide-campaigns): one gpt-6-luna call of about 600 in and 300 out (US$0.0002), up to
+  "brand-dna": about(0.02),
+  // a slideshow campaign run (slide-campaigns): one gpt-6-sol call of about 600 in and 300 out (US$0.0042), up to
   // 12 slides drawn on Vercel (no provider), free Pexels fetches, and with Search the web on one DataForSEO Google
   // page (US$0.002). Optimize prompt counts as a make (one short call). Unverified.
-  "slide-campaign-make": upTo(0.003),
-  "slide-campaign-post": upTo(0.003),
-  // gpt-6-luna as above: 21 slideshow and wall makes on 23 Oct (live-p5dog function-logs.json) averaged 1,150 in and 470
-  // out, US$0.00035, the dearest US$0.00043; Jev's reads beside them (montage-pick, the make's checks) under US$0.0001.
+  "slide-campaign-make": upTo(0.007),
+  "slide-campaign-post": upTo(0.007),
+  // 21 slideshow and wall makes on 23 Oct (live-p5dog function-logs.json) averaged 1,150 in and 470 out, about US$0.007
+  // on gpt-6-sol, the dearest about US$0.009; Jev's reads beside them (montage-pick, the make's checks) under US$0.0001.
   // A fix or rewrite pass is one more call.
-  "remix-make": about(0.0005),
+  "remix-make": about(0.007),
   "remix-teardown": about(0.01), // unverified
   "remix-link": about(0.01), // unverified
   "remix-image": about(0.02), // unverified
@@ -119,16 +119,16 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "competitor-posts": upTo(0.123), // TikTok 33 x US$3.70 per 1,000 + US$0.001; Instagram US$0.092
   // Apps like yours (find-similar-accounts.md). A find: up to 12 + 60 Instagram profiles at US$2.60 per 1,000 (Free
   // plan, apify.com/apify/instagram-profile-scraper, read 2026-11-01) US$0.187, 8 TikTok searches of 30 results at
-  // US$3.70 per 1,000 + US$0.001 a run US$0.896, one gpt-6-luna call and up to about 300 Jev questions under US$0.01.
+  // US$3.70 per 1,000 + US$0.001 a run US$0.896, one gpt-6-sol call and up to about 300 Jev questions about US$0.03.
   // With fewer than 3 seeds, one more OpenAI call names the brand's rivals, priced as suggest's are: US$0.01, unverified.
-  "similar-find": upTo(1.1),
+  "similar-find": upTo(1.13),
   "similar-posts": upTo(0.123), // as competitor-posts; a weekly 10-post refresh costs less but is priced the same
   // The social north star (social-north-star.md). Jev labels up to 150 references and 60 of the brand's own posts:
   // about 4,600 input tokens a cover (real requests, jev-images-api memory, 26 Oct) plus about 600 for the words and the
-  // two questions, at US$0.042 per million (docs.typesafe.ai), 210 x 5,200 = 1.09M tokens, US$0.046; one gpt-6-luna
-  // recipe call of about 4,000 in and 1,500 out at US$0.10 / US$0.50 per million, US$0.0012. A weekly rebuild labels only
+  // two questions, at US$0.042 per million (docs.typesafe.ai), 210 x 5,200 = 1.09M tokens, US$0.046; one gpt-6-sol
+  // recipe call of about 4,000 in and 1,500 out at US$2 / US$10 per million, US$0.023. A weekly rebuild labels only
   // the new posts. How many covers Jev can take (280 to 1568 px a side) is unverified until the first build.
-  "social-plays": upTo(0.05),
+  "social-plays": upTo(0.07),
   "space-ads": upTo(0.522), // 90 ads x US$5.80 per 1,000
   "viral-search": about(0.077), // 20 TikTok results + one YouTube block + Jev
   "post-tags": about(0.01), // teardown OpenAI + Jev, unverified
@@ -144,11 +144,11 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "likeness-check": about(0.002), // Whisper US$0.006 a minute on a 15 s clip
   // one Soul v2 picture, 0.09 credits; a make is 3 uses, so its chip is sumPrices of three
   "ai-presenter": about(0.006),
-  "brand-products": about(0.002), // gpt-6-luna, about 8,000 in and 2,000 out, plus Jev
+  "brand-products": about(0.04), // gpt-6-sol, about 8,000 in and 2,000 out, plus Jev
   "media-sort": about(0.001), // gpt-4.1 low-detail vision (85 tokens plus 250 of prompt in, 80 out) plus one Jev pick
   "post-translate": about(0.01), // gpt-4.1, about 600 in and 1,000 out
   // North star phase 5 (phase5-build-brief.md, vendors, read 2026-10-22).
-  "audience-suggest": about(0.001), // gpt-6-luna, about 5,500 in and 900 out, plus Jev
+  "audience-suggest": about(0.02), // gpt-6-sol, about 5,500 in and 900 out, plus Jev
   "campaign-angles": about(0.008), // gpt-4.1, about 1,200 in and 700 out, plus 16 Jev questions
   // gpt-4.1, up to 7 posts a call, about 2,500 in and 3,500 out, plus the MAS question per post
   "campaign-draft": about(0.035),
@@ -156,9 +156,10 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "ideas-daily": about(0.012), // gpt-4.1, about 2,000 in and 1,000 out, plus Jev
   // North star phase 6 (phase6-build-brief.md, vendors, read 2026-10-22).
   "skill-answer": about(0.003), // one Jev pick plus one short OpenAI call, about 1,200 in and 400 out
-  // North star phase 7 (phase7-build-brief.md, prices). gpt-6-luna: a film with 10 notes about US$0.015 in all.
-  "launch-film": about(0.003), // unverified
-  "film-edit": about(0.001), // unverified
+  // North star phase 7 (phase7-build-brief.md, prices), at 20 times the gpt-6-luna estimate: gpt-6-sol's rates are 20
+  // times luna's. A film with 10 notes about US$0.30 in all.
+  "launch-film": about(0.06), // unverified
+  "film-edit": about(0.02), // unverified
   "edit-read": about(0.05), // vision on 24 frames plus Jev's picks, unverified
   // a remade part is a Speak run: priceOf("edit-version", { seconds }) per part, plus priceOf("ai-voice") (sumPrices)
   "edit-version": aiVideoPrice,

@@ -14,7 +14,7 @@ describe("the price table", () => {
   });
 
   it("prices the phase-1 remix caps up front and keeps the fit check free", () => {
-    expect(priceOf("remix-make")).toEqual({ usd: 0.0005, kind: "about" });
+    expect(priceOf("remix-make")).toEqual({ usd: 0.007, kind: "about" });
     expect(priceOf("remix-teardown")).toEqual({ usd: 0.01, kind: "about" });
     expect(priceOf("remix-link")).toEqual({ usd: 0.01, kind: "about" });
     expect(priceOf("remix-image")).toEqual({ usd: 0.02, kind: "about" });
@@ -39,14 +39,14 @@ describe("the price table", () => {
   });
 
   it("prices Apps like yours from the Apify unit costs, its across-everyone counters free", () => {
-    expect(priceOf("similar-find")).toEqual({ usd: 1.1, kind: "upTo" }); // 1.09 plus the rivals step's OpenAI call
+    expect(priceOf("similar-find")).toEqual({ usd: 1.13, kind: "upTo" }); // 1.11 plus the rivals step's OpenAI call
     expect(priceOf("similar-posts")).toEqual(priceOf("competitor-posts"));
     expect(priceOf("similar-find-global")).toBeNull();
     expect(priceOf("similar-posts-global")).toBeNull();
   });
 
   it("prices a social north star build from Jev's measured image tokens, its across-everyone counter free", () => {
-    expect(priceOf("social-plays")).toEqual({ usd: 0.05, kind: "upTo" });
+    expect(priceOf("social-plays")).toEqual({ usd: 0.07, kind: "upTo" });
     expect(priceOf("social-plays-global")).toBeNull();
   });
 
@@ -65,14 +65,16 @@ describe("the price table", () => {
     const chip = (f: UsageFeature) => priceText(priceOf(f) as { usd: number; kind: "about" });
     expect(priceOf("likeness-check")).toEqual({ usd: 0.002, kind: "about" });
     expect(priceOf("ai-presenter")).toEqual({ usd: 0.006, kind: "about" });
-    expect(priceOf("brand-products")).toEqual({ usd: 0.002, kind: "about" });
+    expect(priceOf("brand-products")).toEqual({ usd: 0.04, kind: "about" });
     expect(priceOf("media-sort")).toEqual({ usd: 0.001, kind: "about" });
     expect(priceOf("post-translate")).toEqual({ usd: 0.01, kind: "about" });
-    expect(priceOf("brand-dna")).toEqual({ usd: 0.001, kind: "about" });
-    for (const f of ["likeness-check", "ai-presenter", "brand-products", "media-sort", "brand-dna"] as UsageFeature[]) {
+    expect(priceOf("brand-dna")).toEqual({ usd: 0.02, kind: "about" });
+    for (const f of ["likeness-check", "ai-presenter", "media-sort"] as UsageFeature[]) {
       expect(chip(f), f).toBe("Under US$0.01");
     }
     expect(chip("post-translate")).toBe("About US$0.01");
+    expect(chip("brand-products")).toBe("About US$0.04");
+    expect(chip("brand-dna")).toBe("About US$0.02");
     // a presenter make spends 3 uses of ai-presenter, so its chip adds three pictures
     const p = priceOf("ai-presenter");
     expect(priceText(sumPrices(p, p, p) as { usd: number; kind: "about" })).toBe("About US$0.02");
@@ -82,12 +84,13 @@ describe("the price table", () => {
 
   it("prices the phase-5 caps from the brief's vendor table, with the chips they show", () => {
     const chip = (f: UsageFeature) => priceText(priceOf(f) as { usd: number; kind: "about" });
-    expect(priceOf("audience-suggest")).toEqual({ usd: 0.001, kind: "about" });
+    expect(priceOf("audience-suggest")).toEqual({ usd: 0.02, kind: "about" });
     expect(priceOf("campaign-angles")).toEqual({ usd: 0.008, kind: "about" });
     expect(priceOf("campaign-draft")).toEqual({ usd: 0.035, kind: "about" });
     expect(priceOf("campaign-swap")).toEqual({ usd: 0.005, kind: "about" });
     expect(priceOf("ideas-daily")).toEqual({ usd: 0.012, kind: "about" });
-    for (const f of ["audience-suggest", "campaign-angles", "campaign-swap"] as UsageFeature[]) expect(chip(f), f).toBe("Under US$0.01");
+    for (const f of ["campaign-angles", "campaign-swap"] as UsageFeature[]) expect(chip(f), f).toBe("Under US$0.01");
+    expect(chip("audience-suggest")).toBe("About US$0.02");
     expect(chip("ideas-daily")).toBe("About US$0.01");
     expect(chip("campaign-draft")).toBe("About US$0.04");
     // 12 posts are two writing calls, so the Add chip sums two uses
@@ -106,11 +109,11 @@ describe("the price table", () => {
 
   it("prices the phase-7 caps from the brief's table: films and edit reads priced, a version as ai-video, Jev's reads free", () => {
     const chip = (f: UsageFeature, o = {}) => priceText(priceOf(f, o) as { usd: number; kind: "about" });
-    expect(priceOf("launch-film")).toEqual({ usd: 0.003, kind: "about" });
-    expect(priceOf("film-edit")).toEqual({ usd: 0.001, kind: "about" });
+    expect(priceOf("launch-film")).toEqual({ usd: 0.06, kind: "about" });
+    expect(priceOf("film-edit")).toEqual({ usd: 0.02, kind: "about" });
     expect(priceOf("edit-read")).toEqual({ usd: 0.05, kind: "about" });
-    expect(chip("launch-film")).toBe("Under US$0.01");
-    expect(chip("film-edit")).toBe("Under US$0.01");
+    expect(chip("launch-film")).toBe("About US$0.06");
+    expect(chip("film-edit")).toBe("About US$0.02");
     expect(chip("edit-read")).toBe("About US$0.05");
     // a remade part is a Speak run, so it costs what ai-video costs for that length
     for (const seconds of [7.5, 15, 25, 40]) expect(priceOf("edit-version", { seconds }), `${seconds}s`).toEqual(priceOf("ai-video", { seconds }));

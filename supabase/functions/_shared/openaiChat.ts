@@ -5,7 +5,7 @@
 // Roll back or move on without a deploy: `supabase secrets set OPENAI_MODEL=<id>`
 // (hgdbflprrficdoyxmdxe is shared with aia-product-compass-hub; the secret moves both repos).
 
-export const OPENAI_MODEL = Deno.env.get("OPENAI_MODEL") || "gpt-6-luna";
+export const OPENAI_MODEL = Deno.env.get("OPENAI_MODEL") || "gpt-6-sol";
 
 const URL = "https://api.openai.com/v1/chat/completions";
 
@@ -53,7 +53,7 @@ export async function openaiChat(
   const res = await post({
     ...rest,
     model: OPENAI_MODEL,
-    // Chat Completions refuses function tools with any effort but "none" on gpt-6-luna.
+    // Chat Completions refuses function tools with any effort but "none" on gpt-6-sol.
     reasoning_effort: body.tools ? "none" : opts.effort ?? "low",
     ...(typeof max_tokens === "number" ? { max_completion_tokens: max_tokens + REASONING_HEADROOM } : {}),
   });

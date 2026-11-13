@@ -355,7 +355,7 @@ describe("Caption translation (pinned at b65fc14f, before posts are translated)"
   ].join("\n");
   const asked = (sentLines: string[]) =>
     JSON.stringify({
-      model: "gpt-6-luna",
+      model: "gpt-6-sol",
       response_format: { type: "json_object" },
       messages: [{ role: "system", content: SYSTEM }, { role: "user", content: JSON.stringify({ lines: sentLines }) }],
       reasoning_effort: "low",

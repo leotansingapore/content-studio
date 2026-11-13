@@ -22,7 +22,7 @@
     ]
   },
   "openai": {
-    "model": "gpt-6-luna",
+    "model": "gpt-6-sol",
     "response_format": {
       "type": "json_schema",
       "json_schema": {

@@ -45,7 +45,7 @@ beforeAll(async () => {
       if (openai === "down") return new Response("overloaded", { status: 500 });
       if (openai === "slow") return Promise.reject(Object.assign(new Error("signal timed out"), { name: "TimeoutError" }));
       const content = openai === "junk" ? "{\"ideas\": []}" : JSON.stringify({ ideas: [idea(1), idea(2), idea(3)] });
-      return Response.json({ model: "gpt-6-luna", choices: [{ message: { content } }], usage: { prompt_tokens: 900, completion_tokens: 200 } });
+      return Response.json({ model: "gpt-6-sol", choices: [{ message: { content } }], usage: { prompt_tokens: 900, completion_tokens: 200 } });
     }
     throw new Error(`unexpected fetch ${url}`);
   });

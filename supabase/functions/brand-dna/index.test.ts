@@ -511,7 +511,7 @@ describe("audience suggestions (phase 5, Leo only)", () => {
       },
     });
     expect(seen).not.toContain("https://acme.sg/blog/tips");
-    expect(writer()).toMatchObject({ model: "gpt-6-luna", max_completion_tokens: 900 + 4000, response_format: { json_schema: { name: "brand_audiences", strict: true } } });
+    expect(writer()).toMatchObject({ model: "gpt-6-sol", max_completion_tokens: 900 + 4000, response_format: { json_schema: { name: "brand_audiences", strict: true } } });
     expect(writer().messages[1].content).toContain('<page url="https://acme.sg/about">\nAbout Two advisers who mostly see parents.\n</page>');
     expect(writer().messages[1].content).toContain("Groups already saved, so write different ones:\n- Pre-retirees: People in their 50s planning retirement");
     // one Jev request over every candidate, after the page pick

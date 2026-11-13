@@ -49,7 +49,7 @@ beforeAll(async () => {
     if (openai.mode === "drops") throw new TypeError("network connection lost");
     if (openai.mode === "down") return new Response("{}", { status: 500 });
     const content = JSON.stringify({ slides: [{ texts: ["It isn't", "Short now."] }], reply: "Cut it to one line." });
-    return Response.json({ model: "gpt-6-luna", choices: [{ message: { content } }] });
+    return Response.json({ model: "gpt-6-sol", choices: [{ message: { content } }] });
   });
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});

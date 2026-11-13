@@ -240,7 +240,7 @@ export const DAILY_LIMITS = {
   // Three angles to answer a competitor's new ad (idea-dump answer): one Jev pick and one short OpenAI call.
   "skill-answer": 10,
   // North star phase 7, declared up front (Leo only, NORTH_STAR_USERS). Three film directions, or the film written from
-  // one (video-assist film-directions and film): one gpt-6-luna call with a strict schema, retried once inside the use.
+  // one (video-assist film-directions and film): one gpt-6-sol call with a strict schema, retried once inside the use.
   "launch-film": 10,
   // A change typed or pointed at on a launch film (video-assist film-edit): one short call that patches the film.
   "film-edit": 60,
