@@ -1555,9 +1555,16 @@ export default function CalendarPage() {
   };
 
   // The day the month or week view is showing: the link's week or month, else the open item's day (a link to a
-  // team post in November opens November behind it), else today.
+  // team post in November opens November behind it), else today. An item today's grid already shows keeps today's: a
+  // post on 2 Dec tapped in November's last row opens under November, not December.
   const focusDay = dayOpen ?? teamOpen?.day ?? openFeed?.date ?? (selected && !selectedGhost ? eventDate(selected) : null);
-  const anchor = linkDay(params.get("week")) ?? (linkMonth(params.get("month")) ? `${params.get("month")}-01` : null) ?? focusDay ?? todayKey;
+  const todayDate = keyToDate(todayKey);
+  const shownToday = (day: string) => (view === "week" ? weekOf(todayKey) : monthGrid(todayDate.getFullYear(), todayDate.getMonth())).includes(day);
+  const anchor =
+    linkDay(params.get("week")) ??
+    (linkMonth(params.get("month")) ? `${params.get("month")}-01` : null) ??
+    (focusDay && !shownToday(focusDay) ? focusDay : null) ??
+    todayKey;
   const anchorDate = keyToDate(anchor);
   const grid = useMemo(() => {
     const d = keyToDate(anchor);

@@ -98,6 +98,11 @@ describe("Calendar's days", () => {
   it("offers no Add in Upcoming", () => {
     expect(adds(html("/calendar?view=upcoming"))).toHaveLength(0);
   });
+  it("keeps October on screen for a day from November that October's last row shows, and opens a later one's month", () => {
+    const month = (out: string) => out.match(/<h2 class="hidden [^"]*sm:block">([^<]+)<\/h2>/)![1];
+    expect(month(html("/calendar?day=2026-11-03"))).toBe("October 2026");
+    expect(month(html("/calendar?day=2026-11-20"))).toBe("November 2026");
+  });
   it("dims past days and labels today, in both grids", () => {
     for (const out of [html(), html("/calendar?view=week")]) {
       expect(cell(out, "2026-10-21")).toContain("bg-muted/40");
