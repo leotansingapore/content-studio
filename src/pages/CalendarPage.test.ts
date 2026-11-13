@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-import CalendarPage, { SLOT_CHOICES, SLOT_DEFAULT } from "./CalendarPage";
+import CalendarPage, { SLOT_CHOICES, SLOT_DEFAULT, writeHref } from "./CalendarPage";
 
 const html = (path = "/calendar") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [path] }, createElement(CalendarPage)));
 
@@ -75,6 +75,21 @@ describe("Calendar's header, in Fastlane's order", () => {
   it("recommends 3 posting times a week", () => {
     expect(SLOT_DEFAULT).toBe(3);
     expect([...SLOT_CHOICES]).toEqual([3, 5, 7]);
+  });
+});
+
+describe("Open on a post", () => {
+  const item = { id: "s1", week: 1, pillar: "topic", pillarDetail: "CPF", audience: "general", format: "text-post", platform: "linkedin", ctaType: "save-share", stage: "trust", ideaSource: "x", angle: "Why CPF", hook: "h", formulaId: "contrarian" };
+  const plan = { thisWeek: "A client asked", items: [item] } as unknown as Parameters<typeof writeHref>[1];
+  const post = (id: string, draft: string) => ({ id, draft }) as Parameters<typeof writeHref>[0];
+  it("opens a weekly plan slot not written yet with the plan's brief, as the plan's Write it does", () => {
+    const href = writeHref(post("plan_s1", ""), plan, [post("plan_s1", "")]);
+    expect(href).toMatch(/^\/generate\?pillar=topic&.*formula=contrarian&draft=plan_s1$/);
+  });
+  it("opens any other post, or a written slot, by its id", () => {
+    expect(writeHref(post("plan_s1", "Written"), plan, [post("plan_s1", "Written")])).toBe("/generate?draft=plan_s1");
+    expect(writeHref(post("abc", ""), plan, [])).toBe("/generate?draft=abc");
+    expect(writeHref(post("plan_s1", ""), null, [])).toBe("/generate?draft=plan_s1");
   });
 });
 

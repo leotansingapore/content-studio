@@ -33,6 +33,7 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import { plannedByDay, type PlannedPost } from "@/lib/campaignBoard";
 import { loadCampaigns, onCampaignsChanged } from "@/lib/campaigns";
 import { FORMAT_NAME } from "@/lib/campaignWizard";
+import { loadPlan, planDraftId, planSlotWriteUrl, type ContentPlan } from "@/lib/contentPlan";
 import { links } from "@/lib/links";
 import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate, withParam } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -182,6 +183,11 @@ const sortKey = (d: DraftEntry) =>
   (draftStatus(d) === "posted" ? d.postedAt : d.scheduledFor) ?? "";
 
 const titleOf = (d: DraftEntry) => d.hook || d.draft.slice(0, 60) || "Untitled";
+/** Where Open takes a post: a weekly plan slot not written yet opens Write with the plan's brief, as the plan's own Write it does. */
+export function writeHref(d: Pick<DraftEntry, "id" | "draft">, plan: Pick<ContentPlan, "items" | "thisWeek"> | null, drafts: Pick<DraftEntry, "id" | "draft">[]) {
+  const slot = d.draft.trim() ? undefined : plan?.items.find((it) => planDraftId(it) === d.id);
+  return slot ? planSlotWriteUrl(slot, drafts, plan?.thisWeek) : `/generate?draft=${encodeURIComponent(d.id)}`;
+}
 const dayLabel = (key: string) =>
   keyToDate(key).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
 const whenLabel = (scheduledFor: string) => {
@@ -610,6 +616,8 @@ export default function CalendarPage() {
   };
 
   const selected = drafts.find((d) => d.id === selectedId) ?? null;
+  // the weekly plan behind Add to calendar's posts, for their Open (writeHref)
+  const weekPlan = useMemo(() => loadPlan(userId), [userId]);
   // Leo's schedule steps live in the URL (?post=&schedule=1, with step and network for the steps): a link reopens them.
   // Everyone else keeps the panel in component state, as before.
   const scheduleFor = leo && params.get("schedule") === "1" && selected && draftStatus(selected) !== "posted" ? selected.id : null;
@@ -1111,7 +1119,7 @@ export default function CalendarPage() {
         <div className="flex flex-wrap items-center gap-2">
           {!posted && moveInput(d)}
           <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
-            <Link to={`/generate?draft=${encodeURIComponent(d.id)}`}>Open</Link>
+            <Link to={writeHref(d, weekPlan, drafts)}>Open</Link>
           </Button>
           {/* outlined, as the day panel's Write: the status line's Write button stays the page's one filled button */}
           {!posted && (
@@ -1642,7 +1650,7 @@ export default function CalendarPage() {
       <div key={e.id} className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card">
         {dateBadge(date)}
         <div className="min-w-0 flex-1 space-y-1.5">
-          <Link to={links.generate({ draft: e.id })} draggable={false} className="block w-full min-w-0 text-left">
+          <Link to={writeHref(e, weekPlan, drafts)} draggable={false} className="block w-full min-w-0 text-left">
             <p className="truncate text-sm font-medium text-foreground">{titleOf(e)}</p>
             <p className="text-xs text-muted-foreground">
               {PLATFORM_LABEL[e.platform] ?? e.platform} ·{" "}
