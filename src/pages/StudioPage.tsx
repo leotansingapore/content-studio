@@ -160,7 +160,7 @@ export default function StudioPage() {
       <Section
         id="formats"
         title="Content formats"
-        count={cards.length}
+        count={shown.length}
         more={leo ? { to: links.make(), label: "All formats" } : undefined}
         tabs={
           kinds.length > 1 && (

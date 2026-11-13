@@ -61,6 +61,8 @@ describe("Create's type tabs", () => {
       const want = CUSTOMER_FORMATS.filter((w) => kindOf(w.to) === kind).map((w) => w.to);
       expect(want.length, param).toBeGreaterThan(0);
       expect(formatHrefs(out), param).toEqual(want);
+      // the heading counts the cards shown, not every format
+      expect(out, param).toMatch(new RegExp(`Content formats<span[^>]*>${want.length}</span>`));
     }
   });
 
