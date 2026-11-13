@@ -32,7 +32,7 @@
 //   TREND_COUNT          (optional) target number of trends, default 12
 //   TREND_MIN            (optional) minimum valid trends or the run fails
 //                        without writing, default 8 (never overwrite a good drop)
-//   TREND_MODEL          (optional) model id, default claude-opus-4-8
+//   TREND_MODEL          (optional) model id, default claude-opus-5-5
 //   TREND_MIN_ENGAGEMENT (optional) TikTok floor on likes + comments, default 1000
 //   TREND_MAX_AGE_DAYS   (optional) ignore videos older than this, default 14
 //   TIKTOK_HASHTAGS      (optional) comma-separated hashtag override
@@ -824,7 +824,7 @@ export async function runScout({ env = process.env, run = runActor, kits = write
   const min = Number(env.TREND_MIN || 8);
   const minEngagement = Number(env.TREND_MIN_ENGAGEMENT || 1000);
   const maxAgeDays = Number(env.TREND_MAX_AGE_DAYS || 14);
-  const model = env.TREND_MODEL || "claude-opus-4-8";
+  const model = env.TREND_MODEL || "claude-opus-5-5";
   const out = env.TREND_OUT || DEFAULT_OUT;
   const hashtagOut = env.HASHTAG_OUT || DEFAULT_HASHTAG_OUT;
   const today = singaporeDate(new Date(now));

@@ -393,7 +393,7 @@ describe("untrusted pictures and replies", () => {
     expect(claudeArgs("/private/var/folders/t/format-scout-1/read-a", "PROMPT")).toEqual([
       "-p",
       "--model",
-      "sonnet",
+      "opus",
       "--restricted",
       "--strict-mcp-config",
       "--tools=Read",

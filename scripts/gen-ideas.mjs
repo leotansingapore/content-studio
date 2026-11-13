@@ -61,7 +61,7 @@ POSTS:
 ${JSON.stringify(payload)}`;
   let out = "";
   try {
-    out = execFileSync("claude", ["-p", "--model", "sonnet", prompt], {
+    out = execFileSync("claude", ["-p", "--model", "opus", prompt], {
       encoding: "utf8",
       maxBuffer: 1024 * 1024 * 20,
       timeout: 180000,

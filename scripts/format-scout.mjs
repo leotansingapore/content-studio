@@ -6,7 +6,7 @@
 //    result count and the price before anything is paid, and refuses above FORMAT_SCOUT_MAX_USD (default 1.5).
 // 2. Keeps posts from the last 90 days with 50,000 views or more (30 days kept 2 of 174 search results on 21 Oct;
 //    90 kept 36 with 11 slideshows, and a format ages slower than a sound). A photo-mode post is a slideshow.
-// 3. The free Claude CLI (claude -p --model sonnet) reads the pictures, since Jev reads text only: up to 10 slides
+// 3. The free Claude CLI (claude -p --model opus) reads the pictures, since Jev reads text only: up to 10 slides
 //    of each slideshow give its hook and what each slide does; each video's cover says whether it is a wall of text,
 //    and if so its hook and what each part does. Never the words themselves, only the jobs. The pictures are scraped
 //    strangers' work and may carry planted instructions, and the run is on Leo's Mac beside his keys, so the CLI gets
@@ -334,7 +334,7 @@ async function grabJpeg(url, file, token) {
 export const claudeArgs = (dir, prompt) => [
   "-p",
   "--model",
-  "sonnet",
+  "opus",
   "--restricted",
   "--strict-mcp-config",
   "--tools=Read",
