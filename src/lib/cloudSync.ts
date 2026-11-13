@@ -574,13 +574,32 @@ export function createCloudSync(
   };
 }
 
-function supabaseBackend(userId: string): SyncBackend {
+/** PostgREST's max_rows: one answer holds 1,000 rows at most. */
+const PAGE_ROWS = 1000;
+
+/** Every row of a read, a page at a time in key order, each page after the last key, until a short page. */
+async function paged(page: (after: string | null) => PromiseLike<{ data: SyncRow[] | null; error: unknown }>): Promise<{ data: SyncRow[] | null; error: unknown }> {
+  const all: SyncRow[] = [];
+  for (let after: string | null = null; ;) {
+    const { data, error } = await page(after);
+    if (error || !data) return { data: null, error: error ?? new Error("no rows") };
+    all.push(...data);
+    if (data.length < PAGE_ROWS) return { data: all, error: null };
+    after = data[data.length - 1].key;
+  }
+}
+
+export function supabaseBackend(userId: string): SyncBackend {
   const table = () => supabase.from("cs_user_data");
+  const base = () => table().select("key,data,updated_at").eq("user_id", userId);
+  // a whole-account read past 1,000 rows got an arbitrary 1,000 (13 Nov: 37 brands on Leo's account). A builder keeps
+  // every filter added to it, so each page starts a new one.
+  const pages = (make: () => ReturnType<typeof base>) => paged((after) => {
+    const q = make();
+    return (after === null ? q : q.gt("key", after)).order("key").limit(PAGE_ROWS);
+  });
   return {
-    pull: (keys) => {
-      const rows = table().select("key,data,updated_at").eq("user_id", userId);
-      return keys ? rows.in("key", keys) : rows;
-    },
+    pull: (keys) => (keys ? base().in("key", keys) : pages(base)),
     upsert: (rows) =>
       table().upsert(
         rows.map((row) => ({ user_id: userId, ...row })),
@@ -588,11 +607,7 @@ function supabaseBackend(userId: string): SyncBackend {
       ),
     remove: (keys) => table().delete().eq("user_id", userId).in("key", keys),
     stamps: (keys) => table().select("key,updated_at").eq("user_id", userId).in("key", keys),
-    pullLike: (prefixes) =>
-      table()
-        .select("key,data,updated_at")
-        .eq("user_id", userId)
-        .or(prefixes.map((p) => `key.like.${p}*`).join(",")),
+    pullLike: (prefixes) => pages(() => base().or(prefixes.map((p) => `key.like.${p}*`).join(","))),
     swap: async (row, seen) => {
       if (seen === null) {
         const { error } = await table().insert({ user_id: userId, ...row });
