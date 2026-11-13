@@ -61,6 +61,17 @@ describe("reading a brand's home page", () => {
     expect(handleOf("linkedin", "https://www.linkedin.com/shareArticle?url=x")).toBe("");
   });
 
+  it("reads the name and description a page streams at its end, as Next.js does for readers it doesn't call bots", () => {
+    const filler = `<div>${"x".repeat(400_000)}</div>`;
+    const late = `<html><head><meta charset="utf-8"></head><body><svg><title>Carat</title></svg>${filler}<meta name="description" content="Coaching for business and life."/><meta property="og:site_name" content="Tony Robbins"/></body></html>`;
+    const s = readSite(late, BASE);
+    expect(s.description).toBe("Coaching for business and life.");
+    expect(s.name).toBe("Tony Robbins");
+    const headFirst = `<head><meta name="description" content="From the head"/></head><body>${filler}<meta name="description" content="From the end"/></body>`;
+    expect(readSite(headFirst, BASE).description).toBe("From the head");
+    expect(readSite(`<body><p>short</p><meta name="description" content="Short page"/></body>`, BASE).description).toBe("Short page");
+  });
+
   it("falls back to the title, then the host, for a name", () => {
     expect(readSite("<title>Bee Clinic - Family GP</title>", BASE).name).toBe("Bee Clinic");
     expect(readSite("<p>hi</p>", BASE).name).toBe("acme.sg");

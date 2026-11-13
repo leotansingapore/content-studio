@@ -138,9 +138,11 @@ export function readSite(html: string, base: URL): SiteFacts {
   // a home page's name, links and first words sit in its first 300 KB
   const body = html.slice(0, 300_000);
   const head = body.slice(0, 100_000);
+  const late = html.length > 300_000 ? html.slice(-120_000) : "";
+  const metaOf = (...keys: string[]) => meta(head, ...keys) || (late ? meta(late, ...keys) : "");
   const title = decode((head.match(/<title[^<>]{0,500}>([^<]{0,500})<\/title>/i)?.[1] ?? "").replace(/\s+/g, " ").trim());
-  const name = (meta(head, "og:site_name", "application-name") || title.split(/\s[|\-–—:]\s/)[0] || base.hostname.replace(/^www\./, "")).slice(0, 60);
-  const description = (meta(head, "description", "og:description")).slice(0, 400);
+  const name = (metaOf("og:site_name", "application-name") || title.split(/\s[|\-–—:]\s/)[0] || base.hostname.replace(/^www\./, "")).slice(0, 60);
+  const description = metaOf("description", "og:description").slice(0, 400);
 
   // likeliest logo first: a touch icon (square, usually the mark), an image that calls itself a logo, then the
   // page's own icons and its share picture
