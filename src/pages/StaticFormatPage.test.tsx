@@ -53,8 +53,10 @@ describe("the static format page", () => {
     expect(page).toContain('href="/make?tab=static"');
     expect(page).toContain("Text message chat");
     expect(page).toContain("A text chat about a familiar task or mix-up.");
-    expect(page).toContain("data:image/svg+xml");
-    expect(page).toContain("Made up for a coffee shop.");
+    // four made examples, then our own drawn layout as the fifth
+    expect(page).toContain("Example 1 of 5");
+    expect(page).toContain('src="/formats/static/text-chat-1.webp"');
+    expect(page).toContain("Angle: Name the pain. Made up for Hilltop Coffee.");
     expect(page).toContain("No photo needed. The words carry it.");
     expect(page).toContain('id="static-note"');
     expect(page.match(/Make an ad in this format/g)).toHaveLength(1);

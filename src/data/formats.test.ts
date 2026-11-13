@@ -264,3 +264,22 @@ describe("usedUpLine", () => {
     expect(usedUpLine(["ai-video", "ai-voice"], left({ "ai-voice": null }))).toBeNull();
   });
 });
+
+// every card on Create and Studio shows an example file; a missing one falls back to a drawn tile, which this stops
+describe("format examples on disk", () => {
+  it("has a poster for every ready format, a clip for every ready video, and every static shot listed", async () => {
+    const { existsSync } = await import("node:fs");
+    const { STATIC_FORMATS, STATIC_SHOTS } = await import("./staticFormats");
+    const missing: string[] = [];
+    for (const f of FORMATS.filter((x) => x.ready)) {
+      if (!existsSync(`public/formats/${f.slug}.webp`)) missing.push(`${f.slug}.webp`);
+      if (f.kind === "video" && !existsSync(`public/formats/${f.slug}.mp4`)) missing.push(`${f.slug}.mp4`);
+    }
+    for (const f of STATIC_FORMATS.filter((x) => x.ready)) {
+      const shots = STATIC_SHOTS[f.slug] ?? [];
+      if (shots.length < 4) missing.push(`${f.slug}: fewer than 4 examples`);
+      shots.forEach((_, i) => existsSync(`public/formats/static/${f.slug}-${i + 1}.webp`) || missing.push(`static/${f.slug}-${i + 1}.webp`));
+    }
+    expect(missing).toEqual([]);
+  });
+});

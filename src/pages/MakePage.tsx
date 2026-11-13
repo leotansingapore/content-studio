@@ -9,7 +9,7 @@
 // A video card with no preview clip draws its own storyboard tile (FormatTile), free.
 // The page calls no AI and stores nothing; the only read is today's usage counts.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { DiamondIcon, ImageIcon, MagnifyingGlassIcon, SpeakerXIcon } from "@phosphor-icons/react";
 import FormatTile from "@/components/make/FormatTile";
@@ -21,7 +21,7 @@ import {
   FORMATS, FORMAT_FILTERS, NEED_LINES, bySection, filterFormats, formatHref, readyStatics, searchFormats,
   type FormatDef, type FormatFilter, type FormatNeed,
 } from "@/data/formats";
-import { STATIC_NEED_LINES, staticFormatHref, type StaticFormat } from "@/data/staticFormats";
+import { STATIC_NEED_LINES, staticFormatHref, staticShotSrc, type StaticFormat } from "@/data/staticFormats";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { demoVideos } from "@/lib/demoVideos";
 import { links } from "@/lib/links";
@@ -183,7 +183,7 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
   const [playing, setPlaying] = useState(false);
   const [broken, setBroken] = useState(false);
   const poster = !!f.preview && !broken;
-  const play = () => poster && window.matchMedia(PLAYS).matches && setPlaying(true);
+  const play = () => poster && f.kind === "video" && window.matchMedia(PLAYS).matches && setPlaying(true);
   const stop = () => setPlaying(false);
   const price = f.price();
   const needsHref = lacking && f.needs ? NEED_HREFS[f.needs] : undefined;
@@ -237,21 +237,13 @@ function FormatCard({ f, left, lacking }: { f: FormatDef; left: number | null; l
 /** One static ad format: its line, then what it works best with or needs. Opens its own page. */
 function StaticCard({ f }: { f: StaticFormat }) {
   const extra = f.needs ? STATIC_NEED_LINES[f.needs].needs : f.best ? STATIC_NEED_LINES[f.best].best : null;
-  // the format's own example, drawn after the gallery paints so the drawing code stays out of this page's chunk
-  const [example, setExample] = useState<string | null>(null);
-  useEffect(() => {
-    let on = true;
-    void import("@/lib/staticExample").then((m) => on && setExample(m.staticExampleUrl(f)), () => {});
-    return () => {
-      on = false;
-    };
-  }, [f]);
+  const [broken, setBroken] = useState(false);
   return (
     <div className={BOX}>
       <Link to={staticFormatHref(f.slug)} className={CARD}>
         <div className={`${TILE} aspect-[4/5]`}>
-          {example ? (
-            <img src={example} alt="" className="h-full w-full object-cover" />
+          {!broken ? (
+            <img src={staticShotSrc(f.slug, 1)} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center">
               <ImageIcon className="h-8 w-8 text-muted-foreground/70" aria-hidden />

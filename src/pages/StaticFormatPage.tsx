@@ -8,12 +8,12 @@
 
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { CaretLeftIcon, ImageSquareIcon, SparkleIcon } from "@phosphor-icons/react";
+import { CaretLeftIcon, CaretRightIcon, ImageSquareIcon, SparkleIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { staticFormatBySlug, type StaticFormat } from "@/data/staticFormats";
+import { STATIC_SHOTS, staticFormatBySlug, staticShotSrc, type StaticFormat } from "@/data/staticFormats";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { staticExampleUrl } from "@/lib/staticExample";
 import { isStatic } from "@/lib/imageLayout";
@@ -117,13 +117,7 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:items-start lg:gap-10">
         <figure className="space-y-2">
-          <p className={LABEL}>Example</p>
-          {example ? (
-            <img src={example} alt={`An example ${def.name.toLowerCase()} ad`} width={1080} height={1350} className="block h-auto w-full max-w-[400px] rounded-lg border border-border/60 shadow-card" />
-          ) : (
-            <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">This format isn't drawn yet.</p>
-          )}
-          {example && <figcaption className="text-xs text-muted-foreground">Made up for a coffee shop. Yours is written for {brand}.</figcaption>}
+          <Examples def={def} drawn={example} brand={brand} />
         </figure>
         <div className="max-w-xl space-y-5">
           <div className="space-y-1">
@@ -168,5 +162,43 @@ function StaticFormatView({ userId, def }: { userId: string; def: StaticFormat }
         </div>
       </div>
     </div>
+  );
+}
+
+/** The format's examples, one at a time: the made ones (each for a made-up brand, with the angle it takes), then our own
+ * layout drawn with sample words, which is what a make starts from. */
+function Examples({ def, drawn, brand }: { def: StaticFormat; drawn: string | null; brand: string }) {
+  const shots = STATIC_SHOTS[def.slug] ?? [];
+  const total = shots.length + (drawn ? 1 : 0);
+  const [i, setI] = useState(0);
+  if (!total) return <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">This format isn't drawn yet.</p>;
+  const shot = shots[i];
+  const step = (d: number) => setI((n) => (n + d + total) % total);
+  return (
+    <>
+      <div className="flex max-w-[400px] items-center justify-between gap-2">
+        <p className={LABEL}>
+          Example {i + 1} of {total}
+        </p>
+        <div className="flex gap-1">
+          <Button type="button" variant="outline" size="icon" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label="Previous example" onClick={() => step(-1)}>
+            <CaretLeftIcon className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="outline" size="icon" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label="Next example" onClick={() => step(1)}>
+            <CaretRightIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <img
+        src={shot ? staticShotSrc(def.slug, i + 1) : drawn!}
+        alt={`An example ${def.name.toLowerCase()} ad`}
+        width={1080}
+        height={1350}
+        className="block h-auto w-full max-w-[400px] rounded-lg border border-border/60 shadow-card"
+      />
+      <figcaption className="text-xs text-muted-foreground" aria-live="polite">
+        {shot ? `Angle: ${shot[1]}. Made up for ${shot[0]}.` : "Our layout with sample words, where your make starts."} Yours is written for {brand}.
+      </figcaption>
+    </>
   );
 }

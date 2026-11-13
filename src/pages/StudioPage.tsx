@@ -14,7 +14,7 @@ import { RemixCompetitorAd, RemixMarketAd, longestRunning, longestSwipeAds } fro
 import PriceChip from "@/components/PriceChip";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FORMATS, formatHref, type FormatDef } from "@/data/formats";
-import { STATIC_FORMATS, staticFormatHref } from "@/data/staticFormats";
+import { STATIC_FORMATS, staticFormatHref, staticShotSrc } from "@/data/staticFormats";
 import { ADS } from "@/lib/adsSwipe";
 import { loadCompetitorAds } from "@/lib/competitorAds";
 import { loadCompetitors } from "@/lib/competitors";
@@ -43,8 +43,8 @@ const OWN: { to: string; name: string; blurb: string; icon: IconType }[] = [
 
 const GRID = "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5";
 const CARD = "group flex h-full min-w-0 flex-col gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-// no format has a preview clip yet: a short tile, as the Create gallery draws them, not a wall of empty phone-sized boxes
-const POSTER = "relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted transition-colors group-hover:border-primary/40";
+// each format's example picture, cropped from the top so its headline shows
+const POSTER = "relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted transition-colors group-hover:border-primary/40";
 
 function Section({ id, title, count, more, tabs, children }: { id: string; title: string; count?: number; more?: { to: string; label: string }; tabs?: ReactNode; children: ReactNode }) {
   return (
@@ -67,6 +67,12 @@ function Section({ id, title, count, more, tabs, children }: { id: string; title
 }
 
 type FormatCardProps = { to: string; kind: string; name: string; blurb: string; poster: ReactNode; price?: ReactNode; onClick?: (e: React.MouseEvent) => void };
+
+/** A format's example picture; the drawn tile or icon if the file is missing. */
+function Shot({ src, fallback }: { src: string; fallback: ReactNode }) {
+  const [broken, setBroken] = useState(false);
+  return broken ? <>{fallback}</> : <img src={src} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover object-top" />;
+}
 
 /** One format, the same four things in the same order on every card: its poster (a drawn storyboard, or the maker's
  * icon), its kind, its name and one line; then, on Leo's, its price. */
@@ -115,8 +121,8 @@ export default function StudioPage() {
 
   const cards: (FormatCardProps & { key: string })[] = leo
     ? [
-        ...VIDEO.map((f) => ({ key: f.slug, to: formatHref(f), kind: kindOfFormat(f.kind), name: f.name, blurb: f.blurb, poster: <FormatTile f={f} />, price: leoPrice(f) })),
-        ...STATICS.map((f) => ({ key: `static-${f.slug}`, to: staticFormatHref(f.slug), kind: kindOfFormat("image"), name: f.name, blurb: f.blurb, poster: <ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden /> })),
+        ...VIDEO.map((f) => ({ key: f.slug, to: formatHref(f), kind: kindOfFormat(f.kind), name: f.name, blurb: f.blurb, poster: <Shot src={`/formats/${f.slug}.webp`} fallback={<FormatTile f={f} />} />, price: leoPrice(f) })),
+        ...STATICS.map((f) => ({ key: `static-${f.slug}`, to: staticFormatHref(f.slug), kind: kindOfFormat("image"), name: f.name, blurb: f.blurb, poster: <Shot src={staticShotSrc(f.slug, 1)} fallback={<ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden />} /> })),
       ]
     : CUSTOMER_FORMATS.map((w) => ({ key: w.to, to: w.to, kind: kindOf(w.to) ?? CREATE_KINDS[0], name: w.name, blurb: w.blurb, poster: <w.icon className="h-7 w-7 text-primary" aria-hidden />, onClick: carry(w.to) }));
   // a tab only for a kind that has cards; a typed ?kind= with none reads as All

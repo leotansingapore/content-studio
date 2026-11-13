@@ -135,7 +135,8 @@ export function templateFormats(list: VideoTemplate[]): FormatDef[] {
     }));
 }
 
-export const FORMATS: FormatDef[] = [
+// every ready format has an example poster at public/formats/<slug>.webp, and a video format a clip beside it (13 Nov)
+export const FORMATS: FormatDef[] = ([
   // 1: cents or nothing
   {
     slug: "slideshow",
@@ -425,7 +426,7 @@ export const FORMATS: FormatDef[] = [
     to: () => links.edit(),
     ready: true,
   },
-];
+] as FormatDef[]).map((f) => (f.ready ? { ...f, preview: true as const } : f));
 
 /** Format pages only (an entry with a Component), so Slideshow.tsx and WallOfText.tsx read their cap without a check. */
 export const formatBySlug = (slug: string | undefined): PageFormat | null =>

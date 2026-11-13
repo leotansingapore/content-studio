@@ -410,28 +410,12 @@ function Frame({ children }: { children: ReactNode }) {
   );
 }
 
-/** A finished talking head (public/formats/talking-head.mp4), muted until "Play with sound". */
+/** A short silent loop of a finished talking head (public/formats/talking-head.mp4). */
 function Example() {
-  const ref = useRef<HTMLVideoElement>(null);
-  const [loud, setLoud] = useState(false);
-  const toggle = () => {
-    const v = ref.current;
-    if (!v) return;
-    if (loud) {
-      v.pause();
-      setLoud(false);
-      return;
-    }
-    v.muted = false;
-    void v.play().then(() => setLoud(true), () => setLoud(false));
-  };
   return (
     <div className="mx-auto w-full max-w-[300px] space-y-2">
-      <video ref={ref} src="/formats/talking-head.mp4" poster="/formats/talking-head.webp" muted loop playsInline autoPlay className="aspect-[9/16] w-full rounded-xl bg-muted object-cover" />
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">An example. Yours replaces it once you make it.</p>
-        <Button size="sm" variant="outline" onClick={toggle} className={`shrink-0 ${TOUCH}`}>{loud ? "Pause" : "Play with sound"}</Button>
-      </div>
+      <video src="/formats/talking-head.mp4" poster="/formats/talking-head.webp" muted loop playsInline autoPlay className="aspect-[9/16] w-full rounded-xl bg-muted object-cover" />
+      <p className="text-xs text-muted-foreground">An example, without its sound. Yours replaces it once you make it.</p>
     </div>
   );
 }
