@@ -6,10 +6,10 @@ import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts
 export * from "../../supabase/functions/_shared/prices.ts";
 
 /** A first read's button, its count and price in its words: "Read 7 accounts, up to US$0.86". */
-export function readLabel(n: number, feature: UsageFeature): string {
+export function readLabel(n: number, feature: UsageFeature, noun: [one: string, many: string] = ["account", "accounts"]): string {
   const p = sumPrices(...Array.from({ length: n }, () => priceOf(feature)));
   const price = p && p !== "pick" ? `, ${priceText(p).replace(/^./, (c) => c.toLowerCase())}` : "";
-  return `Read ${n} ${n === 1 ? "account" : "accounts"}${price}`;
+  return `Read ${n} ${noun[n === 1 ? 0 : 1]}${price}`;
 }
 
 /**

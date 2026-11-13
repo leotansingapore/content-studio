@@ -16,8 +16,8 @@ import { titleOf, toDetailAd } from "@/lib/adDetail";
 import { competitorLibraryAd, loadAdLabels } from "@/lib/adLibrary";
 import { buildAdWriteUrl } from "@/lib/adsSwipe";
 import {
-  type CompetitorAd, type CompetitorAdsState, adsCheckFailure, adsCountryOf, adsStopped, adsTally, canReadAds, checkingAnyAds, dueAds, isCheckingAds,
-  onCompetitorAds, platformNames, runAdsCheck, runDueAds, runLabel, runningLine, toAdLike,
+  type CompetitorAd, type CompetitorAdsState, adsCheckFailure, adsCountryOf, adsReadLabel, adsStopped, adsTally, canReadAds, checkingAnyAds, dueAds,
+  isCheckingAds, onCompetitorAds, platformNames, runAdsCheck, runDueAds, runLabel, runningLine, toAdLike, waitingAds,
 } from "@/lib/competitorAds";
 import { type Competitor, updateCompetitor } from "@/lib/competitors";
 import { links } from "@/lib/links";
@@ -58,7 +58,8 @@ export default function TheirAds({ userId, list, store, openEdit }: {
   const linked = linkedAd.id;
 
   useEffect(() => onCompetitorAds(() => tick((n) => n + 1)), []);
-  // opening the view, and any change to the list while it is open (an add, a page found), checks what is 7+ days old
+  // opening the view, and any change to the list while it is open (an add, a page found), checks what is 7+ days old;
+  // a typed competitor's first check waits for the press
   useEffect(() => {
     void runDueAds(userId);
   }, [userId, list]);
@@ -113,10 +114,12 @@ export default function TheirAds({ userId, list, store, openEdit }: {
   });
   const none = scope.filter((x) => canReadAds(x) && store[x.id] && !store[x.id].ads.length && adsCountryOf(x, store[x.id]) === "ALL" && !adsCheckFailure(x.id));
 
-  // Check now: the picked competitor, or every due one under All
-  const due = selected ? (canReadAds(selected) ? [selected] : []) : dueAds(userId);
+  // Check now: the picked competitor, or every due one under All, first checks included; while a first check waits,
+  // the button says how many and what they cost
+  const due = selected ? (canReadAds(selected) ? [selected] : []) : dueAds(userId, Date.now(), true);
+  const first = !selected && waitingAds(userId) > 0;
   const checkNow = () => (selected ? void runAdsCheck(userId, selected) : void runDueAds(userId, true));
-  const why = reasonText({ left, leo: true }) ?? (!selected && !due.length ? "Everyone was checked in the last 7 days. Pick one to check it again." : null);
+  const why = reasonText({ left, uses: first ? due.length : 1, leo: true }) ?? (!selected && !due.length ? "Everyone was checked in the last 7 days. Pick one to check it again." : null);
   const stopped = adsStopped();
 
   return (
@@ -182,10 +185,11 @@ export default function TheirAds({ userId, list, store, openEdit }: {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <p className="mr-auto text-xs text-muted-foreground">We check for new Meta ads once a week, when you open Competitors.</p>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className={`h-10 gap-2 ${TOUCH}`} onClick={checkNow} disabled={busy || Boolean(why) || !due.length}>
-              {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <ArrowsClockwiseIcon className="h-4 w-4" />} Check now
+            <Button variant={first ? "default" : "outline"} className={`h-10 gap-2 ${TOUCH}`} onClick={checkNow} disabled={busy || Boolean(why) || !due.length}>
+              {busy ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : !first && <ArrowsClockwiseIcon className="h-4 w-4" />}
+              {first ? adsReadLabel(due.length) : "Check now"}
             </Button>
-            {!busy && due.length > 0 && (
+            {!busy && !first && due.length > 0 && (
               <PriceChip feature="competitor-ads" price={due.length > 1 ? sumPrices(...due.map(() => priceOf("competitor-ads"))) : undefined} uses={due.length} left={left} />
             )}
           </div>

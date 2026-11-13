@@ -7,6 +7,7 @@
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import type { AdLike } from "@/lib/adsSwipe";
 import { type Competitor, loadCompetitors, NOT_SWITCHED_ON, updateCompetitor } from "@/lib/competitors";
+import { readLabel } from "@/lib/prices";
 import { scoped } from "@/lib/profiles";
 import type { CompetitorAd } from "../../supabase/functions/competitors/logic.ts";
 
@@ -263,15 +264,24 @@ export function runAdsCheck(userId: string, c: Competitor): Promise<boolean> {
   }, ADS_FAILED);
 }
 
-/** The competitors a round would check now. */
-export function dueAds(userId: string, now = Date.now()): Competitor[] {
+/**
+ * The competitors a round would check now. A typed competitor never checked (added by hand or by a seed) is left to
+ * the press (`first`), never an open: 13 Nov, 37 brands switched live in demos. A suggested one checks on open.
+ */
+export function dueAds(userId: string, now = Date.now(), first = false): Competitor[] {
   const state = loadCompetitorAds(userId);
-  return loadCompetitors(userId).list.filter((c) => canReadAds(c) && adsDue(c, state[c.id], now));
+  return loadCompetitors(userId).list.filter((c) => canReadAds(c) && (state[c.id] ? adsDue(c, state[c.id], now) : first || c.source !== "typed"));
 }
 
-/** Opening Their ads: every due competitor, one at a time (manual: Check now under All). */
+/** How many competitors wait for the press's first check. */
+export const waitingAds = (userId: string, now = Date.now()) => dueAds(userId, now, true).length - dueAds(userId, now).length;
+
+/** The press's words: "Read 5 competitors' ads, up to US$0.87". */
+export const adsReadLabel = (n: number) => readLabel(n, "competitor-ads", ["competitor's ads", "competitors' ads"]);
+
+/** Opening Their ads or Radar's Ads: every due competitor, one at a time (manual: the press, first checks included). */
 export function runDueAds(userId: string, manual = false): Promise<void> {
-  return jobs.round(userId, () => dueAds(userId).map((c) => ({
+  return jobs.round(userId, () => dueAds(userId, Date.now(), manual).map((c) => ({
     // the target names the page and country, so a new page or "Look anywhere" is never held back by an old try
     target: `${c.id}:${c.fbPageId ?? c.handles.facebook}:${c.adsCountry}`,
     go: () => runAdsCheck(userId, loadCompetitors(userId).list.find((x) => x.id === c.id) ?? c),

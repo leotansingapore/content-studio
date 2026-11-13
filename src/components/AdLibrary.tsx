@@ -19,7 +19,7 @@ import {
   scopeCounts, setSpaceWords, sortLibrary, sortingAds, spaceFailure, spaceMissed, spaceRunning, spaceWordsFor,
 } from "@/lib/adLibrary";
 import { buildAdWriteUrl } from "@/lib/adsSwipe";
-import { checkingAnyAds, isCheckingAds, onCompetitorAds, onCompetitorAdsChanged, runDueAds } from "@/lib/competitorAds";
+import { adsReadLabel, checkingAnyAds, dueAds, isCheckingAds, onCompetitorAds, onCompetitorAdsChanged, runDueAds, waitingAds } from "@/lib/competitorAds";
 import { loadCompetitors, onCompetitorsChanged } from "@/lib/competitors";
 import { links, slug } from "@/lib/links";
 import { reasonText } from "@/lib/prices";
@@ -64,7 +64,8 @@ export default function AdLibrary({ userId }: { userId: string }) {
   const list = useMemo(() => loadCompetitors(userId).list, [userId, version]);
   const space = useMemo(() => loadSpaceAds(userId), [userId, version]);
 
-  // opening the tab checks what is 7+ days old, one kind after the other (decision 8)
+  // opening the tab checks what is 7+ days old, one kind after the other (decision 8); a typed competitor's first
+  // check waits for the press
   useEffect(() => {
     void runDueAds(userId).then(() => runDueSpace(userId));
   }, [userId]);
@@ -116,6 +117,9 @@ export default function AdLibrary({ userId }: { userId: string }) {
   const left = useUsesLeft(busy)("space-ads");
   const why = reasonText({ left, leo: true });
   const reading = list.find((c) => isCheckingAds(c.id));
+  // a typed competitor's first check waits for one press that names how many and what they cost, as on Their ads
+  const unread = waitingAds(userId) > 0 ? dueAds(userId, Date.now(), true).length : 0;
+  const readWhy = reasonText({ left: useUsesLeft(adsBusy)("competitor-ads"), uses: unread, leo: true });
   const sorting = sortingAds();
   const failure = spaceFailure();
   const missed = spaceMissed();
@@ -219,6 +223,15 @@ export default function AdLibrary({ userId }: { userId: string }) {
           </p>
         )}
       </div>
+
+      {unread > 0 && (
+        <div className="space-y-1.5">
+          <Button className={`h-10 gap-2 ${TOUCH}`} onClick={() => void runDueAds(userId, true)} disabled={adsBusy || Boolean(readWhy)}>
+            {adsBusy && <CircleNotchIcon className="h-4 w-4 animate-spin" />} {adsReadLabel(unread)}
+          </Button>
+          {readWhy && <p className="text-xs text-muted-foreground">{readWhy}</p>}
+        </div>
+      )}
 
       {!all.length ? (
         <div className="space-y-3 rounded-xl border border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">

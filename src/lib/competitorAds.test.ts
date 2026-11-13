@@ -9,6 +9,7 @@ vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/e
 const a = await import("./competitorAds");
 const { fromAd } = await import("./remixSource");
 const { buildAdWriteUrl } = await import("./adsSwipe");
+const { priceOf } = await import("./prices");
 
 class MemStorage {
   s = new Map<string, string>();
@@ -136,8 +137,32 @@ describe("checks", () => {
     expect(a.loadCompetitorAds(U).a.ads.map((x) => x.id)).toEqual(["1"]);
   });
 
+  it("never checks a typed competitor's ads the first time on open: the press does; a suggested one checks on open, a checked one weekly", async () => {
+    const DAY = 86_400_000;
+    setList([comp("typed"), comp("sug", { source: "suggested" }), comp("old"), comp("nopage", { fbPageId: null })]);
+    a.saveCompetitorAds(U, { old: a.applyAdsCheck(undefined, answer("old", [], new Date(Date.now() - 8 * DAY).toISOString())) });
+    expect(a.waitingAds(U)).toBe(1);
+    callFn.mockImplementation(async (_n: string, b: { competitorId: string }) => answer(b.competitorId, [], new Date().toISOString()));
+    await a.runDueAds(U); // opening Their ads or Radar's Ads
+    expect(callFn.mock.calls.map((c) => c[1].competitorId)).toEqual(["sug", "old"]);
+    callFn.mockClear();
+    await a.runDueAds(U); // opening again checks nothing
+    expect(callFn).not.toHaveBeenCalled();
+    expect(a.dueAds(U, Date.now(), true).map((c) => c.id)).toEqual(["typed"]);
+    await a.runDueAds(U, true); // the press, worded Read 1 competitor's ads
+    expect(callFn.mock.calls.map((c) => c[1].competitorId)).toEqual(["typed"]);
+    expect(a.waitingAds(U)).toBe(0);
+  });
+
+  it("words the press with the count and the price from the table", () => {
+    const each = (priceOf("competitor-ads") as { usd: number }).usd;
+    expect(a.adsReadLabel(1)).toBe(`Read 1 competitor's ads, up to US$${each.toFixed(2)}`);
+    expect(a.adsReadLabel(5)).toBe(`Read 5 competitors' ads, up to US$${(each * 5).toFixed(2)}`);
+  });
+
   it("checks each due competitor once, one at a time, never twice in 7 days, and stops at a spent cap", async () => {
-    setList([comp("a"), comp("b"), comp("c", { fbPageId: null }), comp("d")]);
+    const sug = (id: string, extra: Partial<Competitor> = {}) => comp(id, { source: "suggested", ...extra }); // checked on open
+    setList([sug("a"), sug("b"), sug("c", { fbPageId: null }), sug("d")]);
     let inFlight = 0;
     let most = 0;
     callFn.mockImplementation(async (_n: string, body: { competitorId: string }) => {
@@ -157,7 +182,7 @@ describe("checks", () => {
     await a.runDueAds(U, true); // Check now under All ignores that
     expect(callFn.mock.calls.map((c) => c[1].competitorId)).toEqual(["b"]);
 
-    setList([comp("e"), comp("f")]);
+    setList([sug("e"), sug("f")]);
     callFn.mockReset().mockRejectedValue(new EdgeError("You've used all 15 for today. It resets at 8am Singapore time.", 429, "daily_limit"));
     await a.runDueAds(U);
     expect(callFn).toHaveBeenCalledTimes(1);
