@@ -364,23 +364,27 @@ describe("phase 3's shapes", () => {
     const posterWords = { headline: "Your memory keeps no score", line: "ActivityTracker logs each day as a streak." };
     openai.mode = "queue";
     openai.answers = [{ refuse: false, reason: "", words: posterWords, ...CAP }];
-    jev.answers = { angle: { type: "choice", choice: "Bust a myth", probabilities: { "Bust a myth": 0.6 } } as never };
+    jev.answers = { angle: { type: "choice", choice: "Bust a myth", probabilities: { "Bust a myth": 0.6 } } as never, subject: { type: "choice", choice: "software", probabilities: { software: 0.9 } } as never };
     const r = await send(poster);
-    expect(r).toMatchObject({ status: 200, body: { result: { as: "image", layout: "street-poster", angle: "Bust a myth" } } });
-    expect(jev.questions[0]).toEqual(["angle"]);
+    expect(r).toMatchObject({ status: 200, body: { result: { as: "image", layout: "street-poster", angle: "Bust a myth", subject: "software" } } });
+    // one call: the angle, and what the brand sells
+    expect(jev.questions[0]).toEqual(["angle", "subject"]);
     expect(jev.states[0]).toMatchObject({ topic: "Prospecting", ad: expect.stringMatching(/^A static ad that is a poster/) });
     expect(openai.sent[0].messages[0].content).toContain("- The ad's angle is Bust a myth: name a common belief");
     expect(used()).toBe(1);
-    // Jev with no answer: the app's rotation, the first offered
+    // Jev with no answer: the app's rotation, the first offered, and no subject
     openai.answers = [{ refuse: false, reason: "", words: posterWords, ...CAP }];
     jev.answers = null;
-    expect((await send(poster)).body.result.angle).toBe("Answer the doubt");
+    const none = (await send(poster)).body.result;
+    expect([none.angle, "subject" in none]).toEqual(["Answer the doubt", false]);
     expect(openai.sent[1].messages[0].content).toContain("- The ad's angle is Answer the doubt:");
-    // one angle offered is taken as it is, with nothing asked of Jev
+    // one angle offered is taken as it is: Jev is asked only what the brand sells, and a weak pick is no pick
     const asked = jev.questions.length;
     openai.answers = [{ refuse: false, reason: "", words: posterWords, ...CAP }];
-    expect((await send({ ...poster, angles: ["The offer"] })).body.result.angle).toBe("The offer");
-    expect(jev.questions.slice(asked).some((q) => q.includes("angle"))).toBe(false);
+    jev.answers = { subject: { type: "choice", choice: "service", probabilities: { service: 0.4, software: 0.35 } } as never };
+    const one = (await send({ ...poster, angles: ["The offer"], subject: "product" })).body.result;
+    expect([one.angle, "subject" in one]).toEqual(["The offer", false]);
+    expect(jev.questions[asked]).toEqual(["subject"]);
   });
 
   it("tells a static layout's writer which words ran over, and gives the use back when they still don't fit", async () => {

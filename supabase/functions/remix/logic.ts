@@ -344,6 +344,8 @@ export interface MakeRequest {
   angles?: string[];
   /** Set by the server from `angles`, never from the request: the angle the words take, sent back on the result. */
   angle?: string;
+  /** Set by the server with the angle, never from the request: what the brand sells, for what the photo shows. */
+  subject?: Subject;
   /** image with a static layout only: the opening words of the format's sample ad, which the words never start with. */
   avoid?: string;
   /** Every format but hooks: a HOOK_FORMULA_COPY id the opening line follows (remix-variations); an unknown id is dropped. */
@@ -371,7 +373,7 @@ export type MakeResult =
   /** search: the stock clip behind a hook on screen, left out when it isn't one (hookSearch). */
   | { as: "hooks"; hooks: { text: string; formula: string; search?: string }[] }
   /** angle: a static format's, when the make sent angles. */
-  | { as: "image"; layout: AdLayout | StaticLayout; layoutBy: "jev" | "default"; words: Partial<Record<string, string>>; caption: string; angle?: string }
+  | { as: "image"; layout: AdLayout | StaticLayout; layoutBy: "jev" | "default"; words: Partial<Record<string, string>>; caption: string; angle?: string; subject?: Subject }
   /** best and dropped come from Jev after writing (memeVerdict); dropped options stay in the list. */
   | { as: "meme"; options: Record<string, string>[]; best: number | null; dropped: number[]; caption: string }
   /** best and dropped come from Jev after writing (adsVerdict); mas counts the dropped that failed the MAS question; checked is false when Jev gave no answer, so nothing was read. */
@@ -2395,6 +2397,33 @@ export function angleQuestion(angles: string[]): Record<string, JevQuestion> {
 
 /** The angle a static make takes: Jev's pick when it is one offered, else the first offered (the app's rotation). */
 export const pickAngle = (answers: Record<string, JevAnswer> | null, angles: string[]): string => choiceOf(answers, "angle", angles) ?? angles[0];
+
+/** What a brand sells, which sets what its photo ad shows (photoAd.ts SUBJECT_LINES). */
+export const SUBJECTS = ["software", "product", "service"] as const;
+export type Subject = (typeof SUBJECTS)[number];
+/** proposal: a pick at or over this is taken; read it again from the first live answers. Below it the app falls back. */
+export const SUBJECT_AT = 0.5;
+
+/** Asked in the angle's one Jev call: what the brand sells. */
+export function subjectQuestion(): Record<string, JevQuestion> {
+  return {
+    subject: {
+      type: "choice",
+      instructions: "`brand` is who the ad is for and what they sell. What do they sell?",
+      criteria: {
+        software: "software: an app, a website or an online tool used on a phone or computer",
+        product: "a physical product the buyer holds, eats, wears or uses",
+        service: "a service people do for the buyer, in person or online",
+      },
+    },
+  };
+}
+
+/** Jev's subject when it picked one of the three at SUBJECT_AT or more, else null. */
+export function pickSubject(answers: Record<string, JevAnswer> | null): Subject | null {
+  const pick = choiceOf(answers, "subject", SUBJECTS);
+  return pick && (answers?.subject?.probabilities?.[pick] ?? 0) >= SUBJECT_AT ? pick : null;
+}
 
 /** formats-static-ad's layout question; a person's brand is never offered a testimonial (decision 12). */
 export function adLayoutQuestion(speaker: Speaker): Record<string, JevQuestion> {

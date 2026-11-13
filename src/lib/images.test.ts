@@ -257,16 +257,21 @@ describe("Write it for me", () => {
   });
 
   it("sends a static format's angles and sample opening, which the server takes, and keeps the angle it sends back", async () => {
-    make.mockResolvedValue(reply({ layout: "street-poster", layoutBy: "default", words: { headline: "Still dark.", line: "Logs your streak." }, angle: "The offer" }));
+    make.mockResolvedValue(reply({ layout: "street-poster", layoutBy: "default", words: { headline: "Still dark.", line: "Logs your streak." }, angle: "The offer", subject: "software" }));
     await startImageWrite(U, ask({ source: null, topic: "Prospecting", layout: "street-poster", read: false, angles: ["The offer", "Bust a myth"], avoid: "Still dark, still" }));
     const body = make.mock.calls[0][0];
     expect(body).toMatchObject({ angles: ["The offer", "Bust a myth"], avoid: "Still dark, still" });
     expect(parseMakeRequest(body)).toMatchObject({ ok: true, value: { angles: ["The offer", "Bust a myth"], avoid: "Still dark, still" } });
-    expect(imageWrite()).toMatchObject({ state: "done", angle: "The offer" });
+    expect(imageWrite()).toMatchObject({ state: "done", angle: "The offer", subject: "software" });
     make.mockResolvedValue(reply({ layout: "street-poster", layoutBy: "default", words: { headline: "Still dark.", line: "Logs your streak." } }));
     await startImageWrite(U, ask({ source: null, topic: "Prospecting", layout: "street-poster", read: false }));
     expect(["angles", "avoid"].filter((k) => k in make.mock.calls[1][0])).toEqual([]);
     expect(imageWrite()).not.toHaveProperty("angle");
+    expect(imageWrite()).not.toHaveProperty("subject");
+    // a subject that isn't one of the three is dropped
+    make.mockResolvedValue(reply({ layout: "street-poster", layoutBy: "default", words: { headline: "Still dark.", line: "Logs your streak." }, angle: "The offer", subject: "a shop" as never }));
+    await startImageWrite(U, ask({ source: null, topic: "Prospecting", layout: "street-poster", read: false, angles: ["The offer"] }));
+    expect(imageWrite()).not.toHaveProperty("subject");
   });
 
   it("passes the picture's own words to the writer, cut at a word to the server's 800 characters", async () => {

@@ -26,7 +26,7 @@ import type { RemixSource } from "@/lib/remixSource";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { failure, makeBody } from "@/lib/slideshowJob";
 import type { LinkedSource } from "@/lib/resolveSource";
-import { AD_VERSIONS, AD_WORDS, STATIC_FIELDS, VERSION_LAYOUTS, isStaticLayout, type AdLayout, type AdProduct, type AdVersion, type StaticLayout } from "../../supabase/functions/remix/logic.ts";
+import { AD_VERSIONS, AD_WORDS, STATIC_FIELDS, SUBJECTS, VERSION_LAYOUTS, isStaticLayout, type AdLayout, type AdProduct, type AdVersion, type StaticLayout, type Subject } from "../../supabase/functions/remix/logic.ts";
 
 export type VersionLayout = (typeof VERSION_LAYOUTS)[number];
 export const isVersionLayout = (l: string): l is VersionLayout => (VERSION_LAYOUTS as readonly string[]).includes(l);
@@ -320,8 +320,9 @@ export interface ImageWrite {
   layout?: AdLayout | StaticLayout;
   layoutBy?: "jev" | "default";
   flags?: Flags;
-  /** Done: the static angle the words took, when angles were sent. */
+  /** Done: the static angle the words took, when angles were sent, and what Jev read the brand as selling. */
   angle?: string;
+  subject?: Subject;
 }
 
 export const WRITE_FAILED = "Couldn't write it right now. Try again in a minute.";
@@ -372,7 +373,7 @@ export async function startImageWrite(userId: string, ask: ImageWriteAsk): Promi
     const result = res.result;
     const design = loadImages(userId).find((x) => x.id === ask.designId);
     if (design) saveImage(userId, { ...design, layout: result.layout, words: wordsFromMake(design.words, result) });
-    set({ ...base, state: "done", layout: result.layout, layoutBy: result.layoutBy, flags: res.flags, ...(typeof result.angle === "string" ? { angle: result.angle } : {}) });
+    set({ ...base, state: "done", layout: result.layout, layoutBy: result.layoutBy, flags: res.flags, ...(typeof result.angle === "string" ? { angle: result.angle } : {}), ...(SUBJECTS.includes(result.subject as Subject) ? { subject: result.subject } : {}) });
   } catch (e) {
     set({ ...base, state: "failed", ...failure(e, WRITE_FAILED) });
   }

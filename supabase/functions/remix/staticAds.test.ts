@@ -3,7 +3,7 @@
 // static layout gets its own rules, response fields and checks.
 import { describe, expect, it } from "vitest";
 import { STATIC_FORMATS, STATIC_SHOTS } from "../../../src/data/staticFormats";
-import { AD_LAYOUTS, MEME_LAYOUTS, STATIC_ANGLES, STATIC_FIELDS, STATIC_LAYOUTS, angleQuestion, angleState, buildMakePrompt, pickAngle, shapeFix, imageProblem, masText, parseMakeRequest, responseFormat, textFields, validateMake, type MakeResult } from "./logic";
+import { AD_LAYOUTS, MEME_LAYOUTS, STATIC_ANGLES, STATIC_FIELDS, STATIC_LAYOUTS, angleQuestion, angleState, buildMakePrompt, pickAngle, pickSubject, shapeFix, subjectQuestion, imageProblem, masText, parseMakeRequest, responseFormat, textFields, validateMake, type MakeResult } from "./logic";
 
 const SOURCE = { key: "ad:2095783381019179", kind: "ad", format: "image", text: "Protect your family today with a plan that grows with you. Get a free quote." };
 const BRAND = { name: "Jane Tan", oneLiner: "I help young families plan", audience: "young parents", topics: ["Insurance basics"], facts: "- Ten years advising", mention: true, offer: null, rules: "" };
@@ -155,6 +155,18 @@ describe("a static ad's angle", () => {
     expect(system).toContain(`- Never open with "Still 'dark', still" or those same opening words: start your own way.`);
     // offered angles alone, before the server picks, change nothing
     expect(buildMakePrompt(req({ as: "image", layout: "street-poster", topic: "x", angles: ["The offer"], brand: BIZ })).system).toBe(buildMakePrompt(req({ as: "image", layout: "street-poster", topic: "x", brand: BIZ })).system);
+  });
+
+  it("asks Jev what the brand sells, and takes software, a product or a service only at 0.5 or more", () => {
+    expect(Object.keys((subjectQuestion().subject as { criteria: object }).criteria)).toEqual(["software", "product", "service"]);
+    const at = (choice: string, p: number) => ({ subject: { type: "choice" as const, choice, probabilities: { [choice]: p } } });
+    expect(pickSubject(at("software", 0.9))).toBe("software");
+    expect(pickSubject(at("service", 0.5))).toBe("service");
+    expect(pickSubject(at("product", 0.49))).toBeNull();
+    expect(pickSubject(at("a shop", 0.9))).toBeNull();
+    expect(pickSubject(null)).toBeNull();
+    // the request can't set it
+    expect(req({ as: "image", layout: "street-poster", topic: "x", subject: "software" }).subject).toBeUndefined();
   });
 
   it("asks Jev to pick from the offered angles only, and falls back to the first", () => {

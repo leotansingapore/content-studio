@@ -30,7 +30,7 @@ import { loadScriptContext } from "@/lib/scriptContext";
 import { cutAtWord } from "@/lib/scriptCaption";
 import { isOn, loadFacts } from "@/lib/voiceMemory";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic.ts";
-import { STATIC_ANGLES, type AdProduct } from "../../supabase/functions/remix/logic.ts";
+import { STATIC_ANGLES, type AdProduct, type Subject } from "../../supabase/functions/remix/logic.ts";
 
 /** ai-image makes 3:4 and the photo is kept 4:5, cut from the middle: a little goes off the top and the bottom. */
 export const PHOTO_RATIO = 4 / 5;
@@ -43,6 +43,20 @@ export const PHOTO_RULE = "All text spelled exactly as quoted. No other logos, b
 /** One string as the prompt quotes it: on one line, a double quote inside it made a single one so the quote stays whole. */
 const quoted = (s: string) => `"${s.replace(/\s+/g, " ").trim().replace(/"/g, "'")}"`;
 
+/**
+ * What the picture shows of what the brand sells, on a format with room for it (staticPhoto): software on its own plain
+ * screen, a product itself, a service being done. Never a stock person holding a phone (13 Nov poster).
+ */
+export const SUBJECT_LINES: Record<Subject, string> = {
+  software: "What it sells is software: show it on a phone or laptop screen, a plain, plausible interface in the brand colour showing the thing the words name. No real app's interface and no readable small print.",
+  product: "What it sells is a physical product: show the product itself, held or in use, not a person holding a phone.",
+  service: "What it sells is a service: show the service being done for someone, not a person holding a phone.",
+};
+
+/** What the brand sells: Jev's read on the write, else What you sell's own kind when the brand picked one; else nothing. */
+export const subjectOf = (jev: Subject | undefined, kind: "products" | "service" | undefined): Subject | undefined =>
+  jev ?? (kind === "products" ? "product" : kind === "service" ? "service" : undefined);
+
 /** The product the ad shows, in plain words with no double quote, so it never reads as words to print. */
 export const productLine = (p: { name: string; what: string }) => {
   const plain = (t: string) => t.replace(/\s+/g, " ").replace(/"/g, "'").trim().replace(/[.\s]+$/, "");
@@ -51,12 +65,13 @@ export const productLine = (p: { name: string; what: string }) => {
 
 /**
  * The picture maker's prompt for a static format made as a photo: its scene, the brand's name and colour, the product the
- * ad is about when there is one, every on-picture string of its layout in draw order (IMAGE_FIELDS, a typed price
- * included), each labelled and in double quotes, the edge line (the 4:5 cut must not clip a word), the people line, the
- * real-marks line and the spelling rule. Words the layout never draws (the topic, the caption) stay out, and a brand with
- * no name is given by its colour alone. Pure.
+ * ad is about when there is one, what to show of what it sells (SUBJECT_LINES, on a format with room for a picture of
+ * it), every on-picture string of its layout in draw order (IMAGE_FIELDS, a typed price included), each labelled and in
+ * double quotes, the edge line (the 4:5 cut must not clip a word), the people line, the real-marks line and the spelling
+ * rule. Words the layout never draws (the topic, the caption) stay out, and a brand with no name is given by its colour
+ * alone. Pure.
  */
-export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { name: string; color: string }, words: Record<string, string>, product?: { name: string; what: string }): string {
+export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { name: string; color: string }, words: Record<string, string>, product?: { name: string; what: string }, subject?: Subject): string {
   const fields = isStatic(f.slug) ? IMAGE_FIELDS[f.slug] : [];
   const on = fields.filter((x) => words[x.key]?.trim()).map((x) => `${x.label}: ${quoted(words[x.key])}`);
   const name = brand.name.trim();
@@ -64,6 +79,7 @@ export function photoAdPrompt(f: Pick<StaticFormat, "slug" | "scene">, brand: { 
     f.scene,
     name ? `The brand is ${quoted(name)}, its colour ${brand.color}.` : `The brand colour is ${brand.color}.`,
     product ? productLine(product) : "",
+    subject && staticPhoto(f.slug) ? SUBJECT_LINES[subject] : "",
     on.length ? `The words on it, in order: ${on.join("; ")}.` : "",
     PHOTO_EDGES,
     PHOTO_PEOPLE,
@@ -227,9 +243,10 @@ export async function startPhotoAd(userId: string, f: StaticFormat, format: { to
   const kit = loadBrand(userId) ?? DEFAULT_BRAND;
   const brand = { name: ownBrandName(userId), color: kit.color };
   // the picture gets the product's name and its first words, not every fact the writer read
-  const full = photoAdPrompt(f, brand, words, product && { name: product.name, what: cutAtWord(product.what, 160) });
-  // the words are the ad: a product line that would push them over the cap is the part left out
-  const prompt = full.length > MAX_PROMPT && product ? photoAdPrompt(f, brand, words) : full;
+  const named = product && { name: product.name, what: cutAtWord(product.what, 160) };
+  const subject = subjectOf(w.subject, loadProducts(userId).kind);
+  // the words are the ad: over the cap, the product line goes first, then what to show
+  const prompt = [photoAdPrompt(f, brand, words, named, subject), photoAdPrompt(f, brand, words, undefined, subject), photoAdPrompt(f, brand, words)].find((p) => p.length <= MAX_PROMPT) ?? photoAdPrompt(f, brand, words);
   if (prompt.length > MAX_PROMPT) return set({ ...made, state: "failed", error: TOO_LONG });
   set({ ...made, state: "making" });
   // the kit's logo and the product's own picture go as pictures the model puts in (ai-image refs); with no logo the name

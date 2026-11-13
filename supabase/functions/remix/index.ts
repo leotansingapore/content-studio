@@ -73,6 +73,8 @@ import {
   parseMakeRequest,
   pickAdLayout,
   pickAngle,
+  pickSubject,
+  subjectQuestion,
   refusalOf,
   responseFormat,
   rewriteMessage,
@@ -207,11 +209,14 @@ Deno.serve(async (req) => {
       if (pick) opts.layoutBy = "jev";
     }
 
-    // a static format's angle: Jev picks from the ones the app offers, else the first of them (its rotation's pick)
+    // a static format's angle: Jev picks from the ones the app offers, else the first of them (its rotation's pick); the same
+    // call asks what the brand sells (software, a product or a service), which sets what the photo shows
     if (make.angles?.length) {
-      const answers = make.angles.length > 1 ? await askJev(angleState(make), angleQuestion(make.angles), { who: "remix image angle" }) : null;
+      const answers = await askJev(angleState(make), { ...(make.angles.length > 1 ? angleQuestion(make.angles) : {}), ...subjectQuestion() }, { who: "remix image angle" });
       make.angle = pickAngle(answers, make.angles);
-      console.log("remix image angle", make.angle, answers?.angle?.choice === make.angle ? "jev" : "rotation");
+      const subject = pickSubject(answers);
+      if (subject) make.subject = subject;
+      console.log("remix image angle", make.angle, answers?.angle?.choice === make.angle ? "jev" : "rotation", subject ?? "-", answers?.subject?.probabilities?.[answers.subject.choice ?? ""]?.toFixed(2) ?? "-");
     }
 
     // a slideshow on a problem with a fix gets a three-row slide too: Jev decides, the writer writes it
@@ -351,7 +356,7 @@ Deno.serve(async (req) => {
       const answers = text ? await askJev({ post: text }, { mas: { type: "noul", instructions: MAS_QUESTION } }, { who: `remix ${result.as} mas` }) : null;
       flags = { ...flags, mas: masWarn(noulOf(answers, "mas")) };
     }
-    if (result.as === "image" && make.angle) result = { ...result, angle: make.angle };
+    if (result.as === "image" && make.angle) result = { ...result, angle: make.angle, ...(make.subject ? { subject: make.subject } : {}) };
     console.log("remix ok", make.as, make.keep, make.close, `copied ${flags.copied.length}`, `rewrote ${rewrote}`, `tokens ${tokens.join(" | ")}`, `${Date.now() - startedAt}ms`);
     return json({ as: make.as, result, flags, usage: { used: usage.used, limit: usage.limit } });
   } catch (e) {

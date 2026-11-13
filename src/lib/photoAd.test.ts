@@ -25,6 +25,7 @@ const fake = vi.hoisted(() => {
     calls: [] as { prompt: string; name: string; o?: unknown }[],
     asks: [] as Record<string, unknown>[],
     writeAngle: "",
+    writeSubject: "",
     files: {} as Record<string, Blob>,
   };
 });
@@ -46,7 +47,7 @@ vi.mock("@/lib/images", async (actual) => {
       if (fake.writeFails) return void (fake.write = { ...fake.write, state: "failed", error: fake.writeFails });
       const d = real.imageById(userId, ask.designId)!;
       real.saveImage(userId, { ...d, words: { ...d.words, ...fake.writeWords } });
-      fake.write = { ...fake.write, state: "done", ...(fake.writeAngle ? { angle: fake.writeAngle } : {}) };
+      fake.write = { ...fake.write, state: "done", ...(fake.writeAngle ? { angle: fake.writeAngle } : {}), ...(fake.writeSubject ? { subject: fake.writeSubject } : {}) };
     },
   };
 });
@@ -65,7 +66,7 @@ vi.mock("@/lib/aiImage", async (actual) => ({
   },
 }));
 
-import { AD_FACTS_MAX, ANGLE_POOL, PHOTO_EDGES, brandAdFacts, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
+import { AD_FACTS_MAX, ANGLE_POOL, SUBJECT_LINES, subjectOf, PHOTO_EDGES, brandAdFacts, PHOTO_MARKS, PHOTO_PEOPLE, PHOTO_RULE, TOO_LONG, angleOrder, photoAd, photoAdPrompt, productLine, rememberAngle, sampleOpening, shownPhotoAd, startPhotoAd, usedAngles } from "./photoAd";
 import { STATIC_ANGLES } from "../../supabase/functions/remix/logic.ts";
 import { STATIC_FORMATS, staticFormatBySlug } from "@/data/staticFormats";
 import { DEFAULT_BRAND } from "@/lib/carousel";
@@ -274,6 +275,57 @@ describe("the photo run", () => {
     fake.imageFails = "The image was blocked by the safety filter. Change the prompt and try again.";
     await startPhotoAd(U, poster, { topic: "x" });
     expect(photoAd()).toMatchObject({ state: "failed", error: fake.imageFails });
+  });
+});
+
+describe("what the picture shows of what the brand sells", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    Object.assign(fake, { write: null, writeFails: "", image: null, imageFails: "", calls: [], asks: [], files: {}, writeAngle: "", writeSubject: "", writeWords: { headline: "Still dark, still raining.", line: "Hilltop cold brew." } });
+  });
+
+  it("shows software on its own plain screen, a product itself and a service being done, never a stock person with a phone", () => {
+    expect(SUBJECT_LINES.software).toContain("show it on a phone or laptop screen, a plain, plausible interface in the brand colour showing the thing the words name. No real app's interface and no readable small print.");
+    expect(SUBJECT_LINES.product).toContain("show the product itself");
+    expect(SUBJECT_LINES.service).toContain("show the service being done");
+    const p = photoAdPrompt(poster, hilltop, { headline: "Still dark." }, undefined, "software");
+    expect(p).toContain(SUBJECT_LINES.software);
+    expect(p.indexOf(SUBJECT_LINES.software)).toBeLessThan(p.indexOf("The words on it"));
+    // only where the format pictures what is sold: a chat on a phone screen has no room for it
+    expect(photoAdPrompt(chat, hilltop, { one: "hi" }, undefined, "software")).not.toContain("What it sells is");
+    expect(photoAdPrompt(poster, hilltop, { headline: "Still dark." })).not.toContain("What it sells is");
+  });
+
+  it("takes Jev's read from the write, else What you sell's own kind when the brand picked one, else nothing", () => {
+    expect(subjectOf("software", "products")).toBe("software");
+    expect([subjectOf(undefined, "products"), subjectOf(undefined, "service"), subjectOf(undefined, undefined)]).toEqual(["product", "service", undefined]);
+  });
+
+  it("puts the read in the photo prompt, and the kind a brand picked when Jev had none", async () => {
+    fake.writeSubject = "software";
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.calls[0].prompt).toContain(SUBJECT_LINES.software);
+    fake.writeSubject = "";
+    localStorage.setItem(`content-studio-products-${U}`, JSON.stringify({ kind: "products", items: [] }));
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.calls[1].prompt).toContain(SUBJECT_LINES.product);
+    localStorage.removeItem(`content-studio-products-${U}`);
+    await startPhotoAd(U, poster, { topic: "x" });
+    expect(fake.calls[2].prompt).not.toContain("What it sells is");
+  });
+
+  it("leaves out the product line first, then what to show, never the words, to stay inside the cap", async () => {
+    localStorage.setItem(`content-studio-products-${U}`, JSON.stringify({ items: [{ id: "pd-long111", name: "Activity Tracker", what: "w ".repeat(100), forWho: "", pictures: [], sources: [], use: true, from: "you", addedAt: "" }] }));
+    fake.writeSubject = "software";
+    for (const [n, product, subject] of [[40, true, true], [80, false, true], [120, false, false]] as const) {
+      fake.writeWords = { headline: "word ".repeat(n).trim(), line: "Hilltop cold brew." };
+      fake.calls = [];
+      await startPhotoAd(U, poster, { topic: "x" });
+      const p = fake.calls[0].prompt;
+      expect(p.length, String(n)).toBeLessThanOrEqual(MAX_PROMPT);
+      expect([p.includes("The ad shows the brand's product"), p.includes(SUBJECT_LINES.software)], String(n)).toEqual([product, subject]);
+      expect(p).toContain("word ".repeat(n).trim());
+    }
   });
 });
 
