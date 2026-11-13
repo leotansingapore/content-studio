@@ -641,6 +641,13 @@ export function openedToast(entry: Pick<DraftEntry, "draft" | "pillar">): { titl
   if (!entry.draft && !entry.pillar) return { title: "Idea loaded", description: "Your board idea is the topic. Pick a format and generate." };
   return entry.draft.trim() ? { title: "Draft restored", description: "Form repopulated. Edit and re-roll, or copy as-is." } : null;
 }
+/** A calendar day's posting slot: the day at that time; today with the time already gone, the day alone, never a past time. */
+export const daySlot = (day: string, time: string, now = new Date()): string => (new Date(`${day}T${time}`) < now ? day : `${day}T${time}`);
+/** Where a save leaves a post: a saved one keeps its own status and time; a new one written from a calendar day goes onto it. */
+export function savedSchedule(existing: Pick<DraftEntry, "status" | "scheduledFor"> | undefined, onDay: string | null): Pick<DraftEntry, "status" | "scheduledFor"> {
+  if (existing) return { status: existing.status, scheduledFor: existing.scheduledFor };
+  return onDay ? { status: "scheduled", scheduledFor: onDay } : { status: undefined, scheduledFor: undefined };
+}
 // set ids sync inside the drafts key, so never uuid-shaped
 const newSetId = () => `vs-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
@@ -2367,6 +2374,26 @@ function Writer() {
     ],
   );
 
+  // /generate?day=YYYY-MM-DD comes from a calendar day: the post is for that day, named above the brief, and goes onto
+  // it when first saved. Read once, so later URL rewrites on this page can't drop it; a past or malformed day is ignored.
+  const [pickedDay] = useState(() => {
+    const d = searchParams.get("day");
+    return d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= localDateKey() ? d : null;
+  });
+  // &time=HH:MM comes with an open posting slot: that exact time, not the weekday's best one.
+  const [pickedTime] = useState(() => {
+    const t = searchParams.get("time");
+    return t && /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : null;
+  });
+  /** The picked day's slot on this network: the link's time, else the brand's posting time that weekday. */
+  const pickedSlot = (plat: Platform) => {
+    if (!pickedDay || !userId) return null;
+    const t = pickedTime
+      ? { time: pickedTime, why: "slot" as const }
+      : postingTimeOn(getTrackedPosts(userId), plat, (keyToDate(pickedDay).getDay() + 6) % 7, slotTimesFor(brandKit, plat));
+    return { at: daySlot(pickedDay, t.time), why: t.why };
+  };
+
   const persistDraftEntry = useCallback(
     // A new pick passes null: the comment state it would read is the last draft's. Leo's hooks panel passes the formula
     // of a hook that is not in the brief's rows; Keep all 3 saves into a set without opening each draft.
@@ -2393,8 +2420,8 @@ function Writer() {
         platform,
         ctaType,
         vibeSourceId: vibeSourceId ?? undefined,
-        status: existing?.status,
-        scheduledFor: existing?.scheduledFor,
+        // the post being opened (not Keep all 3's others) from a calendar day goes onto that day
+        ...savedSchedule(existing ?? undefined, opts.open === false ? null : (pickedSlot(platform)?.at ?? null)),
         postedAt: existing?.postedAt,
         repeat: existing?.repeat,
         disclosure: disclosure.length ? disclosure : undefined,
@@ -2424,6 +2451,8 @@ function Writer() {
       remixSource,
       leo,
       labelId,
+      // pickedSlot's: the day and time never change after the first frame
+      brandKit,
     ],
   );
 
@@ -3243,27 +3272,9 @@ function Writer() {
   // the next good time to post this one: from the user's own results, else a common slot
   const [scheduleTick, setScheduleTick] = useState(0);
   const postOpen = panel === "post";
-  // /generate?day=YYYY-MM-DD comes from a calendar day: the suggested time lands on that day. Read once,
-  // so later URL rewrites on this page can't drop it; a past or malformed day is ignored.
-  const [pickedDay] = useState(() => {
-    const d = searchParams.get("day");
-    return d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= localDateKey() ? d : null;
-  });
-  // &time=HH:MM comes with an open posting slot: that exact time, not the weekday's best one.
-  const [pickedTime] = useState(() => {
-    const t = searchParams.get("time");
-    return t && /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : null;
-  });
   const suggestedTime = useMemo(() => {
     if (!userId || !currentDraftId) return null;
-    if (pickedDay) {
-      const t = pickedTime
-        ? { time: pickedTime, why: "slot" as const }
-        : postingTimeOn(getTrackedPosts(userId), platform, (keyToDate(pickedDay).getDay() + 6) % 7, slotTimesFor(brandKit, platform));
-      const at = `${pickedDay}T${t.time}`;
-      // today with that time already gone: the day alone, never a time in the past
-      return { at: new Date(at) < new Date() ? pickedDay : at, why: t.why };
-    }
+    if (pickedDay) return pickedSlot(platform);
     // with the brand kit and each post's network, so Leo's per-network times name the slot the calendar names
     const taken = loadDrafts(userId).filter((d) => d.status === "scheduled" && d.scheduledFor).map((d) => ({ platform: d.platform, scheduledFor: d.scheduledFor }));
     return suggestPostingTime(getTrackedPosts(userId), platform, taken, new Date(), brandKit ?? undefined);
@@ -3477,6 +3488,8 @@ function Writer() {
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Write a post
         </h1>
+        {/* from a calendar day: the post goes onto it when saved, so say which before anything is written */}
+        {pickedDay && <p className="mt-1 text-sm text-muted-foreground">For {whenLabel(pickedTime ? `${pickedDay}T${pickedTime}` : pickedDay)}</p>}
       </header>
 
       {showVoiceNudge && (

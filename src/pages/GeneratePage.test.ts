@@ -261,3 +261,22 @@ describe("the toast a post opened by link gets", () => {
     expect(openedToast({ draft: "", pillar: "" })?.title).toBe("Idea loaded");
   });
 });
+
+describe("a post written from a calendar day (?day=)", () => {
+  it("names the day above the brief", () => {
+    expect(html("/generate?day=2099-01-02")).toMatch(/>For Fri[^<]*2[^<]*Jan|>For Fri[^<]*Jan[^<]*2/);
+    expect(html("/generate")).not.toContain(">For ");
+  });
+
+  it("goes onto that day when first saved, at its time unless that time has gone today; a saved post keeps its own", async () => {
+    const { daySlot, savedSchedule } = await import("./GeneratePage");
+    const now = new Date("2026-11-13T10:00:00");
+    expect(daySlot("2026-11-20", "08:30", now)).toBe("2026-11-20T08:30");
+    expect(daySlot("2026-11-13", "08:30", now)).toBe("2026-11-13");
+    expect(daySlot("2026-11-13", "19:30", now)).toBe("2026-11-13T19:30");
+    expect(savedSchedule(undefined, "2026-11-20T08:30")).toEqual({ status: "scheduled", scheduledFor: "2026-11-20T08:30" });
+    expect(savedSchedule(undefined, null)).toEqual({ status: undefined, scheduledFor: undefined });
+    expect(savedSchedule({ status: "draft", scheduledFor: undefined }, "2026-11-20T08:30")).toEqual({ status: "draft", scheduledFor: undefined });
+    expect(savedSchedule({ status: "scheduled", scheduledFor: "2026-11-18T09:00" }, "2026-11-20T08:30")).toEqual({ status: "scheduled", scheduledFor: "2026-11-18T09:00" });
+  });
+});
