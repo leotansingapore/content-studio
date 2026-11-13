@@ -5,6 +5,8 @@ vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/e
 import {
   activeProfile,
   addProfile,
+  brandGroups,
+  isDemoBrand,
   DEFAULT_PROFILE_ID,
   loadProfiles,
   removeProfile,
@@ -161,5 +163,25 @@ describe("each profile's voice and Coach history", () => {
     expect(JSON.parse(ls().getItem(`content-studio-coach-${UID}~${mb.id}`) ?? "[]")).toHaveLength(1);
     ls().setItem(`content-studio-coach-${UID}~${mb.id}`, JSON.stringify({ a: 1 }));
     expect(loadCoachHistory(UID)).toEqual([]);
+  });
+});
+
+describe("the switcher's groups", () => {
+  const p = (id: string, name: string, boardBrand?: string) => ({ id, name, createdAt: "", ...(boardBrand ? { boardBrand } : {}) });
+  const list = [p("me", "Me"), p("mb", "MoneyBees", "moneybees"), p("d1", "FitHaus Studio", "dma-fithaus"), p("d2", "Brightsmile Dental", "dma-brightsmile")];
+
+  it("puts your brands, then demo brands (board brand dma-), under their own headings", () => {
+    expect(brandGroups(list).map((g) => [g.name, g.rows.map((r) => r.id)])).toEqual([["Your brands", ["me", "mb"]], ["Demo brands", ["d1", "d2"]]]);
+    expect(isDemoBrand({ boardBrand: "moneybees" })).toBe(false);
+  });
+
+  it("filters by name in any case, and drops a group with no match", () => {
+    expect(brandGroups(list, "  fitHAUS ").map((g) => [g.name, g.rows.map((r) => r.id)])).toEqual([["Demo brands", ["d1"]]]);
+    expect(brandGroups(list, "money").map((g) => g.name)).toEqual(["Your brands"]);
+    expect(brandGroups(list, "zzz")).toEqual([]);
+  });
+
+  it("gives no heading to an account with no demo brands", () => {
+    expect(brandGroups(list.slice(0, 2))).toEqual([{ name: null, rows: list.slice(0, 2) }]);
   });
 });

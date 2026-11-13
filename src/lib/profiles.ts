@@ -75,6 +75,22 @@ export function linkBoardBrand(userId: string, profileId: string, boardBrand: st
 
 export const profileForBoardBrand = (userId: string, boardBrand: string) => loadProfiles(userId).find((p) => p.boardBrand === boardBrand);
 
+/** A made-up brand from the demo seed (postmosis-demo-brands/seed_demo.py): its board brand starts "dma-". */
+export const isDemoBrand = (p: Pick<Profile, "boardBrand">) => Boolean(p.boardBrand?.startsWith("dma-"));
+
+/**
+ * The switcher's rows: names holding `query` in any case, under "Your brands" and "Demo brands" once the account has a
+ * demo brand (no heading otherwise), each group gone when nothing in it matches.
+ */
+export function brandGroups(list: Profile[], query = ""): { name: string | null; rows: Profile[] }[] {
+  const q = query.trim().toLowerCase();
+  const hits = list.filter((p) => p.name.toLowerCase().includes(q));
+  const groups = list.some(isDemoBrand)
+    ? [{ name: "Your brands", rows: hits.filter((p) => !isDemoBrand(p)) }, { name: "Demo brands", rows: hits.filter(isDemoBrand) }]
+    : [{ name: null, rows: hits }];
+  return groups.filter((g) => g.rows.length);
+}
+
 export function renameProfile(userId: string, id: string, name: string): Profile[] {
   const trimmed = name.trim().slice(0, 40);
   if (!trimmed) return loadProfiles(userId);
