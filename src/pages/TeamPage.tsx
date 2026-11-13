@@ -62,8 +62,9 @@ export default function TeamPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1.5">
+        {/* the tab's own name, so the page reads as the one the tab row opened */}
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          Team review
+          Leader approvals
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Leaders approve posts before they go out. Every submission and decision is kept
