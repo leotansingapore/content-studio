@@ -144,7 +144,9 @@ function Blitz({ userId }: { userId: string }) {
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  const status = running ? `Making today's ${s.cards.length}, ${made} ready` : open.length ? `${open.length} left today` : "";
+  // the deck is being made: the line beside the heading says so once, and the card area is a quiet skeleton
+  const dealing = !nothing && (running || (!s.cards.length && !s.capped));
+  const status = dealing ? (s.cards.length ? `Making today's ${s.cards.length}, ${made} ready` : "Making today's deck") : open.length ? `${open.length} left today` : "";
 
   return (
     <div className="space-y-5">
@@ -226,11 +228,8 @@ function Blitz({ userId }: { userId: string }) {
             )}
           </div>
         </div>
-      ) : running || (!s.cards.length && !s.capped) ? (
-        <div className="mx-auto w-full max-w-[320px] space-y-3" aria-busy="true">
-          <div className="aspect-[4/5] animate-pulse rounded-xl bg-muted" />
-          <p className="text-center text-sm text-muted-foreground">{s.cards.length ? `Making today's ${s.cards.length}, ${made} ready` : "Making today's deck"}</p>
-        </div>
+      ) : dealing ? (
+        <div className="mx-auto aspect-[4/5] w-full max-w-[320px] animate-pulse rounded-xl bg-muted" aria-busy="true" />
       ) : made > 0 ? (
         <EmptyState
           icon={StackIcon}

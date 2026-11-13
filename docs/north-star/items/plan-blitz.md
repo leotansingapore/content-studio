@@ -99,7 +99,7 @@ Blitz                                         8 left today   [Change mix]
                   (Skip  S)  (Edit  E)  (Keep  K)
 ```
 
-- Making today's deck: the card area shows a skeleton and "Making today's 10, 3 ready". The job runs outside React, so leaving the page keeps it going, and cards appear as each one lands.
+- Making today's deck: the card area shows a quiet skeleton of the first card, and "Making today's 10, 3 ready" sits beside the title only. The job runs outside React, so leaving the page keeps it going, and cards appear as each one lands.
 - A card: the preview (a slideshow's first slide with arrows, a wall over its clip, a text post as text) and three chips: format, source, Why this. Why this opens one line built from the source's numbers, for example "Pipedrive has run this ad for 32 days. Same hook, your topic."
 - Keep: the draft goes to My posts unscheduled, the next card slides in, and a toast reads "Kept. It's in My posts." with Undo and "Schedule it".
 - Skip: the card leaves and nothing is saved. Undo brings it back for 5 seconds.
@@ -112,7 +112,7 @@ Blitz                                         8 left today   [Change mix]
 
 ### Copy
 
-- The page title is "Blitz", with "{n} left today" beside it and "Making today's {n}, {k} ready" while the job runs.
+- The page title is "Blitz", with "{n} left today" beside it and "Making today's {n}, {k} ready" while the job runs ("Making today's deck" before its first card is planned).
 - The buttons read "Skip", "Edit" and "Keep", and the reason chip reads "Why this?".
 - The toasts read "Kept. It's in My posts." and "Skipped.", each with Undo.
 - The end of the deck reads "That's today's {n}. You kept {k}." over "Open My posts" and "Schedule the {k}".
