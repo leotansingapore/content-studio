@@ -1,17 +1,20 @@
-// Social accounts (/accounts): connect the open brand profile's Instagram, Facebook, TikTok, LinkedIn,
-// YouTube and Threads accounts through Zernio, see whether each still works, reconnect or disconnect it.
-// Server: supabase/functions/social. Until the server says it is switched on, the page says only that.
-// Leo's sign-in (publish-accounts) sees them grouped by platform with a default per platform, the count and
-// price lines, #<platform> anchors, and "Back to your post" after a connect started from a post, then the Telegram
-// card (#telegram, TelegramCard.tsx), which connects through the Content Studio bot rather than Zernio.
+// Connections (/accounts, was Social accounts): one page of compact rows in groups, open to every sign-in.
+// Social accounts: the open brand profile's Instagram, Facebook, TikTok, LinkedIn, YouTube and Threads accounts
+// through Zernio (server: supabase/functions/social; docs/zernio-connection.md). Until the server says it is
+// switched on, the group says only that. One row per platform or account: Connect, Reconnect, Disconnect. Leo's
+// sign-in also sees the count and price lines, a default per platform, and "Back to your post" after a connect
+// started from a post. Telegram (#telegram, TelegramCard.tsx, Leo's sign-ins: the server refuses everyone else)
+// connects through the Content Studio bot. Links and tools: rows to their own pages, as nav.ts lists them.
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowClockwiseIcon, PlugsIcon } from "@phosphor-icons/react";
+import { ArrowClockwiseIcon, AtIcon, CaretRightIcon, PlugsIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import { CHANNEL_ICON } from "@/components/ChannelsBlock";
 import TelegramCard from "@/components/TelegramCard";
 import { useToast } from "@/hooks/use-toast";
+import { section, visiblePages } from "@/lib/nav";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useScrollToHash } from "@/lib/urlState";
@@ -30,7 +33,6 @@ import {
   healthLabel,
   isNotEnabled,
   loadSocialDefaults,
-  PLATFORM_NAME,
   platformName,
   readConnectReturn,
   readRedirect,
@@ -57,28 +59,37 @@ const HEALTH_TONE: Record<AccountView["health"], string> = {
 const isPlatform = (p: string): p is SocialPlatform => (SOCIAL_PLATFORMS as readonly string[]).includes(p);
 const message = (e: unknown) => (e instanceof Error ? e.message : "That didn't go through. Try again in a minute.");
 
-/** One connected account with its health, Reconnect and Disconnect; `extra` sits before the buttons (Leo's Default). */
-function AccountRow({ a, busy, grouped, extra, connect, disconnect }: {
-  a: AccountView;
+const ROWS = "divide-y divide-border/60 rounded-lg border border-border/60";
+const ROW = "flex min-h-11 items-center gap-3 px-3 py-2";
+const MARK = "h-5 w-5 shrink-0 text-muted-foreground";
+// the pages the Links and tools rows open; nav.ts keeps their names, icons and who sees them (AdLauncher is Leo's)
+const TOOLS = ["/bio", "/links", "/connect", "/adlauncher"];
+
+type RowActions = {
   busy: string;
-  grouped?: boolean;
-  extra?: ReactNode;
-  connect: (p: SocialPlatform, again: string) => void;
+  connect: (p: SocialPlatform, again?: string) => void;
   disconnect: (a: AccountView) => void;
-}) {
+};
+
+/** One connected account: its network, who it is connected as, and Disconnect (Reconnect first when it stopped working); `extra` sits before the buttons (Leo's Default). */
+function AccountRow({ a, id, busy, extra, connect, disconnect }: RowActions & { a: AccountView; id?: string; extra?: ReactNode }) {
+  const Icon = CHANNEL_ICON[a.platform] ?? AtIcon;
+  const who = a.username ? `@${a.username}` : a.name;
+  const well = !a.needsReconnect && a.health === "healthy";
   return (
-    <li className="flex flex-wrap items-center gap-2 px-3 py-2">
+    <li id={id} className={`${ROW} scroll-mt-20 flex-wrap`}>
+      <Icon aria-hidden className={MARK} />
       <div className="mr-auto min-w-0">
-        <p className="truncate text-sm font-semibold">{a.username ? `@${a.username}` : a.name || platformName(a.platform)}</p>
+        <p className="truncate text-sm font-semibold">{platformName(a.platform)}</p>
         <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
-          {!grouped && <span>{platformName(a.platform)}</span>}
-          <span className={`font-semibold ${HEALTH_TONE[a.needsReconnect ? "error" : a.health]}`}>{healthLabel(a)}</span>
+          <span className="truncate">{who ? `Connected as ${who}` : "Connected"}</span>
+          {!well && <span className={`font-semibold ${HEALTH_TONE[a.needsReconnect ? "error" : a.health]}`}>{healthLabel(a)}</span>}
           {a.issues[0] && <span>{a.issues[0]}</span>}
         </p>
       </div>
       {extra}
       {(a.needsReconnect || a.health === "error") && isPlatform(a.platform) && (
-        <Button size="sm" className="h-11 sm:h-9" disabled={!!busy} onClick={() => connect(a.platform as SocialPlatform, a.id)}>
+        <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={!!busy} onClick={() => connect(a.platform as SocialPlatform, a.id)}>
           {busy === a.id ? "Opening..." : "Reconnect"}
         </Button>
       )}
@@ -92,6 +103,92 @@ function AccountRow({ a, busy, grouped, extra, connect, disconnect }: {
         <PlugsIcon className="h-3.5 w-3.5" /> {busy === `x${a.id}` ? "Disconnecting..." : "Disconnect"}
       </Button>
     </li>
+  );
+}
+
+/**
+ * The Social accounts rows once the server has answered: a row per platform ("Not connected", Connect) or per
+ * connected account, then a quiet "Add another" under a platform that has one. Leo's sign-in sees the count and the
+ * price above them and picks a default where a platform has two; everyone else sees the cap line only once full.
+ */
+export function SocialRows({ status, leo, defaults, pickDefault, ...act }: RowActions & {
+  status: SocialStatus;
+  leo: boolean;
+  defaults: SocialDefaults;
+  pickDefault: (platform: string, accountId: string) => void;
+}) {
+  const full = capLine(status);
+  const { busy, connect } = act;
+  return (
+    <>
+      {status.removed.length > 0 && (
+        <ul role="status" className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+          {status.removed.map((n) => (
+            <li key={`${n.platform}-${n.username}-${n.at}`}>{removedLine(n)}</li>
+          ))}
+        </ul>
+      )}
+      {leo ? (
+        <div className="space-y-0.5 text-sm">
+          <p className="font-semibold">{countLine(status)}</p>
+          <p className="text-muted-foreground">{ZERNIO_PRICE_LINE}</p>
+        </div>
+      ) : (
+        full && <p className="text-sm text-muted-foreground">{full}</p>
+      )}
+      <ul className={ROWS}>
+        {groupAccounts(status.accounts, defaults).map((g) => {
+          const Icon = CHANNEL_ICON[g.platform] ?? AtIcon;
+          const known = isPlatform(g.platform);
+          if (!g.accounts.length)
+            return (
+              <li key={g.platform} id={g.platform} className={`${ROW} scroll-mt-20`}>
+                <Icon aria-hidden className={MARK} />
+                <div className="mr-auto min-w-0">
+                  <p className="truncate text-sm font-semibold">{g.name}</p>
+                  <p className="text-xs text-muted-foreground">Not connected</p>
+                </div>
+                {known && (
+                  <Button size="sm" variant="outline" className="h-11 sm:h-9" aria-label={g.button ?? undefined} disabled={!!busy || !!full} onClick={() => connect(g.platform as SocialPlatform)}>
+                    {busy === g.platform ? "Opening..." : "Connect"}
+                  </Button>
+                )}
+              </li>
+            );
+          return [
+            ...g.accounts.map((a, i) => (
+              <AccountRow
+                key={a.id}
+                a={a}
+                id={i === 0 ? g.platform : undefined}
+                {...act}
+                extra={
+                  leo && g.showDefault && (
+                    <label className="flex min-h-9 cursor-pointer items-center gap-1.5 px-1 text-xs font-medium [@media(pointer:coarse)]:min-h-11">
+                      <input
+                        type="radio"
+                        name={`default-${g.platform}`}
+                        checked={g.defaultId === a.id}
+                        onChange={() => pickDefault(g.platform, a.id)}
+                        className="h-4 w-4 accent-primary"
+                      />
+                      Default
+                    </label>
+                  )
+                }
+              />
+            )),
+            known && g.button && (
+              <li key={`${g.platform}-add`} className="px-3 py-1 pl-11">
+                <Button size="sm" variant="ghost" className="h-11 px-0 text-muted-foreground hover:bg-transparent hover:text-foreground sm:h-9" disabled={!!busy || !!full} onClick={() => connect(g.platform as SocialPlatform)}>
+                  {busy === g.platform ? `Opening ${g.name}...` : g.button}
+                </Button>
+              </li>
+            ),
+          ];
+        })}
+      </ul>
+    </>
   );
 }
 
@@ -112,8 +209,8 @@ export default function AccountsPage() {
   const leo = useLeoUser();
   const [backTo, setBackTo] = useState<string | null>(null);
   const [defaults, setDefaults] = useState<SocialDefaults>({});
-  // /accounts#tiktok lands on that platform's card once Leo's groups are drawn
-  useScrollToHash(state === "ready" && !!leo);
+  // /accounts#tiktok lands on that platform's row once the rows are drawn
+  useScrollToHash(state === "ready" && leo !== undefined);
 
   const load = async (uid: string) => {
     try {
@@ -191,20 +288,17 @@ export default function AccountsPage() {
     }
   };
 
-  const full = status ? capLine(status) : null;
-
   const pickDefault = (platform: string, accountId: string) => {
     if (!userId) return;
     if (!saveSocialDefault(userId, platform, accountId)) toast({ title: "Couldn't save the default: this device's storage is full.", variant: "destructive" });
     setDefaults(loadSocialDefaults(userId));
   };
 
+  const tools = visiblePages(section("settings").pages, leo?.email ?? "").filter((p) => TOOLS.includes(p.to));
+
   return (
-    <div className="space-y-6">
-      <header className="flex items-center gap-1">
-        <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Social accounts</h1>
-        <InfoTip label="About social accounts">Each brand profile connects its own accounts, through Zernio.</InfoTip>
-      </header>
+    <div className="max-w-3xl space-y-8">
+      <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Connections</h1>
 
       {back && (
         <p role="status" className={`rounded-lg border px-3 py-2 text-sm ${back.ok ? "border-success/40 bg-success/10" : "border-destructive/40 bg-destructive/10"}`}>
@@ -224,132 +318,64 @@ export default function AccountsPage() {
         </p>
       )}
 
-      {(state === "loading" || (state === "ready" && leo === undefined)) && (
-        <p className="text-sm text-muted-foreground" aria-live="polite">
-          Loading your accounts...
-        </p>
-      )}
-      {state === "off" && <p className="text-sm text-muted-foreground">Social accounts aren't switched on for you yet.</p>}
-      {state === "error" && (
-        <div className="space-y-2">
-          <p className="text-sm text-destructive">{error}</p>
-          <Button variant="outline" className="h-11 gap-2" onClick={() => {
-              if (!userId) return;
-              setState("loading");
-              void load(userId);
-            }}>
-            <ArrowClockwiseIcon className="h-4 w-4" /> Try again
-          </Button>
+      <section aria-labelledby="accounts-social" className="space-y-2">
+        <div className="flex items-center gap-1">
+          <h2 id="accounts-social" className="text-sm font-semibold">Social accounts{profile.id !== DEFAULT_PROFILE_ID ? ` for ${profile.name}` : ""}</h2>
+          <InfoTip label="About social accounts">Each brand profile connects its own accounts, through Zernio.</InfoTip>
         </div>
-      )}
+        {(state === "loading" || (state === "ready" && leo === undefined)) && (
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            Loading your accounts...
+          </p>
+        )}
+        {state === "off" && <p className="text-sm text-muted-foreground">Social accounts aren't switched on for you yet.</p>}
+        {state === "error" && (
+          <>
+            <p className="text-sm text-destructive">{error}</p>
+            <Button variant="outline" className="h-11 gap-2" onClick={() => {
+                if (!userId) return;
+                setState("loading");
+                void load(userId);
+              }}>
+              <ArrowClockwiseIcon className="h-4 w-4" /> Try again
+            </Button>
+          </>
+        )}
+        {state === "ready" && status && leo !== undefined && (
+          <>
+            <SocialRows status={status} leo={!!leo} defaults={defaults} pickDefault={pickDefault} busy={busy} connect={connect} disconnect={disconnect} />
+            <p className="text-sm text-muted-foreground">
+              Missing a platform?{" "}
+              <Link to="/feedback?tab=feedback" className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-2 hover:underline">
+                Request it
+              </Link>
+            </p>
+          </>
+        )}
+      </section>
 
-      {state === "ready" && status && leo && (
-        <>
-          {status.removed.length > 0 && (
-            <ul role="status" className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
-              {status.removed.map((n) => (
-                <li key={`${n.platform}-${n.username}-${n.at}`}>{removedLine(n)}</li>
-              ))}
-            </ul>
-          )}
-          <div className="space-y-0.5 text-sm">
-            <p className="font-semibold">{countLine(status)}</p>
-            <p className="text-muted-foreground">{ZERNIO_PRICE_LINE}</p>
-          </div>
-          <div className="max-w-3xl space-y-3">
-            {groupAccounts(status.accounts, defaults).map((g) => (
-              <section key={g.platform} id={g.platform} aria-labelledby={`accounts-${g.platform}`} className="scroll-mt-20 space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
-                <h2 id={`accounts-${g.platform}`} className="text-sm font-semibold">{g.name}</h2>
-                {g.accounts.length > 0 && (
-                  <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
-                    {g.accounts.map((a) => (
-                      <AccountRow
-                        key={a.id}
-                        a={a}
-                        busy={busy}
-                        grouped
-                        connect={connect}
-                        disconnect={disconnect}
-                        extra={
-                          g.showDefault && (
-                            <label className="flex min-h-9 cursor-pointer items-center gap-1.5 px-1 text-xs font-medium [@media(pointer:coarse)]:min-h-11">
-                              <input
-                                type="radio"
-                                name={`default-${g.platform}`}
-                                checked={g.defaultId === a.id}
-                                onChange={() => pickDefault(g.platform, a.id)}
-                                className="h-4 w-4 accent-primary"
-                              />
-                              Default
-                            </label>
-                          )
-                        }
-                      />
-                    ))}
-                  </ul>
-                )}
-                {g.button && isPlatform(g.platform) && (
-                  <Button variant="outline" className="h-11 w-full sm:w-auto" disabled={!!busy || !!full} onClick={() => connect(g.platform as SocialPlatform)}>
-                    {busy === g.platform ? `Opening ${g.name}...` : g.button}
-                  </Button>
-                )}
-              </section>
-            ))}
-          </div>
-        </>
-      )}
+      {leo && userId && <TelegramCard userId={userId} profileId={profile.id} />}
 
-      {leo && userId && (
-        <div className="max-w-3xl">
-          <TelegramCard userId={userId} profileId={profile.id} />
-        </div>
-      )}
-
-      {state === "ready" && status && leo === null && (
-        <>
-          {status.removed.length > 0 && (
-            <ul role="status" className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
-              {status.removed.map((n) => (
-                <li key={`${n.platform}-${n.username}-${n.at}`}>{removedLine(n)}</li>
-              ))}
-            </ul>
-          )}
-
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold">Connected{profile.id !== DEFAULT_PROFILE_ID ? ` to ${profile.name}` : ""}</h2>
-            {status.accounts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">None yet.</p>
-            ) : (
-              <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
-                {status.accounts.map((a) => (
-                  <AccountRow key={a.id} a={a} busy={busy} connect={connect} disconnect={disconnect} />
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold">Connect an account</h2>
-            {full && <p className="text-sm text-muted-foreground">{full}</p>}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {SOCIAL_PLATFORMS.map((p) => (
-                <Button key={p} variant="outline" className="h-11" disabled={!!busy || !!full} onClick={() => connect(p)}>
-                  {busy === p ? `Opening ${PLATFORM_NAME[p]}...` : PLATFORM_NAME[p]}
-                </Button>
-              ))}
-            </div>
-          </section>
-        </>
-      )}
-
-      {status && (
-        <p className="text-sm text-muted-foreground">
-          Missing a platform?{" "}
-          <Link to="/feedback?tab=feedback" className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-2 hover:underline">
-            Request it
-          </Link>
-        </p>
-      )}
+      <section aria-labelledby="accounts-tools" className="space-y-2">
+        <h2 id="accounts-tools" className="text-sm font-semibold">Links and tools</h2>
+        <ul className={ROWS}>
+          {tools.map((p) => {
+            const Icon = p.icon ?? AtIcon;
+            return (
+              <li key={p.to}>
+                <Link to={p.to} className={`${ROW} transition-colors hover:bg-accent/50`}>
+                  <Icon aria-hidden className={MARK} />
+                  <span className="mr-auto min-w-0">
+                    <span className="block truncate text-sm font-semibold">{p.label}</span>
+                    {p.hint && <span className="block truncate text-xs text-muted-foreground">{p.hint}</span>}
+                  </span>
+                  <CaretRightIcon aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
     </div>
   );
 }

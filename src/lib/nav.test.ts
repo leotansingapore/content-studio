@@ -120,7 +120,7 @@ describe("nav", () => {
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/inspiration", "/following", "/profiles"]);
     expect(pages("analytics", ANYONE)).toEqual(["/analytics", "/coach", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads", "/media"]);
-    expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/bio", "/links", "/connect", "/welcome", "/academy", "/create-guide", "/tutorial", "/feedback"]);
+    expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/accounts", "/bio", "/links", "/connect", "/welcome", "/academy", "/create-guide", "/tutorial", "/feedback"]);
     // the gates are the ones each page had before: these and no others are Leo's
     const leoOnly = SECTIONS.flatMap((s) => s.pages.filter((p) => p.owners).map((p) => p.to)).sort();
     expect(leoOnly).toEqual(["/activity", "/adlauncher", "/agent", "/audiences", "/automations", "/blitz", "/brand/demo-videos", "/brand/products", "/campaigns", "/competitors", "/ideas", "/image", "/make", "/north-star", "/people", "/recruit/auto-dm", "/research", "/saved", "/script", "/settings/held", "/skills", "/social-north-star"]);
@@ -132,11 +132,12 @@ describe("nav", () => {
     }
   });
 
-  it("shows Social accounts only once the server has said it is switched on, and Auto-DM only to Leo as well", () => {
+  it("shows Connections to every sign-in, and Auto-DM only to Leo once the server has said posting is switched on", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
     const shown = (email = ANYONE) => ["settings", "analytics"].flatMap((id) => pages(id, email));
-    expect(shown()).not.toContain("/accounts");
+    // the page gates its own Social accounts group; Telegram and the link tools need no switch
+    expect(shown()).toContain("/accounts");
     expect(shown(LEO)).not.toContain("/recruit/auto-dm");
     store.set("cs-social-connect", JSON.stringify({ on: true, at: Date.now() }));
     expect(shown()).toContain("/accounts");
@@ -144,7 +145,7 @@ describe("nav", () => {
     expect(shown()).not.toContain("/recruit/auto-dm");
     expect(shown(LEO)).toContain("/recruit/auto-dm");
     store.set("cs-social-connect", JSON.stringify({ on: false, at: Date.now() }));
-    expect(shown()).not.toContain("/accounts");
+    expect(shown()).toContain("/accounts");
     expect(shown(LEO)).not.toContain("/recruit/auto-dm");
     vi.unstubAllGlobals();
   });
@@ -230,7 +231,7 @@ describe("nav", () => {
     expect(section("settings").pages.slice(1).every((p) => p.hint && p.hint.split(" ").length <= 12)).toBe(true);
     // Post labels and Language are sections of Post choices with tiles of their own, Language on Leo's sign-ins only
     const tiles = (email: string) => settingsTiles(visiblePages(groupedPages(section("settings").pages.slice(1)), email), email);
-    expect(tiles(ANYONE).map((t) => t.to).slice(0, 4)).toEqual(["/notifications", "/settings/post-choices", "/settings/post-choices#labels", "/bio"]);
+    expect(tiles(ANYONE).map((t) => t.to).slice(0, 5)).toEqual(["/notifications", "/settings/post-choices", "/settings/post-choices#labels", "/accounts", "/bio"]);
     expect(tiles(LEO).map((t) => [t.label, t.group]).slice(1, 4)).toEqual([["Post choices", "You"], ["Post labels", "You"], ["Language", "You"]]);
     expect(tiles(ANYONE).filter((t) => t.group === "Help").map((t) => t.label)).toEqual(["Getting started", "Academy", "How to post", "How it works", "Feedback"]);
     expect(SETTINGS_ANCHORS.every((a) => a.hint.split(" ").length <= 12 && pageFor(a.page)?.page.to === a.page)).toBe(true);

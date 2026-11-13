@@ -346,7 +346,7 @@ export default function TelegramCard({ userId, profileId }: { userId: string; pr
   const backTo = state?.kind === "connected" ? readConnectReturn() : null;
 
   return (
-    <section id="telegram" aria-labelledby="accounts-telegram" className="scroll-mt-20 space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
+    <section id="telegram" aria-labelledby="accounts-telegram" className="scroll-mt-20 space-y-2">
       <div className="flex items-center gap-1">
         <h2 id="accounts-telegram" className="text-sm font-semibold">Telegram</h2>
         <InfoTip label="About Telegram">The Postmosis bot posts for you. It reads nothing else.</InfoTip>

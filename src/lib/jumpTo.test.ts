@@ -78,7 +78,8 @@ describe("searchJump", () => {
     expect(searchJump(items, "notifications")[0].to).toBe("/notifications");
     expect(searchJump(items, "alerts")[0].to).toBe("/notifications");
     expect(searchJump(items, "plan my week")[0].to).toBe("/plan");
-    expect(searchJump(items, "account")[0].to).toBe("/settings");
+    // Connections (/accounts) is every sign-in's since 13 Nov, and an address word outranks a keyword
+    expect(searchJump(items, "account").map((i) => i.to).slice(0, 2)).toEqual(["/accounts", "/settings"]);
     expect(searchJump(items, "hashtags")[0].to).toBe("/trends");
     expect(searchJump(items, "trending")[0].to).toBe("/trends");
     expect(searchJump(items, "trending posts")[0].to).toBe("/swipe");
@@ -175,7 +176,8 @@ describe("Faces and voices", () => {
     expect(searchJump(leo, "voice").map((i) => i.to)).toEqual(expect.arrayContaining(["/voice", "/people"]));
     const other = [...CREATE_ITEMS, ...pageItems("someone@example.com")];
     expect(other.map((i) => i.to)).not.toContain("/people");
-    expect(searchJump(other, "face")).toEqual([]);
+    // "face" still reaches Facebook on Connections, never Faces and voices
+    expect(searchJump(other, "face").map((i) => i.to)).toEqual(["/accounts"]);
   });
 });
 

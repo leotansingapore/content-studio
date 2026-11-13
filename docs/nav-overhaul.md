@@ -121,7 +121,7 @@ as buttons over the chat.
 | /settings | Settings | the workspace card's menu (Help opens /settings#help) | everyone |
 | /notifications | Notifications | Settings > You tile | everyone |
 | /settings/post-choices | Post choices | Settings > You tile | everyone |
-| /accounts | Social accounts | Settings > Connections tile | posting switched on |
+| /accounts | Connections (was Social accounts) | Settings > Connections tile | everyone; its Social accounts group only with posting switched on, Telegram only for Leo |
 | /bio | Link in bio | Settings > Connections tile | everyone |
 | /links | Tracked links | Settings > Connections tile | everyone |
 | /connect | Connect Claude | Settings > Connections tile | everyone |
