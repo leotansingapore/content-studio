@@ -64,6 +64,10 @@ export interface FormatDef {
   ready: boolean;
   /** public/formats/<slug>.webp and .mp4 exist. Integrator only. */
   preview?: true;
+  /** How many example clips it has: <slug>.mp4, then <slug>-2.mp4 and on, each with its .webp poster (1 when missing). */
+  examples?: number;
+  /** Its example clips carry their own sound, so its page offers Play with sound on each. */
+  sound?: true;
 }
 
 export type PageFormat = FormatDef & { cap: UsageFeature; Component: NonNullable<FormatDef["Component"]> };
@@ -119,6 +123,12 @@ export const TEMPLATE_SECTIONS: Record<string, FormatSection> = {
 
 const VideoFormatPage = lazy(() => import("@/pages/VideoFormatPage"));
 
+/** The templates whose example is a real make with its sound on (14 Nov): their pages offer Play with sound. */
+const SOUND_EXAMPLES = new Set([
+  "street-interview", "two-host-podcast", "baby-podcast", "unboxing", "reaction-claim", "comment-reply", "question-box", "car-call", "car-split",
+  "front-camera-chat", "three-levels", "whiteboard-presenter",
+]);
+
 /** One card per editor template, leaving out the ones the editor hides. */
 export function templateFormats(list: VideoTemplate[]): FormatDef[] {
   return list
@@ -136,6 +146,7 @@ export function templateFormats(list: VideoTemplate[]): FormatDef[] {
       needs: t.needsPhoto === "product" ? "product-photo" : t.needsPhoto ? "photo" : undefined,
       Component: VideoFormatPage,
       opens: () => links.edit({ panel: ["ai"], kind: "template", template: t.id }),
+      ...(SOUND_EXAMPLES.has(t.id) ? { sound: true as const } : {}),
       ready: true,
     }));
 }
@@ -439,6 +450,13 @@ export const FORMATS: FormatDef[] = ([
     ready: true,
   },
 ] as FormatDef[]).map((f) => (f.ready ? { ...f, preview: true as const } : f));
+
+/** A format's example clips and their posters, in order: <slug>, then <slug>-2 and on. */
+export const exampleClips = (f: Pick<FormatDef, "slug" | "examples">): { src: string; poster: string }[] =>
+  Array.from({ length: Math.max(1, f.examples ?? 1) }, (_, i) => {
+    const name = i ? `${f.slug}-${i + 1}` : f.slug;
+    return { src: `/formats/${name}.mp4`, poster: `/formats/${name}.webp` };
+  });
 
 /** Format pages only (an entry with a Component), so Slideshow.tsx and WallOfText.tsx read their cap without a check. */
 export const formatBySlug = (slug: string | undefined): PageFormat | null =>

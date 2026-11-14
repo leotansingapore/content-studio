@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CaretLeftIcon, SparkleIcon } from "@phosphor-icons/react";
+import Examples from "@/components/make/Examples";
 import FormatTile from "@/components/make/FormatTile";
 import MakeHere from "@/components/make/MakeHere";
 import PriceChip from "@/components/PriceChip";
@@ -13,7 +14,6 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const LABEL = "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
-const MOTION = "(hover: hover) and (prefers-reduced-motion: no-preference)";
 
 export const needLine = (f: Pick<FormatDef, "needs">) => (f.needs ? `${NEED_LINES[f.needs]}.` : "Nothing extra needed.");
 
@@ -29,7 +29,6 @@ const VideoFormatPage = () => {
   const maker = makerOf(def.opens());
   if (maker && leo) return <MakeHere def={{ ...def, opens: def.opens }} maker={maker} userId={leo.id} />;
   const price = def.price();
-  const plays = typeof window !== "undefined" && window.matchMedia(MOTION).matches;
   const left = def.cap ? leftOf(def.cap) : null;
 
   return (
@@ -51,26 +50,16 @@ const VideoFormatPage = () => {
         <p className="text-sm text-muted-foreground">{def.blurb}</p>
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)] lg:items-start lg:gap-10">
-        <figure className="space-y-2">
-          <p className={LABEL}>Example</p>
-          <div className="aspect-[9/16] w-full max-w-[200px] overflow-hidden rounded-lg border border-border/60 bg-muted shadow-card sm:max-w-[300px]">
-            {def.preview ? (
-              <video
-                src={`/formats/${def.slug}.mp4`}
-                poster={`/formats/${def.slug}.webp`}
-                muted
-                loop
-                playsInline
-                autoPlay={plays}
-                controls
-                aria-label={`${def.name} example`}
-                className="h-full w-full object-cover"
-              />
-            ) : (
+        {def.preview ? (
+          <Examples f={def} card={(def.examples ?? 1) > 1 ? "w-36" : "w-full max-w-[200px] sm:max-w-[300px]"} />
+        ) : (
+          <figure className="space-y-2">
+            <p className={LABEL}>Example</p>
+            <div className="aspect-[9/16] w-full max-w-[200px] overflow-hidden rounded-lg border border-border/60 bg-muted shadow-card sm:max-w-[300px]">
               <FormatTile f={def} />
-            )}
-          </div>
-        </figure>
+            </div>
+          </figure>
+        )}
         <div className="max-w-xl space-y-5">
           <div className="space-y-1">
             <p className={LABEL}>Works with</p>

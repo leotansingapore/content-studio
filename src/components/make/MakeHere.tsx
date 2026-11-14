@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CircleNotchIcon, WarningIcon } from "@phosphor-icons/react";
 import ComplianceChips from "@/components/ComplianceChips";
+import Examples from "@/components/make/Examples";
 import FormatShell from "@/components/make/FormatShell";
 import MoreSettings from "@/components/make/MoreSettings";
 import PriceChip from "@/components/PriceChip";
@@ -55,7 +56,6 @@ import { MAX_FIELD, MAX_TOPIC } from "../../../supabase/functions/ai-video/logic
 const FIELD_LABEL = "text-xs font-semibold text-muted-foreground";
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const SAY_MAX = 600;
-const MOTION = "(hover: hover) and (prefers-reduced-motion: no-preference)";
 type Captions = (typeof CAPTION_CHOICES)[number];
 const captionsLine = (c: Captions) => (c === "off" ? "no captions" : `captions ${styleLabel(c, true)}`);
 const PICK = "inline-flex h-11 cursor-pointer items-center rounded-full border border-border/70 bg-background px-3.5 text-xs font-semibold hover:border-primary/40 focus-within:ring-2 focus-within:ring-ring sm:h-9 [@media(pointer:coarse)]:h-11";
@@ -266,7 +266,7 @@ export default function MakeHere({ def, maker, userId }: { def: FormatDef & { op
 
   const options = (
     <>
-      {def.preview && <Examples def={def} />}
+      {def.preview && <Examples f={def} card="w-36" />}
       {talk ? (
         <TalkScript userId={userId} talk={talk} typed={typed} setTyped={setTyped} length={length as TalkLength} onWritten={(n) => setLength(lengthFor(n))} offer={offer} before={before} />
       ) : template && (
@@ -590,18 +590,5 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <p className={FIELD_LABEL}>{label}</p>
       <div className="flex flex-wrap gap-1.5">{children}</div>
     </div>
-  );
-}
-
-/** The format's example: its clip, playing silently while motion is allowed, with controls. */
-function Examples({ def }: { def: FormatDef }) {
-  const plays = typeof window !== "undefined" && !!window.matchMedia?.(MOTION).matches;
-  return (
-    <figure className="space-y-1.5">
-      <p className={FIELD_LABEL}>Example</p>
-      <div className="aspect-[9/16] w-28 overflow-hidden rounded-lg border border-border/60 bg-muted sm:w-32">
-        <video src={`/formats/${def.slug}.mp4`} poster={`/formats/${def.slug}.webp`} muted loop playsInline autoPlay={plays} controls aria-label={`${def.name} example`} className="h-full w-full object-cover" />
-      </div>
-    </figure>
   );
 }

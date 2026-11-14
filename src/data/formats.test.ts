@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TEMPLATES, type VideoTemplate } from "../../supabase/functions/ai-video/templates.ts";
 import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 import { EXPLAINER_LOOKS } from "../../supabase/functions/ai-video/logic.ts";
-import { FORMATS, FORMAT_FILTERS, NEED_LINES, SECTIONS, alsoMakeList, bySection, filterFormats, formatBySlug, formatHref, readyStatics, searchFormats, templateFormats, usedUpLine, type FormatDef, type FormatNeed, pageFor } from "./formats";
+import { FORMATS, FORMAT_FILTERS, exampleClips, NEED_LINES, SECTIONS, alsoMakeList, bySection, filterFormats, formatBySlug, formatHref, readyStatics, searchFormats, templateFormats, usedUpLine, type FormatDef, type FormatNeed, pageFor } from "./formats";
 import { STATIC_FORMATS, type StaticFormat } from "./staticFormats";
 import { WRITE_PRICE, priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
 
@@ -311,5 +311,21 @@ describe("format examples on disk", () => {
       shots.forEach((_, i) => existsSync(`public/formats/static/${f.slug}-${i + 1}.webp`) || missing.push(`static/${f.slug}-${i + 1}.webp`));
     }
     expect(missing).toEqual([]);
+  });
+
+  it("has every example clip a format lists, and sound in each clip of a format that offers Play with sound", async () => {
+    const { existsSync, readFileSync: read } = await import("node:fs");
+    expect(exampleClips({ slug: "news-anchor" })).toEqual([{ src: "/formats/news-anchor.mp4", poster: "/formats/news-anchor.webp" }]);
+    expect(exampleClips({ slug: "x", examples: 3 }).map((c) => c.src)).toEqual(["/formats/x.mp4", "/formats/x-2.mp4", "/formats/x-3.mp4"]);
+    const missing: string[] = [];
+    for (const f of FORMATS.filter((x) => x.preview && x.kind === "video")) {
+      for (const c of exampleClips(f)) for (const file of [c.src, c.poster]) existsSync(`public${file}`) || missing.push(file);
+    }
+    expect(missing).toEqual([]);
+    const loud = FORMATS.filter((f) => f.sound);
+    expect(loud.map((f) => f.slug)).toContain("template-street-interview");
+    // an MP4 with a sound track lists an "soun" handler box; a silent one has none
+    for (const f of loud) for (const c of exampleClips(f)) expect(read(`public${c.src}`).includes("soun"), c.src).toBe(true);
+    expect(read("public/formats/news-anchor.mp4").includes("soun")).toBe(false);
   });
 });

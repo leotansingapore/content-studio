@@ -260,4 +260,11 @@ describe("a format made on its own page", () => {
     expect(page).toContain(">Undo</button>");
     expect(html("template-street-interview?topic=Anything")).not.toContain("Anything");
   });
+
+  it("offers Play with sound on a template whose example carries it, and not on a silent one", () => {
+    as.leo = LEO;
+    expect(html("template-street-interview")).toContain("Play with sound");
+    expect(html("news-anchor")).not.toContain("Play with sound");
+    expect(html("look-clay")).not.toContain("Play with sound");
+  });
 });
