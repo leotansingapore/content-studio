@@ -2,8 +2,8 @@
 // `opens` link in src/data/formats.ts: a presenter talk (kind=avatar&talk=) or an editor template (kind=template&
 // template=). A row added there, or a template added to ai-video's TEMPLATES, gets the page with no page change; any
 // other `opens` keeps today's page with Use this format. Pure, so it is tested on its own.
-//   device: cs-make-<slug>-<scoped uid>: { script?, headline?, fields? } what was typed on that format's page, so a
-//   reload or another visit keeps it (device only, like the talking head's).
+//   device: cs-make-<slug>-<scoped uid>: { script?, headline?, look?, fields? } what was typed on that format's page
+//   (a new presenter's look too), so a reload or another visit keeps it (device only, like the talking head's).
 
 import { scoped } from "@/lib/profiles";
 import { TALK_LENGTHS, talkWords, wordLine, type TalkLength } from "@/lib/talkingHead";
@@ -46,11 +46,19 @@ export function clipWordLine(n: number, seconds: number): string {
 /** Under a talk's script: the words against the length's target (the talking head's wordLine), or the target while empty. */
 export const talkLine = (n: number, s: TalkLength): string => wordLine(n, s) || `Aim for ${talkWords(s).low} to ${talkWords(s).high} words for ${s} seconds.`;
 
+/** More settings' folded line: the picks in order, the first one capitalised ("No product, 720p, captions Bold"). */
+export const pickLine = (picks: (string | null | undefined | false)[]): string[] => {
+  const kept = picks.filter((x): x is string => !!x);
+  return kept.map((x, i) => (i ? x : x[0].toUpperCase() + x.slice(1)));
+};
+
 // ---- what was typed, kept on this device ----
 
 export interface Typed {
   script?: string;
   headline?: string;
+  /** A new AI presenter's look. */
+  look?: string;
   fields?: Partial<Record<FieldKey, string>>;
 }
 
@@ -61,7 +69,7 @@ export function loadTyped(slug: string, userId: string): Typed {
   try {
     const t = JSON.parse(localStorage.getItem(typedKey(slug, userId)) ?? "{}") ?? {};
     const fields = Object.fromEntries(Object.entries(t.fields ?? {}).filter(([k, v]) => SPOKEN.concat(["product", "person", "scene"]).includes(k as FieldKey) && typeof v === "string"));
-    return { script: text(t.script), headline: text(t.headline), fields };
+    return { script: text(t.script), headline: text(t.headline), look: text(t.look), fields };
   } catch {
     return {};
   }

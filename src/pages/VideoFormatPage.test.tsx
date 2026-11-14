@@ -24,6 +24,7 @@ import MakeFormatPage from "./MakeFormatPage";
 import VideoFormatPage, { needLine } from "./VideoFormatPage";
 import { FORMATS, explainerPrice } from "@/data/formats";
 import { makerOf } from "@/lib/formatMaker";
+import { productsKey } from "@/lib/products";
 import { priceOf, priceText, type Price } from "@/lib/prices";
 
 const LEO = { id: "u1", email: "leo@x.sg" };
@@ -180,5 +181,36 @@ describe("a format made on its own page", () => {
     expect(chips(html("news-anchor?length=12"))).toEqual(["8", "15", "20*", "30"]);
     expect(chips(html("template-street-interview"))).toEqual(["4", "8*"]);
     expect(html("template-street-interview?length=4")).toContain("Up to 13 spoken words fit 4 seconds.");
+  });
+
+  it("folds the choices a first make never needs under More settings, every pick named in one line, each kept in the address", () => {
+    as.leo = LEO;
+    const line = (page: string) => page.match(/More settings<\/span><span[^>]*>([^<]*)<\/span>/)?.[1].replace(/&#x27;/g, "'");
+    let page = html("news-anchor?voice=george&who=presenter");
+    expect(page).toMatch(/aria-label="Who speaks"/);
+    expect(page).toMatch(/aria-pressed="true"[^>]*>New presenter</);
+    expect(line(page)).toMatch(/^George's voice, an? .+, captions Bold$/);
+    expect(page).not.toContain(">Voice</p>");
+    page = html("news-anchor?voice=george&who=presenter&more=open");
+    for (const label of ["Voice", "Captions"]) expect(page).toContain(`>${label}</p>`);
+    expect(page).toContain(">How they look</label>");
+    expect(line(html("spokesperson?voice=lily&mention=no&captions=off"))).toMatch(/, no offer, no business name, no captions$/);
+    expect(html("spokesperson?more=open")).toContain(">Add an offer to your brand kit</a>");
+    // a template: who appears is its own made-up person until you pick, then the product, quality and captions
+    page = html("template-street-interview");
+    expect(page).toMatch(/aria-pressed="true"[^>]*>Someone new</);
+    expect(page).not.toContain("New presenter");
+    expect(line(html("template-food-asmr?quality=480p&captions=off"))).toBe("480p, no captions");
+    expect(html("template-food-asmr")).not.toContain("Who appears");
+  });
+
+  it("offers the brand's saved products on a template that takes one, the pick filling its product blank's name", () => {
+    as.leo = LEO;
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) });
+    store.set(productsKey(LEO.id), JSON.stringify({ items: [{ id: "pd-brew1", name: "Cold brew", what: "", forWho: "", pictures: [], sources: [], use: true, from: "you", addedAt: "" }] }));
+    expect(html("template-food-asmr?more=open")).toMatch(/aria-label="Product".*>None<.*>Cold brew</);
+    expect(html("template-food-asmr?product=pd-brew1")).toMatch(/More settings<\/span><span[^>]*>Cold brew, 720p, captions Bold</);
+    expect(html("template-food-asmr?product=pd-gone")).toMatch(/More settings<\/span><span[^>]*>No product, 720p, captions Bold</);
   });
 });
