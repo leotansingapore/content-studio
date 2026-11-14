@@ -53,7 +53,7 @@ import { stripDashes } from "@/lib/plainText";
 import { presenterVoice } from "@/lib/presenters";
 import { requestMake, type Flags } from "@/lib/remix";
 import { makeBody } from "@/lib/slideshowJob";
-import { activeLearnings, addLearning, loadLearnings, MAX_LEARNINGS, type LearningScope } from "@/lib/voiceMemory";
+import { addLearning, loadLearnings, MAX_LEARNINGS, plainLearnings, type LearningScope } from "@/lib/voiceMemory";
 import { onWallJob, startWall, stepText as wallStep, wallBusy, wallJob } from "@/lib/wallJob";
 import { professionFor } from "@/lib/profession";
 import { GLOBAL_COUNTER_USER, type UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
@@ -230,7 +230,7 @@ export function busyLine(plan: PlanName): string | null {
 export function blockedReason(userId: string, card: AgentCard, usage: Usage | null): string | null {
   const f = fieldsOf(card);
   if (card.status !== "proposed") return null;
-  if (f.plan === "learning" && !f.replaces && activeLearnings(loadLearnings(userId)).length >= MAX_LEARNINGS) return LINES.learningsFull;
+  if (f.plan === "learning" && !f.replaces && plainLearnings(loadLearnings(userId)).length >= MAX_LEARNINGS) return LINES.learningsFull;
   if (f.plan === "competitor" && !parseInput(f.input ?? "")) return LINES.typeCompetitor;
   const ownPriced = f.plan === "speaking" && f.priced && talkWaiting();
   if (isVideo(f.plan) && card.step === "video" && !ownPriced && (aiBusy() || talkBusy() || talkWaiting())) return LINES.videoBusyCard;

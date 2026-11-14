@@ -15,7 +15,7 @@ export const FACT_CHARS = 160;
 export const MAX_LEARNINGS = 30;
 export const LEARNING_CHARS = 140;
 /** Rows kept per list, off ones included; the oldest off rows go first past this. */
-export const KEEP_ROWS = 60;
+export const KEEP_ROWS = 120;
 
 export const LEARNING_SCOPES = ["posts", "videos", "pictures", "all"] as const;
 export type LearningScope = (typeof LEARNING_SCOPES)[number];
@@ -87,6 +87,19 @@ function write<T extends { offAt?: string }>(key: string, event: string, rows: T
 }
 
 export const isOn = (r: { offAt?: string }) => !r.offAt;
+
+// Brand > Profile's Do and Don't lists (/playbook) are learnings whose words start with a lead every reader prints as
+// written (memoryLine, the agent, slide-campaigns), so no reader needs to know them. Each kind has its own cap.
+export const RULES = { do: { lead: "Do: ", max: 10 }, dont: { lead: "Don't: ", max: 10 } } as const;
+export type RuleKind = keyof typeof RULES;
+const RULE_KINDS = Object.keys(RULES) as RuleKind[];
+/** The Profile list a learning belongs to, from its lead; null for a plain learning. */
+export const ruleKind = (text: string): RuleKind | null => RULE_KINDS.find((k) => text.startsWith(RULES[k].lead)) ?? null;
+const learningCap = (text: string) => {
+  const k = ruleKind(text);
+  return k ? RULES[k].max : MAX_LEARNINGS;
+};
+const sameKind = (text: string) => (l: Learning) => ruleKind(l.text) === ruleKind(text);
 
 // ---------- facts ----------
 
@@ -168,7 +181,8 @@ export function addLearning(
   const same = rows.find((r) => isOn(r) && r.scope === l.scope && r.text.toLowerCase() === text.toLowerCase());
   if (same) return { ok: true, item: same, existed: true };
   const old = replaces ? rows.find((r) => r.id === replaces && isOn(r)) : undefined;
-  if (rows.filter(isOn).length - (old ? 1 : 0) >= MAX_LEARNINGS) return { ok: false, error: fullLine(MAX_LEARNINGS) };
+  const cap = learningCap(text);
+  if (rows.filter(isOn).filter(sameKind(text)).length - (old && sameKind(text)(old) ? 1 : 0) >= cap) return { ok: false, error: fullLine(cap) };
   const item: Learning = {
     id: newId("l", now),
     text,
@@ -183,12 +197,13 @@ export function addLearning(
   return write(learningsKey(userId), LEARNINGS_CHANGED, [...next, item]) ? { ok: true, item } : { ok: false, error: SAVE_FAILED };
 }
 
-/** Remove (off true) or Undo (off false, which also clears replacedBy). Undo is refused when 30 are already on. */
+/** Remove (off true) or Undo (off false, which also clears replacedBy). Undo is refused when its list is full. */
 export function setLearningOff(userId: string, id: string, off: boolean, now = new Date()): Saved<Learning> {
   const rows = loadLearnings(userId);
   const row = rows.find((r) => r.id === id);
   if (!row) return { ok: false, error: SAVE_FAILED };
-  if (!off && row.offAt && rows.filter(isOn).length >= MAX_LEARNINGS) return { ok: false, error: fullLine(MAX_LEARNINGS) };
+  const cap = learningCap(row.text);
+  if (!off && row.offAt && rows.filter(isOn).filter(sameKind(row.text)).length >= cap) return { ok: false, error: fullLine(cap) };
   const item: Learning = off ? { ...row, offAt: row.offAt ?? now.toISOString() } : (({ offAt: _o, replacedBy: _r, ...r }) => r)(row);
   return write(learningsKey(userId), LEARNINGS_CHANGED, rows.map((r) => (r.id === id ? item : r))) ? { ok: true, item } : { ok: false, error: SAVE_FAILED };
 }
@@ -204,6 +219,23 @@ export function undoLearning(userId: string, id: string, now = new Date()): bool
     return r;
   });
   return write(learningsKey(userId), LEARNINGS_CHANGED, next);
+}
+
+/** The plain learnings on now, newest first: what /voice lists and MAX_LEARNINGS caps. */
+export const plainLearnings = (rows: Learning[]) => activeLearnings(rows).filter((l) => !ruleKind(l.text));
+
+/** One Profile list's rows on now, oldest first, each with its words after the lead. */
+export function rulesOf(userId: string, kind: RuleKind): { id: string; text: string }[] {
+  return loadLearnings(userId)
+    .filter((l) => isOn(l) && ruleKind(l.text) === kind)
+    .map((l) => ({ id: l.id, text: l.text.slice(RULES[kind].lead.length) }));
+}
+
+/** Adds a row to a Profile list, for every writer (scope all; memoryLine keeps Do and Don't out of pictures). */
+export function addRule(userId: string, kind: RuleKind, text: string, now = new Date()): Saved<Learning> {
+  const t = str(text, LEARNING_CHARS - RULES[kind].lead.length);
+  if (!t) return { ok: false, error: "Type one first." };
+  return addLearning(userId, { text: RULES[kind].lead + t, scope: "all", source: "typed" }, null, now);
 }
 
 /** The notes on now that a new note in `scope` is checked against: that scope's and "all"'s, newest first. */
@@ -246,7 +278,10 @@ function block(facts: string[], keep: string[]): string {
 export function memoryLine(userId: string, scope: Exclude<LearningScope, "all">, max = 1500): string {
   const facts = loadFacts(userId).filter(isOn).map((f) => f.text);
   const learned = activeLearnings(loadLearnings(userId))
-    .filter((l) => l.scope === scope || l.scope === "all")
+    // Do and Don't are about the words, so a picture's prompt goes without them
+    .filter((l) => (l.scope === scope || l.scope === "all") && !(scope === "pictures" && (ruleKind(l.text) === "do" || ruleKind(l.text) === "dont")))
+    // the Profile's lists first, so a long block leaves out the oldest plain notes before any of them
+    .sort((a, b) => Number(!ruleKind(a.text)) - Number(!ruleKind(b.text)))
     .map((l) => l.text);
   const coach = scope === "posts" && (facts.length || learned.length) ? loadCoachProfile(userId) : null;
   const keep = [...learned, ...(coach?.likes.map((x) => `Lean into: ${x}`) ?? []), ...(coach?.dislikes.map((x) => `Steer clear of: ${x}`) ?? [])];

@@ -18,6 +18,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { isSet, type OverviewGroup, type OverviewRow, type ProfileEdit } from "@/lib/brandOverview";
 import { kitOf, saveProfileField, type ProfileField } from "@/components/brand/profileSave";
+import { GROUP_CARD, GROUP_H2 } from "@/components/brand/ProfileLists";
 import { BRAND_PRESETS, MAX_AVOID_CHARS, MAX_IMAGE_CHARS, MAX_NAME_CHARS, MAX_OFFER_NAME, MAX_OFFER_URL, MAX_SIGNOFF_CHARS, normalizeHex } from "@/lib/carousel";
 import { isAdviser } from "@/lib/profession";
 import { offerUrl } from "@/lib/brandRules";
@@ -87,7 +88,7 @@ export function NextGap({ row, onOpen }: { row: OverviewRow; onOpen: (id: string
 
 const ROW = "group flex min-h-[52px] w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 
-export function ProfileGroups({ groups, uid, openId, next, onOpen, onClose, onSaved }: {
+export function ProfileGroups({ groups, uid, openId, next, onOpen, onClose, onSaved, extra }: {
   groups: OverviewGroup[];
   uid: string;
   openId: string | null;
@@ -96,13 +97,15 @@ export function ProfileGroups({ groups, uid, openId, next, onOpen, onClose, onSa
   onOpen: (id: string) => void;
   onClose: () => void;
   onSaved: () => void;
+  /** Drawn under a group's rows, by group id (ProfileLists.tsx: Do and Don't, the proof lists). */
+  extra?: Partial<Record<string, ReactNode>>;
 }) {
   return (
     <div className="space-y-6">
       {groups.map((g) => (
         <section key={g.id} id={g.id} aria-labelledby={`${g.id}-title`} className="scroll-mt-20 space-y-2">
-          <h2 id={`${g.id}-title`} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{g.title}</h2>
-          <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
+          <h2 id={`${g.id}-title`} className={GROUP_H2}>{g.title}</h2>
+          {g.rows.length > 0 && <ul className={GROUP_CARD}>
             {g.rows.map((r) => {
               const open = openId === r.id && !!r.edit;
               return (
@@ -124,7 +127,8 @@ export function ProfileGroups({ groups, uid, openId, next, onOpen, onClose, onSa
                 </li>
               );
             })}
-          </ul>
+          </ul>}
+          {extra?.[g.id]}
         </section>
       ))}
     </div>

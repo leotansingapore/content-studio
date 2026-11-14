@@ -17,6 +17,7 @@ import { useScrollToHash, useUrlItem } from "@/lib/urlState";
 import { activeProfile } from "@/lib/profiles";
 import { KIT_FEEDS, cachedKit } from "@/lib/brandKitFeed";
 import { NextGap, ProfileGroups } from "@/components/brand/ProfileRows";
+import { ToneLists } from "@/components/brand/ProfileLists";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
 import { adviserBrand } from "@/lib/profession";
 import type { ThemeOutlet } from "@/lib/theme";
@@ -143,7 +144,8 @@ export default function PlaybookPage() {
               {next && !rowOpen && <NextGap row={next} onOpen={openRow} />}
             </span>
           </div>
-          <ProfileGroups groups={groups} uid={uid} openId={editing} next={after} onOpen={openRow} onClose={closeRow} onSaved={redraw} />
+          <ProfileGroups groups={groups} uid={uid} openId={editing} next={after} onOpen={openRow} onClose={closeRow} onSaved={redraw}
+            extra={{ tone: <ToneLists uid={uid} /> }} />
         </>
       )}
 

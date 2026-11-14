@@ -12,10 +12,14 @@ import {
   activeLearnings,
   addFact,
   addLearning,
+  addRule,
+  isOn,
   loadFacts,
   loadLearnings,
   memoryLine,
   notesFor,
+  plainLearnings,
+  rulesOf,
   setFactOff,
   setLearningOff,
   undoLearning,
@@ -93,16 +97,19 @@ describe("facts", () => {
 });
 
 describe("learnings", () => {
-  it("holds 30 on, newest first, and keeps at most 60 rows by dropping the oldest removed", () => {
+  it("holds 30 on, newest first, and keeps at most KEEP_ROWS rows by dropping the oldest removed", () => {
     for (let i = 0; i < MAX_LEARNINGS; i++) learn(`note ${i}`, "posts", i);
     expect(addLearning(UID, { text: "one more", scope: "posts", source: "typed" })).toEqual({ ok: false, error: "30 is the most. Remove one to add another." });
     expect(activeLearnings(loadLearnings(UID))[0].text).toBe("note 29");
-    // turn 30 off and add 30 more: 60 rows; one more drops the first one turned off
-    loadLearnings(UID).forEach((l, i) => setLearningOff(UID, l.id, true, at(100 + i)));
-    for (let i = 0; i < MAX_LEARNINGS; i++) learn(`later ${i}`, "posts", 200 + i);
+    // turn the 30 off and add 30 more until the rows are full; one more drops the first one turned off
+    let t = 100;
+    for (let round = 0; loadLearnings(UID).length < KEEP_ROWS; round++) {
+      loadLearnings(UID).filter(isOn).forEach((l) => setLearningOff(UID, l.id, true, at(t++)));
+      for (let i = 0; i < MAX_LEARNINGS; i++) learn(`later ${round} ${i}`, "posts", t++);
+    }
     expect(loadLearnings(UID)).toHaveLength(KEEP_ROWS);
-    setLearningOff(UID, loadLearnings(UID).find((l) => l.text === "later 0")!.id, true, at(400));
-    learn("newest", "posts", 401);
+    setLearningOff(UID, loadLearnings(UID).find(isOn)!.id, true, at(t++));
+    learn("newest", "posts", t++);
     const texts = loadLearnings(UID).map((l) => l.text);
     expect(texts).toHaveLength(KEEP_ROWS);
     expect(texts).not.toContain("note 0");
@@ -165,6 +172,31 @@ describe("learnings", () => {
     expect(notesFor(UID, "posts").map((l) => l.text)).toEqual(["every note", "posts note"]);
     expect(notesFor(UID, "videos").map((l) => l.text)).toEqual(["every note", "video note"]);
     expect(notesFor(UID, "all").map((l) => l.text)).toEqual(["every note", "video note", "posts note"]);
+  });
+});
+
+describe("Profile's Do and Don't", () => {
+  it("are learnings with a lead, 10 of each beside the 30 plain ones, listed without the lead", () => {
+    for (let i = 0; i < MAX_LEARNINGS; i++) learn(`note ${i}`, "posts", i);
+    for (let i = 0; i < 10; i++) expect(addRule(UID, "do", `do ${i}`, at(40 + i)).ok).toBe(true);
+    expect(addRule(UID, "do", "one more")).toEqual({ ok: false, error: "10 is the most. Remove one to add another." });
+    expect(addRule(UID, "dont", "  open with a question ", at(60))).toMatchObject({ ok: true, item: { text: "Don't: open with a question", scope: "all" } });
+    expect(addRule(UID, "dont", "   ")).toEqual({ ok: false, error: "Type one first." });
+    expect(rulesOf(UID, "do").map((r) => r.text)).toEqual(Array.from({ length: 10 }, (_, i) => `do ${i}`));
+    expect(rulesOf(UID, "dont").map((r) => r.text)).toEqual(["open with a question"]);
+    expect(plainLearnings(loadLearnings(UID))).toHaveLength(MAX_LEARNINGS);
+    // a full Do list still lets one back in after a removal, and Undo is refused while it is full again
+    const first = rulesOf(UID, "do")[0].id;
+    setLearningOff(UID, first, true);
+    expect(addRule(UID, "do", "do 10", at(70)).ok).toBe(true);
+    expect(setLearningOff(UID, first, false)).toEqual({ ok: false, error: "10 is the most. Remove one to add another." });
+  });
+  it("go to writers first, and a picture's prompt goes without them", () => {
+    learn("plain note", "all", 1);
+    addRule(UID, "do", "short lines", at(2));
+    addRule(UID, "dont", "use slang", at(3));
+    expect(memoryLine(UID, "posts")).toBe(`${MEMORY_HEADER}\n${KEEP_LEAD}Don't: use slang; Do: short lines; plain note`);
+    expect(memoryLine(UID, "pictures")).toBe(`${MEMORY_HEADER}\n${KEEP_LEAD}plain note`);
   });
 });
 

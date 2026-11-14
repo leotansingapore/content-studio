@@ -31,7 +31,6 @@ import {
   LEARNING_SCOPES,
   MAX_FACTS,
   MAX_LEARNINGS,
-  activeLearnings,
   addFact,
   addLearning,
   fullLine,
@@ -39,6 +38,7 @@ import {
   loadFacts,
   loadLearnings,
   onMemoryChanged,
+  plainLearnings,
   setFactOff,
   setLearningOff,
   type Learning,
@@ -739,7 +739,8 @@ type Row = { key: string; text: string; scope: LearningScope; from: string; remo
 /** Exported for its test. */
 export function LearnedSection({ userId }: { userId: string }) {
   const { toast } = useToast();
-  const read = () => ({ learned: activeLearnings(loadLearnings(userId)), coach: loadCoachProfile(userId) });
+  // Profile's Do and Don't lists are learnings too, kept and capped there (voiceMemory RULES)
+  const read = () => ({ learned: plainLearnings(loadLearnings(userId)), coach: loadCoachProfile(userId) });
   const [data, setData] = useState(read);
   useEffect(() => {
     setData(read());
