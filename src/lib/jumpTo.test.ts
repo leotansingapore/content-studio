@@ -50,11 +50,13 @@ describe("searchJump", () => {
 
   it("puts a label that starts with the query first", () => {
     expect(searchJump(items, "cal")[0].to).toBe("/calendar");
-    expect(searchJump(items, "brand")[0].to).toBe("/brand");
+    expect(searchJump(items, "brand")[0].to).toBe("/brands");
+    // Brand kit is a section of Profile since 14 Nov, and its old name still finds it
+    expect(searchJump(items, "brand kit")[0].to).toBe("/playbook");
   });
 
   it("finds pages by keywords their label doesn't say", () => {
-    expect(searchJump(items, "posting times").map((i) => i.to)).toContain("/brand");
+    expect(searchJump(items, "posting times").map((i) => i.to)).toContain("/playbook");
     expect(searchJump(items, "schedule")[0].to).toBe("/calendar");
     expect(searchJump(items, "fads").map((i) => i.to)).toContain("/fads");
   });
@@ -65,9 +67,10 @@ describe("searchJump", () => {
     expect(searchJump(items, "mark posted")[0].to).toBe("/drafts");
     expect(searchJump(items, "schedule a post")[0].to).toBe("/calendar");
     expect(searchJump(items, "scheduled")[0].to).toBe("/calendar");
-    expect(searchJump(items, "best time to post")[0].to).toBe("/brand");
-    expect(searchJump(items, "when to post")[0].to).toBe("/brand");
-    expect(searchJump(items, "posting times")[0].to).toBe("/brand");
+    expect(searchJump(items, "best time to post")[0].to).toBe("/playbook");
+    expect(searchJump(items, "when to post")[0].to).toBe("/playbook");
+    expect(searchJump(items, "posting times")[0].to).toBe("/playbook");
+    expect(searchJump(items, "your voice")[0].to).toBe("/playbook");
     expect(searchJump(items, "insights")[0].to).toBe("/analytics");
     expect(searchJump(items, "post ideas")[0].to).toBe("/inspiration");
     expect(searchJump(items, "photos")[0].to).toBe("/media");
@@ -87,7 +90,7 @@ describe("searchJump", () => {
     expect(searchJump(items, "request a feature")[0].to).toBe("/feedback");
     expect(searchJump(items, "how did my post do")[0].to).toBe("/analytics");
     expect(searchJump(items, "notification settings")[0].to).toBe("/notifications");
-    expect(searchJump(items, "fonts")[0].to).toBe("/brand");
+    expect(searchJump(items, "fonts")[0].to).toBe("/playbook");
   });
 
   it("reads an apostrophe as part of its word, typed or not", () => {
@@ -174,7 +177,7 @@ describe("Influencers", () => {
     expect(searchJump(leo, "faces and voices")[0].to).toBe("/people");
     expect(searchJump(leo, "influencers")[0].to).toBe("/people");
     expect(searchJump(leo, "presenter")[0].to).toBe("/people");
-    expect(searchJump(leo, "voice").map((i) => i.to)).toEqual(expect.arrayContaining(["/voice", "/people"]));
+    expect(searchJump(leo, "voice").map((i) => i.to)).toEqual(expect.arrayContaining(["/playbook", "/people"]));
     const other = [...CREATE_ITEMS, ...pageItems("someone@example.com")];
     expect(other.map((i) => i.to)).not.toContain("/people");
     // "face" still reaches Facebook on Connections, never Influencers
@@ -226,9 +229,9 @@ describe("recent pages", () => {
     pushRecent("/generate/batch");
     pushRecent("/calendar");
     expect(loadRecent()).toEqual(["/calendar", "/generate/batch"]);
-    for (const p of ["/home", "/plan", "/board", "/drafts", "/grid", "/brand"]) pushRecent(p);
+    for (const p of ["/home", "/plan", "/board", "/drafts", "/grid", "/playbook"]) pushRecent(p);
     expect(loadRecent()).toHaveLength(RECENT_MAX);
-    expect(loadRecent()[0]).toBe("/brand");
+    expect(loadRecent()[0]).toBe("/playbook");
   });
 
   it("records the nav page a deeper path belongs to and ignores paths outside the nav", () => {
@@ -245,9 +248,9 @@ describe("recent pages", () => {
 
 describe("jumpList", () => {
   it("starts with up to 3 recent pages, never the one open, then create actions and pages", () => {
-    const list = jumpList("user@demo.com", ["/calendar", "/brand", "/plan", "/board"], "/calendar");
+    const list = jumpList("user@demo.com", ["/calendar", "/playbook", "/plan", "/board"], "/calendar");
     expect(list.slice(0, 3).map((i) => [i.to, i.group])).toEqual([
-      ["/brand", "Recent"],
+      ["/playbook", "Recent"],
       ["/plan", "Recent"],
       ["/board", "Recent"],
     ]);

@@ -252,7 +252,7 @@ export async function startRead(userId: string, address: string, now = Date.now)
     reading.delete(key);
     emit();
   }
-  // left /brand while it read: say so where they are
-  if (typeof location !== "undefined" && location.pathname !== "/brand")
-    toast(line ? { title: line, variant: "destructive" } : { title: "Your website read is ready", description: "Open Brand kit to check it." });
+  // left Profile (where Brand kit's website card sits since 14 Nov) while it read: say so where they are
+  if (typeof location !== "undefined" && location.pathname !== "/playbook")
+    toast(line ? { title: line, variant: "destructive" } : { title: "Your website read is ready", description: "Open Profile to check it." });
 }

@@ -194,9 +194,8 @@ export const SECTIONS: NavSection[] = [
     pages: [
       // Fastlane's Brand tabs: Profile, Products, Competitors, Demo videos, Photos and videos (Leo 11 Nov). Profile is
       // what the AI knows, each row linking to where it is set: those pages are its picker
-      { to: "/playbook", label: "Profile", group: "Profile", was: "My Playbook playbook" },
-      { to: "/voice", label: "Your voice", was: "tone Voice" },
-      { to: "/brand", label: "Brand kit", was: "logo colours" },
+      // Your voice and Brand kit are sections of Profile since 14 Nov (Holo's Brand DNA is one page); /voice and /brand land there
+      { to: "/playbook", label: "Profile", group: "Profile", was: "My Playbook playbook Your voice tone Voice Brand kit logo colours" },
       { to: "/audiences", label: "Audiences", owners: LEO_EMAILS, was: "personas" },
       { to: "/fads", label: "Positioning", subTabs: true, show: () => adviserBrand(), was: "F.A.D.S. fads differentiation" },
       // who works on the brand with you: invites, members, leaving (docs/shared-brands.md)

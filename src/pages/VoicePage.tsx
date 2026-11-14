@@ -79,7 +79,8 @@ const SLOT_INDICES = Array.from({ length: VOICE_MAX_SLOTS }, (_, i) => i);
 // outside the synced prefix: it is scratch until Save.
 const workKey = (userId: string) => `cs-voice-work-${scoped(userId)}`;
 
-export default function VoicePage() {
+/** `embedded`: drawn under Profile's Tone and voice rows (/playbook#voice) with no page heading; onSaved redraws them. */
+export default function VoicePage({ embedded, onSaved }: { embedded?: boolean; onSaved?: () => void } = {}) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
@@ -126,6 +127,12 @@ export default function VoicePage() {
       active = false;
     };
   }, []);
+
+  // every save dates the profile, so a new date is when the rows above it on Profile read it again
+  useEffect(() => {
+    if (updatedAt) onSaved?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updatedAt]);
 
   // Kept while the posts differ from the saved profile; Save clears it.
   useEffect(() => {
@@ -246,12 +253,12 @@ export default function VoicePage() {
   if (leo) {
     return (
       <div className="space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
+        {!embedded && <header className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">Your voice</h1>
           <Link to="/generate" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary [@media(pointer:coarse)]:min-h-11">
             <ArrowLeftIcon className="h-3 w-3" /> Skip for now
           </Link>
-        </header>
+        </header>}
         {userId ? (
           <>
             <HowYouSound
@@ -284,7 +291,7 @@ export default function VoicePage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      {!embedded && <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
             Your voice
@@ -299,7 +306,7 @@ export default function VoicePage() {
         >
           <ArrowLeftIcon className="h-3 w-3" /> Skip for now
         </Link>
-      </header>
+      </header>}
 
       <Card className="border-border/60 shadow-card">
         <CardHeader>

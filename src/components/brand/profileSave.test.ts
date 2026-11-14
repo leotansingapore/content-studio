@@ -36,14 +36,6 @@ describe("saveProfileField", () => {
     expect(loadBrand(U)?.logo).toBeUndefined();
   });
 
-  it("writes the first offer the brand kit lists, starting one when there is none and keeping any others", () => {
-    expect(saveProfileField(U, "offerName", "Free review")).toBeNull();
-    expect(loadBrand(U)?.offers).toEqual([{ name: "Free review", url: "" }]);
-    saveBrand(U, { ...loadBrand(U)!, offers: [{ name: "Free review", url: "" }, { name: "Course", url: "https://a.sg/c" }] });
-    saveProfileField(U, "offerUrl", "https://a.sg/review");
-    expect(loadBrand(U)?.offers).toEqual([{ name: "Free review", url: "https://a.sg/review" }, { name: "Course", url: "https://a.sg/c" }]);
-  });
-
   it("writes the positioning Plan reads, merged into what is there, and parses topics", () => {
     savePositioning(U, { ...EMPTY_POSITIONING, oneLiner: "I help parents", cadence: 5, goal: "Get clients" });
     saveProfileField(U, "edge", "A plan every quarter");

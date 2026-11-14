@@ -21,6 +21,8 @@ const EXCEPTIONS: Record<string, string> = {
   "/join": "invite link to Leo's posts board, opened from the link he sends",
   "/brands/new": "add a brand, opened from Add a brand in the profile switcher",
   "/diagnosis": "redirects to /coach",
+  "/voice": "redirects to Your voice, a section of Profile since 14 Nov (links.ts profileAddress)",
+  "/brand": "redirects to Brand kit, a section of Profile since 14 Nov (links.ts profileAddress)",
   "/hub": "paid hub, unlinked on purpose (e0da451)",
   "/fads/:tab": "a tab of /fads",
   "/recruit/:tab": "the tabs of /recruit (Conversations, AI agent)",

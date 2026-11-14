@@ -71,7 +71,7 @@ describe("the steps", () => {
       ["competitors", "/competitors", "Competitors"],
       ["formats", "/make", "Formats"],
       ["campaigns", "/campaigns", "Campaigns"],
-      ["brand", "/brand", "Brand kit"],
+      ["brand", "/playbook", "Profile"],
       ["agent", "/agent", "Agent"],
     ]);
     expect(TOUR_STEPS[1].text).toBe("Competitors are the accounts you watch. Their ads and best posts arrive here every week, ready to remix.");
@@ -92,7 +92,7 @@ describe("the studio tour", () => {
       ["write", "/generate"],
       ["calendar", "/calendar"],
       ["swipe", "/swipe"],
-      ["brand", "/brand"],
+      ["brand", "/playbook"],
       ["analytics", "/analytics"],
     ]);
     for (const s of STUDIO_TOUR.slice(1)) expect(pageFor(s.path)?.page.owners, s.path).toBeUndefined();
@@ -101,7 +101,7 @@ describe("the studio tour", () => {
   it("walks its own list and finishes after Analytics, never sending anyone to /agent", () => {
     expect(startTour(U, null, STUDIO_TOUR).id).toBe("home");
     const walked = [1, 2, 3, 4, 5].map(() => nextStep(U, STUDIO_TOUR)?.path);
-    expect(walked).toEqual(["/generate", "/calendar", "/swipe", "/brand", "/analytics"]);
+    expect(walked).toEqual(["/generate", "/calendar", "/swipe", "/playbook", "/analytics"]);
     expect(nextStep(U, STUDIO_TOUR)).toBeNull();
     expect(tourState(U)?.state).toBe("done");
     expect(stepForPath("/agent/t1", STUDIO_TOUR)).toBeNull();
@@ -221,7 +221,9 @@ describe("stepForPath", () => {
     expect(stepForPath("/make/carousel")).toBeNull();
     expect(stepForPath("/campaigns")).toBe("campaigns");
     expect(stepForPath("/campaigns/c1")).toBeNull();
-    expect(stepForPath("/brand")).toBe("brand");
+    // Brand kit is a section of Profile since 14 Nov; /brand only redirects there
+    expect(stepForPath("/playbook")).toBe("brand");
+    expect(stepForPath("/brand")).toBeNull();
     expect(stepForPath("/agent")).toBe("agent");
     expect(stepForPath("/agent/t1")).toBe("agent");
     expect(stepForPath("/agent/t1/x")).toBeNull();
@@ -280,7 +282,7 @@ describe("the popover", () => {
   it("shows the paused pill on a detour, and on the step's own page after Esc", () => {
     as.user = { id: U, email: "leo@example.com" };
     store("brand", "running");
-    for (const out of [draw("/home"), (store("brand", "paused"), draw("/brand"))]) {
+    for (const out of [draw("/home"), (store("brand", "paused"), draw("/playbook"))]) {
       expect(out).toContain("Tour paused at step 5 of 6");
       expect(out).toContain(">Resume</button>");
       expect(out).toContain('aria-label="Skip tour"');

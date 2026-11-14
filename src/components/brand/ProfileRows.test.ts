@@ -35,17 +35,16 @@ describe("Profile's open row", () => {
     expect(html).toMatch(/<button[^>]*>Next: Say what you do/);
   });
 
-  it("links to the page that fills a gap Profile does not edit in place", () => {
-    expect(draw("topics", byId("voice"))).toMatch(/<a[^>]*href="\/voice"[^>]*>Next: Paste past posts/);
+  it("links a gap Profile does not edit in place to where it is filled, Your voice lower on this page", () => {
+    expect(draw("topics", byId("voice"))).toMatch(/<a[^>]*href="\/playbook#voice"[^>]*>Next: Paste past posts/);
   });
 
-  it("fills in the first offer in place: what it is and its link, as the brand kit keeps them", () => {
-    localStorage.setItem("content-studio-carousel-brand-u1", JSON.stringify({ color: "#1E3A8A", name: "", handle: "", offers: [{ name: "Free review", url: "https://a.sg/r" }] }));
+  it("sends offers, colours and sign-off down to Brand kit's own sections on this page, never a second editor", () => {
     const html = draw("sells");
-    expect(html).toMatch(/<label[^>]*>Your offer<\/label>/);
-    expect(html).toContain('value="Free review"');
-    expect(html).toContain('value="https://a.sg/r"');
-    expect(html).toContain("Posts link only to your offers.");
+    expect(html).toMatch(/<a[^>]*href="\/playbook#offers"/);
+    expect(html).toMatch(/<a[^>]*href="\/playbook#colour"/);
+    expect(html).toMatch(/<a[^>]*href="\/playbook#sign-off"/);
+    expect(html).not.toContain("Your offer");
   });
 
   it("shows no Next once nothing else is missing, and none while no row is open", () => {

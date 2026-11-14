@@ -137,7 +137,7 @@ describe("memoryAnswer", () => {
     expect(MEMORY_EMPTY).toBe('Nothing yet. Tell me something like "always end with a question" and I\'ll keep to it.');
     addFact(UID, "12 years as an adviser");
     expect(memoryAnswer(UID)).toBe(`${MEMORY_EMPTY}\nAnd 1 fact you gave me.`);
-    expect(SEE_LEARNED).toEqual({ label: "See what the AI has learned", path: "/voice#learned" });
+    expect(SEE_LEARNED).toEqual({ label: "See what the AI has learned", path: "/playbook#learned" });
   });
 });
 

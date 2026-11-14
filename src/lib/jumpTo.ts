@@ -34,10 +34,10 @@ const KEYWORDS: Record<string, string> = {
   "/reels": "posts board reels board approve review pending carousels images notes comments",
   "/reels/team": "team invite teammate teammates people roles members access",
   "/notifications": "alerts reminders notification settings email push",
-  "/brand": "posting times best time when slots logo photo colours sign-off fonts font",
+  // Brand kit and Your voice are sections of Profile since 14 Nov, so their words find it
+  "/playbook": "posting times best time when slots logo photo colours sign-off fonts font tone writing style",
   "/brand/products": "price offer sell product photos",
   "/brand/demo-videos": "demo clip screen recording walkthrough app in use",
-  "/voice": "tone writing style",
   "/people": "face voice presenter faces and voices influencers",
   "/bio": "link in bio page",
   "/links": "short links utm clicks",
@@ -108,7 +108,7 @@ export function searchJump(items: JumpItem[], query: string): JumpItem[] {
   const q = norm(query);
   if (!q) return items;
   const words = q.split(" ");
-  const scored: { item: JumpItem; score: number; exact: number; len: number; i: number }[] = [];
+  const scored: { item: JumpItem; score: number; exact: number; whole: number; len: number; i: number }[] = [];
   items.forEach((item, i) => {
     const label = norm(item.label);
     const address = norm(item.to.split("/").pop() ?? "");
@@ -116,7 +116,9 @@ export function searchJump(items: JumpItem[], query: string): JumpItem[] {
     if (!words.every((w) => `${own} ${norm(item.group)} ${norm(item.also ?? "")}`.includes(w))) return;
     // a page that says the words itself comes before one that is only in a section named so ("insights" is Results)
     const score = label.startsWith(q) || address.startsWith(q) ? 0 : label.split(" ").some((w) => w.startsWith(words[0])) ? 1 : words.every((w) => own.includes(w)) ? 2 : 3;
-    scored.push({ item, score, exact: label === q || address === q ? 0 : 1, len: label.length, i });
+    // a page that has every word whole beats one that only holds them inside longer words ("log" is Activity, not logo)
+    const whole = words.every((w) => own.split(" ").includes(w)) ? 0 : 1;
+    scored.push({ item, score, exact: label === q || address === q ? 0 : 1, whole, len: label.length, i });
   });
   // the page whose name or address is exactly what was typed ("make" is /make), then a create action before a page
   // ("write" starts a post, not a VSL), then the shorter label is the closer match
@@ -125,7 +127,7 @@ export function searchJump(items: JumpItem[], query: string): JumpItem[] {
   const create = (s: { item: JumpItem }) => (CREATE_ITEMS.includes(s.item) ? 0 : 1);
   const seen = new Set<string>();
   return scored
-    .sort((a, b) => a.score - b.score || a.exact - b.exact || create(a) - create(b) || a.len - b.len || a.i - b.i)
+    .sort((a, b) => a.score - b.score || a.exact - b.exact || create(a) - create(b) || a.whole - b.whole || a.len - b.len || a.i - b.i)
     .map((s) => s.item)
     .filter((item) => !seen.has(item.to) && !!seen.add(item.to));
 }

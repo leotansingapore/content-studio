@@ -5,7 +5,7 @@ import { APP_ORIGIN as BIO_ORIGIN } from "../../supabase/functions/link-in-bio/l
 import { APP_ORIGIN as SOCIAL_ORIGIN } from "../../supabase/functions/social/logic";
 import { COPY } from "../../supabase/functions/telegram-hook/logic";
 import { ORIGIN as PREVIEW_ORIGIN } from "./linkPreview";
-import { APP_ORIGIN, CAROUSEL_DESIGNS, brandPartAddress, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, STATIC_LAYOUT_IDS, absolute, links, slug, withDock, withRemix } from "./links";
+import { APP_ORIGIN, CAROUSEL_DESIGNS, brandPartAddress, profileAddress, EXPLAINER_LOOK_IDS, IMAGE_LAYOUTS, SCHEDULE_STEPS, STATIC_LAYOUT_IDS, absolute, links, slug, withDock, withRemix } from "./links";
 
 describe("links", () => {
   it("builds the calendar links the team-posts job sends (docs/deep-links.md)", () => {
@@ -188,7 +188,7 @@ describe("links", () => {
     expect(links.coach({ section: "idea-dump" })).toBe("/coach#idea-dump");
     expect(links.media({ q: " cpf ", folder: "none" })).toBe("/media?q=cpf&folder=none");
     expect(links.academy({ lesson: "0Q1AQAxpdGg" })).toBe("/academy?lesson=0Q1AQAxpdGg");
-    expect(links.brand({ section: "logo" })).toBe("/brand#logo");
+    expect(links.brand({ section: "logo" })).toBe("/playbook?edit=logo");
     expect(links.createGuide({ step: "reel" })).toBe("/create-guide#reel");
     expect(links.tutorial()).toBe("/tutorial");
   });
@@ -317,27 +317,43 @@ describe("links", () => {
   it("builds the phase-4 /brand sections, reviews and open items", () => {
     // products and demo videos are Brand tabs of their own (Fastlane's /brand/products and /brand/demo-videos)
     expect(links.brand({ review: "products" })).toBe("/brand/products?products=review");
-    expect(links.brand({ review: "website" })).toBe("/brand?website=review#website");
-    expect(links.brand({ preview: "end" })).toBe("/brand?preview=end");
+    // the kit itself is the last section of Profile since 14 Nov
+    expect(links.brand({ review: "website" })).toBe("/playbook?website=review#website");
+    expect(links.brand({ preview: "end" })).toBe("/playbook?preview=end#kit");
     expect(links.brand({ product: "new" })).toBe("/brand/products?product=new");
     expect(links.brand({ product: "pd-lq3k9z" })).toBe("/brand/products?product=pd-lq3k9z");
     expect(links.brand({ demo: "cvid-mh2k9x01ab" })).toBe("/brand/demo-videos?demo=cvid-mh2k9x01ab");
     expect(links.brand({ section: "products" })).toBe("/brand/products");
     expect(links.brand({ section: "demo-videos" })).toBe("/brand/demo-videos");
     for (const section of ["website", "people", "font", "on-every-post", "language"] as const) {
-      expect(links.brand({ section })).toBe(`/brand#${section}`);
+      expect(links.brand({ section })).toBe(`/playbook#${section}`);
     }
     // a named section wins over the one an item implies
-    expect(links.brand({ section: "website", product: "new" })).toBe("/brand?product=new#website");
-    expect(links.brand()).toBe("/brand");
+    expect(links.brand({ section: "website", product: "new" })).toBe("/playbook?product=new#website");
+    expect(links.brand()).toBe("/playbook#kit");
   });
 
   it("builds the phase-4 /voice sections and learning", () => {
-    expect(links.voice()).toBe("/voice");
-    expect(links.voice({ section: "how-you-sound" })).toBe("/voice#how-you-sound");
-    expect(links.voice({ section: "facts" })).toBe("/voice#facts");
-    expect(links.voice({ section: "learned", learning: "l-lq3k9z" })).toBe("/voice?learning=l-lq3k9z#learned");
-    expect(links.voice({ learning: "l-lq3k9z" })).toBe("/voice?learning=l-lq3k9z");
+    expect(links.voice()).toBe("/playbook#voice");
+    expect(links.voice({ section: "how-you-sound" })).toBe("/playbook#how-you-sound");
+    expect(links.voice({ section: "facts" })).toBe("/playbook#facts");
+    expect(links.voice({ section: "learned", learning: "l-lq3k9z" })).toBe("/playbook?learning=l-lq3k9z#learned");
+    expect(links.voice({ learning: "l-lq3k9z" })).toBe("/playbook?learning=l-lq3k9z#voice");
+  });
+
+  it("lands an old /voice or /brand address on its section of Profile, keeping the query", () => {
+    expect(profileAddress("/voice", "", "")).toBe("/playbook#voice");
+    expect(profileAddress("/voice", "?learning=l-1", "#learned")).toBe("/playbook?learning=l-1#learned");
+    expect(profileAddress("/brand", "", "")).toBe("/playbook#kit");
+    expect(profileAddress("/brand", "?profile=p2", "#posting-times")).toBe("/playbook?profile=p2#posting-times");
+    // the logo and the words to avoid are edited in Profile's own rows, so those open in place
+    expect(profileAddress("/brand", "", "#logo")).toBe("/playbook?edit=logo");
+    expect(profileAddress("/brand", "?profile=p2", "#avoid-words")).toBe("/playbook?profile=p2&edit=avoid");
+    // products and demo videos keep their own tabs
+    expect(profileAddress("/brand", "?product=new", "")).toBe("/brand/products?product=new");
+    expect(profileAddress("/brand", "", "#demo-videos")).toBe("/brand/demo-videos");
+    // a /voice hash is never read as a Brand kit one
+    expect(profileAddress("/voice", "", "#logo")).toBe("/playbook#logo");
   });
 
   it("builds Write's phase-4 Insert panel and language with defaults left out", () => {

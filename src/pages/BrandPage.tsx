@@ -1,7 +1,7 @@
-// Brand kit (/brand): the one place for the name, handle, headshot, logo,
-// colour and sign-off that carousels, videos and copied posts reuse. It edits
-// the per-profile brand the carousel maker already saves (carousel.ts), so
-// nothing set up there is lost.
+// Brand kit: the handle, headshot, offers, colours, sign-off and posting times that carousels, videos and copied posts
+// reuse. It edits the per-profile brand the carousel maker already saves (carousel.ts), so nothing set up there is
+// lost. Since 14 Nov it is drawn `embedded` as the last section of Profile (/playbook#kit), which edits the name, line
+// of work, words to avoid and logo in its own rows, so those fields are left out here; /brand moves there.
 // Products and demo videos (Leo only) are Brand tabs of their own, as on Fastlane: /brand/products and
 // /brand/demo-videos render this page with `part`, so they load and save the kit exactly as it does. An older /brand
 // address that names one (#products, ?product=, #demo-videos, ?demo=) moves there (links.ts brandPartAddress).
@@ -64,7 +64,7 @@ import BrandFontSection from "@/components/brand/BrandFontSection";
 import OnEveryPost from "@/components/brand/OnEveryPost";
 import KitFromSite, { kitLockLine } from "@/components/brand/KitFromSite";
 import { LogoTile } from "@/components/onboarding/parts";
-import { KIT_FEEDS, cachedKit, refreshKit, withKit, type KitRefresh } from "@/lib/brandKitFeed";
+import { KIT_FEEDS, cachedKit, refreshKit, withKit, type CachedKit, type KitRefresh } from "@/lib/brandKitFeed";
 import { activeProfile } from "@/lib/profiles";
 import { brandPartAddress } from "@/lib/links";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -396,7 +396,14 @@ function ScriptDetails({ open, children }: { open: boolean; children: ReactNode 
 const PARTS = { products: "Products", "demo-videos": "Demo videos" } as const;
 export type BrandPart = keyof typeof PARTS;
 
-export default function BrandPage({ part }: { part?: BrandPart } = {}) {
+/** What one change saves: the change on top of the saved kit, not this page's copy of it, since Profile's rows and lists
+ *  on the same page save to it too and must not be undone; the site's kit stays over it as it shows. */
+export function kitToSave(prev: CarouselBrand, stored: CarouselBrand | null, site: CachedKit | null | undefined, patch: Partial<CarouselBrand>): CarouselBrand {
+  const base = stored ? (site ? withKit(stored, site) : stored) : prev;
+  return { ...base, ...patch };
+}
+
+export default function BrandPage({ part, embedded, onSaved }: { part?: BrandPart; embedded?: boolean; onSaved?: () => void } = {}) {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -420,7 +427,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
   // an older address for products or demo videos opens their own tab (Leo's: nobody else has those sections)
   const { search, hash } = useLocation();
   const navigate = useNavigate();
-  const moved = !part && leo ? brandPartAddress(search, hash) : null;
+  const moved = !part && !embedded && leo ? brandPartAddress(search, hash) : null;
   useEffect(() => {
     if (moved) navigate(moved, { replace: true });
   }, [moved, navigate]);
@@ -445,10 +452,11 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
 
   const update = (patch: Partial<CarouselBrand>) => {
     setBrand((prev) => {
-      const next = { ...prev, ...patch };
+      const next = kitToSave(prev, userId ? loadBrand(userId) : null, kitState?.cache, patch);
       if (userId) saveBrand(userId, next);
       return next;
     });
+    onSaved?.();
     setSaved(true);
     window.clearTimeout(savedTimer.current);
     savedTimer.current = window.setTimeout(() => setSaved(false), 1600);
@@ -569,10 +577,12 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center gap-3">
-        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Brand kit</h1>
-        {savedPill}
-      </header>
+      {embedded ? savedPill : (
+        <header className="flex items-center gap-3">
+          <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Brand kit</h1>
+          {savedPill}
+        </header>
+      )}
 
       {/* the form waits for the account, so nothing typed before it loads is dropped */}
       {ready && (
@@ -597,11 +607,13 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
                 )}
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="min-w-0 space-y-1.5">
-                <Label htmlFor="brand-name">Name</Label>
-                <Input id="brand-name" value={brand.name} maxLength={MAX_NAME_CHARS} placeholder="Your name" onChange={(e) => update({ name: e.target.value })} />
-              </div>
+            <div className={`grid gap-3 ${embedded ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+              {!embedded && (
+                <div className="min-w-0 space-y-1.5">
+                  <Label htmlFor="brand-name">Name</Label>
+                  <Input id="brand-name" value={brand.name} maxLength={MAX_NAME_CHARS} placeholder="Your name" onChange={(e) => update({ name: e.target.value })} />
+                </div>
+              )}
               <div className="min-w-0 space-y-1.5">
                 <Label htmlFor="brand-handle">Handle</Label>
                 <Input
@@ -621,7 +633,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
                 <Input id="brand-role" value={brand.role ?? ""} maxLength={MAX_ROLE_CHARS} placeholder={isAdviser(brand.profession) ? "Financial adviser" : brand.profession!.trim()} onChange={(e) => update({ role: e.target.value })} />
               </div>
             </div>
-            <ProfessionField value={brand.profession ?? ""} onChange={(profession) => update({ profession })} />
+            {!embedded && <ProfessionField value={brand.profession ?? ""} onChange={(profession) => update({ profession })} />}
           </section>
           {leo && userId && (
             <PeopleWhoSign brand={brand} setBrand={setKit} photoOf={(f) => shrinkImage(f, "photo")} onError={(title, description) => toast({ title, description, variant: "destructive" })} />
@@ -696,7 +708,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
             <PolicyChips id="brand-hashtags" label="Hashtags" value={brand.hashtagPolicy} options={[[undefined, "Any"], ["ten", "Up to 10"], ["few", "2 to 4"], ["none", "None"]]} onChange={(v) => update({ hashtagPolicy: v })} />
           </section>
 
-          <section id="avoid-words" className="scroll-mt-20 space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
+          {!embedded && <section id="avoid-words" className="scroll-mt-20 space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
             <div className="flex items-center gap-1">
               <Label htmlFor="brand-avoid" className="font-serif text-lg font-semibold">Words you never use</Label>
               <InfoTip label="About words you never use">Posts written for you leave these out. Write flags any that slip in.</InfoTip>
@@ -710,7 +722,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
               placeholder="cheapest, best plan, hustle"
             />
             <p className="text-xs text-muted-foreground">Separate them with commas or new lines.</p>
-          </section>
+          </section>}
 
           {feed && <KitFromSite feed={feed} state={kitState} onRefresh={async () => applySiteKit(await refreshKit(board, { force: true }))} />}
           <section id="colour" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
@@ -786,7 +798,8 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
           <PostingTimes brand={brand} update={update} userId={userId} />
           {leo && userId && <LanguageSection userId={userId} brand={brand} setBrand={setKit} />}
 
-          <section id="logo" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
+          {/* Profile's Logo row edits it, unless the site's kit sets it and this read-only card is the only place it shows */}
+          {(!embedded || kitLocked) && <section id="logo" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 className="font-serif text-lg font-semibold">Logo</h2>
             {kitLocked && feed && <p className="text-xs text-muted-foreground">{kitLockLine(feed)}</p>}
             <fieldset disabled={kitLocked} className="flex min-w-0 flex-wrap items-center gap-4 disabled:opacity-60">
@@ -805,7 +818,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
               )}
             </fieldset>
             {!kitLocked && <p className="text-xs text-muted-foreground">A PNG with a see-through background works best.</p>}
-          </section>
+          </section>}
           {leo && userId && <OnEveryPost brand={brand} setBrand={setKit} />}
         </div>
 

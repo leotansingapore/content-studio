@@ -27,7 +27,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getUser: () => new Promise(() => undefined), getSession: () => new Promise(() => undefined), onAuthStateChange: () => ({}) } },
 }));
 
-const { PostingTimes } = await import("./BrandPage");
+const { PostingTimes, kitToSave } = await import("./BrandPage");
 const { DEFAULT_BRAND } = await import("@/lib/carousel");
 
 const SLOTS = ["0T08:30", "2T19:30", "4T12:00"];
@@ -73,5 +73,19 @@ describe("Brand kit's Posting times for Leo (publish-queue)", () => {
     expect(out).toContain('aria-labelledby="brand-slots-linkedin"');
     expect(out.match(/aria-label="Day"/g)).toHaveLength(5);
     expect(out).not.toContain("Or start from a weekly goal");
+  });
+});
+
+describe("kitToSave", () => {
+  // Brand kit sits under Profile's rows on one page since 14 Nov: a row's save must survive the kit's next keystroke
+  it("puts the change on the saved kit, so an edit made in a Profile row is kept", () => {
+    const shown = { ...DEFAULT_BRAND, name: "Old name", handle: "@me" };
+    const saved = { ...shown, name: "New name", avoidWords: "hustle" };
+    expect(kitToSave(shown, saved, null, { handle: "@new" })).toEqual({ ...saved, handle: "@new" });
+  });
+
+  it("uses this page's copy only while nothing is saved yet", () => {
+    const shown = { ...DEFAULT_BRAND, name: "From sign-in" };
+    expect(kitToSave(shown, null, null, { handle: "@me" })).toEqual({ ...shown, handle: "@me" });
   });
 });

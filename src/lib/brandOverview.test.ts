@@ -38,9 +38,12 @@ describe("brandOverview", () => {
       positioning: { ...EMPTY_POSITIONING, oneLiner: "I help parents plan", audience: "parent", audienceDetail: "aged 30-48", topics: ["CPF"], edge: "Quarterly plan" },
       voice: { posts: ["a", "b", " "], updatedAt: "" },
     };
-    expect(row(i, "name")).toMatchObject({ value: "Ada Tan", to: "/brand#you" });
+    expect(row(i, "name")).toMatchObject({ value: "Ada Tan", to: "/playbook?edit=name" });
     expect(row(i, "does")).toMatchObject({ value: "I help parents plan", to: "/plan" });
-    expect(row(i, "sells")).toMatchObject({ chips: ["Free review"], to: "/brand#offers" });
+    // Brand kit and Your voice are sections of Profile itself since 14 Nov
+    expect(row(i, "sells")).toMatchObject({ chips: ["Free review"], to: "/playbook#offers" });
+    expect(row(i, "voice").to).toBe("/playbook#voice");
+    expect(row(i, "colours").to).toBe("/playbook#colour");
     expect(row(i, "who").chips).toEqual(["Parents", "aged 30-48"]);
     expect(row(i, "voice").value).toBe("2 past posts");
     expect(row(i, "avoid").value).toBe("cheapest, hustle");
@@ -71,18 +74,19 @@ describe("brandOverview", () => {
     expect(row({ ...i, kit: { ...DEFAULT_BRAND, website: "https://acme.sg/about" } }, "website").value).toBe("acme.sg/about");
   });
 
-  it("edits the basics in place and links the rest: products, audiences, voice and what is on file open their own pages", () => {
+  it("edits the basics in place and links the rest: offers, colours, sign-off and voice scroll down the page, products and audiences open theirs", () => {
     const edits = (o: Partial<OverviewInput>) => Object.fromEntries(brandOverview({ ...empty, ...o }).flatMap((g) => g.rows).map((r) => [r.id, r.edit ?? null]));
     expect(edits({})).toEqual({
-      name: "name", does: "does", country: "country", sells: "offer", edge: "edge", who: "who", niche: "niche", topics: "topics", logo: "logo", colours: "colours", voice: null, avoid: "avoid", signoff: "signoff",
+      name: "name", does: "does", country: "country", sells: null, edge: "edge", who: "who", niche: "niche", topics: "topics", logo: "logo", colours: null, voice: null, avoid: "avoid", signoff: null,
     });
     const p = { id: "pd-a", name: "Tracker", what: "", forWho: "", price: "$9", pictures: [], sources: [], use: true, from: "you" as const, addedAt: "" };
     const leo = edits({ leo: true, products: [p] });
     expect(leo).toMatchObject({ website: null, sells: null, price: "price", who: null, proof: "proof", competitors: null, demos: null, media: null });
     // no product yet: the price row adds one on Products instead
     expect(edits({ leo: true }).price).toBeNull();
-    // a site's kit sets the colours and logo: they are shown, not edited
+    // a site's kit sets the colours and logo: they are shown, not edited, and the logo row points at the kit's read-only card
     expect(edits({ kitLocked: true })).toMatchObject({ logo: null, colours: null });
+    expect(row({ ...empty, kitLocked: true }, "logo").to).toBe("/playbook#logo");
   });
 
   it("shows the logo itself as the logo row's value", () => {

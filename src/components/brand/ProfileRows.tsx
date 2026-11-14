@@ -2,7 +2,8 @@
 // label, what is on file and a chevron. A row with `edit` (brandOverview.ts) opens in place under itself and saves as
 // it is typed to the same store its own page saves to: the brand kit (carousel.ts saveBrand), the positioning, the
 // main product or the script product card, so Brand kit, Plan and Products read the change at once. The other rows
-// link to the page that edits them. ?edit=<row id> is the open row (push, so Back closes it).
+// link to where they are edited, Your voice and Brand kit lower on this page among them. ?edit=<row id> is the open row
+// (push, so Back closes it).
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
@@ -19,9 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import { isSet, type OverviewGroup, type OverviewRow, type ProfileEdit } from "@/lib/brandOverview";
 import { kitOf, saveProfileField, type ProfileField } from "@/components/brand/profileSave";
 import { GROUP_CARD, GROUP_H2 } from "@/components/brand/ProfileLists";
-import { BRAND_PRESETS, MAX_AVOID_CHARS, MAX_COUNTRY_CHARS, MAX_IMAGE_CHARS, MAX_NAME_CHARS, MAX_NICHE_CHARS, MAX_OFFER_NAME, MAX_OFFER_URL, MAX_SIGNOFF_CHARS, normalizeHex } from "@/lib/carousel";
+import { MAX_AVOID_CHARS, MAX_COUNTRY_CHARS, MAX_IMAGE_CHARS, MAX_NAME_CHARS, MAX_NICHE_CHARS } from "@/lib/carousel";
 import { isAdviser } from "@/lib/profession";
-import { offerUrl } from "@/lib/brandRules";
 import { EMPTY_POSITIONING, loadPositioning } from "@/lib/positioning";
 import { LIMITS, loadProducts, mainProduct } from "@/lib/products";
 import { FIELD_MAX, loadScriptContext } from "@/lib/scriptContext";
@@ -32,7 +32,7 @@ const WHO_MAX = 200;
 
 /** Where a row's own page is, in words, for the quiet link under its editor. */
 const pageName = (to: string) =>
-  to.startsWith("/brand/products") ? "Open Products" : to.startsWith("/brand") ? "More in Brand kit" : to.startsWith("/plan") ? "Open your plan" : null;
+  to.startsWith("/brand/products") ? "Open Products" : to.startsWith("/plan") ? "Open your plan" : null;
 
 function Value({ row }: { row: OverviewRow }) {
   if (row.image) {
@@ -220,8 +220,6 @@ function Editor({ kind, uid, save }: { kind: ProfileEdit; uid: string; save: (er
       return <TextEdit label="Country" initial={kit.country ?? ""} max={MAX_COUNTRY_CHARS} placeholder="Singapore" save={to("country")} />;
     case "niche":
       return <TextEdit label="Niche" initial={kit.niche ?? ""} max={MAX_NICHE_CHARS} placeholder={isAdviser(kit.profession) ? "Young families buying their first home" : "Gut health for busy women"} save={to("niche")} />;
-    case "offer":
-      return <OfferEdit uid={uid} save={save} />;
     case "edge":
       return <TextEdit label="Why they choose you" initial={pos.edge} max={EDGE_MAX} rows={3} placeholder="A one-page plan every quarter, and a call after every big life change" save={to("edge")} />;
     case "who":
@@ -238,45 +236,9 @@ function Editor({ kind, uid, save }: { kind: ProfileEdit; uid: string; save: (er
     case "avoid":
       return <TextEdit label="Words you never use" initial={kit.avoidWords ?? ""} max={MAX_AVOID_CHARS} rows={2} placeholder="cheapest, best plan, hustle"
         hint="Separate them with commas or new lines." save={to("avoid")} />;
-    case "signoff":
-      return <TextEdit label="Sign-off" initial={kit.signOff ?? ""} max={MAX_SIGNOFF_CHARS} rows={3} placeholder="DM me PLAN for a free review."
-        hint="Added to the end of a post when you copy it." save={to("signoff")} />;
     case "logo":
       return <LogoEdit uid={uid} save={save} />;
-    case "colours":
-      return <ColourEdit uid={uid} save={save} />;
   }
-}
-
-/** The brand kit's first offer: what it is and its link, checked and tidied as Brand kit's offer rows are. */
-function OfferEdit({ uid, save }: { uid: string; save: (error: string | null) => void }) {
-  const kit = kitOf(uid);
-  const first = kit.offers?.[0];
-  const [url, setUrl] = useState(first?.url ?? "");
-  const link = (v: string) => {
-    setUrl(v);
-    save(saveProfileField(uid, "offerUrl", v));
-  };
-  return (
-    <div className="space-y-1.5">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <TextEdit label="Your offer" initial={first?.name ?? ""} max={MAX_OFFER_NAME} placeholder={isAdviser(kit.profession) ? "Free retirement review" : "Free 20-minute call"}
-          save={(v) => save(saveProfileField(uid, "offerName", v))} />
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor="pe-offer-link">Link</Label>
-          <Input id="pe-offer-link" value={url} maxLength={MAX_OFFER_URL} placeholder="https://yoursite.sg/review" inputMode="url" autoCapitalize="none" autoCorrect="off"
-            onChange={(e) => link(e.target.value)}
-            onBlur={() => {
-              const clean = offerUrl(url);
-              if (clean && clean !== url) link(clean);
-            }}
-            className="peer [@media(pointer:coarse)]:h-11" />
-          {url.trim() && !offerUrl(url) && <p className="text-[11px] font-medium text-warning peer-focus:hidden">Use a web link, like https://yoursite.sg/review</p>}
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">Posts link only to your offers.</p>
-    </div>
-  );
 }
 
 function ProfessionFieldEdit({ initial, save }: { initial: string; save: (v: string) => void }) {
@@ -327,29 +289,6 @@ function LogoEdit({ uid, save }: { uid: string; save: (error: string | null) => 
         </Button>
       )}
       <p className="w-full text-xs text-muted-foreground">A PNG with a see-through background works best.</p>
-    </div>
-  );
-}
-
-function ColourEdit({ uid, save }: { uid: string; save: (error: string | null) => void }) {
-  const [color, setColor] = useState(kitOf(uid).color);
-  const pick = (hex: string) => {
-    setColor(hex);
-    save(saveProfileField(uid, "color", hex));
-  };
-  const preset = BRAND_PRESETS.some((p) => p.color === color);
-  return (
-    <div role="group" aria-label="Main colour" className="flex flex-wrap items-center gap-2">
-      {BRAND_PRESETS.map((p) => (
-        <button key={p.color} type="button" aria-pressed={color === p.color} aria-label={p.name} title={p.name} onClick={() => pick(p.color)}
-          style={{ backgroundColor: p.color }}
-          className={`h-9 w-9 rounded-full ring-offset-2 ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 ${color === p.color ? "ring-2 ring-foreground" : ""}`} />
-      ))}
-      <label className={`flex h-9 items-center gap-1.5 rounded-full border px-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:min-h-11 ${preset ? "border-border" : "border-foreground"}`}>
-        <input type="color" value={color.toLowerCase()} aria-label="Custom colour" onChange={(e) => pick(normalizeHex(e.target.value) ?? color)}
-          className="h-6 w-6 cursor-pointer rounded-full border-0 bg-transparent p-0" />
-        <span className="pr-1">Custom</span>
-      </label>
     </div>
   );
 }

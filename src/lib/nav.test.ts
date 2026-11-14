@@ -17,6 +17,9 @@ const OLD_PATHS = [
 // Pages the nav gained since: Brand's Products and Demo videos tabs (sections of the brand kit drawn alone, 12 Nov),
 // /brands, every brand as a card (13 Nov), and Brand > Members for shared brands (14 Nov).
 const NEW_PATHS = ["/brand/products", "/brand/demo-videos", "/settings/billing", "/settings/held", "/brands", "/brand/members"];
+// Old addresses that are sections of another page now, each landing there (links.test.ts profileAddress): Your voice
+// and Brand kit are sections of Profile since 14 Nov
+const MOVED_PATHS = ["/voice", "/brand"];
 const LEO = "tanjunsing@gmail.com";
 const ANYONE = "someone@example.com";
 const pages = (id: string, email: string) => visiblePages(section(id).pages, email).map((p) => p.to);
@@ -32,11 +35,12 @@ const everythingOn = () => {
 
 describe("nav", () => {
   it("keeps every address the nav had before the overhaul, each under exactly one page", () => {
-    for (const r of OLD_PATHS) expect(pageFor(r)?.page.to, r).toBe(r);
+    const kept = OLD_PATHS.filter((r) => !MOVED_PATHS.includes(r));
+    for (const r of kept) expect(pageFor(r)?.page.to, r).toBe(r);
     const listed = SECTIONS.flatMap((s) => s.pages.map((p) => p.to));
     expect(new Set(listed).size).toBe(listed.length);
     // and adds only the pages named since
-    expect([...listed].sort()).toEqual([...OLD_PATHS, ...NEW_PATHS].sort());
+    expect([...listed].sort()).toEqual([...kept, ...NEW_PATHS].sort());
   });
 
   it("lists Fastlane's six places in its order, with Settings under the workspace card", () => {
@@ -99,7 +103,7 @@ describe("nav", () => {
     expect(sectionFor("/team")?.id).toBe("plan");
     expect(sectionFor("/fads/positioning")?.id).toBe("playbook");
     expect(pageFor("/brand/products")?.page.label).toBe("Products");
-    expect(pageFor("/brand")?.page.label).toBe("Brand kit");
+    expect(pageFor("/playbook")?.page.label).toBe("Profile");
     expect(sectionFor("/links")?.id).toBe("settings");
     expect(sectionFor("/calendar")?.id).toBe("plan");
     expect(sectionFor("/reels")?.id).toBe("plan");
@@ -131,7 +135,7 @@ describe("nav", () => {
     expect(pages("plan", ANYONE)).toEqual(["/calendar", "/plan", "/launch", "/linkedin", "/team"]);
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/inspiration", "/following", "/profiles"]);
     expect(pages("analytics", ANYONE)).toEqual(["/analytics", "/coach", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage"]);
-    expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/voice", "/brand", "/fads", "/brand/members", "/media"]);
+    expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/fads", "/brand/members", "/media"]);
     expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/accounts", "/bio", "/links", "/connect", "/welcome", "/academy", "/create-guide", "/tutorial", "/feedback"]);
     // the gates are the ones each page had before: these and no others are Leo's
     const leoOnly = SECTIONS.flatMap((s) => s.pages.filter((p) => p.owners).map((p) => p.to)).sort();
@@ -217,17 +221,17 @@ describe("nav", () => {
       // Analytics: results, coach, and the recruit kit on an adviser brand
       expect(labels(sectionTabs("/coach", ANYONE).tabs)).toEqual(["Results", "Coach", "Recruit"]);
       expect(labels(sectionTabs("/recruit/engage", ANYONE).picker)).toEqual(["Recruit kit", "Conversations", "Reply agent", "Reply drafts"]);
-      // Brand: Fastlane's tabs. Profile holds what sets it (Voice, Brand kit, Audiences, Positioning) in its picker
-      expect(labels(sectionTabs("/voice", LEO).tabs)).toEqual(["Profile", "Products", "Competitors", "Demo videos", "Photos and videos"]);
-      expect(sectionTabs("/voice", LEO).tabs.map((t) => t.to)).toEqual(["/playbook", "/brand/products", "/competitors", "/brand/demo-videos", "/media"]);
-      expect(labels(sectionTabs("/audiences", LEO).picker)).toEqual(["Profile", "Your voice", "Brand kit", "Audiences", "Positioning", "Members"]);
+      // Brand: Fastlane's tabs. Profile holds Your voice and Brand kit itself, and Audiences and Positioning in its picker
+      expect(labels(sectionTabs("/playbook", LEO).tabs)).toEqual(["Profile", "Products", "Competitors", "Demo videos", "Photos and videos"]);
+      expect(sectionTabs("/playbook", LEO).tabs.map((t) => t.to)).toEqual(["/playbook", "/brand/products", "/competitors", "/brand/demo-videos", "/media"]);
+      expect(labels(sectionTabs("/audiences", LEO).picker)).toEqual(["Profile", "Audiences", "Positioning", "Members"]);
       expect(sectionTabs("/brand/products", LEO).tabs.find((t) => t.active)?.label).toBe("Products");
       expect(sectionTabs("/brand/products", LEO).picker).toEqual([]);
       // everyone else: Profile, with every page they can open in its picker, and Media
-      expect(labels(sectionTabs("/voice", ANYONE).tabs)).toEqual(["Profile", "Photos and videos"]);
+      expect(labels(sectionTabs("/playbook", ANYONE).tabs)).toEqual(["Profile", "Photos and videos"]);
       expect(labels(sectionTabs("/media", ANYONE).tabs)).toEqual(["Profile", "Photos and videos"]);
       expect(sectionTabs("/media", ANYONE).picker).toEqual([]);
-      expect(labels(sectionTabs("/brand", ANYONE).picker)).toEqual(["Profile", "Your voice", "Brand kit", "Positioning", "Members"]);
+      expect(labels(sectionTabs("/playbook", ANYONE).picker)).toEqual(["Profile", "Positioning", "Members"]);
       // a page of Positioning's own tabs keeps the row, its picker ticking Positioning
       expect(sectionTabs("/fads/positioning", ANYONE).tabs.find((t) => t.active)?.label).toBe("Profile");
       expect(sectionTabs("/fads/positioning", ANYONE).picker.find((t) => t.active)?.to).toBe("/fads");

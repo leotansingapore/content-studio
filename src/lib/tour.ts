@@ -28,9 +28,9 @@ export const TOUR_STEPS: readonly TourStep[] = [
   { id: "campaigns", path: "/campaigns", page: "Campaigns", text: "Campaigns turn a goal into a month of posts you review one at a time." },
   {
     id: "brand",
-    path: "/brand",
-    page: "Brand kit",
-    text: "Brand kit is your name, colours, logo and sign-off. Every carousel, video and caption uses it.",
+    path: "/playbook",
+    page: "Profile",
+    text: "Profile is your name, voice, colours, logo and sign-off. Every carousel, video and caption uses it.",
   },
   {
     id: "agent",
@@ -59,9 +59,9 @@ export const STUDIO_TOUR: readonly TourStep[] = [
   },
   {
     id: "brand",
-    path: "/brand",
-    page: "Brand kit",
-    text: "Brand kit is your name, colours, logo and sign-off. Every carousel, video and caption uses it.",
+    path: "/playbook",
+    page: "Profile",
+    text: "Profile is your name, voice, colours, logo and sign-off. Every carousel, video and caption uses it.",
   },
   {
     id: "analytics",

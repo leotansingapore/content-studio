@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, type ComponentType } from "react";
 import { createRoutesFromChildren, matchRoutes, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { profileAddress } from "@/lib/links";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
@@ -27,6 +28,12 @@ function Redirect({ to }: { to: string }) {
   return <Navigate to={{ pathname: to, search, hash }} replace />;
 }
 
+/** Your voice and Brand kit are sections of Profile since 14 Nov: an old /voice or /brand link lands on its section. */
+function MovedToProfile({ from }: { from: "/brand" | "/voice" }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={profileAddress(from, search, hash)} replace />;
+}
+
 const WelcomePage = page(() => import("@/pages/WelcomePage"));
 const CoachPage = page(() => import("@/pages/CoachPage"));
 const PlaybookPage = page(() => import("@/pages/PlaybookPage"));
@@ -36,7 +43,6 @@ const PlanPage = page(() => import("@/pages/PlanPage"));
 const LinkedInStrategyPage = page(() => import("@/pages/LinkedInStrategyPage"));
 const HooksPage = page(() => import("@/pages/HooksPage"));
 const LaunchPlanPage = page(() => import("@/pages/LaunchPlanPage"));
-const VoicePage = page(() => import("@/pages/VoicePage"));
 const BrandPage = page(() => import("@/pages/BrandPage"));
 const MediaPage = page(() => import("@/pages/MediaPage"));
 const ConnectPage = page(() => import("@/pages/ConnectPage"));
@@ -271,8 +277,8 @@ const ROUTES = (
       <Route path="/trends" element={<TrendsPage />} />
       <Route path="/clone" element={<CloneReelPage />} />
       <Route path="/create-guide" element={<CreateGuidePage />} />
-      <Route path="/voice" element={<VoicePage />} />
-      <Route path="/brand" element={<BrandPage />} />
+      <Route path="/voice" element={<MovedToProfile from="/voice" />} />
+      <Route path="/brand" element={<MovedToProfile from="/brand" />} />
       <Route path="/brand/members" element={<BrandTeamPage />} />
       <Route path="/brand/products" element={<BrandPage part="products" />} />
       <Route path="/brand/demo-videos" element={<BrandPage part="demo-videos" />} />

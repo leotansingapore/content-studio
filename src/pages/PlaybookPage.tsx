@@ -17,7 +17,9 @@ import { useScrollToHash, useUrlItem } from "@/lib/urlState";
 import { activeProfile } from "@/lib/profiles";
 import { KIT_FEEDS, cachedKit } from "@/lib/brandKitFeed";
 import { NextGap, ProfileGroups } from "@/components/brand/ProfileRows";
-import { NamesSection, PromoSection, ProofLists, RulesSection, ToneLists } from "@/components/brand/ProfileLists";
+import { GROUP_H2, NamesSection, PromoSection, ProofLists, RulesSection, ToneLists } from "@/components/brand/ProfileLists";
+import BrandPage from "@/pages/BrandPage";
+import VoicePage from "@/pages/VoicePage";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
 import { adviserBrand } from "@/lib/profession";
 import type { ThemeOutlet } from "@/lib/theme";
@@ -125,7 +127,8 @@ export default function PlaybookPage() {
       </header>
 
       {/* What the AI knows, as Fastlane's Profile: a line on why it matters with how much is on file, then one card of rows
-          per group. The basics open in place (ProfileRows.tsx); the rest open their own page. */}
+          per group. The basics open in place (ProfileRows.tsx); Your voice and Brand kit sit on this page too (Holo's
+          Brand DNA, one page, 14 Nov), so most other rows scroll down to them. */}
       {uid && (
         <>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-border/60 bg-card px-4 py-3 text-sm">
@@ -146,13 +149,23 @@ export default function PlaybookPage() {
           </div>
           {/* Fastlane's order: the groups to Tone and voice, then Rules, then what the brand keeps on file */}
           <ProfileGroups groups={groups.filter((g) => g.id !== "on-file")} uid={uid} openId={editing} next={after} onOpen={openRow} onClose={closeRow} onSaved={redraw}
-            extra={{ proof: <ProofLists uid={uid} />, tone: <ToneLists uid={uid} /> }} />
+            extra={{
+              proof: <ProofLists uid={uid} />,
+              // Your voice, here since 14 Nov (it was its own page, /voice): the posts and what the AI learned from them
+              tone: <><ToneLists uid={uid} /><div id="voice" className="scroll-mt-20"><VoicePage embedded onSaved={redraw} /></div></>,
+            }} />
           <RulesSection uid={uid} />
           <PromoSection uid={uid} />
           <NamesSection uid={uid} />
           {groups.some((g) => g.id === "on-file") && (
             <ProfileGroups groups={groups.filter((g) => g.id === "on-file")} uid={uid} openId={editing} next={after} onOpen={openRow} onClose={closeRow} onSaved={redraw} />
           )}
+          {/* Brand kit, here since 14 Nov (it was its own page, /brand): what the rows above don't edit in place */}
+          <section id="kit" aria-labelledby="kit-title" className="scroll-mt-20 space-y-2">
+            <h2 id="kit-title" className={GROUP_H2}>Brand kit</h2>
+            {/* white cards like every group above, where the kit's own page drew them on the grey */}
+            <div className="[&_section]:bg-card"><BrandPage embedded onSaved={redraw} /></div>
+          </section>
         </>
       )}
 

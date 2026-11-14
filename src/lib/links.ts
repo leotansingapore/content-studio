@@ -567,7 +567,7 @@ export const links = {
     `/coach${qs({ report: o.report, view: o.view, piece: o.piece })}${o.section ? `#${o.section}` : ""}`,
   /** Leo only: a section of /voice, and learning opens one learning (push). */
   voice: (o: { section?: "how-you-sound" | "facts" | "learned"; learning?: string } = {}) =>
-    `/voice${qs({ learning: o.learning })}${o.section ? `#${o.section}` : ""}`,
+    profileAddress("/voice", qs({ learning: o.learning }), o.section ? `#${o.section}` : ""),
   /** item=<picture key> scrolls to and marks that picture. view, kind and type (Leo only) replace; the defaults are left out. */
   media: (
     o: {
@@ -589,13 +589,15 @@ export const links = {
   brand: (o: { section?: BrandSection; review?: "website" | "products"; product?: string; demo?: string; preview?: "end" } = {}) => {
     const section = o.section ?? o.review ?? (o.product ? "products" : o.demo ? "demo-videos" : undefined);
     const own = section === "products" || section === "demo-videos" ? section : null;
-    return `/brand${own ? `/${own}` : ""}${qs({
+    const query = qs({
       website: o.review === "website" && "review",
       products: o.review === "products" && "review",
       product: o.product,
       demo: o.demo,
       preview: o.preview,
-    })}${section && !own ? `#${section}` : ""}`;
+    });
+    // a named kit section wins over the tab an item in the query would pick, so it skips profileAddress's part check
+    return own ? `/brand/${own}${query}` : profileSection("/brand", query, section ? `#${section}` : "");
   },
   /** Faces and voices (Leo only): tab (face left out) replaces; record, presenter and make open something (push). */
   people: (o: { tab?: "face" | "presenters"; record?: true; presenter?: string; make?: true } = {}) =>
@@ -700,6 +702,23 @@ export function brandPartAddress(search: string, hash: string): string | null {
   if (!part) return null;
   // the hash named the section; on the section's own page only the script card's is a place to scroll to
   return `/brand/${part}${search}${hash === "#script-product" ? hash : ""}`;
+}
+
+/** Where an old /brand or /voice address opens now: its section of Profile (/playbook), which holds Your voice and
+ *  Brand kit since 14 Nov. A kit section Profile edits in its own row opens that row; products and demo videos keep
+ *  their own tabs. */
+export function profileAddress(from: "/brand" | "/voice", search: string, hash: string): string {
+  return (from === "/brand" && brandPartAddress(search, hash)) || profileSection(from, search, hash);
+}
+
+function profileSection(from: "/brand" | "/voice", search: string, hash: string): string {
+  const row = from === "/brand" ? ({ "#logo": "logo", "#avoid-words": "avoid" } as Record<string, string | undefined>)[hash] : undefined;
+  if (row) {
+    const p = new URLSearchParams(search);
+    p.set("edit", row);
+    return `/playbook?${p}`;
+  }
+  return `/playbook${search}${hash || (from === "/voice" ? "#voice" : "#kit")}`;
 }
 
 export type BrandSection =

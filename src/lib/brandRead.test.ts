@@ -17,14 +17,14 @@ class MemStorage {
   removeItem(k: string) { this.s.delete(k); }
 }
 let storage: MemStorage;
-let path = "/brand";
+let path = "/playbook";
 
 beforeEach(() => {
   storage = new MemStorage();
   vi.stubGlobal("localStorage", storage);
   vi.stubGlobal("window", { localStorage: storage, addEventListener: () => {}, removeEventListener: () => {} });
   vi.stubGlobal("location", { get pathname() { return path; } });
-  path = "/brand";
+  path = "/playbook";
   callFn.mockReset();
   toast.mockReset();
 });
@@ -221,6 +221,6 @@ describe("a read that doesn't come back", () => {
     path = "/generate";
     answer(found);
     await first;
-    expect(toast).toHaveBeenCalledWith({ title: "Your website read is ready", description: "Open Brand kit to check it." });
+    expect(toast).toHaveBeenCalledWith({ title: "Your website read is ready", description: "Open Profile to check it." });
   });
 });

@@ -1,7 +1,7 @@
 // What the AI knows about the open brand, in one list (/playbook): Fastlane's Brand > Profile groups (identity,
 // offer, personas, proof, look, tone and voice) plus what the brand keeps on file. Each row reads a store another
 // page owns. A row with `edit` opens in place on Profile and saves to that same store (ProfileRows.tsx); the others
-// link to the page that edits them. Nothing is saved here. Rows from Leo-only pages (website, products, audiences,
+// link to where they are edited, most often Your voice or Brand kit further down this same page (since 14 Nov). Nothing is saved here. Rows from Leo-only pages (website, products, audiences,
 // proof, competitors, demo videos, Media types) appear only when `leo` is set.
 
 import type { Audience } from "@/lib/audiences";
@@ -11,7 +11,7 @@ import type { Product } from "@/lib/products";
 import type { VoiceProfile } from "@/lib/voiceProfile";
 
 /** The rows Profile edits in place, each against the store its page saves to. */
-export type ProfileEdit = "name" | "does" | "country" | "offer" | "price" | "edge" | "who" | "niche" | "topics" | "proof" | "logo" | "colours" | "avoid" | "signoff";
+export type ProfileEdit = "name" | "does" | "country" | "price" | "edge" | "who" | "niche" | "topics" | "proof" | "logo" | "avoid";
 
 export interface OverviewRow {
   id: string;
@@ -87,10 +87,10 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       id: "identity",
       title: "Identity",
       rows: [
-        { id: "name", label: "Name", value: t(kit?.name) || t(i.marketName), to: "/brand#you", add: "Add your name", edit: "name" },
-        { id: "does", label: "What you do", value: t(pos?.oneLiner) || t(kit?.profession) || t(kit?.role), to: pos?.oneLiner ? "/plan" : "/brand#you", add: "Say what you do", edit: "does" },
+        { id: "name", label: "Name", value: t(kit?.name) || t(i.marketName), to: "/playbook?edit=name", add: "Add your name", edit: "name" },
+        { id: "does", label: "What you do", value: t(pos?.oneLiner) || t(kit?.profession) || t(kit?.role), to: pos?.oneLiner ? "/plan" : "/playbook?edit=does", add: "Say what you do", edit: "does" },
         { id: "country", label: "Country", value: t(kit?.country), to: "/playbook#identity", add: "Add your country", optional: true, edit: "country" },
-        ...(i.leo ? [{ id: "website", label: "Website", value: t(kit?.website).replace(/^https?:\/\//, ""), to: "/brand#website", add: "Add your website" }] : []),
+        ...(i.leo ? [{ id: "website", label: "Website", value: t(kit?.website).replace(/^https?:\/\//, ""), to: "/playbook#website", add: "Add your website" }] : []),
       ],
     },
     {
@@ -99,7 +99,7 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       rows: [
         i.leo
           ? { id: "sells", label: "What you sell", value: "", chips: products.length ? products.map((p) => p.name) : offers, to: "/brand/products", add: "Add what you sell" }
-          : { id: "sells", label: "What you sell", value: "", chips: offers, to: "/brand#offers", add: "Add an offer", edit: "offer" as const },
+          : { id: "sells", label: "What you sell", value: "", chips: offers, to: "/playbook#offers", add: "Add an offer" },
         ...(i.leo ? [{ id: "price", label: "Price point", value: t(main?.price), to: main ? `/brand/products?product=${main.id}` : "/brand/products", add: "Add a price", ...(main ? { edit: "price" as const } : {}) }] : []),
         { id: "edge", label: "Why they choose you", value: t(pos?.edge), to: "/plan", add: "Say why you", edit: "edge" },
       ],
@@ -125,20 +125,20 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       id: "look",
       title: "Look",
       rows: [
-        { id: "logo", label: "Logo", value: kit?.logo ? "On file" : "", to: "/brand#logo", add: "Add a logo", ...(kit?.logo ? { image: kit.logo } : {}), ...(i.kitLocked ? {} : { edit: "logo" as const }) },
+        { id: "logo", label: "Logo", value: kit?.logo ? "On file" : "", to: i.kitLocked ? "/playbook#logo" : "/playbook?edit=logo", add: "Add a logo", ...(kit?.logo ? { image: kit.logo } : {}), ...(i.kitLocked ? {} : { edit: "logo" as const }) },
         // navy is our default, not something the brand told us: shown as the default and neither known nor a gap, so a
         // brand that wants navy is never chased for it (shortcut: the kit cannot tell navy picked from navy untouched)
-        { id: "colours", label: "Colours", value: "", swatches: picked && kit ? [kit.color, ...(kit.palette ?? []).map((c) => c.hex)] : [], to: "/brand#colour", add: "Pick a colour",
-          ...(picked ? {} : { optional: true, note: "Navy, the default" }), ...(i.kitLocked ? {} : { edit: "colours" as const }) },
+        { id: "colours", label: "Colours", value: "", swatches: picked && kit ? [kit.color, ...(kit.palette ?? []).map((c) => c.hex)] : [], to: "/playbook#colour", add: "Pick a colour",
+          ...(picked ? {} : { optional: true, note: "Navy, the default" }) },
       ],
     },
     {
       id: "tone",
       title: "Tone and voice",
       rows: [
-        { id: "voice", label: "How you sound", value: t(i.voice?.voiceSummary) || count(posts, "past post"), to: "/voice", add: "Paste past posts" },
-        { id: "avoid", label: "Words you never use", value: t(kit?.avoidWords).replace(/\s*\n+\s*/g, ", "), to: "/brand#avoid-words", add: "Add words to avoid", optional: true, edit: "avoid" },
-        { id: "signoff", label: "Sign-off", value: t(kit?.signOff), to: "/brand#sign-off", add: "Add a sign-off", optional: true, edit: "signoff" },
+        { id: "voice", label: "How you sound", value: t(i.voice?.voiceSummary) || count(posts, "past post"), to: "/playbook#voice", add: "Paste past posts" },
+        { id: "avoid", label: "Words you never use", value: t(kit?.avoidWords).replace(/\s*\n+\s*/g, ", "), to: "/playbook?edit=avoid", add: "Add words to avoid", optional: true, edit: "avoid" },
+        { id: "signoff", label: "Sign-off", value: t(kit?.signOff), to: "/playbook#sign-off", add: "Add a sign-off", optional: true },
       ],
     },
   ];
