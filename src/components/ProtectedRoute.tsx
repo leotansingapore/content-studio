@@ -16,10 +16,46 @@ import { toast } from "@/hooks/use-toast";
 
 let toldOutOfRoom = false;
 
+/** The studio's panels, empty, while the session and the sync pull are read: the frame StudioLayout draws (its widths
+ * and colours), so the page fills in where the person is already looking rather than after a lone spinner. */
+function StudioShell() {
+  return (
+    <div className="min-h-screen bg-canvas lg:bg-rail" aria-busy="true">
+      <span role="status" className="sr-only">Loading your studio</span>
+      <div className="fixed inset-y-0 left-0 hidden w-[var(--nav-w)] p-2.5 lg:flex">
+        <div className="w-full rounded-[20px] bg-sidebar">
+          <div className="flex pl-2 pt-4">
+            <span className="grid h-10 w-10 place-items-center">
+              <span className="h-9 w-9 rounded-xl bg-gradient-primary shadow-elegant" />
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center border-b border-border/70 bg-background/85 px-4 py-1.5 lg:hidden">
+        <span className="flex min-h-11 items-center">
+          <span className="h-9 w-9 rounded-xl bg-gradient-primary shadow-elegant" />
+        </span>
+      </div>
+      <div className="lg:py-2.5 lg:pl-[var(--nav-w)] lg:pr-2.5">
+        <div className="lg:min-h-[calc(100vh-1.25rem)] lg:rounded-[20px] lg:bg-canvas">
+          <div className="mx-auto max-w-5xl space-y-3 px-4 pt-6 sm:px-6 sm:pt-8 lg:px-6 xl:px-10">
+            <div className="h-8 w-48 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" />
+            <div className="h-4 w-72 max-w-full animate-pulse rounded bg-muted/70 motion-reduce:animate-none" />
+          </div>
+        </div>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 h-14 border-t border-border/70 bg-background/95 lg:hidden" />
+    </div>
+  );
+}
+
 export default function ProtectedRoute({
   children,
+  shell,
 }: {
   children: React.ReactNode;
+  /** Draw the studio's empty frame while loading, not a spinner (the routes inside StudioLayout). */
+  shell?: boolean;
 }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +108,7 @@ export default function ProtectedRoute({
     };
   }, []);
 
+  if (loading && shell) return <StudioShell />;
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">

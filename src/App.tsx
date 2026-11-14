@@ -207,7 +207,7 @@ const ROUTES = (
     />
     <Route
       element={
-        <ProtectedRoute>
+        <ProtectedRoute shell>
           <StudioLayout />
         </ProtectedRoute>
       }
