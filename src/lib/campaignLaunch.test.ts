@@ -100,7 +100,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("launchPlan: which posts go", () => {
   it("sends made posts still ahead to the accounts that take them, and counts the rest", () => {
     seed();
-    const plan = L.launchPlan(campaign(), loadDrafts(UID), ACCOUNTS, null, NOW, "Asia/Singapore");
+    const plan = L.launchPlan(campaign(), loadDrafts(UID), ACCOUNTS, null, NOW);
     expect(plan.go.map((g) => [g.n, g.accountIds, g.at])).toEqual([
       [2, ["li", "ig"], "2026-11-21T09:00:00+08:00"],
       [3, ["li"], "2026-11-22T09:00:00+08:00"],
@@ -113,18 +113,18 @@ describe("launchPlan: which posts go", () => {
 
   it("keeps on the calendar what only TikTok could take, what fails the compliance scan, and a post due within minutes", () => {
     seed();
-    const tiktokOnly = L.launchPlan(campaign({ accountIds: ["tt"] }), loadDrafts(UID), ACCOUNTS, null, NOW, "Asia/Singapore");
+    const tiktokOnly = L.launchPlan(campaign({ accountIds: ["tt"] }), loadDrafts(UID), ACCOUNTS, null, NOW);
     expect(tiktokOnly.go).toEqual([]);
     expect(tiktokOnly.you).toEqual([2, 3, 4]);
     const flagged = loadDrafts(UID).map((d) => (d.id === "cmp_c-1_3" ? { ...d, draft: "Guaranteed returns of 8% a year, risk free." } : d));
-    expect(L.launchPlan(campaign(), flagged, ACCOUNTS, null, NOW, "Asia/Singapore").you).toEqual([3, 4]);
+    expect(L.launchPlan(campaign(), flagged, ACCOUNTS, null, NOW).you).toEqual([3, 4]);
     const soon = Date.parse("2026-11-21T00:57:00.000Z"); // 8:57am in Singapore, three minutes before post 2
-    expect(L.launchPlan(campaign(), loadDrafts(UID), ACCOUNTS, null, soon, "Asia/Singapore").past).toEqual([1, 2]);
+    expect(L.launchPlan(campaign(), loadDrafts(UID), ACCOUNTS, null, soon).past).toEqual([1, 2]);
   });
 
   it("says what happens with no accounts, and with nothing made", () => {
     seed();
-    const plan = L.launchPlan(campaign({ accountIds: [] }), loadDrafts(UID), ACCOUNTS, null, NOW, "Asia/Singapore");
+    const plan = L.launchPlan(campaign({ accountIds: [] }), loadDrafts(UID), ACCOUNTS, null, NOW);
     expect(plan.go).toEqual([]);
     expect(L.launchLine(plan, 0)).toBe("Each made post is on your calendar on its day for you to post. 1 draft stays a draft. Make them any time and they join the campaign.");
     expect(L.launchLine({ go: [], you: [], past: [], sent: [], drafts: 12 }, 2)).toBe("No posts are made yet. 12 drafts stay drafts. Make them any time and they join the campaign.");
@@ -193,13 +193,13 @@ describe("launchCampaign", () => {
 });
 
 describe("pause, resume and posts made while running", () => {
-  it("Pause takes the campaign's scheduled posts off Zernio and stops new sends; Resume sends them again", async () => {
+  it("Pause takes the posts Launch sent off Zernio and stops new sends; Resume sends them again", async () => {
     seed();
     await L.launchCampaign(UID, "c-1", NOW);
     const paused = await L.pauseCampaign(UID, "c-1", NOW + 1000);
-    // posts 2 and 3 from the launch, and 7 that was already there
-    expect(paused).toEqual({ ok: true, cancelled: 3, failed: 0 });
-    expect(z.cancel.mock.calls.map((c) => c[1]).sort()).toEqual(["z1", "z2", "z7"]);
+    // posts 2 and 3 from the launch; 7 was scheduled by hand and stays
+    expect(paused).toEqual({ ok: true, cancelled: 2, failed: 0 });
+    expect(z.cancel.mock.calls.map((c) => c[1]).sort()).toEqual(["z1", "z2"]);
     expect(getCampaign(UID, "c-1")?.pausedAt).toBeTruthy();
     expect(draft(2).zernio).toBeUndefined();
     expect(draft(2).status).toBe("scheduled");
@@ -209,10 +209,11 @@ describe("pause, resume and posts made while running", () => {
     expect(z.schedule).not.toHaveBeenCalled();
 
     const resumed = await L.launchCampaign(UID, "c-1", NOW + 2000);
-    expect(resumed).toMatchObject({ ok: true, sent: 3 });
+    expect(resumed).toMatchObject({ ok: true, sent: 2 });
     expect(getCampaign(UID, "c-1")).toMatchObject({ launchedAt: "2026-11-20T00:00:00.000Z" });
     expect(getCampaign(UID, "c-1")?.pausedAt).toBeUndefined();
-    expect(z.schedule.mock.calls.map((c) => c[1].scheduledFor)).toEqual(["2026-11-21T09:00:00+08:00", "2026-11-22T09:00:00+08:00", "2026-11-26T09:00:00+08:00"]);
+    expect(z.schedule.mock.calls.map((c) => c[1].scheduledFor)).toEqual(["2026-11-21T09:00:00+08:00", "2026-11-22T09:00:00+08:00"]);
+    expect(draft(7).zernio).toMatchObject({ postId: "z7" });
   });
 
   it("a post made while running goes on its own; before launch it waits", async () => {
@@ -238,5 +239,116 @@ describe("pause, resume and posts made while running", () => {
     const out = await L.sendIfLaunched(UID, "c-1", 3, NOW);
     expect(out).toEqual({ sent: 1, failed: [] });
     expect(z.schedule.mock.calls[0][1]).toMatchObject({ accountIds: ["li", "ig"], mediaUrls: ["https://cdn.example/0.png", "https://cdn.example/1.png"] });
+  });
+});
+
+// the review's repro (14 Nov) and one case per fix that followed it
+describe("sends that overlap: one loop per campaign, and Pause wins", () => {
+  /** schedulePost holds its first call until release() */
+  const holdFirst = () => {
+    const gate: { release: () => void } = { release: () => {} };
+    let seq = 0;
+    z.schedule.mockImplementation(async (_p: string, req: { scheduledFor: string }) => {
+      seq++;
+      if (seq === 1) await new Promise<void>((r) => (gate.release = r));
+      return view(`z${seq}`, req.scheduledFor);
+    });
+    return gate;
+  };
+
+  it("Pause then Resume while Launch is still sending posts each post once (fix 1)", async () => {
+    seed();
+    const gate = holdFirst();
+    const a = L.launchCampaign(UID, "c-1", NOW);
+    await vi.waitFor(() => expect(z.schedule).toHaveBeenCalledTimes(1));
+    await L.pauseCampaign(UID, "c-1", NOW + 1000);
+    await L.launchCampaign(UID, "c-1", NOW + 2000);
+    gate.release();
+    await a;
+    const times = z.schedule.mock.calls.map((c) => c[1].scheduledFor as string);
+    expect(times.filter((t) => t.startsWith("2026-11-21"))).toHaveLength(1);
+    expect(times.filter((t) => t.startsWith("2026-11-22"))).toHaveLength(1);
+  });
+
+  it("a post scheduled by hand while Launch runs is never sent again (fix 1)", async () => {
+    seed();
+    const gate = holdFirst();
+    const a = L.launchCampaign(UID, "c-1", NOW);
+    await vi.waitFor(() => expect(z.schedule).toHaveBeenCalledTimes(1));
+    // post 3 goes out by hand (Post it for me) while post 2 uploads
+    saveDrafts(UID, loadDrafts(UID).map((d) => (d.id === "cmp_c-1_3" ? { ...d, zernio: { key: "hand", postId: "zh", status: "scheduled" } } : d)));
+    gate.release();
+    await a;
+    expect(z.schedule.mock.calls.map((c) => c[1].scheduledFor)).toEqual(["2026-11-21T09:00:00+08:00"]);
+    expect(draft(3).zernio).toMatchObject({ key: "hand", postId: "zh" });
+  });
+
+  it("deleting the campaign mid-send stops the loop and takes the in-flight post off Zernio (fixes 1, 2, 4)", async () => {
+    seed();
+    const gate = holdFirst();
+    const a = L.launchCampaign(UID, "c-1", NOW);
+    await vi.waitFor(() => expect(z.schedule).toHaveBeenCalledTimes(1));
+    saveCampaigns(UID, []);
+    gate.release();
+    await a;
+    expect(z.schedule).toHaveBeenCalledTimes(1);
+    expect(z.cancel.mock.calls.map((c) => c[1])).toEqual(["z1"]);
+    expect(draft(2).zernio).toBeUndefined();
+  });
+
+  it("Pause during an in-flight send takes that post off Zernio too (fix 2)", async () => {
+    seed();
+    const gate = holdFirst();
+    const a = L.launchCampaign(UID, "c-1", NOW);
+    await vi.waitFor(() => expect(z.schedule).toHaveBeenCalledTimes(1));
+    await L.pauseCampaign(UID, "c-1", NOW + 1000);
+    gate.release();
+    await a;
+    expect(draft(2).zernio?.postId).toBeUndefined();
+    expect(z.cancel.mock.calls.map((c) => c[1])).toContain("z1");
+    // and nothing more went after the pause
+    expect(z.schedule).toHaveBeenCalledTimes(1);
+  });
+
+  it("Pause takes off only what Launch sent, never a post scheduled by hand (fix 3)", async () => {
+    seed();
+    await L.launchCampaign(UID, "c-1", NOW);
+    expect(draft(2).zernio?.by).toBe("launch");
+    expect(draft(7).zernio?.by).toBeUndefined();
+    const out = await L.pauseCampaign(UID, "c-1", NOW + 1000);
+    expect(out).toEqual({ ok: true, cancelled: 2, failed: 0 });
+    expect(z.cancel.mock.calls.map((c) => c[1]).sort()).toEqual(["z1", "z2"]);
+    expect(draft(7).zernio).toMatchObject({ postId: "z7" });
+  });
+
+  it("a later read of a Launch post keeps it marked as Launch's (fix 3)", async () => {
+    seed();
+    await L.launchCampaign(UID, "c-1", NOW);
+    const { applyView } = await import("./useZernioOutbox");
+    applyView(UID, draft(2), view("z1", "2026-11-21T01:00:00.000Z", "scheduled").post as never);
+    expect(draft(2).zernio).toMatchObject({ postId: "z1", by: "launch" });
+  });
+
+  it("sends at the time the calendar shows: the draft's own zone, Singapore when it has none (fix 5)", () => {
+    seed();
+    const drafts = loadDrafts(UID).map((d) => (d.id === "cmp_c-1_3" ? { ...d, tz: "Europe/London" } : d));
+    const plan = L.launchPlan(campaign(), drafts, ACCOUNTS, null, NOW);
+    expect(plan.go.map((g) => [g.n, g.at, g.tz])).toEqual([
+      [2, "2026-11-21T09:00:00+08:00", "Asia/Singapore"],
+      [3, "2026-11-22T09:00:00+00:00", "Europe/London"],
+    ]);
+  });
+
+  it("a post Zernio failed at once is not counted as scheduled, and goes again as a new post (fix 6)", async () => {
+    seed();
+    saveDrafts(UID, loadDrafts(UID).map((d) => (d.id === "cmp_c-1_3" ? { ...d, zernio: { key: "old", postId: "zf", status: "failed" } } : d)));
+    const plan = L.launchPlan(campaign(), loadDrafts(UID), ACCOUNTS, null, NOW);
+    expect(plan.go.map((g) => g.n)).toEqual([2, 3]);
+    expect(plan.sent).toEqual([7]);
+    await L.launchCampaign(UID, "c-1", NOW);
+    expect(z.cancel.mock.calls.map((c) => c[1])).toEqual(["zf"]);
+    const sent3 = z.schedule.mock.calls.find((c) => (c[1].scheduledFor as string).startsWith("2026-11-22"))![1];
+    expect(sent3.clientKey).not.toBe("old");
+    expect(draft(3).zernio).toMatchObject({ status: "scheduled", by: "launch" });
   });
 });

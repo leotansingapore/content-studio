@@ -129,7 +129,8 @@ function Campaigns({ userId }: { userId: string }) {
 
   const row = (c: Campaign) => {
     const st = status(c);
-    const s = STATUS[st];
+    // a paused campaign reads Paused, in the warning tone, until Resume
+    const s = st === "running" && c.pausedAt ? { label: "Paused", tone: "text-warning" } : STATUS[st];
     const progress = progressOf(userId, c, draftingOf(c.id));
     const reason = reasonLine(c, st);
     const cover = covers.get(c.id);

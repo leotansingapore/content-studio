@@ -21,7 +21,14 @@ import { cn } from "@/lib/utils";
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 const STRIP = 14;
 
-export default function LaunchDialog({ userId, campaign: c, onClose, onDone }: { userId: string; campaign: Campaign; onClose: () => void; onDone: (out: LaunchOutcome) => void }) {
+export default function LaunchDialog({ userId, campaign: c, onClose, onDone, onBusy }: {
+  userId: string;
+  campaign: Campaign;
+  onClose: () => void;
+  onDone: (out: LaunchOutcome) => void;
+  /** True while Launch runs, so the page keeps this open (and Pause out of reach) until the sends are done. */
+  onBusy: (busy: boolean) => void;
+}) {
   const picked = c.accountIds ?? [];
   const [accounts, setAccounts] = useState<AccountView[] | "loading" | "failed">(picked.length ? "loading" : []);
   const [attempt, setAttempt] = useState(0);
@@ -43,7 +50,7 @@ export default function LaunchDialog({ userId, campaign: c, onClose, onDone }: {
 
   const tz = browserTimeZone();
   const read = Array.isArray(accounts) ? accounts : null;
-  const plan = read ? launchPlan(c, loadDrafts(userId), read, loadBrand(userId), Date.now(), tz) : null;
+  const plan = read ? launchPlan(c, loadDrafts(userId), read, loadBrand(userId), Date.now()) : null;
   const strip = [...c.posts].filter((p) => p.state !== "skipped").sort((a, b) => a.n - b.n).slice(0, STRIP);
   const drawnKey = strip.filter((p) => p.state === "made" && p.format === "carousel").map((p) => `${p.n}:${p.hook}:${p.body}`).join("|");
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,8 +60,10 @@ export default function LaunchDialog({ userId, campaign: c, onClose, onDone }: {
   const launch = async () => {
     if (busy || !plan) return;
     setBusy(true);
+    onBusy(true);
     const out = await launchCampaign(userId, c.id);
     setBusy(false);
+    onBusy(false);
     onDone(out);
   };
 

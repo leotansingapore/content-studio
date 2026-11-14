@@ -178,6 +178,8 @@ export interface ZernioLink {
   platforms?: string[];
   /** The platforms that went as drafts (publish-tiktok's inbox), so the chip reads right before Zernio is asked again. */
   drafts?: string[];
+  /** "launch": a launched campaign sent it (campaignLaunch.ts), so its Pause takes it off; absent for a post sent by hand. */
+  by?: "launch";
 }
 
 export interface Storyboard {
@@ -592,9 +594,10 @@ export function setDraftZernio(userId: string, id: string, link: ZernioLink | nu
   const before = loadDrafts(userId).find((d) => d.id === id);
   const next = loadDrafts(userId).map((d) => {
     if (d.id !== id) return d;
-    // Zernio's answer (linkFromView) knows nothing of the zone the send was made in: the same send keeps it
-    const tz = link && !link.tz && d.zernio?.tz && d.zernio.key === link.key ? { tz: d.zernio.tz } : {};
-    const updated: DraftEntry = { ...d, zernio: link ? { ...link, ...tz } : undefined };
+    // Zernio's answer (linkFromView) knows nothing of the zone the send was made in, or who sent it: the same send keeps them
+    const same = link && d.zernio?.key === link.key ? d.zernio : null;
+    const keep = { ...(link && !link.tz && same?.tz ? { tz: same.tz } : {}), ...(link && !link.by && same?.by ? { by: same.by } : {}) };
+    const updated: DraftEntry = { ...d, zernio: link ? { ...link, ...keep } : undefined };
     if (!link) delete updated.zernio;
     return updated;
   });

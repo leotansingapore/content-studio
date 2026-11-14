@@ -7,10 +7,14 @@
 // needs the person (a script to film, a wall of text or AI video still in the editor), or that only TikTok or YouTube
 // could take (TikTok needs the person's own settings, YouTube a video), stays on the calendar for Post it for me:
 // "waits for you". Without accounts, Launch only marks the campaign running and the person posts each one on its day.
-// Pause takes this campaign's scheduled posts off Zernio and stops new sends; Resume sends again what is still ahead.
+// Pause takes the posts Launch sent off Zernio (each link it made says by: "launch"; a post scheduled by hand stays)
+// and stops new sends; Resume sends again what is still ahead. One send loop runs per campaign in this tab: it plans
+// again before every post (so a post that went another way meanwhile is never sent twice), stops once the campaign is
+// paused or gone (taking the post it was sending back off Zernio), and a Launch or make that asks while it runs makes
+// it plan once more before it stops. Times are the ones the calendar shows: each draft's own zone, Singapore when unsaid.
 
 import {
-  NEEDS_MEDIA, browserTimeZone, canCancel, cancelPost, platformProblem, postText, whenLabel, zernioTime, type MediaFile,
+  NEEDS_MEDIA, canCancel, cancelPost, platformProblem, postText, whenLabel, zernioTime, type MediaFile,
 } from "@/lib/autoPost";
 import { getCampaign, loadCampaigns, saveCampaigns, type Campaign, type CampaignPost } from "@/lib/campaigns";
 import { DEFAULT_BRAND, loadBrand, loadCarousels, splitDraftIntoSlides, type CarouselBrand } from "@/lib/carousel";
@@ -24,15 +28,20 @@ import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { platformName, socialStatus, type AccountView } from "@/lib/socialConnect";
 import { NOW_LEAD_MS } from "../../supabase/functions/social/posts.ts";
+import { postZone } from "../../supabase/functions/_shared/zone.ts";
 
 /** A post due sooner than this is past for a launch: its slides could still be going up when its minute comes. */
 export const LEAD_MS = NOW_LEAD_MS + 4 * 60_000;
 export const READ_FAILED = "Couldn't read your accounts, so nothing was sent. Try again in a minute.";
 
 type Account = Pick<AccountView, "id" | "platform" | "needsReconnect">;
-export interface LaunchItem { n: number; draftId: string; accountIds: string[]; at: string; content: string }
+/** One post that goes: its accounts, its time (ISO with the offset) in `tz`, the zone the calendar shows it in, and its words. */
+export interface LaunchItem { n: number; draftId: string; accountIds: string[]; at: string; tz: string; content: string }
 /** What Launch does with each post: go (to Zernio now), you (on the calendar for Post it for me), past, sent, and drafts not yet made. */
 export interface LaunchPlan { go: LaunchItem[]; you: number[]; past: number[]; sent: number[]; drafts: number }
+
+/** Zernio holds this post (scheduled, going out or out), or it is marked posted: never sent again. */
+const isSent = (d: DraftEntry) => (!!d.zernio?.postId && !["cancelled", "failed"].includes(d.zernio.status ?? "")) || draftStatus(d) === "posted";
 
 /** What a made post carries out: its pictures (a carousel's slides, a slideshow), its words alone, or something only the person can finish. */
 export function carries(p: Pick<CampaignPost, "format" | "made">): "pictures" | "words" | "person" {
@@ -45,7 +54,8 @@ export const takesAlone = (platform: string, pictures: boolean) => platform !== 
 
 /**
  * Which posts Launch (or Resume, or a make while running) sends, pure: each made post whose My posts entry is still
- * there, not already with Zernio or posted, due at least LEAD_MS ahead in `tz`, carried by pictures or words, with a
+ * there, not already with Zernio (a link Zernio cancelled or failed at once doesn't count) or posted, due at least
+ * LEAD_MS ahead in the zone the calendar shows it in (postZone), carried by pictures or words, with a
  * picked working account that takes it, and passing the compliance scan and the networks' rules (as the schedule
  * steps check them). `only` limits it to those post numbers.
  */
@@ -55,7 +65,6 @@ export function launchPlan(
   accounts: Account[],
   brand: CarouselBrand | null,
   now: number,
-  tz: string,
   only?: number[],
 ): LaunchPlan {
   const plan: LaunchPlan = { go: [], you: [], past: [], sent: [], drafts: 0 };
@@ -69,10 +78,11 @@ export function launchPlan(
     }
     const d = drafts.find((x) => x.id === p.draftId);
     if (!d) continue; // gone from My posts: nothing to send
-    if ((d.zernio?.postId && d.zernio.status !== "cancelled") || draftStatus(d) === "posted") {
+    if (isSent(d)) {
       plan.sent.push(p.n);
       continue;
     }
+    const tz = postZone(d);
     const at = zernioTime(d.scheduledFor, undefined, tz);
     if (!at || Date.parse(at) < now + LEAD_MS) {
       plan.past.push(p.n);
@@ -83,7 +93,7 @@ export function launchPlan(
     const content = postText(d, brand);
     const input = { clientKey: "", content, captions: {}, mediaUrls: kind === "pictures" ? ["https://upload.local/0.png"] : [], scheduledFor: null, firstComment: "", tiktok: null, youtube: null };
     if (!to.length || hasComplianceErrors(scanCompliance(content)) || platformProblem(input, to.map((a) => a.platform))) plan.you.push(p.n);
-    else plan.go.push({ n: p.n, draftId: d.id, accountIds: to.map((a) => a.id), at, content });
+    else plan.go.push({ n: p.n, draftId: d.id, accountIds: to.map((a) => a.id), at, tz, content });
   }
   return plan;
 }
@@ -107,8 +117,9 @@ export function launchLine(plan: LaunchPlan, accounts: number): string {
 
 // ---- Sending -------------------------------------------------------------------------------
 
-/** Drafts on their way to Zernio in this tab, so a launch and a make never send one twice. */
-const inFlight = new Set<string>();
+/** Campaigns with a send loop running in this tab, and those asked to send again while it ran. */
+const running = new Set<string>();
+const again = new Set<string>();
 // the brand's accounts as last read, for a post made while running (a social-read per make would add up)
 let lastRead: { profileId: string; at: number; accounts: AccountView[] } | null = null;
 const READ_KEEP_MS = 10 * 60_000;
@@ -145,35 +156,82 @@ async function mediaFor(userId: string, p: CampaignPost, d: DraftEntry): Promise
 
 export interface SendResult { sent: number; failed: { n: number; error: string }[] }
 
-async function sendItems(userId: string, c: Campaign, items: LaunchItem[], accounts: AccountView[], tz: string): Promise<SendResult> {
+const live = (userId: string, id: string) => {
+  const c = getCampaign(userId, id);
+  return c?.launchedAt && !c.pausedAt ? c : null;
+};
+
+/** Sends one planned post, then checks the campaign still runs and the post is still on the calendar; if not, it comes back off Zernio. */
+async function sendOne(userId: string, c: Campaign, it: LaunchItem, accounts: AccountView[], out: SendResult, failed: Set<number>): Promise<void> {
   const profileId = activeProfileId(userId);
-  const out: SendResult = { sent: 0, failed: [] };
-  for (const it of items) {
-    // Pause pressed while these go: the rest wait for Resume
-    if (getCampaign(userId, c.id)?.pausedAt) break;
-    const d = loadDrafts(userId).find((x) => x.id === it.draftId);
-    const p = c.posts.find((x) => x.n === it.n);
-    if (!d || !p || inFlight.has(d.id)) continue;
-    inFlight.add(d.id);
-    try {
-      const media = await mediaFor(userId, p, d);
-      // an earlier try that never heard back goes again with its own key, so it never posts twice
-      const key = d.zernio && !d.zernio.postId ? d.zernio.key : crypto.randomUUID();
-      const post = await sendScheduled(userId, profileId, d.id, { key, accountIds: it.accountIds, content: it.content, media, at: it.at, tz });
-      // Undo took the post off the calendar while it went up: take it off Zernio too
-      if (!loadDrafts(userId).some((x) => x.id === d.id)) await cancelPost(profileId, post.id).catch(() => undefined);
-      const names = [...new Set(accounts.filter((a) => it.accountIds.includes(a.id)).map((a) => platformName(a.platform)))].join(", ");
-      logPost(userId, d, (name) => `Set ${name} to post on ${names}`, `Goes out ${whenLabel(it.at.slice(0, 10), it.at.slice(11, 16), tz)}. Campaign: ${c.name}.`);
-      out.sent++;
-    } catch (e) {
-      const error = e instanceof Error && e.message ? e.message : "Couldn't schedule it. Try again in a minute.";
-      logPost(userId, d, (name) => `${name} could not be posted`, error);
-      out.failed.push({ n: it.n, error });
-    } finally {
-      inFlight.delete(d.id);
+  const d = loadDrafts(userId).find((x) => x.id === it.draftId);
+  const p = c.posts.find((x) => x.n === it.n);
+  if (!d || !p) return;
+  const fail = (error: string) => {
+    logPost(userId, d, (name) => `${name} could not be posted`, error);
+    out.failed.push({ n: it.n, error });
+    failed.add(it.n);
+  };
+  try {
+    const media = await mediaFor(userId, p, d);
+    // Zernio made it and failed it at once: that post comes off and this goes as a new one (as the schedule steps do)
+    if (d.zernio?.postId && d.zernio.status === "failed") {
+      await cancelPost(profileId, d.zernio.postId).catch(() => undefined);
+      setDraftZernio(userId, d.id, null);
     }
+    // an earlier try that never heard back goes again with its own key, so it never posts twice
+    const key = d.zernio && !d.zernio.postId && d.zernio.status !== "failed" ? d.zernio.key : crypto.randomUUID();
+    const post = await sendScheduled(userId, profileId, d.id, { key, accountIds: it.accountIds, content: it.content, media, at: it.at, tz: it.tz, by: "launch" });
+    const kept = loadDrafts(userId).some((x) => x.id === d.id);
+    // paused, deleted, or Undo took the post off the calendar while it went up: it comes off Zernio too
+    if (!kept || !live(userId, c.id)) {
+      try {
+        await cancelPost(profileId, post.id);
+        if (kept) setDraftZernio(userId, d.id, null);
+      } catch {
+        fail("It went to Zernio as the campaign paused, and couldn't be taken off. Cancel it from the post.");
+      }
+      return;
+    }
+    const names = [...new Set(accounts.filter((a) => it.accountIds.includes(a.id)).map((a) => platformName(a.platform)))].join(", ");
+    logPost(userId, d, (name) => `Set ${name} to post on ${names}`, `Goes out ${whenLabel(it.at.slice(0, 10), it.at.slice(11, 16), it.tz)}. Campaign: ${c.name}.`);
+    out.sent++;
+  } catch (e) {
+    fail(e instanceof Error && e.message ? e.message : "Couldn't schedule it. Try again in a minute.");
   }
-  return out;
+}
+
+/**
+ * The campaign's one send loop: plans again before each post and sends the first that goes, until none is left or the
+ * campaign is paused or gone. `only` limits its first round to those posts; a call while it runs asks it for one more
+ * full round instead of starting a second loop. A post that fails is not tried again in the same loop.
+ */
+async function sendLoop(userId: string, campaignId: string, accounts: AccountView[], now: number, only?: number[]): Promise<SendResult> {
+  const out: SendResult = { sent: 0, failed: [] };
+  if (running.has(campaignId)) {
+    again.add(campaignId);
+    return out;
+  }
+  running.add(campaignId);
+  const failed = new Set<number>();
+  try {
+    let scope = only;
+    for (;;) {
+      again.delete(campaignId);
+      for (;;) {
+        const c = live(userId, campaignId);
+        if (!c) return out;
+        const it = launchPlan(c, loadDrafts(userId), accounts, loadBrand(userId), now, scope).go.find((g) => !failed.has(g.n));
+        if (!it) break;
+        await sendOne(userId, c, it, accounts, out, failed);
+      }
+      if (!again.has(campaignId)) return out;
+      scope = undefined;
+    }
+  } finally {
+    running.delete(campaignId);
+    again.delete(campaignId);
+  }
 }
 
 const patch = (userId: string, id: string, fields: Partial<Campaign>): Campaign | null => {
@@ -189,28 +247,26 @@ export type LaunchOutcome = ({ ok: true; plan: LaunchPlan } & SendResult) | { ok
 
 /**
  * Launch, and Resume after a pause: reads the picked accounts (nothing is sent or stored when that fails), marks the
- * campaign launched and not paused, then sends what launchPlan says goes, one post after another.
+ * campaign launched and not paused, then runs the send loop (or, while one runs, asks it for another round).
  */
 export async function launchCampaign(userId: string, campaignId: string, now = Date.now()): Promise<LaunchOutcome> {
   const c = getCampaign(userId, campaignId);
   if (!c) return { ok: false, error: "This campaign isn't here any more." };
-  const profileId = activeProfileId(userId);
   let accounts: AccountView[] = [];
   if (c.accountIds?.length) {
     try {
-      accounts = await readAccounts(profileId, true);
+      accounts = await readAccounts(activeProfileId(userId), true);
     } catch {
       return { ok: false, error: READ_FAILED };
     }
   }
-  const live = patch(userId, campaignId, { launchedAt: c.launchedAt ?? new Date(now).toISOString(), pausedAt: undefined });
-  if (!live) return { ok: false, error: "Couldn't save. Try again." };
-  const tz = browserTimeZone();
-  const plan = launchPlan(live, loadDrafts(userId), accounts, loadBrand(userId), now, tz);
-  return { ok: true, plan, ...(await sendItems(userId, live, plan.go, accounts, tz)) };
+  const started = patch(userId, campaignId, { launchedAt: c.launchedAt ?? new Date(now).toISOString(), pausedAt: undefined });
+  if (!started) return { ok: false, error: "Couldn't save. Try again." };
+  const plan = launchPlan(started, loadDrafts(userId), accounts, loadBrand(userId), now);
+  return { ok: true, plan, ...(plan.go.length ? await sendLoop(userId, campaignId, accounts, now) : { sent: 0, failed: [] }) };
 }
 
-/** Pause: nothing new goes, and this campaign's posts Zernio still holds come off it (back on the calendar as they were). */
+/** Pause: nothing new goes, and the posts Launch sent that Zernio still holds come off it (back on the calendar as they were). */
 export async function pauseCampaign(userId: string, campaignId: string, now = Date.now()): Promise<{ ok: true; cancelled: number; failed: number } | { ok: false; error: string }> {
   const c = patch(userId, campaignId, { pausedAt: new Date(now).toISOString() });
   if (!c) return { ok: false, error: "Couldn't save. Try again." };
@@ -218,7 +274,7 @@ export async function pauseCampaign(userId: string, campaignId: string, now = Da
   const ids = new Set(c.posts.flatMap((p) => (p.state === "made" && p.draftId ? [p.draftId] : [])));
   let cancelled = 0;
   let failed = 0;
-  for (const d of loadDrafts(userId).filter((x) => ids.has(x.id) && canCancel(x.zernio))) {
+  for (const d of loadDrafts(userId).filter((x) => ids.has(x.id) && x.zernio?.by === "launch" && canCancel(x.zernio))) {
     try {
       await cancelPost(profileId, d.zernio!.postId!);
       setDraftZernio(userId, d.id, null);
@@ -233,17 +289,16 @@ export async function pauseCampaign(userId: string, campaignId: string, now = Da
 
 /** A post just made while its campaign runs (launched, not paused, with accounts): it goes as Launch would have sent it. */
 export async function sendIfLaunched(userId: string, campaignId: string, n: number, now = Date.now()): Promise<SendResult | null> {
-  const c = getCampaign(userId, campaignId);
-  if (!c?.launchedAt || c.pausedAt || !c.accountIds?.length) return null;
+  const c = live(userId, campaignId);
+  if (!c?.accountIds?.length) return null;
   let accounts: AccountView[];
   try {
     accounts = await readAccounts(activeProfileId(userId), false);
   } catch {
     return { sent: 0, failed: [{ n, error: READ_FAILED }] };
   }
-  const tz = browserTimeZone();
-  const plan = launchPlan(c, loadDrafts(userId), accounts, loadBrand(userId), now, tz, [n]);
-  return plan.go.length ? sendItems(userId, c, plan.go, accounts, tz) : null;
+  const plan = launchPlan(c, loadDrafts(userId), accounts, loadBrand(userId), now, [n]);
+  return plan.go.length ? sendLoop(userId, campaignId, accounts, now, [n]) : null;
 }
 
 /** Undo of a Make on a post Zernio already holds: it comes off Zernio too (best effort; the weekly sweep catches a miss). */

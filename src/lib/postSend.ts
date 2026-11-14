@@ -65,16 +65,17 @@ export async function keepSchedule(userId: string, profileId: string, draftId: s
 /**
  * A dated draft to Zernio with no one at the screen (a launched campaign): the key goes on the draft before the call,
  * so an answer lost on the way never sends a second post, then the media goes up and the post is scheduled at `at`
- * in `tz` (sent only when it isn't Singapore). Throws in plain words; a post Zernio failed at once throws its reason.
+ * in `tz` (sent only when it isn't Singapore). `by` marks who sent it on the link, kept through later reads.
+ * Throws in plain words; a post Zernio failed at once throws its reason.
  */
 export async function sendScheduled(
   userId: string,
   profileId: string,
   draftId: string,
-  o: { key: string; accountIds: string[]; content: string; media: MediaFile[]; at: string; tz: string },
+  o: { key: string; accountIds: string[]; content: string; media: MediaFile[]; at: string; tz: string; by?: "launch" },
 ): Promise<PostView> {
   const zone = o.tz === TIMEZONE ? {} : { tz: o.tz };
-  setDraftZernio(userId, draftId, { key: o.key, ...zone });
+  setDraftZernio(userId, draftId, { key: o.key, ...zone, ...(o.by ? { by: o.by } : {}) });
   const mediaUrls = o.media.length ? await uploadAll(profileId, o.media, new Map(), () => {}) : [];
   const { post, failed } = await keepSchedule(
     userId,

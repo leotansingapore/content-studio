@@ -87,6 +87,8 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
   const [configure, openConfigure, closeConfigure] = useUrlItem("configure");
   const [launchOpen, openLaunch, closeLaunch] = useUrlItem("launch");
   const [switching, setSwitching] = useState<"pause" | "resume" | null>(null);
+  // Launch saves launchedAt before its sends finish: the dialog stays open until they do
+  const [launching, setLaunching] = useState(false);
   const grid = useSearchParams()[0].get("view") === "grid";
   const cancelled = useRef(false);
 
@@ -204,18 +206,18 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {c.platforms.map((p) => <span key={p} className={CHIP}>{platformName(p)}</span>)}
-            <span className={`${CHIP} ${status === "running" ? "border-primary/40 bg-primary/10 text-primary" : status === "done" ? "border-success/40 bg-success/10 text-success" : "bg-muted/50"}`}>
-              {STATUS[status]}
+            <span className={`${CHIP} ${status === "running" && c.pausedAt ? "border-warning/40 bg-warning/10 text-warning" : status === "running" ? "border-primary/40 bg-primary/10 text-primary" : status === "done" ? "border-success/40 bg-success/10 text-success" : "bg-muted/50"}`}>
+              {status === "running" && c.pausedAt ? "Paused" : STATUS[status]}
             </span>
             {c.runs !== "ads" && c.posts.length > 0 && status !== "done" && (
               !c.launchedAt ? (
                 <Button className={BIG} onClick={() => openLaunch("1")}>Launch campaign</Button>
               ) : c.pausedAt ? (
-                <Button className={`${BIG} gap-1.5`} disabled={!!switching} onClick={() => void resume()}>
+                <Button className={`${BIG} gap-1.5`} disabled={!!switching || launching} onClick={() => void resume()}>
                   {switching === "resume" ? "Resuming..." : "Resume"}
                 </Button>
               ) : (
-                <Button variant="outline" className={BIG} disabled={!!switching} onClick={() => void pause()}>
+                <Button variant="outline" className={BIG} disabled={!!switching || launching} onClick={() => void pause()}>
                   {switching === "pause" ? "Pausing..." : "Pause"}
                 </Button>
               )
@@ -258,8 +260,8 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
       </div>
 
       {configure === "1" && <ConfigurePanel userId={userId} campaign={c} onClose={closeConfigure} />}
-      {launchOpen === "1" && !c.launchedAt && (
-        <LaunchDialog userId={userId} campaign={c} onClose={closeLaunch} onDone={(out) => {
+      {launchOpen === "1" && (!c.launchedAt || launching) && (
+        <LaunchDialog userId={userId} campaign={c} onClose={closeLaunch} onBusy={setLaunching} onDone={(out) => {
           if (out.ok) closeLaunch();
           launched(out, false);
         }} />
