@@ -12,7 +12,7 @@ import { emitTurns as emit, onAgent, turnOf, turns } from "@/lib/agentTurns";
 import { answerFor, answerOf } from "@/lib/agentAnswers";
 import { budgetAnswer } from "@/lib/agentBudget";
 import { needsCard, nextCard, runUndo, UNDONE, type AgentCard, type AgentFormat, type AgentPick, type Receipt } from "@/lib/agentCards";
-import { forgetPick, lastUndoable, learningLines, LEARNING_REMOVED, memoryAnswer, SEE_LEARNED, undidLine, UNDO_LINE, dismissNudge, noteCorrection } from "@/lib/agentMemory";
+import { forgetPick, lastUndoable, learningLines, LEARNING_REMOVED, memoryAnswer, SEE_LEARNED, undidLine, UNDO_LINE, dismissNudge, noteCorrection, type DeclineReason } from "@/lib/agentMemory";
 import {
   answerCard, approveLabel, blockedReason, campaignReply, changeCard, chipFormat, competitorCard, dockCard, dropPageUndo, fieldsOf, formatFor, holdTarget,
   lastMake, learningCard, LINES, linkIn, makeCard, makeCheck, MAX_SCRIPT_WORDS, MIN_SCRIPT_WORDS, offerChips, OPEN_ANALYTICS, OPEN_SWIPE, OPEN_VOICE, pageUndo, planOf,
@@ -591,7 +591,8 @@ export async function press(userId: string, threadId: string, msgId: string, but
   }
   if (button === "decline") {
     shadow(userId, c, false);
-    return put(userId, threadId, msgId, { card: nextCard(c, { type: "decline" }) ?? c, go: [] });
+    // the card then asks why, optionally (declineWhy)
+    return put(userId, threadId, msgId, { card: { ...(nextCard(c, { type: "decline" }) ?? c), why: "ask" }, go: [] });
   }
   // approve: Starting... at once, then the budget read again, since a card can wait for hours
   if (following.has(msgId)) return;
@@ -617,6 +618,17 @@ export async function press(userId: string, threadId: string, msgId: string, but
     if (turns.get(threadId)?.msg === msgId) turns.set(threadId, { ...turns.get(threadId)!, state: "done", line: undefined });
     emit();
   }
+}
+
+/**
+ * Not now's optional reason: kept with the agent's corrections (noteCorrection, kind "decline", from the card's plan),
+ * Other's words with it. Skip (null) keeps nothing more. Either way the card stops asking.
+ */
+export function declineWhy(userId: string, threadId: string, msgId: string, reason: DeclineReason | null, note = ""): void {
+  const c = msgOf(userId, threadId, msgId)?.card;
+  if (!c || c.status !== "declined" || c.why !== "ask") return;
+  if (reason) noteCorrection(userId, { kind: "decline", from: fieldsOf(c).plan ?? c.kind, to: reason, card: c.id, ...(reason === "other" && note.trim() ? { note } : {}) });
+  put(userId, threadId, msgId, { card: { ...c, why: reason ?? "skip" } });
 }
 
 async function pressAnswer(userId: string, thread: string, msg: string, c: AgentCard, live: Live) {

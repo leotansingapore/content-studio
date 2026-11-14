@@ -104,13 +104,27 @@ export function memoryAnswer(userId: string): string {
 
 // ---------- learning from corrections (device only) ----------
 
+/** format and face: a change made on a card (from, to). decline: Not now's reason (from the plan, to the reason). */
 export interface Correction {
-  kind: "format" | "face";
+  kind: "format" | "face" | "decline";
   from: string;
   to: string;
   card: string;
   at: string;
+  /** Other's words on a decline, MAX_DECLINE_NOTE at most. */
+  note?: string;
 }
+
+/** The reasons Not now offers (Fastlane's Reject, read 14 Nov): the id kept, then the chip's words. */
+export const DECLINE_REASONS = [
+  ["not-now", "Not now"],
+  ["wrong", "Wrong approach"],
+  ["risky", "Too risky"],
+  ["much", "Too much"],
+  ["other", "Other"],
+] as const;
+export type DeclineReason = (typeof DECLINE_REASONS)[number][0];
+export const MAX_DECLINE_NOTE = 500;
 export type NudgeId = "video-carousel" | "video-script" | "face-mine" | "face-ai";
 export interface Nudge {
   id: NudgeId;
@@ -159,16 +173,17 @@ export function loadCorrections(userId: string): Correction[] {
   const rows = readJson<unknown[]>(correctionsKey(userId), []);
   return (Array.isArray(rows) ? rows : []).filter(
     (c): c is Correction =>
-      !!c && typeof c === "object" && ["format", "face"].includes((c as Correction).kind) && ["from", "to", "card", "at"].every((f) => typeof (c as Record<string, unknown>)[f] === "string"),
+      !!c && typeof c === "object" && ["format", "face", "decline"].includes((c as Correction).kind) && ["from", "to", "card", "at"].every((f) => typeof (c as Record<string, unknown>)[f] === "string"),
   );
 }
 
-/** Counts a change the person made on a card (Try another format, Who appears), the last 30 on this device. */
+/** Counts a change the person made on a card (Try another format, Who appears) or Not now's reason, the last 30 on this device. */
 export function noteCorrection(userId: string, c: Omit<Correction, "at">, now = new Date()): void {
   const from = norm(c.kind, c.from);
   const to = norm(c.kind, c.to);
   if (from === to) return;
-  writeJson(correctionsKey(userId), [...loadCorrections(userId), { kind: c.kind, from, to, card: c.card, at: now.toISOString() }].slice(-KEEP_CORRECTIONS));
+  const note = c.note?.trim().slice(0, MAX_DECLINE_NOTE);
+  writeJson(correctionsKey(userId), [...loadCorrections(userId), { kind: c.kind, from, to, card: c.card, at: now.toISOString(), ...(note ? { note } : {}) }].slice(-KEEP_CORRECTIONS));
 }
 
 /**

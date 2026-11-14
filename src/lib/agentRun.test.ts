@@ -204,7 +204,7 @@ vi.mock("@/lib/remixLink", async (orig) => ({
 vi.mock("@/lib/competitors", async (orig) => ({ ...(await orig<typeof import("./competitors")>()), runRead: async () => void fake.calls.push("runRead") }));
 vi.mock("@/lib/campaignJob", async (orig) => ({ ...(await orig<typeof import("./campaignJob")>()), startDrafting: () => void fake.calls.push("startDrafting") }));
 
-import { CAPABILITIES, CAP_LINE, INTERRUPTED, NOT_MADE, REFUSE, STOPPED, agentNow, blockedReason, choose, clientPick, editCard, onAgent, press, resumeAgent, send, setFeedback, setNavigate, setSkills, stop, turnOf, undoReceipt, waitingCards, type SkillsApi } from "@/lib/agentRun";
+import { CAPABILITIES, CAP_LINE, INTERRUPTED, NOT_MADE, REFUSE, STOPPED, agentNow, blockedReason, choose, clientPick, declineWhy, editCard, onAgent, press, resumeAgent, send, setFeedback, setNavigate, setSkills, stop, turnOf, undoReceipt, waitingCards, type SkillsApi } from "@/lib/agentRun";
 import { approveLabel, fieldsOf, LINES } from "@/lib/agentPlans";
 import { starterChips } from "@/lib/agentStarters";
 import { loadThreads, newMsg, newThread, type AgentMsg } from "@/lib/agentThreads";
@@ -214,6 +214,7 @@ import { localDateKey } from "@/lib/dueDates";
 import { confirmAngles } from "@/lib/angles";
 import { saveAudience } from "@/lib/audiences";
 import { loadShadow, saveAutonomy } from "@/lib/autonomy";
+import { loadCorrections } from "@/lib/agentMemory";
 import { campaignCost, loadCampaigns } from "@/lib/campaigns";
 import { links } from "@/lib/links";
 import { loadCompetitors } from "@/lib/competitors";
@@ -696,6 +697,29 @@ describe("typed approve and decline", () => {
     expect(last(t2).text).toBe(NOT_MADE);
     expect(loadShadow(UID).map((s) => [s.act, s.confirmed])).toEqual([["make", false], ["make", true]]);
     expect(loadShadow(UID)[1].p).toMatchObject({ act: 0.95, format: 0.9 });
+  });
+
+  it("Not now asks why, optionally: a reason is kept with the corrections, Other with its words, Skip keeps nothing", async () => {
+    const id = await say("make a carousel about CPF", { act: "make", format: "carousel" });
+    await press(UID, id, cardMsg(id).id, "decline");
+    expect(cardMsg(id).card).toMatchObject({ status: "declined", why: "ask" });
+    declineWhy(UID, id, cardMsg(id).id, "risky");
+    expect(cardMsg(id).card?.why).toBe("risky");
+    expect(loadCorrections(UID)).toEqual([expect.objectContaining({ kind: "decline", from: "carousel", to: "risky", card: cardMsg(id).card!.id })]);
+    // asked once: a second answer changes nothing
+    declineWhy(UID, id, cardMsg(id).id, "much");
+    expect(loadCorrections(UID)).toHaveLength(1);
+
+    const t2 = await say("make a post about CPF", { act: "make", format: "post" });
+    await press(UID, t2, cardMsg(t2).id, "decline");
+    declineWhy(UID, t2, cardMsg(t2).id, "other", `  ${"x".repeat(600)}  `);
+    expect(loadCorrections(UID)[1]).toMatchObject({ to: "other", note: "x".repeat(500) });
+
+    const t3 = await say("make another post about CPF", { act: "make", format: "post" });
+    await press(UID, t3, cardMsg(t3).id, "decline");
+    declineWhy(UID, t3, cardMsg(t3).id, null);
+    expect(cardMsg(t3).card?.why).toBe("skip");
+    expect(loadCorrections(UID)).toHaveLength(2);
   });
 
   it("a yes never spends US$1 or more: it asks for the press", async () => {

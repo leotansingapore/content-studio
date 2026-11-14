@@ -4,15 +4,19 @@
 // on the press, since a card can wait a day, and a press it refuses leaves the card proposed with its line in
 // card.error and the cheaper chips under the message. A script or prompt being changed lives in sessionStorage
 // (cs-agent-card-<card id>) until Save or Cancel, so leaving the page keeps it.
+// After Not now the card asks why, optionally (DeclineWhy), and the engine keeps the answer with its corrections.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { WarningIcon, CheckIcon, CaretDownIcon, CaretUpIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
+import { FilterChip } from "@/components/ui/filter-chip";
+import { Textarea } from "@/components/ui/textarea";
+import { DECLINE_REASONS, MAX_DECLINE_NOTE, type DeclineReason } from "@/lib/agentMemory";
 import { canEdit, priceLine, type AgentCard } from "@/lib/agentCards";
 import { leftOf, limitOf } from "@/lib/agentBudget";
-import { approveLabel, blockedReason, editCard, press } from "@/lib/agentRun";
+import { approveLabel, blockedReason, declineWhy, editCard, press } from "@/lib/agentRun";
 import { fieldsOf, MAX_SCRIPT_WORDS, offerChips, subjectOf, withInput } from "@/lib/agentPlans";
 import type { AgentMsg } from "@/lib/agentThreads";
 import { cardType, ruleRows } from "@/lib/agentWork";
@@ -313,6 +317,12 @@ export default function ActionCard({
           </p>
         )}
         {status === "declined" && <p className="text-sm text-muted-foreground">Nothing was made or charged.</p>}
+        {status === "declined" && card.why === "ask" && <DeclineWhy onDone={(reason, note) => declineWhy(userId, threadId, msg.id, reason, note)} />}
+        {status === "declined" && DECLINE_REASONS.some(([id]) => id === card.why) && (
+          <p className="text-sm text-muted-foreground" role="status">
+            Noted: {DECLINE_REASONS.find(([id]) => id === card.why)![1]}.
+          </p>
+        )}
         {status === "failed" && (
           <div className="space-y-1 text-sm">
             {card.error && <p className="text-destructive">{card.error}</p>}
@@ -400,5 +410,37 @@ export default function ActionCard({
         {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
       </div>
     </section>
+  );
+}
+
+/** After Not now (Fastlane's Reject): an optional reason, Other with a short note, or Skip. */
+function DeclineWhy({ onDone }: { onDone(reason: DeclineReason | null, note?: string): void }) {
+  const [other, setOther] = useState(false);
+  const [note, setNote] = useState("");
+  return (
+    <div role="group" aria-label="Why not" className="space-y-2">
+      <p className="text-sm">Why? Optional, it helps me learn.</p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {DECLINE_REASONS.map(([id, label]) => (
+          <FilterChip key={id} active={id === "other" && other} onClick={() => (id === "other" ? setOther(!other) : onDone(id))}>
+            {label}
+          </FilterChip>
+        ))}
+        <Button type="button" variant="ghost" size="sm" className="h-11 sm:h-9" onClick={() => onDone(null)}>
+          Skip
+        </Button>
+      </div>
+      {other && (
+        <div className="space-y-2">
+          <Textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, MAX_DECLINE_NOTE))} maxLength={MAX_DECLINE_NOTE} rows={2} autoFocus aria-label="What would you change? Optional" placeholder="What would you change? Optional" />
+          <div className="flex items-center gap-3">
+            <Button type="button" size="sm" className="h-11 sm:h-9" onClick={() => onDone("other", note)}>
+              Send
+            </Button>
+            <span className="text-[11px] tabular-nums text-muted-foreground">{`${note.length} of ${MAX_DECLINE_NOTE}`}</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
