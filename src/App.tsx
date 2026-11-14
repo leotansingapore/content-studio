@@ -1,4 +1,4 @@
-import { Suspense, lazy, type ComponentType } from "react";
+import { Suspense, lazy, useEffect, type ComponentType } from "react";
 import { createRoutesFromChildren, matchRoutes, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -347,11 +347,28 @@ if (typeof window !== "undefined") {
   document.addEventListener("focusin", intent);
   // The sidebar's sections (the phone's bottom bar) once the opened page has drawn, unless the device saves data. Not
   // at the first idle moment: that comes while the page still waits on the sync, and they then compete with its render.
-  const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
-  if (!saveData) scheduleAfterLoad(3_000, () => SECTIONS.forEach((s) => preloadPage(s.to)));
+  if (!saveData()) scheduleAfterLoad(3_000, () => SECTIONS.forEach((s) => preloadPage(s.to)));
+}
+
+function saveData() {
+  return !!(navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+}
+
+/** The pages of the links on screen: the likely next tap, and a phone has no hover to start them early. */
+function preloadVisibleLinks() {
+  for (const a of document.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+    if (a.origin !== window.location.origin) continue;
+    const r = a.getBoundingClientRect();
+    if (r.width > 0 && r.bottom > 0 && r.top < window.innerHeight) preloadPage(a.pathname);
+  }
 }
 
 export default function App() {
+  const { pathname } = useLocation();
+  // 2 s after each page opens and the browser is idle, so its own code and data go first
+  useEffect(() => {
+    if (!saveData()) scheduleAfterLoad(2_000, preloadVisibleLinks);
+  }, [pathname]);
   return (
     <>
       <Routes>{ROUTES}</Routes>
