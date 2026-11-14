@@ -1,12 +1,15 @@
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CaretLeftIcon, SparkleIcon } from "@phosphor-icons/react";
 import FormatTile from "@/components/make/FormatTile";
+import MakeHere from "@/components/make/MakeHere";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { NEED_LINES, pageFor, type FormatDef } from "@/data/formats";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { makerOf } from "@/lib/formatMaker";
 import { links } from "@/lib/links";
 import { chipText, reasonText } from "@/lib/prices";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const LABEL = "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
@@ -20,7 +23,11 @@ const VideoFormatPage = () => {
   const leftOf = useUsesLeft(false);
   const navigate = useNavigate();
   const fromGallery = (useLocation().state as { back?: boolean } | null)?.back === true;
+  const leo = useLeoUser();
   if (!def?.opens) return <NotFoundPage />;
+  // a presenter talk or an editor template is set up and made right here (formatMaker.ts); anything else opens the editor
+  const maker = makerOf(def.opens());
+  if (maker && leo) return <MakeHere def={{ ...def, opens: def.opens }} maker={maker} userId={leo.id} />;
   const price = def.price();
   const plays = typeof window !== "undefined" && window.matchMedia(MOTION).matches;
   const left = def.cap ? leftOf(def.cap) : null;

@@ -23,6 +23,7 @@ vi.mock("@/lib/supabase", () => ({
 import MakeFormatPage from "./MakeFormatPage";
 import VideoFormatPage, { needLine } from "./VideoFormatPage";
 import { FORMATS, explainerPrice } from "@/data/formats";
+import { makerOf } from "@/lib/formatMaker";
 import { priceOf, priceText, type Price } from "@/lib/prices";
 
 const LEO = { id: "u1", email: "leo@x.sg" };
@@ -87,21 +88,19 @@ describe("a video format's page", () => {
 
   it("says what a format needs in the card's own words", () => {
     as.leo = LEO;
-    expect(html("template-unboxing")).toContain("Needs a product photo.");
-    expect(html("template-character-reference-lock")).toContain("Needs a photo of the person.");
+    expect(html("own-media")).toContain("Needs your own video or photos.");
+    expect(html("clips")).toContain("Needs a video of you.");
     expect(needLine({})).toBe("Nothing extra needed.");
     expect(needLine({ needs: "demo-video" })).toBe("Needs a demo video.");
   });
 
-  it("has one primary button, which opens exactly what the card opened", () => {
+  it("has one primary button, which opens exactly what the card opened, on a format not made on its page", () => {
     as.leo = LEO;
     expect(target(html("look-clay"))).toBe("/edit?panel=ai&kind=explainer&look=clay");
     expect(target(html("explainer"))).toBe("/edit?panel=ai&kind=explainer");
     expect(target(html("montage"))).toBe("/edit?panel=ai&kind=montage");
-    expect(target(html("news-anchor"))).toBe("/edit?panel=ai&kind=avatar&talk=news");
-    expect(target(html("template-unboxing"))).toBe("/edit?panel=ai&kind=template&template=unboxing");
-    const pages = FORMATS.filter((f) => f.opens);
-    expect(pages.length).toBeGreaterThan(40);
+    const pages = FORMATS.filter((f) => f.opens && !makerOf(f.opens()));
+    expect(pages.length).toBeGreaterThan(15);
     for (const f of pages) {
       const page = html(f.slug);
       expect(page.match(/Use this format/g), f.slug).toHaveLength(1);
@@ -113,11 +112,11 @@ describe("a video format's page", () => {
   it("plays its example on arrival for a mouse with motion allowed, and always shows controls so it can be paused", () => {
     as.leo = LEO;
     vi.stubGlobal("window", { matchMedia: (q: string) => ({ matches: q === "(hover: hover) and (prefers-reduced-motion: no-preference)" }) });
-    let page = html("stage-talk");
+    let page = html("look-clay");
     expect(page).toContain('autoplay=""');
     expect(page).toContain('controls=""');
     vi.stubGlobal("window", { matchMedia: () => ({ matches: false }) });
-    page = html("stage-talk");
+    page = html("look-clay");
     expect(page).not.toContain('autoplay=""');
     expect(page).toContain('controls=""');
   });
@@ -125,12 +124,12 @@ describe("a video format's page", () => {
   it("says in red when today's uses are gone and when they come back, and shows no uses line for a format with no cap", async () => {
     as.leo = LEO;
     as.left = { "ai-video": 0 };
-    const empty = html("stage-talk");
+    const empty = html("explainer");
     expect(empty).toMatch(/<p class="[^"]*font-medium text-destructive[^"]*">None left today<\/p>/);
     expect(empty).toContain("Back at 8am Singapore time.");
-    expect(target(empty)).toBe("/edit?panel=ai&kind=avatar&talk=stage");
+    expect(target(empty)).toBe("/edit?panel=ai&kind=explainer");
     as.left = { "ai-video": 2 };
-    expect(html("stage-talk")).not.toContain("Back at 8am");
+    expect(html("explainer")).not.toContain("Back at 8am");
     const own = html("edit-own");
     expect(target(own)).toBe("/edit");
     expect(own).not.toContain("left today");
@@ -143,5 +142,33 @@ describe("a video format's page", () => {
     expect(html("slideshow")).toContain("Page not found");
     expect(html("carousel")).toContain("Page not found");
     expect(html("nope")).toContain("Page not found");
+  });
+});
+
+describe("a format made on its own page", () => {
+  it("is every presenter talk and editor template, read from the card's own editor link", () => {
+    const made = FORMATS.filter((f) => f.opens && makerOf(f.opens()));
+    expect(made.map((f) => f.slug)).toEqual(expect.arrayContaining(["news-anchor", "stage-talk", "spokesperson", "template-street-interview", "template-unboxing"]));
+    expect(made.every((f) => f.slug.startsWith("template-") || ["news-anchor", "stage-talk", "spokesperson"].includes(f.slug))).toBe(true);
+  });
+
+  it("shows a talk's script box with its writer and the word target for the length, and News anchor's banner", () => {
+    as.leo = LEO;
+    const page = html("news-anchor");
+    expect(page).toContain(">News anchor</h1>");
+    expect(page).toContain(">Script</label>");
+    expect(page).toContain("Write it for me");
+    expect(page).toContain("Aim for 48 to 64 words for 20 seconds.");
+    expect(page).toContain(">Banner headline</label>");
+    expect(html("stage-talk")).not.toContain("Banner headline");
+  });
+
+  it("shows a template's own blanks, and the spoken words that fit its length only where someone speaks", () => {
+    as.leo = LEO;
+    const page = html("template-street-interview");
+    for (const label of ["The question", "The answer (optional)", "Where (optional)"]) expect(page).toContain(`>${label}</label>`);
+    expect(page).toContain("Up to 26 spoken words fit 8 seconds.");
+    expect(html("template-food-asmr")).not.toContain("spoken words");
+    expect(html("template-food-asmr")).toContain(priceText(priceOf("ai-clip", { seconds: 8, quality: "720p" }) as Price));
   });
 });
