@@ -211,7 +211,7 @@ export default function AgentThread({
   );
 
   if (!messages.length) {
-    const starters = flow ? [] : starterChips(userId).slice(0, 6);
+    const starters = flow ? [] : starterChips(userId);
     return (
       <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", compact ? "p-3" : "justify-center px-1 py-6")}>
         <div className={cn("mx-auto w-full", compact ? "space-y-3" : "max-w-2xl space-y-5")}>

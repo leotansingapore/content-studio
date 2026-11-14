@@ -1,31 +1,50 @@
-// The empty chat's starters (docs/north-star/items/agent-chat.md, "Empty thread"; agent-skills adds /check and
-// /retro): at most 6, each shown only when what it needs exists on this brand, ending with the two that always work.
-// A starter fills the composer and does not send. None says adviser, client or MAS, so a business brand gets the
-// same words as a person's.
+// The empty chat's starters (docs/north-star/items/agent-chat.md, "Empty thread"), Fastlane's eight built from the
+// brand's own facts (read 14 Nov): an image for the first audience, a 15s question-hook video, a script for an angle
+// (else a topic), a campaign for an audience with no open campaign, new angles, last week, what is trending and the
+// best post, with the Swipe file's remix and What can you make? beside them. Each shows only when what it needs
+// exists on this brand, 8 at most: the least useful go first when there are more. A starter fills the composer and
+// does not send; the three ready answers (agentAnswers.ts) sent unchanged draw their card with no Jev call. None says
+// adviser, client or MAS, so a business brand gets the same words as a person's.
 
 import { staticFormatBySlug } from "@/data/staticFormats";
-import { draftStatus, loadDrafts } from "@/lib/draftHistory";
+import { getTrackedPosts } from "@/lib/analytics";
+import { anglesFor } from "@/lib/angles";
+import { loadAudiences } from "@/lib/audiences";
+import { campaignStatus, loadCampaigns } from "@/lib/campaigns";
+import { localDateKey } from "@/lib/dueDates";
+import { FORMAT_TRENDS } from "@/lib/formatTrends";
 import { isStatic, type StaticLayoutId } from "@/lib/imageLayout";
 import { loadPositioning } from "@/lib/positioning";
 import { loadSaved } from "@/lib/savedItems";
 import { MAX_TOPIC } from "../../supabase/functions/remix/logic.ts";
 
-export const MAX_STARTERS = 6;
-export const ALWAYS = ["How did last week go?", "What can you make?"];
+export const MAX_STARTERS = 8;
 
-export function starterChips(userId: string): string[] {
-  const topics = (loadPositioning(userId)?.topics ?? []).map((t) => t.trim()).filter(Boolean);
+export function starterChips(userId: string, today = localDateKey()): string[] {
+  const audiences = loadAudiences(userId).filter((a) => a.name.trim());
+  const first = audiences[0]?.name.trim();
+  const campaigns = loadCampaigns(userId);
+  const open = new Set(campaigns.filter((c) => campaignStatus(c, today) !== "done").map((c) => c.audience));
+  const free = audiences.find((a) => !open.has(a.id))?.name.trim();
+  const angle = [...campaigns.flatMap((c) => c.angles), ...audiences.flatMap((a) => anglesFor(userId, a.id))].map((a) => a.title.trim()).find(Boolean);
+  const topic = (loadPositioning(userId)?.topics ?? []).map((t) => t.trim()).find(Boolean);
   const saved = loadSaved(userId);
-  const drafts = loadDrafts(userId);
-  const fromData = [
-    saved.topPosts.length + saved.inspiration.length > 0 && "Remix a post from my Swipe file",
-    topics[0] && `Make a carousel about ${topics[0]}`,
-    topics[1] && `Write a script about ${topics[1]}`,
-    topics[0] && `Make a 20-second video about ${topics[0]}`,
-    drafts.some((d) => draftStatus(d) !== "posted") && "/check",
-    drafts.some((d) => draftStatus(d) === "posted") && "/retro",
-  ].filter((x): x is string => !!x);
-  return [...fromData.slice(0, MAX_STARTERS - ALWAYS.length), ...ALWAYS];
+  // in Fastlane's order; the number is the order they go in when there are more than 8 (the highest first, 0 never)
+  const all: [string | false | undefined, number][] = [
+    [saved.topPosts.length + saved.inspiration.length > 0 && "Remix a post from my Swipe file", 4],
+    [first && `Make an image for ${first}`, 1],
+    ["Make a 15s video with a question hook", 8],
+    [angle ? `Write a script for ${angle}` : topic && `Write a script about ${topic}`, 2],
+    [free && `Plan a campaign for ${free}`, 3],
+    [first && "Find new angles", 5],
+    ["How did last week go?", 9],
+    [FORMAT_TRENDS.items.length > 0 && "What is trending in my niche?", 6],
+    [getTrackedPosts(userId).length > 0 && "Which post did best?", 7],
+    ["What can you make?", 0],
+  ];
+  const shown = all.filter((x): x is [string, number] => !!x[0]);
+  const cut = shown.map(([, r]) => r).sort((a, b) => b - a).slice(0, Math.max(0, shown.length - MAX_STARTERS));
+  return shown.filter(([, r]) => !cut.includes(r)).map(([s]) => s);
 }
 
 /** The page a chat was started from: the "From ..." chip above it, back to that page. */

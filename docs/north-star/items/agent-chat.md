@@ -102,11 +102,15 @@ At 390 px the thread list hides behind a "Chats" button at the top left. It open
 
 Empty thread (`/agent`):
 
-- The agent's mark, the heading "What are we making?", the composer, then "OR START WITH ONE OF THESE" and up to 6 starters from `starterChips(userId)`, each shown only when its data exists:
+- The agent's mark, the heading "What are we making?", the composer, then "OR START WITH ONE OF THESE" and up to 8 starters from `starterChips(userId)`, Fastlane's eight built from the brand's facts (read 14 Nov), each shown only when what it needs exists, the least useful dropped first when there are more:
   - "Remix a post from my Swipe file" (shown when `/swipe` holds at least one saved item)
-  - "Make a carousel about <topics[0]>" and "Write a script about <topics[1]>" (`topics` in `loadPositioning(userId)`, `src/lib/positioning.ts`)
-  - "Make a 20-second video about <topics[0]>"
-  - "How did last week go?" and "What can you make?" (always)
+  - "Make an image for <first audience>" and "Find new angles" (an audience, `src/lib/audiences.ts`)
+  - "Make a 15s video with a question hook" (always; dropped second when over 8)
+  - "Write a script for <angle>" (a campaign's or an audience's saved angle), else "Write a script about <topics[0]>"
+  - "Plan a campaign for <audience>" (the first audience with no open campaign)
+  - "How did last week go?" (always; dropped first when over 8), "What is trending in my niche?" (the template drop has posts) and "Which post did best?" (a posted post has numbers)
+  - "What can you make?" (always)
+- "What is trending in my niche?", "Which post did best?" and "Find new angles" sent unchanged, or /trending, /best and /angles, draw their card with no Jev call (`src/lib/agentAnswers.ts`).
 - A starter fills the composer and focuses it. It does not send, so the person can finish the sentence, as the dock's openers do today.
 
 A turn, step by step:
