@@ -267,7 +267,7 @@ export default function MediaPage() {
 
       {openSet && userId && <SetBar userId={userId} set={openSet} items={items} urls={urls} onChange={reload} />}
       {items.length === 0 ? (
-        leo ? null : <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No photos yet.</div>
+        leo ? null : <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No photos yet. Start with a portrait, you at work and your workspace.</div>
       ) : shown.length === 0 ? (
         openSet && !query.trim() ? null : <p className="text-sm text-muted-foreground">Nothing matches that search.</p>
       ) : (

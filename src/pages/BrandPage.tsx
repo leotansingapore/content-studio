@@ -797,6 +797,7 @@ export default function BrandPage({ part }: { part?: BrandPart } = {}) {
                 {brand.logo ? "Change logo" : "Add a logo"}
                 <input type="file" accept="image/png,image/webp,image/jpeg" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void upload(f, "logo"); }} />
               </label>
+              <p className="basis-full text-xs text-muted-foreground">PNG, JPG or WebP. A simple logo stores best.</p>
               {brand.logo && (
                 <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground" onClick={() => update({ logo: undefined })}>
                   <TrashIcon className="h-3.5 w-3.5" /> Remove
