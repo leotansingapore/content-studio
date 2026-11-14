@@ -11,6 +11,7 @@ import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
+import { Pick } from "@/components/ui/pick";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { titleOf, toDetailAd } from "@/lib/adDetail";
 import {
@@ -39,17 +40,6 @@ const dayMonth = (iso: string) => {
   return Number.isFinite(d.getTime()) ? `${d.getDate()} ${MONTHS[d.getMonth()]}` : "";
 };
 const quoted = (words: string[]) => words.map((w) => `"${w}"`).join(", ");
-
-function Pick({ label, value, onChange, options }: { label: string; value: string; onChange(v: string): void; options: [string, string][] }) {
-  return (
-    <label className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-xs [@media(pointer:coarse)]:h-11">
-      <span className="font-semibold text-muted-foreground">{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} className="h-full max-w-[9rem] bg-transparent font-medium text-foreground outline-none">
-        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-      </select>
-    </label>
-  );
-}
 
 export default function AdLibrary({ userId }: { userId: string }) {
   // stores: read again when one changes; job progress only redraws
