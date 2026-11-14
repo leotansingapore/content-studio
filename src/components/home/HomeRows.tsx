@@ -74,15 +74,32 @@ export interface Creation {
   to: string;
   /** The Library's own item: its thumb and its schedule line. */
   item: LibraryItem;
+  /** Where it came from, when it records it (originOf). */
+  origin?: string;
 }
 
 type Stores = Omit<Parameters<typeof buildLibrary>[0], "jobs" | "now">;
 
-/** The brand's newest `n` creations, from the Library's own merge (library.ts): each tile is a Library card's picture, kind, status, title and Open. */
-export function recentCreations(stores: Stores, n = ROW): Creation[] {
+/**
+ * Where a creation came from, as Fastlane labels it ("Slideshow | Campaign post"), when the item records it: a campaign's
+ * post, a Blitz card (`blitz`: the item keys today's deck made), the agent's chat, a remix, or a carousel, Design or
+ * video project, which only their Studio makers write. Undefined when unknown, and the tile says its status instead.
+ */
+export function originOf(it: Pick<LibraryItem, "key" | "source">, d?: Pick<DraftEntry, "campaign" | "agent" | "remix">, blitz?: ReadonlySet<string>): string | undefined {
+  if (d?.campaign) return "Campaign post";
+  if (blitz?.has(it.key)) return "Blitz";
+  if (d?.agent) return "Chat";
+  if (d?.remix || it.source) return "Remix";
+  if (/^[cxv]:/.test(it.key)) return "Studio";
+  return undefined;
+}
+
+/** The brand's newest `n` creations, from the Library's own merge (library.ts): each tile is a Library card's picture, kind, where it came from (else its status), title and Open. */
+export function recentCreations(stores: Stores, n = ROW, blitz?: ReadonlySet<string>): Creation[] {
+  const drafts = new Map(stores.drafts.map((d) => [`d:${d.id}`, d]));
   return buildLibrary({ ...stores, jobs: [], now: new Date(0) })
     .slice(0, n)
-    .map((it) => ({ key: it.key, kind: it.kind, status: STATUS_LABELS[it.status], title: it.title, to: it.href, item: it }));
+    .map((it) => ({ key: it.key, kind: it.kind, status: STATUS_LABELS[it.status], title: it.title, to: it.href, item: it, origin: originOf(it, drafts.get(it.key), blitz) }));
 }
 
 /** One creation: its picture as the Library draws it (given `sources`), its kind and status, and its title. The whole tile opens it. */
@@ -97,7 +114,7 @@ export function CreationTile({ c, sources }: { c: Creation; sources?: ThumbSourc
       )}
       <span className={cn("flex min-w-0 flex-col gap-1", !sources && TILE)}>
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {c.kind} | {c.status}
+          {c.kind} | {c.origin ?? c.status}
         </span>
         <span className="line-clamp-2 text-sm font-medium text-foreground group-hover:underline">{c.title}</span>
         {/* when it goes out or went out; "Not scheduled yet" only repeats Ready */}
@@ -430,7 +447,20 @@ export default function HomeRows({ userId, drafts, leo = false, campaigns, class
     () => ({ drafts, carousels: loadCarousels(userId), slideshows: loadSlideshows(userId), projects: loadProjects(userId), media: loadMedia(userId), designs: loadDesigns(userId), images: loadImages(userId) }),
     [userId, drafts, saved], // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const recent = useMemo(() => recentCreations(stores), [stores]);
+  // Blitz is Leo's: today's deck names the posts and slideshows it made. Its module loads after Home paints.
+  const [blitz, setBlitz] = useState<ReadonlySet<string>>();
+  useEffect(() => {
+    if (!leo) return;
+    let live = true;
+    import("@/lib/blitz").then(
+      (b) => live && setBlitz(new Set(b.loadBlitz(userId).cards.flatMap((c) => [c.draftId ? `d:${c.draftId}` : "", c.showId ? `s:${c.showId}` : ""]).filter(Boolean))),
+      () => {}, // a chunk gone after a deploy: no Blitz label until the next load
+    );
+    return () => {
+      live = false;
+    };
+  }, [userId, leo, saved]);
+  const recent = useMemo(() => recentCreations(stores, ROW, blitz), [stores, blitz]);
   const fontsReady = useFontsReady(recent.some((c) => c.item.thumb?.kind === "show"));
   const sources = useMemo(() => readThumbSources(userId, stores, fontsReady), [userId, stores, fontsReady]);
   const sent = useMemo(() => (leo ? loadLaunches(userId).length : 0), [userId, leo]);

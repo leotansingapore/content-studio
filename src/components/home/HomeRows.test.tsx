@@ -80,6 +80,36 @@ describe("Recent creations", () => {
     expect(words(out)).toContain("Image | Ready Ad img-1");
   });
 
+  it("labels each creation with where it came from when it records it, else its status", () => {
+    const stores = {
+      ...none,
+      drafts: [
+        draft("camp", { createdAt: at(9), campaign: { id: "c1", post: 1, day: 1 } }),
+        draft("kept", { createdAt: at(8) }),
+        draft("chat", { createdAt: at(7), agent: { thread: "t1", msg: "m1" } }),
+        draft("mix", { createdAt: at(6), remix: {} as DraftEntry["remix"] }),
+        draft("typed", { createdAt: at(5) }),
+      ],
+      carousels: [{ id: "car1", title: "Carousel", slides: [], updatedAt: at(4) }] as never,
+    };
+    const items = recentCreations(stores, 6, new Set(["d:kept"]));
+    expect(items.map((c) => [c.key, c.origin])).toEqual([
+      ["d:camp", "Campaign post"],
+      ["d:kept", "Blitz"],
+      ["d:chat", "Chat"],
+      ["d:mix", "Remix"],
+      ["d:typed", undefined],
+      ["c:car1", "Studio"],
+    ]);
+    const out = words(html(<RecentCreations items={items} />));
+    expect(out).toContain("Text | Campaign post Hook camp");
+    expect(out).toContain("Text | Blitz Hook kept");
+    // unknown: today's label
+    expect(out).toContain("Text | Ready Hook typed");
+    // a campaign post made by the agent is still the campaign's
+    expect(recentCreations({ ...none, drafts: [draft("both", { campaign: { id: "c1", post: 2, day: 2 }, agent: { thread: "t", msg: "m" } })] })[0].origin).toBe("Campaign post");
+  });
+
   it("reads the open brand's images on this device", () => {
     brandDevice("u1");
     localStorage.setItem("content-studio-images-u1", JSON.stringify([image("img-abc123", 1, { font: "sans", paper: "white", align: "left" } as unknown as Partial<SavedImage>)]));
