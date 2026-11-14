@@ -111,6 +111,13 @@ describe("making the deck", () => {
     expect(requestMake).not.toHaveBeenCalled();
   });
 
+  it("keeps the writer's clip search on a wall, so the card can show its picture", async () => {
+    requestMake.mockResolvedValue({ ...wallOk("Words"), result: { ...wallOk("Words").result, search: "steaming kueh tray" } });
+    seed([card("c1", "wall")]);
+    await run("c1");
+    expect(loadBlitz(UID).cards[0].wall).toEqual({ text: "Words", caption: "Caption", search: "steaming kueh tray" });
+  });
+
   it("marks a card that failed, and Try again makes it", async () => {
     requestMake.mockRejectedValueOnce(new EdgeError("Down", 503)).mockResolvedValueOnce(wallOk("Second go"));
     seed([card("c1", "wall")]);

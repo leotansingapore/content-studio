@@ -178,7 +178,8 @@ export async function makeCard(userId: string, card: BlitzCard): Promise<Partial
     if (res?.result?.as !== "wall") return { state: "failed", error: FAILED_LINE };
     const text = stripDashes(res.result.text).trim();
     const caption = stripDashes(applyBrandRules(res.result.caption, loadBrand(userId), "tiktok")).trim();
-    return text ? { state: "new", wall: { text, caption } } : { state: "failed", error: FAILED_LINE };
+    const search = typeof res.result.search === "string" ? res.result.search.trim().slice(0, 80) : "";
+    return text ? { state: "new", wall: { text, caption, ...(search ? { search } : {}) } } : { state: "failed", error: FAILED_LINE };
   } catch (e) {
     if (e instanceof EdgeError && e.code === "daily_limit") return "capped";
     return e instanceof EdgeError && e.status === 422 ? "dead" : { state: "failed", error: FAILED_LINE };

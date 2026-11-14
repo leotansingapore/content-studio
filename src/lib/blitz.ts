@@ -52,8 +52,8 @@ export interface BlitzCard {
   state: CardState;
   /** A made slideshow (src/lib/slideshow.ts). */
   showId?: string;
-  /** A made wall of text's words. */
-  wall?: { text: string; caption: string };
+  /** A made wall of text's words, and the writer's stock search for the clip behind them (the card's picture). */
+  wall?: { text: string; caption: string; search?: string };
   /** The My posts entry a kept card became. */
   draftId?: string;
   error?: string;
