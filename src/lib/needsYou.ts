@@ -131,7 +131,7 @@ export interface NextUpInput {
   teamPosts?: TeamPost[];
   reviews?: TeamReviews;
   autopilot?: number;
-  campaigns?: Pick<Campaign, "id" | "name" | "audienceName" | "posts">[];
+  campaigns?: Pick<Campaign, "id" | "name" | "audienceName" | "posts" | "launchedAt" | "accountIds" | "runs">[];
   ideas?: number;
   /** The open brand's social north star play to make next (socialNorthStar.homePlay); done is left out when its posts aren't counted. */
   play?: { id: string; name: string; done?: number; target: number } | null;
@@ -231,28 +231,42 @@ export function needsYouItems(input: NextUpInput, today: string, now = Date.now(
 
   const made = input.drafts.filter((d) => (d.agent || d.remix) && draftStatus(d) === "draft" && !heldOrLive(d) && recent(d.createdAt, 7)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   // one row for them all, as overdue has, so a campaign's 24 made posts never bury what comes after (live-p6replay D15)
+  // each card's one next step first (Fastlane's Next up), then Open
   if (made.length === 1)
     items.push({
       id: `draft:${made[0].id}`, kind: "unscheduled", title: "A post is made and not scheduled", quote: hookOf(made[0]), line: "Schedule it, or leave it in All posts.",
       // links.drafts({ schedule, step: "where" }): the schedule steps open on it, and only their last button posts (phase 7a)
-      actions: [{ label: "Open", to: draftLink(made[0].id) }, { label: "Schedule it", to: `/drafts?${new URLSearchParams({ schedule: made[0].id, step: "where" })}` }],
+      actions: [{ label: "Schedule it", to: `/drafts?${new URLSearchParams({ schedule: made[0].id, step: "where" })}` }, { label: "Open", to: draftLink(made[0].id) }],
     });
   else if (made.length)
     items.push({
       id: "unscheduled", kind: "unscheduled", title: `${made.length} posts are made and not scheduled`, quote: hookOf(made[0]), line: "Schedule them, or leave them in All posts.",
-      actions: [{ label: "Open", to: "/drafts?status=draft" }],
+      // links.drafts({ status: "draft", fill: 1 }): Fill open slots' preview, which sets times only once it is pressed
+      actions: [{ label: "Schedule them", to: "/drafts?status=draft&fill=1" }, { label: "Open", to: "/drafts?status=draft" }],
     });
 
   if (input.autopilot) items.push({ id: "autopilot", kind: "autopilot", title: "Posts for your OK", n: input.autopilot, actions: [{ label: "Open", to: "/plan#autopilot" }] });
   for (const c of input.campaigns ?? []) {
-    const ready = c.posts.filter((p) => p.state === "ready").length;
-    if (!ready) continue;
-    const done = c.posts.filter((p) => p.state === "made").length;
-    items.push({
-      id: `campaign:${c.id}`, kind: "campaign", title: "Keep making your campaign", quote: c.audienceName || c.name,
-      line: `${done} of ${c.posts.length} made | ${ready} ${ready === 1 ? "draft" : "drafts"} waiting for you`,
-      actions: [{ label: "Open", to: `/campaigns/${encodeURIComponent(c.id)}#queue` }],
-    });
+    const count = (state: string) => c.posts.filter((p) => p.state === state).length;
+    const ready = count("ready");
+    const progress = `${count("made")} of ${c.posts.length} made`;
+    const page = `/campaigns/${encodeURIComponent(c.id)}`;
+    const item = (line: string, next: { label: string; to: string }): NextUpItem => ({ id: `campaign:${c.id}`, kind: "campaign", title: c.name || c.audienceName, line, actions: [next, { label: "Open", to: page }] });
+    if (ready) {
+      const posts = `${ready} ${ready === 1 ? "post" : "posts"}`;
+      items.push(item(`${progress} | ${posts} waiting for you`, { label: `Review ${posts}`, to: `${page}#queue` }));
+      continue;
+    }
+    // Launch as reasonLine offers it: every post written, not launched, not Ads only, not finished. ?launch=1 opens the
+    // campaign page's Launch dialog, which shows the schedule and cost before anything goes; ?configure=1 its accounts.
+    const last = c.posts.reduce((m, p) => (p.day > m ? p.day : m), "");
+    const finished = last < today && c.posts.every((p) => p.state === "made" || p.state === "skipped");
+    if (c.launchedAt || c.runs === "ads" || !c.posts.length || finished || count("waiting") || count("drafting")) continue;
+    items.push(
+      c.accountIds?.length
+        ? item(`${progress} | ready to launch`, { label: "Launch", to: `${page}?launch=1` })
+        : item(`${progress} | connect an account, then launch`, { label: "Connect an account", to: `${page}?configure=1` }),
+    );
   }
   if (input.ideas) items.push({ id: "ideas", kind: "ideas", title: "Today's ideas", n: input.ideas, actions: [{ label: "Open", to: "/ideas" }] });
   const play = input.play;

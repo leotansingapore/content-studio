@@ -1,5 +1,6 @@
-// The waiting agent card on top of Leo's Next up: Approve with its price, Not now, and Open for the card in its chat.
-// Its own chunk (NextUp loads it lazily): it pulls in the agent engine, which only Leo's sign-ins load.
+// A waiting agent card in Leo's Next up: Approve with its price, Not now, and Open for the card in its chat. The card
+// on top fills Approve (the page's one filled button); the rows under it get it quiet. Its own chunk (NextUp loads it
+// lazily): it pulls in the agent engine, which only Leo's sign-ins load.
 
 import { Link, useNavigate } from "react-router-dom";
 import PriceChip from "@/components/PriceChip";
@@ -13,7 +14,7 @@ import type { Usage } from "@/lib/aiUsage";
 
 /** Approve (its price on it) and Not now for the waiting card on top, then Open for the whole card in its chat. The
  * engine checks the uses again on the press; one it refuses keeps the card here with its line. */
-export default function Decide({ userId, waiting, usage, open }: { userId: string; waiting: Waiting; usage: Usage | null; open?: string }) {
+export default function Decide({ userId, waiting, usage, open, main = true }: { userId: string; waiting: Waiting; usage: Usage | null; open?: string; main?: boolean }) {
   const { card, thread, msg } = waiting;
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -38,10 +39,10 @@ export default function Decide({ userId, waiting, usage, open }: { userId: strin
   return (
     <div className="flex min-w-0 max-w-full flex-col items-start gap-1.5 sm:items-end">
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" onClick={() => run("approve")} disabled={!!reason} className="h-auto min-h-9 gap-2 whitespace-normal py-1.5 text-left [@media(pointer:coarse)]:min-h-11">
+        <Button type="button" variant={main ? "default" : "outline"} onClick={() => run("approve")} disabled={!!reason} className="h-auto min-h-9 gap-2 whitespace-normal py-1.5 text-left [@media(pointer:coarse)]:min-h-11">
           <span>{approveLabel(card)}</span>
           {card.price && (
-            <span className="text-[11px] [&>span]:text-primary-foreground/85">
+            <span className={main ? "text-[11px] [&>span]:text-primary-foreground/85" : "text-[11px]"}>
               <PriceChip price={card.price} left={card.step === "script" ? null : left} uses={card.needs[0]?.n} />
             </span>
           )}

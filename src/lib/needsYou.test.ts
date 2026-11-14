@@ -221,9 +221,9 @@ describe("needsYouItems", () => {
     expect(by.team).toEqual({ id: "team", kind: "team", title: "Team posts to review", n: 2, line: "Approve or skip each one.", actions: [{ label: "Review", to: links.calendar({ business: "team-posts", teampost: "tp1" }) }] });
     expect(by["review:radiant"]).toMatchObject({ title: "Radiant posts to review", n: 1, actions: [{ label: "Review", to: "/reels?brand=radiant&stage=all" }] });
     expect(by["notes:radiant"]).toMatchObject({ title: "Team notes: Radiant", n: 1, actions: [{ label: "Open", to: "/reels?brand=radiant&view=feed&stage=notes" }] });
-    expect(by.unscheduled).toEqual({ id: "unscheduled", kind: "unscheduled", title: "2 posts are made and not scheduled", quote: "Agent made", line: "Schedule them, or leave them in All posts.", actions: [{ label: "Open", to: links.drafts({ status: "draft" }) }] });
+    expect(by.unscheduled).toEqual({ id: "unscheduled", kind: "unscheduled", title: "2 posts are made and not scheduled", quote: "Agent made", line: "Schedule them, or leave them in All posts.", actions: [{ label: "Schedule them", to: links.drafts({ status: "draft", fill: 1 }) }, { label: "Open", to: links.drafts({ status: "draft" }) }] });
     expect(by.autopilot).toMatchObject({ title: "Posts for your OK", n: 3, actions: [{ label: "Open", to: links.plan({ section: "autopilot" }) }] });
-    expect(by["campaign:c1"]).toEqual({ id: "campaign:c1", kind: "campaign", title: "Keep making your campaign", quote: "Young families", line: "1 of 4 made | 2 drafts waiting for you", actions: [{ label: "Open", to: links.campaign("c1", { section: "queue" }) }] });
+    expect(by["campaign:c1"]).toEqual({ id: "campaign:c1", kind: "campaign", title: "Young families, October", line: "1 of 4 made | 2 posts waiting for you", actions: [{ label: "Review 2 posts", to: links.campaign("c1", { section: "queue" }) }, { label: "Open", to: links.campaign("c1") }] });
     expect(by.ideas).toMatchObject({ title: "Today's ideas", n: 6, actions: [{ label: "Open", to: links.ideas() }] });
     expect(by.market).toMatchObject({ title: "Your market", actions: [{ label: "Open", to: "/market" }] });
     expect(by.setup).toEqual({ id: "setup", kind: "setup", title: "Set your voice", actions: [{ label: "Open", to: "/voice" }] });
@@ -284,16 +284,40 @@ describe("needsYouItems", () => {
     const campaigns = [{ id: "c1", name: "Coaches, October", audienceName: "Coaches", posts: [post("ready")] }];
     const items = needsYouItems({ cards: full.cards, drafts: made, campaigns, ideas: 2, setup: full.setup }, TODAY, NOW);
     expect(items.map((i) => i.id)).toEqual(["card:k1", "unscheduled", "campaign:c1", "ideas", "setup"]);
-    expect(items[1]).toMatchObject({ title: "24 posts are made and not scheduled", quote: "Made 23", actions: [{ label: "Open", to: "/drafts?status=draft" }] });
+    expect(items[1]).toMatchObject({ title: "24 posts are made and not scheduled", quote: "Made 23", actions: [{ label: "Schedule them", to: "/drafts?status=draft&fill=1" }, { label: "Open", to: "/drafts?status=draft" }] });
     // one made post keeps its own row with its own buttons
     const one = needsYouItems({ drafts: made.slice(0, 1) }, TODAY, NOW);
-    expect(one).toEqual([{ id: "draft:m0", kind: "unscheduled", title: "A post is made and not scheduled", quote: "Made 0", line: "Schedule it, or leave it in All posts.", actions: [{ label: "Open", to: links.generate({ draft: "m0" }) }, { label: "Schedule it", to: links.drafts({ schedule: "m0", step: "where" }) }] }]);
+    expect(one).toEqual([{ id: "draft:m0", kind: "unscheduled", title: "A post is made and not scheduled", quote: "Made 0", line: "Schedule it, or leave it in All posts.", actions: [{ label: "Schedule it", to: links.drafts({ schedule: "m0", step: "where" }) }, { label: "Open", to: links.generate({ draft: "m0" }) }] }]);
+  });
+
+  it("names each campaign and gives it its next step: Review its written posts, else Launch through the dialog, else Connect an account", () => {
+    const at = (state: PostState, day = "2026-10-20") => ({ n: 1, state, day }) as CampaignPost;
+    const one = (c: Partial<NonNullable<NextUpInput["campaigns"]>[number]>) =>
+      needsYouItems({ drafts: [], campaigns: [{ id: "c 1", name: "Kueh lovers, November", audienceName: "First-time parents", posts: [at("made"), at("made")], ...c }] }, TODAY, NOW);
+    const page = links.campaign("c 1");
+    // two campaigns for one audience read apart: the card is the campaign's name, never the audience
+    expect(one({})[0].title).toBe("Kueh lovers, November");
+    expect(one({ name: "" })[0].title).toBe("First-time parents");
+    expect(one({ posts: [at("ready"), at("made")], launchedAt: "2026-10-01T00:00:00Z" })[0]).toMatchObject({ line: "1 of 2 made | 1 post waiting for you", actions: [{ label: "Review 1 post", to: `${page}#queue` }, { label: "Open", to: page }] });
+    // every post written and not launched: Launch opens the campaign page's dialog (schedule and cost first), never launches itself
+    expect(one({ accountIds: ["acc1"] })[0]).toMatchObject({ line: "2 of 2 made | ready to launch", actions: [{ label: "Launch", to: `${page}?launch=1` }, { label: "Open", to: page }] });
+    expect(one({ accountIds: [] })[0]).toMatchObject({ line: "2 of 2 made | connect an account, then launch", actions: [{ label: "Connect an account", to: `${page}?configure=1` }, { label: "Open", to: page }] });
+    expect(one({})[0].actions[0]).toEqual({ label: "Connect an account", to: `${page}?configure=1` });
+    // nothing to do from Home: still writing, launched, ads only, finished, or no posts
+    expect(one({ posts: [at("made"), at("waiting")] })).toEqual([]);
+    expect(one({ posts: [at("made"), at("drafting")] })).toEqual([]);
+    expect(one({ launchedAt: "2026-10-01T00:00:00Z" })).toEqual([]);
+    expect(one({ runs: "ads" })).toEqual([]);
+    expect(one({ posts: [at("made", "2026-10-01"), at("skipped", "2026-10-02")] })).toEqual([]);
+    expect(one({ posts: [] })).toEqual([]);
+    // a finished-looking campaign whose last day is still ahead can launch
+    expect(one({ posts: [at("made", "2026-10-30")], accountIds: ["a"] })[0].actions[0].label).toBe("Launch");
   });
 
   it("opens the schedule steps on that post from Schedule it, at Where, and posts nothing itself (phase 7a)", () => {
     const [item] = needsYouItems({ drafts: [draft({ id: "a b/1", hook: "Agent made", createdAt: "2026-10-13T00:00:00Z", agent: { thread: "t1", msg: "m3" } })] }, TODAY, NOW);
-    expect(item.actions[1]).toEqual({ label: "Schedule it", to: "/drafts?schedule=a+b%2F1&step=where" });
-    expect(item.actions[1].to).toBe(links.drafts({ schedule: "a b/1", step: "where" }));
+    expect(item.actions[0]).toEqual({ label: "Schedule it", to: "/drafts?schedule=a+b%2F1&step=where" });
+    expect(item.actions[0].to).toBe(links.drafts({ schedule: "a b/1", step: "where" }));
     expect(item.actions.some((a) => a.markPosted)).toBe(false);
   });
 
@@ -320,7 +344,7 @@ describe("needsYouItems", () => {
     const items = needsYouItems({ drafts: full.drafts, campaigns: [{ id: "c", name: "n", audienceName: "", posts: [post("ready")] }] }, TODAY, NOW);
     expect(items.map((i) => i.kind)).toEqual(["failed", "overdue", "today", "unscheduled", "campaign"]);
     expect(items.find((i) => i.kind === "today")!.title).toBe("2 posts go out today");
-    expect(items.find((i) => i.kind === "campaign")).toMatchObject({ quote: "n", line: "0 of 1 made | 1 draft waiting for you" });
+    expect(items.find((i) => i.kind === "campaign")).toMatchObject({ title: "n", line: "0 of 1 made | 1 post waiting for you" });
     // a teammate gets the review rows only, not notes, market or the other brands' posts
     const mate = needsYouItems({ ...full, me: { owner: false, member: true, role: "editor" }, cards: [], threads: [], drafts: [] }, TODAY, NOW);
     expect(mate.map((i) => i.id)).toEqual(["team", "review:moneybees", "review:radiant", "autopilot", "campaign:c1", "ideas", "setup"]);

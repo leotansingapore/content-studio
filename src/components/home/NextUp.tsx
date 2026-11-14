@@ -1,8 +1,8 @@
 // Next up on Home (docs/north-star/items/agent-home.md), for every sign-in since 12 Nov: needsYouItems' list, the first
 // drawn large with its buttons, the next two as rows and the rest behind "View all <n>" (?waiting=all, replace), as
-// Fastlane's Home lays it out. A customer's Home passes `shape` to add its own items (an unfinished post, setup). On
-// Leo's, a waiting card on top is decided here with Approve and its price (NextUpDecide, its own chunk, so the agent
-// engine still loads for Leo only).
+// Fastlane's Home lays it out. Each item's first button is its next step, then Open. A customer's Home passes `shape`
+// to add its own items (an unfinished post, setup). On Leo's, a waiting card is decided here with Approve and its price
+// (NextUpDecide, its own chunk, so the agent engine still loads for Leo only), filled on top and quiet in the rows.
 // Each "..." menu snoozes its item until tomorrow or for a week, or dismisses it until it changes, on this device
 // (cs-home-hidden-<scoped>), with Undo.
 
@@ -63,9 +63,12 @@ export default function NextUp({ userId, input, today, usage, markPosted, blocke
   const [first, ...rest] = items;
   useEffect(() => onCount?.(items.length), [items.length, onCount]);
   const more = rest.length - 2;
-  const waiting = first?.kind === "card" ? input.cards?.find((w) => `card:${w.card.id}` === first.id) : undefined;
-  // a competitor card needs its name typed in the chat, so Open is its only way on
-  const decide = waiting && waiting.card.kind !== "competitor" ? waiting : undefined;
+  const decideOf = (item?: NextUpItem) => {
+    const waiting = item?.kind === "card" ? input.cards?.find((w) => `card:${w.card.id}` === item.id) : undefined;
+    // a competitor card needs its name typed in the chat, so Open is its only way on
+    return waiting && waiting.card.kind !== "competitor" ? waiting : undefined;
+  };
+  const decide = decideOf(first);
 
   const update = (fn: (h: Hidden) => Hidden) =>
     setHidden((h) => {
@@ -146,6 +149,17 @@ export default function NextUp({ userId, input, today, usage, markPosted, blocke
   );
   const count = (n?: number) => n !== undefined && <span className="ml-1.5 font-semibold tabular-nums text-muted-foreground">{n}</span>;
   const fallback = <Button asChild size="sm" variant="outline">{first?.actions[0]?.to ? <Link to={first.actions[0].to}>Open</Link> : <span />}</Button>;
+  // a row's waiting card: Approve with its price and Not now, quiet, as the card on top has them
+  const rowActions = (item: NextUpItem) => {
+    const w = decideOf(item);
+    return w ? (
+      <Suspense fallback={actionsOf(item)}>
+        <Decide userId={userId} waiting={w} usage={usage} open={item.actions[0]?.to} main={false} />
+      </Suspense>
+    ) : (
+      actionsOf(item)
+    );
+  };
 
   return (
     <section id="next-up" aria-labelledby="next-up-label" className={cn("scroll-mt-20 space-y-2", className)}>
@@ -199,7 +213,7 @@ export default function NextUp({ userId, input, today, usage, markPosted, blocke
                     {(item.quote || item.line) && <p className="truncate text-xs text-muted-foreground">{item.quote || item.line}</p>}
                   </div>
                   <div className="flex items-center gap-1">
-                    {actionsOf(item)}
+                    {rowActions(item)}
                     {menuFor(item)}
                   </div>
                 </li>
