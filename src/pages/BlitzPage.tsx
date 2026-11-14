@@ -22,6 +22,7 @@ import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlUpdate } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 import NotFoundPage from "@/pages/NotFoundPage";
+import { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps.ts";
 
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 const ROUND = "flex h-14 w-14 items-center justify-center rounded-full border shadow-card transition-colors disabled:opacity-40";
@@ -166,6 +167,8 @@ function Blitz({ userId }: { userId: string }) {
           <SlidersHorizontalIcon /> Configure
         </Button>
       </header>
+
+      {!nothing && <p className="-mt-3 text-sm text-muted-foreground">Each card uses one of today&apos;s {DAILY_LIMITS["remix-make"]} remixes. Keeping and skipping are free.</p>}
 
       {configure === "1" && <BlitzConfigure userId={userId} onClose={closeConfigure} />}
 

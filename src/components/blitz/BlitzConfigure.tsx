@@ -15,7 +15,7 @@ import { loadPools } from "@/lib/blitzJob";
 import { links } from "@/lib/links";
 import { demoVideos } from "@/lib/demoVideos";
 import { loadMedia } from "@/lib/mediaLibrary";
-import { loadPostChoices, savePostChoices, TEXT_STYLE_IDS, TEXT_STYLES, type TextStyleId } from "@/lib/postChoices";
+import { loadPostChoices, savePostChoices, TEXT_STYLE_IDS, TEXT_STYLES, type PostChoices, type TextStyleId } from "@/lib/postChoices";
 import { PHOTO_MOOD_IDS, PHOTO_MOODS } from "@/lib/slideshowJob";
 
 const HEAD = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
@@ -50,6 +50,12 @@ export default function BlitzConfigure({ userId, onClose }: { userId: string; on
     const ok = savePostChoices(userId, { ...loadPostChoices(userId), textStyles: next });
     setLookError(!ok);
     if (ok) setLooks(next);
+  };
+  const [mention, setMention] = useState<PostChoices["mention"]>(() => loadPostChoices(userId).mention);
+  const pickMention = (m: PostChoices["mention"]) => {
+    const ok = savePostChoices(userId, { ...loadPostChoices(userId), mention: m });
+    setLookError(!ok);
+    if (ok) setMention(m);
   };
   const change = (patch: Partial<BlitzMix>) => {
     const next = { ...mix, ...patch };
@@ -120,6 +126,16 @@ export default function BlitzConfigure({ userId, onClose }: { userId: string; on
           </div>
           <p className="text-sm text-muted-foreground">{looks.length ? `Each post draws one of the ${looks.length} ticked.` : "None ticked: each post keeps your last look."}</p>
           {lookError && <p className="text-sm text-destructive" role="alert">Couldn't save that on this device. Try again.</p>}
+        </div>
+        <div className="space-y-2">
+          <p id="bz-mention" className={HEAD}>Name your business</p>
+          <div role="group" aria-labelledby="bz-mention" className="flex flex-wrap gap-2">
+            {(["always", "sometimes", "never"] as const).map((m) => (
+              <FilterChip key={m} active={mention === m} onClick={() => pickMention(m)}>
+                {m[0].toUpperCase() + m.slice(1)}
+              </FilterChip>
+            ))}
+          </div>
         </div>
         <div className="space-y-2">
           <p className={HEAD}>Demo videos ({demos})</p>
