@@ -129,12 +129,13 @@ export function stepRows(saved: Angle[], work: StepRow[] | null, picks: string[]
 
 const titleKey = (t: string) => t.trim().toLowerCase();
 
-/** A round's angles at the top of the new rows, ticked while the picks stay at 8 or fewer; a title already listed is left out. */
-export function addSuggested(rows: StepRow[], got: { title: string; line: string }[]): StepRow[] {
+/** A round's angles (at most `max`) at the top of the new rows, ticked while the picks stay at 8 or fewer; a title already listed is left out. */
+export function addSuggested(rows: StepRow[], got: { title: string; line: string }[], max = Infinity): StepRow[] {
   const taken = new Set(rows.map((r) => titleKey(r.title)));
   let picked = pickedRows(rows).length;
   const fresh: StepRow[] = [];
   for (const a of got) {
+    if (fresh.length >= max) break;
     const title = typeof a?.title === "string" ? a.title.trim().slice(0, ANGLE_LIMITS.title) : "";
     if (!title || taken.has(titleKey(title))) continue;
     taken.add(titleKey(title));
@@ -211,28 +212,50 @@ function failureOf(e: unknown): { error: string; retry: boolean } {
   return { error: FAILED_LINE, retry: true };
 }
 
+/** One press of Suggest adds this many angles. */
+export const SUGGEST_COUNT = 5;
+/** Extra calls one press may make when Jev keeps fewer than 5 (each counts one campaign-angles use). */
+export const TOP_UPS = 2;
+
 /**
  * Suggests 5 angles for this audience, avoiding every title the step lists. The rows show "suggesting" at once and
- * the new ones land at the top of the step's rows when the call answers, whether or not the step is still open.
+ * the new ones land at the top of the step's rows when the call answers, whether or not the step is still open. The
+ * server keeps only the candidates Jev passes, so a round can come back short (4 for Tok Tok Kueh's office admins,
+ * 14 Nov): then it asks again for the missing ones, up to TOP_UPS times, and a failed top-up keeps what came.
  */
 export async function startSuggest(userId: string, audience: AudienceIn, picks: string[] = []): Promise<void> {
   if (job.state === "suggesting") return;
   const scope = scoped(userId);
   const key = `${scope}:${audience.id}`;
   const saved = anglesFor(userId, audience.id);
-  const listed = stepRows(saved, readAll(scope)[audience.id] ?? null, picks);
-  set({ state: "suggesting", key });
-  try {
-    const r = await callFn<{ angles?: { title: string; line: string }[] }>(
+  // rows ticked, edited or added while a call ran stay as they are now
+  const listed = () => stepRows(saved, readAll(scope)[audience.id] ?? null, picks);
+  const ask = () =>
+    callFn<{ angles?: { title: string; line: string }[] }>(
       "idea-dump",
-      { mode: "angles", audience: audienceLine(audience, speakerFor(userId)), avoid: listed.map((x) => x.title.trim()).filter(Boolean).slice(0, 30), context: planContextFor(userId) },
+      { mode: "angles", audience: audienceLine(audience, speakerFor(userId)), avoid: listed().map((x) => x.title.trim()).filter(Boolean).slice(0, 30), context: planContextFor(userId) },
       FAILED_LINE,
     );
-    // rows ticked, edited or added while it ran stay as they are now
-    const now = stepRows(saved, readAll(scope)[audience.id] ?? null, picks);
-    writeRows(scope, audience.id, addSuggested(now, Array.isArray(r?.angles) ? r.angles : []));
-    set({ state: "idle" });
+  const add = (r: { angles?: unknown } | null | undefined, max: number): number => {
+    const before = listed();
+    const after = addSuggested(before, Array.isArray(r?.angles) ? r.angles : [], max);
+    writeRows(scope, audience.id, after);
+    return after.length - before.length;
+  };
+  set({ state: "suggesting", key });
+  let got: number;
+  try {
+    got = add(await ask(), SUGGEST_COUNT);
   } catch (e) {
     set({ state: "failed", key, ...failureOf(e) });
+    return;
   }
+  for (let i = 0; i < TOP_UPS && got < SUGGEST_COUNT; i++) {
+    try {
+      got += add(await ask(), SUGGEST_COUNT - got);
+    } catch {
+      break;
+    }
+  }
+  set({ state: "idle" });
 }

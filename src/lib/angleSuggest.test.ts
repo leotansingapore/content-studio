@@ -67,7 +67,7 @@ describe("startSuggest", () => {
   it("sends every listed title as avoid: saved, suggested and your own", async () => {
     angles.confirmAngles(UID, AUD.id, [{ title: "Saved one", line: "", origin: "suggested" }]);
     s.saveWork(UID, AUD.id, [row("Picked before"), row("Mine", { origin: "mine" }), row("", { draft: { title: "half typ", line: "" } })]);
-    fn.answers.push({ angles: [], scored: true });
+    fn.answers.push({ angles: five, scored: true });
     await s.startSuggest(UID, AUD);
     expect(fn.calls).toHaveLength(1);
     const body = fn.calls[0] as { mode: string; audience: string; avoid: string[]; context: { speaker: string; examples: string[] } };
@@ -87,7 +87,7 @@ describe("startSuggest", () => {
       says: "I want to see who I need to call and whether I\u2019m on pace for my targets.",
     };
     const line = (n: number) => (fn.calls[n] as { audience: string }).audience;
-    fn.answers.push({ angles: [], scored: true }, { angles: [], scored: true });
+    fn.answers.push({ angles: five, scored: true }, { angles: five, scored: true });
     await s.startSuggest(UID, REPS);
     expect(line(0)).toContain(" How they talk about money: I want to see who I need to call");
     const { addProfile, setActiveProfile } = await import("./profiles");
@@ -145,6 +145,36 @@ describe("startSuggest", () => {
     expect(s.loadWork(UID, AUD.id)).toBeNull();
     await fresh();
     expect(s.loadWork(UID, AUD.id)).toBeNull();
+  });
+
+  it("tops a short round up to 5 with a second call that avoids the first round's titles (Tok Tok Kueh, 14 Nov)", async () => {
+    const more = ["Lunch orders without the chase", "A treat for the whole floor", "Birthdays sorted early"].map((title) => ({ title, line: `${title}.`, fit: 0.7 }));
+    fn.answers.push({ angles: five.slice(0, 4), scored: true }, { angles: more, scored: true });
+    await s.startSuggest(UID, AUD);
+    expect(fn.calls).toHaveLength(2);
+    expect((fn.calls[1] as { avoid: string[] }).avoid).toEqual(five.slice(0, 4).map((a) => a.title));
+    const rows = s.stepRows([], s.loadWork(UID, AUD.id));
+    expect(rows).toHaveLength(5);
+    expect(rows.map((r) => r.title)).toEqual([more[0].title, ...five.slice(0, 4).map((a) => a.title)]);
+    expect(s.suggestJob()).toEqual({ state: "idle" });
+  });
+
+  it("asks at most twice more, and a failed top-up keeps what came", async () => {
+    fn.answers.push({ angles: five.slice(0, 2), scored: true }, { angles: [five[2]], scored: true }, { angles: [five[3]], scored: true }, { angles: [five[4]], scored: true });
+    await s.startSuggest(UID, AUD);
+    expect(fn.calls).toHaveLength(3);
+    expect(s.loadWork(UID, AUD.id)).toHaveLength(4);
+    expect(s.suggestJob()).toEqual({ state: "idle" });
+
+    await fresh();
+    session.s.clear();
+    fn.answers.length = 0;
+    fn.calls.length = 0;
+    fn.answers.push({ angles: five.slice(0, 3), scored: true }, new EdgeErr("Couldn't find angles that fit this time.", 422, "no_angles"));
+    await s.startSuggest(UID, AUD);
+    expect(fn.calls).toHaveLength(2);
+    expect(s.loadWork(UID, AUD.id)?.map((r) => r.title)).toEqual(five.slice(0, 3).map((a) => a.title));
+    expect(s.suggestJob()).toEqual({ state: "idle" });
   });
 
   it("runs one at a time", async () => {
