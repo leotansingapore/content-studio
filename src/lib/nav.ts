@@ -32,6 +32,7 @@ import {
   TranslateIcon,
   TagIcon,
   UserCheckIcon,
+  UserCircleIcon,
   GraduationCapIcon,
   BookOpenIcon,
   QuestionIcon,
@@ -260,7 +261,8 @@ export const SECTIONS: NavSection[] = [
     index: true,
     pages: [
       { to: "/settings", label: "Settings", end: true, bare: true },
-      { to: "/notifications", label: "Notifications", icon: BellIcon, group: "You", hint: "Phone alerts and the Monday results email." },
+      { to: "/settings/account", label: "Account", icon: UserCircleIcon, group: "You", hint: "Your email, how you sign in, and how the studio looks." },
+      { to: "/notifications", label: "Notifications", icon: BellIcon, hint: "Phone alerts and the Monday results email." },
       { to: "/settings/post-choices", label: "Post choices", icon: SlidersHorizontalIcon, hint: "Who appears, your name, captions and text style on new posts." },
       // only for an account that came in through checkout (docs/postmosis-billing.md)
       { to: "/settings/billing", label: "Billing", icon: CreditCardIcon, show: billingShown, hint: "Your plan, your card and your invoices." },

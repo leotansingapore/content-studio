@@ -15,8 +15,8 @@ const OLD_PATHS = [
   "/settings", "/notifications", "/settings/post-choices", "/accounts", "/bio", "/links", "/connect", "/adlauncher", "/reels/team", "/automations", "/activity", "/skills",
 ];
 // Pages the nav gained since: Brand's Products and Demo videos tabs (sections of the brand kit drawn alone, 12 Nov),
-// /brands, every brand as a card (13 Nov), and Brand > Members for shared brands (14 Nov).
-const NEW_PATHS = ["/brand/products", "/brand/demo-videos", "/settings/billing", "/settings/held", "/brands", "/brand/members"];
+// /brands, every brand as a card (13 Nov), Brand > Members for shared brands and Settings > Account (14 Nov).
+const NEW_PATHS = ["/brand/products", "/brand/demo-videos", "/settings/billing", "/settings/held", "/brands", "/brand/members", "/settings/account"];
 // Old addresses that are sections of another page now, each landing there (links.test.ts profileAddress): Your voice
 // and Brand kit are sections of Profile since 14 Nov
 const MOVED_PATHS = ["/voice", "/brand"];
@@ -136,7 +136,7 @@ describe("nav", () => {
     expect(pages("find", ANYONE)).toEqual(["/swipe", "/carousels", "/working", "/trends", "/inspiration", "/following", "/profiles"]);
     expect(pages("analytics", ANYONE)).toEqual(["/analytics", "/coach", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage"]);
     expect(pages("playbook", ANYONE)).toEqual(["/playbook", "/fads", "/brand/members", "/media"]);
-    expect(pages("settings", ANYONE)).toEqual(["/settings", "/notifications", "/settings/post-choices", "/accounts", "/bio", "/links", "/connect", "/welcome", "/academy", "/create-guide", "/tutorial", "/feedback"]);
+    expect(pages("settings", ANYONE)).toEqual(["/settings", "/settings/account", "/notifications", "/settings/post-choices", "/accounts", "/bio", "/links", "/connect", "/welcome", "/academy", "/create-guide", "/tutorial", "/feedback"]);
     // the gates are the ones each page had before: these and no others are Leo's
     const leoOnly = SECTIONS.flatMap((s) => s.pages.filter((p) => p.owners).map((p) => p.to)).sort();
     expect(leoOnly).toEqual(["/activity", "/adlauncher", "/agent", "/audiences", "/automations", "/blitz", "/brand/demo-videos", "/brand/products", "/campaigns", "/competitors", "/ideas", "/image", "/make", "/north-star", "/people", "/recruit/auto-dm", "/research", "/saved", "/script", "/settings/held", "/skills", "/social-north-star"]);
@@ -252,8 +252,8 @@ describe("nav", () => {
     expect(section("settings").pages.slice(1).every((p) => p.hint && p.hint.split(" ").length <= 12)).toBe(true);
     // Post labels and Language are sections of Post choices with tiles of their own, Language on Leo's sign-ins only
     const tiles = (email: string) => settingsTiles(visiblePages(groupedPages(section("settings").pages.slice(1)), email), email);
-    expect(tiles(ANYONE).map((t) => t.to).slice(0, 5)).toEqual(["/notifications", "/settings/post-choices", "/settings/post-choices#labels", "/accounts", "/bio"]);
-    expect(tiles(LEO).map((t) => [t.label, t.group]).slice(1, 4)).toEqual([["Post choices", "You"], ["Post labels", "You"], ["Language", "You"]]);
+    expect(tiles(ANYONE).map((t) => t.to).slice(0, 6)).toEqual(["/settings/account", "/notifications", "/settings/post-choices", "/settings/post-choices#labels", "/accounts", "/bio"]);
+    expect(tiles(LEO).map((t) => [t.label, t.group]).slice(0, 5)).toEqual([["Account", "You"], ["Notifications", "You"], ["Post choices", "You"], ["Post labels", "You"], ["Language", "You"]]);
     expect(tiles(ANYONE).filter((t) => t.group === "Help").map((t) => t.label)).toEqual(["Getting started", "Academy", "How to post", "How it works", "Feedback"]);
     expect(SETTINGS_ANCHORS.every((a) => a.hint.split(" ").length <= 12 && pageFor(a.page)?.page.to === a.page)).toBe(true);
   });

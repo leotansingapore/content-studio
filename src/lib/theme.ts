@@ -5,7 +5,8 @@
 const KEY = "cs-theme";
 export type Theme = "dark" | "light";
 export type ThemePick = Theme | "system";
-export type ThemeOutlet = { theme: ThemePick; onTheme: (t: ThemePick) => void };
+/** What the studio shell hands its pages: the theme and its switch, and Sign out (the account menu's own). */
+export type ThemeOutlet = { theme: ThemePick; onTheme: (t: ThemePick) => void; onSignOut?: () => Promise<void> };
 
 /** Paths drawn outside the studio shell (App.tsx); index.html keeps the same list for the first paint. */
 export const PUBLIC_PATH = /^\/(roadmap|auth|review|l|join|t|phone)(\/|$)/;

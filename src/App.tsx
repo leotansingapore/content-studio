@@ -49,6 +49,7 @@ const ConnectPage = page(() => import("@/pages/ConnectPage"));
 const NotificationsPage = page(() => import("@/pages/NotificationsPage"));
 const PostChoicesPage = page(() => import("@/pages/PostChoicesPage"));
 const BillingPage = page(() => import("@/pages/BillingPage"));
+const AccountPage = page(() => import("@/pages/AccountPage"));
 const HeldPaymentsPage = page(() => import("@/pages/HeldPaymentsPage"));
 const AccountsPage = page(() => import("@/pages/AccountsPage"));
 const AdLauncherPage = page(() => import("@/pages/AdLauncherPage"));
@@ -291,6 +292,7 @@ const ROUTES = (
       <Route path="/connect" element={<ConnectPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/settings/post-choices" element={<PostChoicesPage />} />
+      <Route path="/settings/account" element={<AccountPage />} />
       <Route path="/settings/billing" element={<BillingPage />} />
       <Route path="/settings/held" element={<HeldPaymentsPage />} />
       <Route path="/skills" element={<SkillsPage />} />

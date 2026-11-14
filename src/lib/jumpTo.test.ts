@@ -81,8 +81,10 @@ describe("searchJump", () => {
     expect(searchJump(items, "notifications")[0].to).toBe("/notifications");
     expect(searchJump(items, "alerts")[0].to).toBe("/notifications");
     expect(searchJump(items, "plan my week")[0].to).toBe("/plan");
-    // Connections (/accounts) is every sign-in's since 13 Nov, and an address word outranks a keyword
-    expect(searchJump(items, "account").map((i) => i.to).slice(0, 2)).toEqual(["/accounts", "/settings"]);
+    // Settings > Account (14 Nov) is named "account"; Connections (/accounts, every sign-in's since 13 Nov) comes next,
+    // and social accounts still land there
+    expect(searchJump(items, "account").map((i) => i.to).slice(0, 2)).toEqual(["/settings/account", "/accounts"]);
+    expect(searchJump(items, "social accounts")[0].to).toBe("/accounts");
     expect(searchJump(items, "hashtags")[0].to).toBe("/trends");
     expect(searchJump(items, "trending")[0].to).toBe("/trends");
     expect(searchJump(items, "trending posts")[0].to).toBe("/swipe");
@@ -120,7 +122,7 @@ describe("searchJump", () => {
     vi.unstubAllGlobals();
     for (const q of ["posts", "posts board", "review", "pending", "notes", "comments", "approve"]) expect(searchJump(board, q)[0].to, q).toBe("/reels");
     expect(searchJump(board, "carousel").map((i) => i.to)).toContain("/reels");
-    expect(searchJump(board, "account")[0].to).toBe("/accounts");
+    expect(searchJump(board, "account").map((i) => i.to).slice(0, 2)).toEqual(["/settings/account", "/accounts"]);
     expect(searchJump(board, "settings")[0].group).toBe("Settings"); // the Settings section first, since 24 Oct 2026 it is one
     expect(searchJump(board, "connections")[0].to).toBe("/accounts");
     expect(searchJump(items, "account").map((i) => i.to)).not.toContain("/profiles");

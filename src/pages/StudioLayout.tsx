@@ -1002,7 +1002,7 @@ export default function StudioLayout() {
           <ErrorBoundary resetKey={pathname}>
             <Suspense fallback={<RouteSkeleton />}>
               <div key={pathname} className="page-enter">
-                <Outlet context={{ theme, onTheme: switchTheme } satisfies ThemeOutlet} />
+                <Outlet context={{ theme, onTheme: switchTheme, onSignOut: handleSignOut } satisfies ThemeOutlet} />
               </div>
             </Suspense>
           </ErrorBoundary>
