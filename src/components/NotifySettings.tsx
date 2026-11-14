@@ -1,10 +1,12 @@
-// The two reminder switches on Settings > Notifications: the Monday results email and phone
-// alerts (src/lib/notify.ts). Both start off. Leo's sign-ins also get What
-// moved under the email and the hit alert under phone alerts.
+// The reminder switches on Settings > Notifications: the Monday results email and phone
+// alerts (src/lib/notify.ts), both off to start. Leo's sign-ins also get What
+// moved under the email and the hit alert under phone alerts. A sign-in that can
+// connect social accounts also gets Failed posts and Social accounts, on to start.
 import { useEffect, useId, useState } from "react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { cn } from "@/lib/utils";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { socialConnectShown } from "@/lib/socialConnect";
 import {
   browserPushSupport,
   disablePushHere,
@@ -84,6 +86,7 @@ export default function NotifySettings({ userId, email }: { userId: string; emai
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const support = browserPushSupport();
+  const social = socialConnectShown();
 
   useEffect(() => {
     setPrefs(loadNotifyPrefs(userId));
@@ -157,7 +160,7 @@ export default function NotifySettings({ userId, email }: { userId: string; emai
         disabled={support !== "ok"}
         busy={busy}
         onChange={(on) => void togglePush(on)}
-        tip="When a post is due, and Thursday if your goal is behind."
+        tip={social ? "When a post is due or fails, and Thursday if your goal is behind." : "When a post is due, and Thursday if your goal is behind."}
         note={pushNote}
       />
       {leo && prefs.push && here && (
@@ -169,6 +172,22 @@ export default function NotifySettings({ userId, email }: { userId: string; emai
             note={prefs.alerts ? "At most one a day, 9am to 9pm." : null}
           />
         </div>
+      )}
+      {social && (
+        <>
+          <SwitchRow
+            label="Failed posts"
+            checked={prefs.failed !== false}
+            onChange={(failed) => save({ ...loadNotifyPrefs(userId), failed })}
+            note="One email a day when posts fail to go out."
+          />
+          <SwitchRow
+            label="Social accounts"
+            checked={prefs.accounts !== false}
+            onChange={(accounts) => save({ ...loadNotifyPrefs(userId), accounts })}
+            note="When an account needs reconnecting."
+          />
+        </>
       )}
     </div>
   );

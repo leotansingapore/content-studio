@@ -1,7 +1,10 @@
 // Phone alerts and the Monday results email (supabase/functions/notify).
-//   key: content-studio-notify-${userId}   {"email": boolean, "push": boolean, "brief"?: boolean, "alerts"?: boolean}
+//   key: content-studio-notify-${userId}   {"email": boolean, "push": boolean, "brief"?: boolean, "alerts"?: boolean,
+//                                           "failed"?: boolean, "accounts"?: boolean}
 // brief and alerts are Leo's (What moved, the hit alert): absent until he first
-// switches one, so nobody else's key changes by a byte.
+// switches one, so nobody else's key changes by a byte. failed and accounts
+// (failed posts, accounts to reconnect) are ON while absent: the server sends
+// them to everyone with a connected account until one is switched off.
 // Account-wide, not per profile, and synced, so the hourly job reads it from
 // cs_user_data. Off is written as an explicit false, never by removing the key:
 // the sync has no tombstones, so a removed key comes back from another device.
@@ -22,6 +25,10 @@ export interface NotifyPrefs {
   brief?: boolean;
   /** A phone alert when a followed account posts a hit. Off unless true. */
   alerts?: boolean;
+  /** One email a day (and a phone alert) when posts fail to go out on Zernio. On unless false. */
+  failed?: boolean;
+  /** An email (and a phone alert) when a connected account needs reconnecting. On unless false. */
+  accounts?: boolean;
 }
 
 function storage(): Storage | null {
@@ -42,17 +49,21 @@ export function loadNotifyPrefs(userId: string | null | undefined): NotifyPrefs 
       push: p?.push === true,
       ...(p?.brief === undefined ? {} : { brief: p.brief === true }),
       ...(p?.alerts === undefined ? {} : { alerts: p.alerts === true }),
+      ...(p?.failed === undefined ? {} : { failed: p.failed !== false }),
+      ...(p?.accounts === undefined ? {} : { accounts: p.accounts !== false }),
     };
   } catch {
     return { email: false, push: false };
   }
 }
 
-/** Always writes both switches (and brief and alerts once set), so turning one off is a value that syncs. */
+/** Always writes both switches (and brief, alerts, failed and accounts once set), so turning one off is a value that syncs. */
 export function saveNotifyPrefs(userId: string, prefs: NotifyPrefs): NotifyPrefs {
   const tidy: NotifyPrefs = { email: prefs.email === true, push: prefs.push === true };
   if (prefs.brief !== undefined) tidy.brief = prefs.brief === true;
   if (prefs.alerts !== undefined) tidy.alerts = prefs.alerts === true;
+  if (prefs.failed !== undefined) tidy.failed = prefs.failed !== false;
+  if (prefs.accounts !== undefined) tidy.accounts = prefs.accounts !== false;
   storage()?.setItem(NOTIFY_PREFIX + userId, JSON.stringify(tidy));
   return tidy;
 }

@@ -67,6 +67,18 @@ describe("notify prefs", () => {
     expect(loadNotifyPrefs(UID)).toMatchObject({ brief: true, alerts: true });
   });
 
+  it("leaves Failed posts and Social accounts out until switched, writes them explicit, and reads them as on unless false", () => {
+    saveNotifyPrefs(UID, { ...loadNotifyPrefs(UID), email: true });
+    expect(store.getItem(`${NOTIFY_PREFIX}${UID}`)).toBe('{"email":true,"push":false}');
+    saveNotifyPrefs(UID, { ...loadNotifyPrefs(UID), failed: false });
+    expect(store.getItem(`${NOTIFY_PREFIX}${UID}`)).toBe('{"email":true,"push":false,"failed":false}');
+    saveNotifyPrefs(UID, { ...loadNotifyPrefs(UID), accounts: true, push: true });
+    expect(loadNotifyPrefs(UID)).toEqual({ email: true, push: true, failed: false, accounts: true });
+    // the server reads the same key the same way (notify/logic.ts alertPrefs): anything but false is on
+    store.setItem(`${NOTIFY_PREFIX}${UID}`, '{"failed":"no","accounts":0}');
+    expect(loadNotifyPrefs(UID)).toEqual({ email: false, push: false, failed: true, accounts: true });
+  });
+
   it("reads anything but true as off", () => {
     store.setItem(`${NOTIFY_PREFIX}${UID}`, '{"email":"yes","push":1}');
     expect(loadNotifyPrefs(UID)).toEqual({ email: false, push: false });
