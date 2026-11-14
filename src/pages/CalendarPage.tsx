@@ -1379,7 +1379,7 @@ export default function CalendarPage() {
   // a made campaign post's small picture: a carousel's first slide drawn from its words, else its words as a tile
   const madeTiles = useMemo(() => {
     const out = new Map<string, { words: string; slide?: string }>();
-    for (const c of campaigns) for (const p of c.posts) if (p.state === "made" && p.draftId) out.set(p.draftId, { words: draftWords(p), slide: p.format === "carousel" ? slideUrls(userId!, p)[0] : undefined });
+    for (const c of campaigns) for (const p of c.posts) if (p.state === "made" && p.draftId) out.set(p.draftId, { words: draftWords(p), slide: p.format === "carousel" ? slideUrls(userId!, p, 1)[0] : undefined });
     return out;
   }, [campaigns, userId]);
   const smallPicture = (tile: { words: string; slide?: string }, roomy: boolean) => (

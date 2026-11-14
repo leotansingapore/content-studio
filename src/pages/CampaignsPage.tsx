@@ -122,7 +122,7 @@ function Campaigns({ userId }: { userId: string }) {
   const drafts = new Map(list.flatMap((c) => (covers.has(c.id) ? [] : [[c.id, firstWritten(c)] as const])));
   const slideWant = [...drafts].map(([id, p]) => (p?.format === "carousel" ? `${id}:${p.n}:${p.hook}:${p.body}` : "")).join("|");
   const slides = useMemo(
-    () => new Map([...drafts].flatMap(([id, p]) => (p?.format === "carousel" ? [[id, slideUrls(userId, p)[0]] as const] : []))),
+    () => new Map([...drafts].flatMap(([id, p]) => (p?.format === "carousel" ? [[id, slideUrls(userId, p, 1)[0]] as const] : []))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [userId, slideWant],
   );

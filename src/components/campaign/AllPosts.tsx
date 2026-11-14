@@ -36,13 +36,13 @@ export function useFontsReady(want: boolean) {
   return ready;
 }
 
-/** A carousel post's slides drawn the way /carousel draws them from the same words, with the brand kit; [] where there is no canvas. */
-export function slideUrls(userId: string, p: CampaignPost): string[] {
+/** A carousel post's slides (the first `max`) drawn the way /carousel draws them from the same words, with the brand kit; [] where there is no canvas. */
+export function slideUrls(userId: string, p: CampaignPost, max = Infinity): string[] {
   if (typeof document === "undefined") return [];
   const brand = loadBrand(userId) ?? DEFAULT_BRAND;
   const measure = createCanvasMeasure();
   const slides = postSlides(p);
-  return slides.map((s, i) => svgDataUrl(renderSvg(layoutSlide({ title: s.title, body: s.body, index: i, total: slides.length, brand }, measure))));
+  return slides.slice(0, max).map((s, i) => svgDataUrl(renderSvg(layoutSlide({ title: s.title, body: s.body, index: i, total: slides.length, brand }, measure))));
 }
 
 /** The words a draft's tile shows before it is made. */

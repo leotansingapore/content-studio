@@ -54,7 +54,7 @@ export default function LaunchDialog({ userId, campaign: c, onClose, onDone, onB
   const strip = [...c.posts].filter((p) => p.state !== "skipped").sort((a, b) => a.n - b.n).slice(0, STRIP);
   const drawnKey = strip.filter((p) => p.state === "made" && p.format === "carousel").map((p) => `${p.n}:${p.hook}:${p.body}`).join("|");
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const slides = useMemo(() => new Map(strip.filter((p) => p.state === "made" && p.format === "carousel").map((p) => [p.n, slideUrls(userId, p)[0]])), [userId, drawnKey]);
+  const slides = useMemo(() => new Map(strip.filter((p) => p.state === "made" && p.format === "carousel").map((p) => [p.n, slideUrls(userId, p, 1)[0]])), [userId, drawnKey]);
   const times = postTimesLine(c, zoneName(tz));
 
   const launch = async () => {
