@@ -24,7 +24,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { adsMade } from "@/lib/campaignAds";
 import { draftingOf, onCampaignJob, PAUSED_LINE, startDrafting } from "@/lib/campaignJob";
-import { launchCampaign, pauseCampaign, type LaunchOutcome } from "@/lib/campaignLaunch";
+import { launchCampaign, pauseCampaign, resumeLaunch, type LaunchOutcome } from "@/lib/campaignLaunch";
 import {
   type Campaign, campaignStatus, deleteCampaign, getCampaign, loadCampaigns, onCampaignsChanged, restoreCampaign, saveCampaigns,
 } from "@/lib/campaigns";
@@ -70,6 +70,8 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
   }, []);
   // a closed tab or a limit left posts to write: this visit picks them up (a no-op when nothing waits)
   useEffect(() => startDrafting(userId, id), [userId, id]);
+  // a tab closed mid-launch left made posts unsent: a running campaign sends them now (a no-op when none could go)
+  useEffect(() => void resumeLaunch(userId, id), [userId, id]);
 
   const c = getCampaign(userId, id);
   const [angle, setAngle] = useUrlState("angle", "", { allowed: c?.angles.map((a) => a.id) ?? [] });

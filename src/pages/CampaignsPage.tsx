@@ -19,6 +19,7 @@ import { loadAudiences, onAudiencesChanged } from "@/lib/audiences";
 import { adCounts, adsMade, adViews, countsLine } from "@/lib/campaignAds";
 import { coverKeys } from "@/lib/campaignBoard";
 import { draftingOf, onCampaignJob, PAUSED_LINE, startDrafting, type Drafting } from "@/lib/campaignJob";
+import { resumeLaunch } from "@/lib/campaignLaunch";
 import { campaignStatus, loadCampaigns, onCampaignsChanged, reasonLine, type Campaign, type CampaignPost, type CampaignStatus } from "@/lib/campaigns";
 import { loadCarousels } from "@/lib/carousel";
 import { loadDrafts } from "@/lib/draftHistory";
@@ -85,7 +86,11 @@ function Campaigns({ userId }: { userId: string }) {
   }, []);
   // a closed tab left posts waiting or half written: this visit picks them up
   useEffect(() => {
-    for (const c of loadCampaigns(userId)) if (toWrite(c)) startDrafting(userId, c.id);
+    for (const c of loadCampaigns(userId)) {
+      if (toWrite(c)) startDrafting(userId, c.id);
+      // and a running campaign's made posts that a closed tab left unsent go now
+      void resumeLaunch(userId, c.id);
+    }
   }, [userId]);
 
   const list = loadCampaigns(userId);

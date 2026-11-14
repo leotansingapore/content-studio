@@ -20,7 +20,7 @@ import { svgToPng } from "@/lib/carouselRender";
 import { SLIDE_SIZES, slideImage } from "@/lib/carouselDesigns";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { getFile } from "@/lib/deviceFiles";
-import { draftStatus, setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
+import { draftStatus, setDraftStatus, setDraftZernio, unlinkByYou, type DraftEntry } from "@/lib/draftHistory";
 import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { scheduleTime } from "@/lib/dueDates";
@@ -156,7 +156,7 @@ export function ZernioStatus({ userId, draft, onDrafts, edits }: { userId: strin
     try {
       if (what === "cancel") {
         await cancelPost(profileId, link.postId!);
-        onDrafts(setDraftZernio(userId, draft.id, null));
+        onDrafts(unlinkByYou(userId, draft.id));
         logPost(userId, draft, (n) => `Cancelled posting ${n}`);
         toast({ title: "Cancelled", description: "Zernio won't post it. It stays in All posts." });
         return;

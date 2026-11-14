@@ -56,7 +56,8 @@ const post = (n: number, day: string, o: Partial<CampaignPost> = {}): CampaignPo
 });
 const draftOf = (p: CampaignPost, o: Partial<DraftEntry> = {}): DraftEntry => ({
   id: p.draftId!, createdAt: "2026-11-10T00:00:00.000Z", hook: p.hook ?? "", draft: `${p.hook}\n\n${WORDS}`, pillar: "topic", pillarDetail: "", audience: "general",
-  format: p.format === "carousel" ? "carousel" : "text-post", platform: "linkedin", ctaType: "soft", status: "scheduled", scheduledFor: `${p.day}T${p.time}`, ...o,
+  format: p.format === "carousel" ? "carousel" : "text-post", platform: "linkedin", ctaType: "soft", status: "scheduled", scheduledFor: `${p.day}T${p.time}`,
+  campaign: { id: "c-1", post: p.n, day: p.n }, ...o,
 });
 const POSTS = [
   post(1, "2026-11-19"), // its day has passed
@@ -350,5 +351,85 @@ describe("sends that overlap: one loop per campaign, and Pause wins", () => {
     const sent3 = z.schedule.mock.calls.find((c) => (c[1].scheduledFor as string).startsWith("2026-11-22"))![1];
     expect(sent3.clientKey).not.toBe("old");
     expect(draft(3).zernio).toMatchObject({ status: "scheduled", by: "launch" });
+  });
+});
+
+// the second review (14 Nov): a stale draft read across slide rendering, a closed tab mid-launch, a hand cancel
+describe("a fresh read before the key, resuming after a closed tab, and the person's own cancel", () => {
+  const showSeed = async (launched: boolean) => {
+    const show = { kind: "slideshow" as const, id: "ss-1" };
+    const posts = POSTS.map((p) => (p.n === 2 ? { ...p, format: "slideshow" as const, made: show } : p));
+    expect(saveCampaigns(UID, [campaign({ posts, ...(launched ? { launchedAt: "2026-11-20T00:00:00.000Z" } : {}) })])).toBeNull();
+    saveDrafts(UID, posts.filter((p) => p.draftId).map((p) => draftOf(p, p.n === 7 ? { zernio: { key: "k7", postId: "z7", status: "scheduled" } } : {})));
+    const { blankSlideshow, saveSlideshow } = await import("./slideshow");
+    saveSlideshow(UID, { ...blankSlideshow({}, new Date(NOW)), id: "ss-1", title: "Lunch" });
+  };
+  const pngs = [{ file: new Blob(["a"]), name: "1.png", type: "image/png" }];
+
+  it("a post scheduled by hand while its slides render is not sent again, and keeps the hand link (fix 1)", async () => {
+    await showSeed(false);
+    let release!: () => void;
+    z.pngs.mockImplementationOnce(() => new Promise((r) => (release = () => r(pngs))));
+    const a = L.launchCampaign(UID, "c-1", NOW);
+    await vi.waitFor(() => expect(z.pngs).toHaveBeenCalledTimes(1));
+    saveDrafts(UID, loadDrafts(UID).map((d) => (d.id === "cmp_c-1_2" ? { ...d, zernio: { key: "hand", postId: "zh", status: "scheduled" } } : d)));
+    release();
+    await a;
+    expect(z.schedule.mock.calls.filter((c) => (c[1].scheduledFor as string).startsWith("2026-11-21"))).toHaveLength(0);
+    expect(draft(2).zernio).toEqual({ key: "hand", postId: "zh", status: "scheduled" });
+  });
+
+  it("two tabs sending the same post send it under one key (fix 1)", async () => {
+    await showSeed(true);
+    const A = L;
+    vi.resetModules();
+    const B = await import("./campaignLaunch");
+    let release!: () => void;
+    z.pngs.mockImplementationOnce(() => new Promise((r) => (release = () => r(pngs)))).mockResolvedValue(pngs);
+    const a = A.launchCampaign(UID, "c-1", NOW);
+    await vi.waitFor(() => expect(z.pngs).toHaveBeenCalledTimes(1));
+    await B.sendIfLaunched(UID, "c-1", 2, NOW);
+    release();
+    await a;
+    const keys = z.schedule.mock.calls.filter((c) => (c[1].scheduledFor as string).startsWith("2026-11-21")).map((c) => c[1].clientKey);
+    expect(new Set(keys).size).toBe(1);
+  });
+
+  it("opening a running campaign sends what a closed tab left, once; paused or not launched it sends nothing (fix 2)", async () => {
+    seed({ launchedAt: "2026-11-20T00:00:00.000Z" });
+    expect(await L.resumeLaunch(UID, "c-1", NOW)).toEqual({ sent: 2, failed: [] });
+    expect(z.schedule.mock.calls.map((c) => c[1].scheduledFor)).toEqual(["2026-11-21T09:00:00+08:00", "2026-11-22T09:00:00+08:00"]);
+    z.schedule.mockClear();
+    z.status.mockClear();
+    // a second open: nothing left to go, so no account read and no send
+    expect(await L.resumeLaunch(UID, "c-1", NOW)).toBeNull();
+    expect(z.status).not.toHaveBeenCalled();
+    seed({ launchedAt: "2026-11-20T00:00:00.000Z", pausedAt: "2026-11-20T01:00:00.000Z" });
+    expect(await L.resumeLaunch(UID, "c-1", NOW)).toBeNull();
+    seed();
+    expect(await L.resumeLaunch(UID, "c-1", NOW)).toBeNull();
+    expect(z.schedule).not.toHaveBeenCalled();
+  });
+
+  it("a Launch post the person cancelled by hand stays off: Resume and reopening leave it (fix 3)", async () => {
+    seed();
+    await L.launchCampaign(UID, "c-1", NOW);
+    const { unlinkByYou } = await import("./draftHistory");
+    unlinkByYou(UID, "cmp_c-1_2"); // the chip's Cancel post, after Zernio took it off
+    expect(draft(2)).toMatchObject({ cancelledBy: "you" });
+    expect(draft(2).zernio).toBeUndefined();
+    await L.pauseCampaign(UID, "c-1", NOW + 1000);
+    z.schedule.mockClear();
+    await L.launchCampaign(UID, "c-1", NOW + 2000);
+    expect(z.schedule.mock.calls.map((c) => c[1].scheduledFor)).toEqual(["2026-11-22T09:00:00+08:00"]);
+    expect(L.launchPlan(getCampaign(UID, "c-1")!, loadDrafts(UID), ACCOUNTS, null, NOW).you).toEqual([2, 4]);
+    z.schedule.mockClear();
+    expect(await L.resumeLaunch(UID, "c-1", NOW)).toBeNull();
+    expect(z.schedule).not.toHaveBeenCalled();
+    // a campaign post scheduled by hand and cancelled by hand stays off too
+    unlinkByYou(UID, "cmp_c-1_7");
+    expect(draft(7)).toMatchObject({ cancelledBy: "you" });
+    expect(await L.resumeLaunch(UID, "c-1", NOW)).toBeNull();
+    expect(z.schedule).not.toHaveBeenCalled();
   });
 });

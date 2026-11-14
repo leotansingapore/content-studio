@@ -69,6 +69,8 @@ export interface DraftEntry {
   // Post it for me: the post Zernio is publishing for it (autoPost.ts). Not security state: the
   // server checks the post is the adviser's on every call.
   zernio?: ZernioLink;
+  /** "you": the person took a post a launched campaign sent off Zernio by hand, so Resume and the send loop leave it (campaignLaunch.ts). */
+  cancelledBy?: "you";
   // The post, ad or trend it was remixed from: a snapshot, so it still shows once the original rotates out.
   source?: RemixSource;
   // How the Remix sheet made it (remixJob.ts).
@@ -588,6 +590,17 @@ export function setDraftAttached(userId: string, id: string, keys: string[]): Dr
     return updated;
   });
   return saveDrafts(userId, next);
+}
+
+/**
+ * The person's own cancel (the chip's Cancel post, the calendar's Cancel auto-post): the link comes off, and a
+ * campaign's post (or one a launched campaign sent) is marked cancelledBy "you", so the campaign never sends it by itself.
+ */
+export function unlinkByYou(userId: string, id: string): DraftEntry[] {
+  const d = loadDrafts(userId).find((x) => x.id === id);
+  const mark = !!d && (!!d.campaign || d.zernio?.by === "launch");
+  const next = setDraftZernio(userId, id, null);
+  return mark ? saveDrafts(userId, next.map((x) => (x.id === id ? { ...x, cancelledBy: "you" as const } : x))) : next;
 }
 
 export function setDraftZernio(userId: string, id: string, link: ZernioLink | null): DraftEntry[] {

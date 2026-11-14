@@ -275,6 +275,24 @@ describe("Post it for me for everyone else", () => {
   });
 });
 
+describe("cancelling a campaign's post by hand", () => {
+  it("marks it cancelled by you, so a launched campaign never sends it again by itself", async () => {
+    const scheduled = { ...dated, campaign: { id: "c-1", post: 2, day: 2 }, zernio: { key: "k1", postId: "zp1", status: "scheduled", by: "launch" as const } };
+    local.setItem(DRAFTS, JSON.stringify([scheduled]));
+    fn.answers.post = () => ({ post: view("scheduled") });
+    fn.answers.cancel = () => ({ cancelled: true });
+    const props = { userId: UID, draft: scheduled, onDrafts: vi.fn() };
+    button(await draw(ZernioStatus, props), (w) => w === "Scheduled").props.onClick!();
+    await settle();
+    button(await draw(ZernioStatus, props), (w) => w === "Cancel post").props.onClick!();
+    button(await draw(ZernioStatus, props), (w) => w === "Confirm cancel").props.onClick!();
+    await settle();
+    const [stored] = JSON.parse(local.getItem(DRAFTS) ?? "[]");
+    expect(stored.zernio).toBeUndefined();
+    expect(stored.cancelledBy).toBe("you");
+  });
+});
+
 describe("Post it for me in Leo's Activity", () => {
   /** Oldest first, without the ids and times. */
   const rows = () => loadActivity(UID, activityMonths(UID)).reverse().map(({ who, kind, title, detail, link }) => ({ who, kind, title, detail, link }));

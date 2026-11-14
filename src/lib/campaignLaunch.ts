@@ -12,6 +12,8 @@
 // again before every post (so a post that went another way meanwhile is never sent twice), stops once the campaign is
 // paused or gone (taking the post it was sending back off Zernio), and a Launch or make that asks while it runs makes
 // it plan once more before it stops. Times are the ones the calendar shows: each draft's own zone, Singapore when unsaid.
+// Opening a running campaign (its page, /campaigns) resumes the loop a closed tab left (resumeLaunch), and a post the
+// person took off Zernio by hand (draft cancelledBy "you", draftHistory.unlinkByYou) is never sent again by itself.
 
 import {
   NEEDS_MEDIA, canCancel, cancelPost, platformProblem, postText, whenLabel, zernioTime, type MediaFile,
@@ -80,6 +82,11 @@ export function launchPlan(
     if (!d) continue; // gone from My posts: nothing to send
     if (isSent(d)) {
       plan.sent.push(p.n);
+      continue;
+    }
+    // the person took this one off Zernio by hand: it stays theirs to post
+    if (d.cancelledBy === "you") {
+      plan.you.push(p.n);
       continue;
     }
     const tz = postZone(d);
@@ -174,13 +181,23 @@ async function sendOne(userId: string, c: Campaign, it: LaunchItem, accounts: Ac
   };
   try {
     const media = await mediaFor(userId, p, d);
+    // read again after the slides: while they rendered the post may have gone by hand, from another tab, or come off
+    // the calendar. From this read to the key saved on the draft (sendScheduled's first step) nothing is awaited.
+    const fresh = () => {
+      const now = loadDrafts(userId).find((x) => x.id === d.id);
+      return now && !isSent(now) && now.cancelledBy !== "you" ? now : null;
+    };
+    let cur = fresh();
+    if (!cur) return;
     // Zernio made it and failed it at once: that post comes off and this goes as a new one (as the schedule steps do)
-    if (d.zernio?.postId && d.zernio.status === "failed") {
-      await cancelPost(profileId, d.zernio.postId).catch(() => undefined);
-      setDraftZernio(userId, d.id, null);
+    if (cur.zernio?.postId && cur.zernio.status === "failed") {
+      await cancelPost(profileId, cur.zernio.postId).catch(() => undefined);
+      setDraftZernio(userId, cur.id, null);
+      cur = fresh();
+      if (!cur) return;
     }
-    // an earlier try that never heard back goes again with its own key, so it never posts twice
-    const key = d.zernio && !d.zernio.postId && d.zernio.status !== "failed" ? d.zernio.key : crypto.randomUUID();
+    // an earlier try that never heard back (here or in another tab) goes again with its own key, so it never posts twice
+    const key = cur.zernio && !cur.zernio.postId ? cur.zernio.key : crypto.randomUUID();
     const post = await sendScheduled(userId, profileId, d.id, { key, accountIds: it.accountIds, content: it.content, media, at: it.at, tz: it.tz, by: "launch" });
     const kept = loadDrafts(userId).some((x) => x.id === d.id);
     // paused, deleted, or Undo took the post off the calendar while it went up: it comes off Zernio too
@@ -285,6 +302,26 @@ export async function pauseCampaign(userId: string, campaignId: string, now = Da
     }
   }
   return { ok: true, cancelled, failed };
+}
+
+/**
+ * A launched campaign that isn't paused, opened again (its page or /campaigns): a tab closed or reloaded mid-launch
+ * left posts unsent, so the send loop picks them up, under the same one-loop guard. The accounts are read (or the last
+ * read kept) only when some made post could still go.
+ */
+export async function resumeLaunch(userId: string, campaignId: string, now = Date.now()): Promise<SendResult | null> {
+  const c = live(userId, campaignId);
+  if (!c?.accountIds?.length) return null;
+  // LinkedIn takes words and pictures, so a stand-in LinkedIn account per pick finds every post that might go
+  const standIn = c.accountIds.map((id) => ({ id, platform: "linkedin", needsReconnect: false }));
+  if (!launchPlan(c, loadDrafts(userId), standIn, loadBrand(userId), now).go.length) return null;
+  let accounts: AccountView[];
+  try {
+    accounts = await readAccounts(activeProfileId(userId), false);
+  } catch {
+    return null; // offline or switched off: the next visit tries again
+  }
+  return sendLoop(userId, campaignId, accounts, now);
 }
 
 /** A post just made while its campaign runs (launched, not paused, with accounts): it goes as Launch would have sent it. */

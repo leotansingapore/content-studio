@@ -15,7 +15,7 @@ import { links } from "@/lib/links";
 import { activeProfileId } from "@/lib/profiles";
 import { isNotEnabled, platformName } from "@/lib/socialConnect";
 import { cancelPost, chipOf, linkFromView, postedNow, retryPost, tiktokReason, wallIn, zoneLabel, type PostView } from "@/lib/autoPost";
-import { draftStatus, draftsChanged, loadDrafts, restoreDraft, setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
+import { draftStatus, draftsChanged, loadDrafts, restoreDraft, setDraftStatus, setDraftZernio, unlinkByYou, type DraftEntry } from "@/lib/draftHistory";
 import { MAX_TRIES, loadOutbox, onOutbox, saveOutbox, settleOutbox, zernioOps, runOutbox, type Outbox, type OutboxOp, type SendResult } from "@/lib/zernioOutbox";
 
 /** tz: the zone the post was scheduled in, sent only when it isn't Singapore (as before 28 Oct). */
@@ -64,7 +64,7 @@ async function sendOne(userId: string, profileId: string, op: OutboxOp, gone: st
     }
     await cancelPost(profileId, op.postId);
     gone.push(op.postId);
-    if (d) setDraftZernio(userId, d.id, null);
+    if (d) unlinkByYou(userId, d.id);
     log(userId, d, `Cancelled posting ${noun(op.title)}`, "Zernio won't post it.");
     return "done";
   } catch (e) {
