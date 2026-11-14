@@ -256,11 +256,11 @@ so one that is gone shows everything.
 | /social-north-star | example | Leo only. `<platform>:<post id>` of a play's example: scrolled to and marked. One no longer in the plan is removed with a toast | none | set by links | /social-north-star?example=instagram:DdTFZP7iKoS#tips-carousel |
 | /swipe | kind | Leo only. foryou tab: organic, ads | both | replace | /swipe?tab=foryou&kind=ads |
 | /swipe | hidden | Leo only. foryou tab: only (the cards you hid, each with Unhide) | off | replace | /swipe?tab=foryou&hidden=only |
-| /swipe | q | Leo only. search tab: the search, filled in, with its saved results if any (searching again is a tap, since it is paid); foryou and hooks tabs: search text | empty | replace | /swipe?tab=search&q=cpf |
+| /swipe | q | Leo only. search tab: the search, filled in, with its saved results if any (searching again is a tap, since it is paid); foryou and hooks tabs: search text; similar tab: words found in a post's caption or its account's name or handle | empty | replace | /swipe?tab=search&q=cpf |
 | /swipe | platform | Leo only. search tab: tiktok, youtube, slideshow (TikTok photo slideshows only); ads tab (the library): facebook, instagram, messenger, threads | all | replace | /swipe?tab=search&q=cpf&platform=tiktok |
-| /swipe | sort | Leo only. search tab: reach, views, engagement, newest; ads tab (the library): relevant, longest, newest | reach on search, relevant on ads | replace | /swipe?tab=search&q=cpf&sort=views |
+| /swipe | sort | Leo only. search tab: reach, views, engagement, newest; ads tab (the library): relevant, longest, newest; similar tab: views, newest | reach on search, relevant on ads, the outlier score on similar | replace | /swipe?tab=search&q=cpf&sort=views |
 | /swipe | posted | Leo only. search tab: 30d, 90d, any | 90d | replace | /swipe?tab=search&q=cpf&posted=30d |
-| /swipe | scope | Leo only. ads tab: a competitor id, space (Your space), sg (the Singapore drop) | all | replace | /swipe?tab=ads&scope=space |
+| /swipe | scope | Leo only. ads tab: a competitor id, space (Your space), sg (the Singapore drop); similar tab: an account's chip, `<platform>:<handle>`, with its details and Not this one under the chips | all | replace | /swipe?tab=ads&scope=space |
 | /swipe | hook | Leo only. ads tab: problem, desire, curiosity, proof, audience, offer, instruction (HOOK_FAMILIES in supabase/functions/_shared/tags.ts) | all | replace | /swipe?tab=ads&hook=problem |
 | /swipe | running | Leo only. ads tab: only (running now) | off | replace | /swipe?tab=ads&running=only |
 | /swipe | run | Leo only. ads tab: 7, 30, 90 (running at least that many days) | any length | replace | /swipe?tab=ads&run=30 |

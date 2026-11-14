@@ -2,7 +2,7 @@
 // Instagram and TikTok posts, ranked by the outlier score (each post against its own account's usual), with a pace
 // table per account and the weekly check (opening the view checks whatever is 7+ days old). Checks run outside React
 // in src/lib/competitorPosts.ts. ?c= is the pill, ?platform= and ?sort= the filters, ?post= marks one post.
-import { Fragment, type ReactNode, useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowSquareOutIcon, CircleNotchIcon, ArrowsClockwiseIcon, ShuffleIcon } from "@phosphor-icons/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
@@ -237,15 +237,13 @@ export function SkeletonCard() {
   );
 }
 
-/** One post with its outlier badge, Remix and Open; also Apps like yours' card (`children` adds to the buttons, `media` sits on top). */
-export function PostCard({ f, name, path, linked, media, children }: {
+/** One post with its outlier badge, Remix and Open. */
+function PostCard({ f, name, path, linked }: {
   f: Pick<FeedPost, "account" | "post" | "outlier" | "fresh">;
   name: string;
   /** The post's own link, for Copy link. */
   path: string;
   linked: boolean;
-  media?: ReactNode;
-  children?: ReactNode;
 }) {
   const ref = useScrollToItem<HTMLElement>(linked);
   const { post: p, account: a } = f;
@@ -259,7 +257,6 @@ export function PostCard({ f, name, path, linked, media, children }: {
         {f.fresh && <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">New</span>}
         <CopyLinkButton path={path} label={`Copy link to ${name}'s post`} className="-my-2 -mr-2 ml-auto" />
       </div>
-      {media}
       <p className="text-[11px] text-muted-foreground">{[kind, p.postedAt ? dayMonth(p.postedAt) : "", NAME[a.platform]].filter(Boolean).join(", ")}</p>
       <p className="truncate text-[11px] font-medium">{name} <span className="font-normal text-muted-foreground">@{a.handle}</span></p>
       <p className="line-clamp-2 text-xs">{p.caption || "No caption"}</p>
@@ -275,7 +272,6 @@ export function PostCard({ f, name, path, linked, media, children }: {
             <a href={open} target="_blank" rel="noopener noreferrer"><ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open</a>
           </Button>
         )}
-        {children}
       </div>
     </article>
   );

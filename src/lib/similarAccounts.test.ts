@@ -327,3 +327,62 @@ describe("Apps like yours: another tab or device", () => {
   });
 });
 
+
+describe("Apps like yours: the Radar layout's account chips, search and sorts", () => {
+  const entry = (handle: string, name = handle) => ({ ...found(handle, { platform: "tiktok", name }), addedAt: "x" });
+  // app_one: a 50k hit 20 days old over six usual posts, so the outlier order and the newest order differ
+  const ones = [post("hit", 20, { views: 50_000, caption: "Pet care that sticks" }), ...Array.from({ length: 6 }, (_, k) => post(`n${k}`, k + 6, { views: 1000 + k }))];
+  const st = () => ({
+    accounts: [entry("app_one", "Finch"), entry("app_two", "Tiimo"), entry("unread")],
+    posts: {
+      "tiktok:app_one": s.applySimilarCheck(undefined, read("app_one", ones)),
+      "tiktok:app_two": s.applySimilarCheck(undefined, read("app_two", [post("t1", 3, { caption: "Self care Sunday", views: 200, format: "carousel" })])),
+    },
+    dismissed: [], month: null,
+  });
+  const view = (o: Partial<Parameters<typeof s.similarView>[1]> = {}) => s.similarView(st(), { f: "all", q: "", account: "all", sort: "outlier", ...o }, NOW);
+
+  it("counts All and one chip per account on the list, in its order, an unread one at 0", () => {
+    const v = view();
+    expect(v.all).toBe(8);
+    expect(v.accounts.map((a) => [a.key, a.n])).toEqual([["tiktok:app_one", 7], ["tiktok:app_two", 1], ["tiktok:unread", 0]]);
+    expect(v.cards).toHaveLength(8);
+    expect(v.line).toBe("8 posts from 2 accounts");
+  });
+
+  it("narrows to one account's chip, its count line singular, and reads a chip no longer on the list as All", () => {
+    const one = view({ account: "tiktok:app_two" });
+    expect(one.account).toBe("tiktok:app_two");
+    expect(one.cards.map((p) => p.key)).toEqual(["tiktok:t1"]);
+    expect(one.line).toBe("1 post from 1 account");
+    expect(one.all).toBe(8); // the All chip still counts everyone
+    const gone = view({ account: "tiktok:dismissed_one" });
+    expect(gone.account).toBe("all");
+    expect(gone.cards).toHaveLength(8);
+  });
+
+  it("keeps posts with every search word in the caption, the name or the handle, and counts the chips under it", () => {
+    expect(view({ q: "self CARE" }).cards.map((p) => p.key)).toEqual(["tiktok:t1"]);
+    expect(view({ q: "care" }).cards.map((p) => p.key).sort()).toEqual(["tiktok:hit", "tiktok:t1"]);
+    expect(view({ q: "care" }).accounts.map((a) => a.n)).toEqual([1, 1, 0]);
+    expect(view({ q: "tiimo" }).cards.map((p) => p.key)).toEqual(["tiktok:t1"]);
+    expect(view({ q: "app_one" }).cards).toHaveLength(7);
+    expect(view({ q: "care nowhere" }).cards).toEqual([]);
+    expect(view({ q: "care nowhere" }).line).toBe("0 posts from 0 accounts");
+  });
+
+  it("sorts by the outlier score by default, else by views or newest", () => {
+    expect(view().cards[0].key).toBe("tiktok:hit");
+    const views = view({ sort: "views" }).cards.map((p) => p.post.views ?? -1);
+    expect(views).toEqual([...views].sort((a, b) => b - a));
+    const newest = view({ sort: "newest" }).cards.map((p) => Date.parse(p.post.postedAt ?? ""));
+    expect(newest).toEqual([...newest].sort((a, b) => b - a));
+    expect(view({ sort: "newest" }).cards[0].key).toBe("tiktok:t1");
+  });
+
+  it("applies the Filters panel's format filter before the chips count", () => {
+    expect(view({ f: "carousels" }).all).toBe(0); // carousels are Instagram's; Tiimo's is a TikTok slideshow
+    expect(view({ f: "slideshows" }).accounts.map((a) => a.n)).toEqual([0, 1, 0]);
+    expect(view({ f: "reels" }).accounts.map((a) => a.n)).toEqual([7, 0, 0]);
+  });
+});

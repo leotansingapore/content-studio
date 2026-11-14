@@ -38,33 +38,36 @@ He set a monthly cap of US$40 for the whole feature, and keeps naming accounts h
 
 ## Build
 
-A tab "Apps like yours" on `/swipe` (`?tab=similar`) for brands that aren't an adviser's, Leo's sign-ins only, and the default tab there. Adviser brands keep Top posts as they are. On a brand that isn't an adviser's, Leo's page heading and browser title name the open tab, and his Radar tab reads Swipe file, the name over its six tabs (it said News, then Apps like yours, both also the names of its tabs); everyone else's page keeps News or Top posts. The tab has no heading of its own under the page's: its top row is the account count and the month's spend.
+A tab "Apps like yours" on `/swipe` (`?tab=similar`) for brands that aren't an adviser's, Leo's sign-ins only, and the default tab there. Adviser brands keep Top posts as they are. On a brand that isn't an adviser's, Leo's page heading and browser title name the open tab, and his Radar tab reads Swipe file, the name over its six tabs (it said News, then Apps like yours, both also the names of its tabs); everyone else's page keeps News or Top posts. The tab has no heading of its own under the page's (whose one line under the h1 says what it is for), and since 14 Nov it is laid out as the ad library is, Radar's layout (Leo: "follow this layout"): search with Filters and Sort, a chip per account, the count line, the card grid, then finding and adding under the cards.
 
 ### Screens and states
 
 ```
-Apps like yours  44                                        US$7.21 of US$40 this month
-[ Find apps like yours ]  Up to US$6.02 | 2 left after this
-[ Add an account you like: @handle or profile link ] [Add]
-+------------------+ +------------------+ +------------------+
-| Structured       | | Tiimo            | | Dr. Tish         |   (scrolls sideways)
-| @structured.app IG | @tiimoapp IG     | | @truly_tish_adhd |
-| App or brand 210k| | Added  43.1k     | | Creator 88k      |
-| Not this one     | | Not this one     | | Not this one     |
-[ All ] [ Slideshows ] [ Carousels ] [ Reels ] [ UGC ]   (i)
-+---------+ +---------+ +---------+
-| 4.1x their usual
-| Carousel, 12 Oct, TikTok
+[ Search captions and accounts            ] [Filters] [Sort: Outlier score]
+[ All 212 ] [S Structured 30] [T Tiimo 28] [D Dr. Tish 0] ...   (scrolls sideways)
+@tiimoapp Instagram  Added  43.1k followers  [Not this one]       (with an account's chip on)
+212 posts from 38 accounts (i)
++--------------+ +--------------+ +--------------+ +--------------+ +--------------+
+| 4.1x usual   | |              | |              | |              | |              |
+|  (the post,  | |              | |              | |              | |              |
+|   plays here)| |              | |              | |              | |              |
+|   [Remix]    | |              | |              | |              | |              |
 | Structured @structured.app
 | caption, two lines...
-| [Remix] [Open] [Save]
+| TikTok slideshow | 12 Oct
+| 12k views, 340 likes, 12 comments
+| [Save] [Open]   (link)
+---------------------------------------------------------------------------------
 Reading @tiimoapp, about a minute, 12 more after it...
+[ Find apps like yours ]  Up to US$6.02 | 2 left after this     US$7.21 of US$40 this month
+[ Add an account you like: @handle or profile link ] [Add]
+The formats that win among these: Social north star
 We read each account's newest posts once a week, when you open this tab.
 ```
 
 States:
 
-- Empty: "See how apps and creators like yours post on Instagram and TikTok, then remix their best." and the Find button (with the add box under it).
+- Empty: the Find button with the add box under it, and nothing else (the page's line under the h1 says what the tab is for).
 - Finding: the button spins and "Looking on Instagram and TikTok, about two minutes..." shows at once; the job runs outside React, so leaving the page keeps it going.
 - Found: "Found 12 new accounts. Reading their posts now." Then the posts come in one account at a time, 30 each on the first read, under "Reading @x, about a minute, n more after it..." with skeleton cards until the first lands.
 - Jev answered nothing: "Couldn't judge the accounts right now, so nothing new was kept." The uses stay counted: Apify and OpenAI already answered and billed.
@@ -72,21 +75,22 @@ States:
 - 40 found accounts: the button is off with "You have 40. Take some out with Not this one to find others."
 - Over the month: "Apps like yours has used this month's US$40. It starts again on 1 December." (the server's line).
 - Over the daily cap: the server's line. Across everyone: "Finding accounts is paused for today. It resumes at 8am Singapore time."
-- A filter with nothing in it: "No slideshows yet. Show all".
-- An account that turns out private or missing says why on its own card, and the round moves on to the next.
+- A search, chip or filter with nothing in it: "No posts match these filters." and Clear; an account's chip with nothing read yet: "Nothing read from @x yet."
+- An account that turns out private or missing gets a warning mark on its chip and says why beside its details, and the round moves on to the next.
 - A linked post that is no longer stored gets "That post is no longer here" and the param drops.
 
-Filters: Slideshows are TikTok photo posts (`isSlideshow`, stored as format carousel), Carousels are Instagram carousels, Reels are videos on either, UGC is any post from an account Jev called a creator. Sorted by the outlier score, then newest.
+Filters: Slideshows are TikTok photo posts (`isSlideshow`, stored as format carousel), Carousels are Instagram carousels, Reels are videos on either, UGC is any post from an account Jev called a creator. Sorted by the outlier score, then newest; Sort also offers Most views and Newest.
 
 "Add an account you like" takes an @handle, a bare handle (structured.app reads as a handle here) or an Instagram or TikTok profile link (`parseInput`). A profile link adds at once; a handle asks "Instagram" or "TikTok". Added accounts are kept whatever happens: never judged by Jev, never dropped by the follower floor, never counted toward the 40 found ones, and their posts are read like the rest. Up to 10. They also go to each find as seeds. "Not this one" takes any account and its posts out, and no find brings it back; adding it by hand does.
 
 ### Copy
 
-- Tab "Apps like yours"; heading "Apps like yours" with a count chip; "US${x} of US$40 this month"
+- Tab "Apps like yours"; heading "Apps like yours"; "US${x} of US$40 this month" beside Find
 - Button "Find apps like yours"; progress "Looking on Instagram and TikTok, about two minutes..."
 - Box "Add an account you like: @handle or profile link", "Add", "@{handle} on [Instagram] [TikTok]", "Added @{handle}. Reading its posts now.", "That account is already on your list.", "You can add up to 10. Take one out with Not this one first.", "Paste an @handle or an Instagram or TikTok profile link."
-- Account card: name, "@{handle} IG|TT", badge "App or brand", "Creator" or "Added", "{n} followers", "Not this one"
-- Chips "All", "Slideshows", "Carousels", "Reels", "UGC"
+- Search "Search captions and accounts"; Sort "Outlier score", "Most views", "Newest"; "{n} posts from {m} accounts"
+- Account chip: initial, name, post count; its details: "@{handle} Instagram|TikTok", badge "App or brand", "Creator" or "Added", "{n} followers", "Not this one"
+- Filters chips "All", "Slideshows", "Carousels", "Reels", "UGC"
 - Footer "We read each account's newest posts once a week, when you open this tab."
 
 ### Data

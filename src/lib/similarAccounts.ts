@@ -395,6 +395,42 @@ export function similarFeed(s: SimilarState, f: SimilarFilter = "all", now = Dat
     const scores = scoreAccount(a.posts, now);
     for (const p of a.posts) if (inFilter(f, e, p)) out.push({ key: `${e.platform}:${p.id}`, entry: e, account: a, post: p, outlier: scores[p.id], fresh: a.fresh.includes(p.id) });
   }
-  const time = (p: TrackedPost) => (p.postedAt ? Date.parse(p.postedAt) || 0 : 0);
   return out.sort((x, y) => byOutlier(x.outlier, y.outlier) || time(y.post) - time(x.post));
+}
+const time = (p: TrackedPost) => (p.postedAt ? Date.parse(p.postedAt) || 0 : 0);
+
+export type SimilarSort = "outlier" | "views" | "newest";
+export const SIMILAR_SORTS: SimilarSort[] = ["outlier", "views", "newest"];
+export interface SimilarView {
+  /** The account chip in force: one no longer on the list reads as all. */
+  account: string;
+  /** The All chip: every post the filter and the search keep. */
+  all: number;
+  /** One chip per account on the list, in its order (added, then found best first); an unread one counts 0. */
+  accounts: { key: string; entry: SimilarEntry; n: number }[];
+  cards: SimilarPost[];
+  /** "24 posts from 6 accounts". */
+  line: string;
+}
+const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
+
+/** What the tab shows for ?f=, ?q=, ?scope= (an account) and ?sort=. Every search word must be in the caption, the name or the handle. */
+export function similarView(s: SimilarState, o: { f: SimilarFilter; q: string; account: string; sort: SimilarSort }, now = Date.now()): SimilarView {
+  const words = o.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const kept = similarFeed(s, o.f, now).filter((p) => {
+    const hay = `${p.post.caption} ${p.entry.name} ${p.entry.handle}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
+  });
+  const accounts = s.accounts.map((entry) => {
+    const key = accountKey(entry);
+    return { key, entry, n: kept.filter((p) => accountKey(p.entry) === key).length };
+  });
+  const account = accounts.some((a) => a.key === o.account) ? o.account : "all";
+  const mine = account === "all" ? kept : kept.filter((p) => accountKey(p.entry) === account);
+  // a stable sort: ties keep the outlier order
+  const cards = o.sort === "views" ? [...mine].sort((x, y) => (y.post.views ?? -1) - (x.post.views ?? -1))
+    : o.sort === "newest" ? [...mine].sort((x, y) => time(y.post) - time(x.post))
+    : mine;
+  const from = new Set(cards.map((p) => accountKey(p.entry))).size;
+  return { account, all: kept.length, accounts, cards, line: `${plural(cards.length, "post")} from ${plural(from, "account")}` };
 }

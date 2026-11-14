@@ -1,36 +1,42 @@
 // Apps like yours (/swipe?tab=similar, Leo's sign-ins on every brand;
 // docs/north-star/items/find-similar-accounts.md): Instagram and TikTok accounts like the brand, found or added by hand,
-// and their posts, best outlier score first. ?f= filters, ?post= marks one post. Finding and reading run outside React
-// (src/lib/similarAccounts.ts); this draws the store and the jobs.
+// and their posts, best outlier score first, laid out as the ad library is (Radar's layout): search with Filters and
+// Sort, a chip per account, the count line and the card grid. ?q=, ?scope= (an account), ?sort= and ?f= live in the URL;
+// ?post= marks one post. Finding and reading run outside React (src/lib/similarAccounts.ts); this draws the store and
+// the jobs.
 import { refreshCloudKeys } from "@/lib/cloudSync";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CircleNotchIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
-import { PostCard, SkeletonCard } from "@/components/competitors/TheirPosts";
-import { OutlierScoreTip } from "@/components/OutlierBadge";
+import { ArrowSquareOutIcon, CircleNotchIcon, FunnelIcon, MagnifyingGlassIcon, ShuffleIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { SkeletonCard } from "@/components/competitors/TheirPosts";
+import OutlierBadge, { OutlierScoreTip } from "@/components/OutlierBadge";
 import PriceChip from "@/components/PriceChip";
+import RemixButton from "@/components/remix/RemixButton";
 import SaveButton from "@/components/SaveButton";
 import VideoEmbed from "@/components/VideoEmbed";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Input } from "@/components/ui/input";
+import { Pick } from "@/components/ui/pick";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { type FollowPlatform, watchText } from "@/lib/following";
+import { safeExternalUrl } from "@/lib/embed";
+import { type FollowPlatform, postKind, remixUrl, watchText } from "@/lib/following";
 import { links } from "@/lib/links";
 import { priceOf, readLabel, reasonText, sumPrices } from "@/lib/prices";
-import { fromFollowPost } from "@/lib/remixSource";
+import { dayMonth, fromFollowPost } from "@/lib/remixSource";
 import {
   accountKey, addAccount, type AddResult, autoFindDue, dismissAccount, isFinding, isReading, lastFind, loadMedia, loadSimilar, onSimilar, onSimilarChanged, readsAhead, refreshSimilar,
-  readAddInput, readFailure, readingAny, readsStopped, readWaitingSimilar, runDueSimilar, runFind, SIMILAR_FILTERS, type SimilarEntry, type SimilarFilter, similarBusy, similarFeed, similarKey,
-  waitingSimilar,
+  readAddInput, readFailure, readingAny, readsStopped, readWaitingSimilar, runDueSimilar, runFind, SIMILAR_FILTERS, SIMILAR_SORTS, type SimilarEntry, type SimilarFilter, type SimilarPost,
+  type SimilarSort, similarBusy, similarFeed, similarKey, similarView, waitingSimilar,
 } from "@/lib/similarAccounts";
-import { useGoneItem, useUrlItem, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { SIMILAR_KEEP } from "../../../supabase/functions/competitors/logic.ts";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const PAGE = 24;
 const FILTER_LABEL: Record<SimilarFilter, string> = { all: "All", slideshows: "Slideshows", carousels: "Carousels", reels: "Reels", ugc: "UGC" };
-const SHORT = { instagram: "IG", tiktok: "TT" } as const;
+const SORT_OPTIONS: [SimilarSort, string][] = [["outlier", "Outlier score"], ["views", "Most views"], ["newest", "Newest"]];
 const NAME = { instagram: "Instagram", tiktok: "TikTok" } as const;
 const KIND = { app_or_brand: "App or brand", creator: "Creator" } as const;
 const ADD_LINE: Record<Exclude<AddResult, "added">, string> = {
@@ -59,13 +65,19 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   }, [userId]);
 
   const [f, setF] = useUrlState<SimilarFilter>("f", "all", { allowed: SIMILAR_FILTERS });
+  const [text, setText, q] = useUrlSearch("q");
+  const [scope] = useUrlState<string>("scope", "all");
+  const [sort, setSort] = useUrlState<SimilarSort>("sort", "outlier", { allowed: SIMILAR_SORTS });
+  const update = useUrlUpdate();
+  const [showFilters, setShowFilters] = useState(f !== "all");
   const [linked] = useUrlItem("post");
   const [limit, setLimit] = useState(PAGE);
   const state = useMemo(() => loadSimilar(userId), [userId, version]);
   // the best posts' covers, kept on this device by the reads, behind each card's play button
   const media = useMemo(() => loadMedia(userId), [userId, version]);
   const all = useMemo(() => similarFeed(state), [state]);
-  const feed = f === "all" ? all : similarFeed(state, f);
+  const view = useMemo(() => similarView(state, { f, q, account: scope, sort }), [state, f, q, scope, sort]);
+  useEffect(() => setLimit(PAGE), [f, q, view.account, sort]);
   // an empty store may still be syncing, so it decides nothing
   useGoneItem("post", state.accounts.length ? all.some((p) => p.key === linked) : undefined);
 
@@ -94,17 +106,26 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
   const readLeft = useUsesLeft(reading)("similar-posts");
   const readWhy = reasonText({ left: readLeft, uses: unread.length, leo: true });
   const busy = similarBusy();
-  const at = feed.findIndex((p) => p.key === linked);
-  const shown = feed.slice(0, Math.max(limit, at + 1));
-  const skeletons = Boolean(now && !state.posts[accountKey(now)]);
+  const at = view.cards.findIndex((p) => p.key === linked);
+  const shown = view.cards.slice(0, Math.max(limit, at + 1));
+  const skeletons = Boolean(now && !state.posts[accountKey(now)] && (view.account === "all" || view.account === accountKey(now)));
+  const has = state.accounts.length > 0;
+  const picked = view.accounts.find((a) => a.key === view.account);
+  const pickAccount = (key: string) => update({ scope: key === "all" ? null : key });
+  const clear = () => {
+    setText("");
+    update({ q: null, f: null, scope: null });
+  };
+  const sortPick = <Pick label="Sort" value={sort} onChange={(v) => setSort(v as SimilarSort)} options={SORT_OPTIONS} />;
 
   const find = (
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Button variant={unread.length ? "outline" : "default"} className={`h-10 gap-2 ${TOUCH}`} onClick={() => void runFind(userId)} disabled={finding || Boolean(why)}>
+        <Button variant={unread.length || has ? "outline" : "default"} className={`h-10 gap-2 ${TOUCH}`} onClick={() => void runFind(userId)} disabled={finding || Boolean(why)}>
           {finding ? <CircleNotchIcon className="h-4 w-4 animate-spin" /> : <MagnifyingGlassIcon className="h-4 w-4" />} Find apps like yours
         </Button>
         {!finding && <PriceChip feature="similar-find" price={price} left={left} />}
+        {state.month && <span className="text-xs tabular-nums text-muted-foreground sm:ml-auto">US${state.month.spent.toFixed(2)} of US${state.month.cap} this month</span>}
       </div>
       {why && !finding && <p className="text-xs text-muted-foreground">{why}</p>}
       {finding && (
@@ -116,33 +137,72 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
       {(state.searches?.length ?? 0) > 0 && !finding && <p className="text-xs text-muted-foreground">Searched TikTok for {state.searches?.join(", ")}.</p>}
     </div>
   );
+  // finding and adding fill the chip row: first on an empty tab, under the posts once there are accounts (as the ad
+  // library keeps Your space's words under its cards)
+  const tools = (
+    <div className="space-y-3">
+      {find}
+      <AddAccount userId={userId} />
+    </div>
+  );
 
   return (
-    // the page's h1 names the tab, so its top row is the count and the month's spend
     <section className="min-w-0 space-y-4" aria-label="Apps like yours">
-      {(state.accounts.length > 0 || state.month) && (
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          {state.accounts.length > 0 && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">{state.accounts.length} {state.accounts.length === 1 ? "account" : "accounts"}</span>}
-          {state.accounts.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              The formats that win among these:{" "}
-              <Link to={links.socialNorthStar()} className="font-medium text-primary hover:underline [@media(pointer:coarse)]:py-3">Social north star</Link>
-            </p>
+      {!has ? tools : (
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search captions and accounts" aria-label="Search posts"
+                className="pl-9 [@media(pointer:coarse)]:h-11" />
+            </div>
+            <Button variant={showFilters || f !== "all" ? "secondary" : "outline"} onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters}
+              className={`shrink-0 gap-1.5 ${TOUCH}`}>
+              <FunnelIcon className="h-3.5 w-3.5" /> Filters
+              {f !== "all" && <span className="ml-0.5 rounded-full bg-primary/15 px-1.5 text-[10px] font-bold text-primary">1</span>}
+            </Button>
+            <span className="hidden sm:inline-flex">{sortPick}</span>
+          </div>
+
+          <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1" role="group" aria-label="Whose posts">
+            <FilterChip active={view.account === "all"} onClick={() => pickAccount("all")} count={view.all}>All</FilterChip>
+            {view.accounts.map((a) => {
+              const busyOne = isReading(a.key);
+              return (
+                <FilterChip key={a.key} active={view.account === a.key} onClick={() => pickAccount(a.key)} count={busyOne ? undefined : a.n}>
+                  {busyOne ? (
+                    <CircleNotchIcon className="h-3 w-3 animate-spin" aria-label={`Reading @${a.entry.handle}`} />
+                  ) : (
+                    <span aria-hidden className="flex h-4 w-4 items-center justify-center rounded-full bg-muted text-[9px] font-bold uppercase text-foreground">
+                      {Array.from(a.entry.name.trim())[0] ?? "@"}
+                    </span>
+                  )}
+                  <span className="max-w-[10rem] truncate">{a.entry.name}</span>
+                  {readFailure(a.key) && <WarningCircleIcon className="h-3.5 w-3.5 text-destructive" aria-label="Couldn't read it" />}
+                </FilterChip>
+              );
+            })}
+          </div>
+          {/* the picked account's details, and Not this one beside the account it takes out */}
+          {picked && <AccountRow userId={userId} a={picked.entry} />}
+
+          {(showFilters || f !== "all") && (
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-border/60 pt-3" role="group" aria-label="Format">
+              {SIMILAR_FILTERS.map((id) => <FilterChip key={id} active={f === id} onClick={() => setF(id)}>{FILTER_LABEL[id]}</FilterChip>)}
+            </div>
           )}
-          {state.month && (
-            <span className="ml-auto text-xs tabular-nums text-muted-foreground">US${state.month.spent.toFixed(2)} of US${state.month.cap} this month</span>
-          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span aria-live="polite">{view.line}</span>
+              <OutlierScoreTip />
+            </div>
+            {/* a phone has no room beside the search: sort sits with the count there */}
+            <span className="ml-auto sm:hidden">{sortPick}</span>
+          </div>
         </div>
       )}
 
-      {find}
-      <AddAccount userId={userId} />
-
-      {state.accounts.length > 0 && (
-        <ul className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="Accounts">
-          {state.accounts.map((a) => <AccountCard key={accountKey(a)} userId={userId} a={a} />)}
-        </ul>
-      )}
       {unread.length > 0 && (
         <div className="space-y-1.5">
           <Button className={`h-10 gap-2 ${TOUCH}`} onClick={() => void readWaitingSimilar(userId)} disabled={busy || Boolean(readWhy)}>
@@ -152,74 +212,107 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
         </div>
       )}
 
-      {(all.length > 0 || skeletons) && (
+      {has && (shown.length > 0 || skeletons ? (
         <>
-          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter">
-            {SIMILAR_FILTERS.map((id) => (
-              <FilterChip key={id} active={f === id} onClick={() => { setF(id); setLimit(PAGE); }}>{FILTER_LABEL[id]}</FilterChip>
-            ))}
-            <OutlierScoreTip />
+          <div className="grid grid-cols-2 items-start gap-x-3 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {skeletons && Array.from({ length: 3 }, (_, k) => <SkeletonCard key={`s${k}`} />)}
+            {shown.map((p) => <SimilarCard key={p.key} p={p} linked={p.key === linked} poster={media[accountKey(p.entry)]?.[p.post.id]?.cover} />)}
           </div>
-          {shown.length === 0 && !skeletons ? (
-            <p className="text-sm text-muted-foreground">No {FILTER_LABEL[f].toLowerCase()} yet. <button type="button" className="font-medium text-primary hover:underline" onClick={() => setF("all")}>Show all</button></p>
-          ) : (
-            <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {skeletons && Array.from({ length: 3 }, (_, k) => <SkeletonCard key={`s${k}`} />)}
-              {shown.map((p) => (
-                <PostCard
-                  key={p.key} f={p} name={p.entry.name} path={links.swipe({ tab: "similar", post: p.key })} linked={p.key === linked}
-                  media={<VideoEmbed url={p.post.url} label={`${p.entry.name}'s post`} poster={media[accountKey(p.entry)]?.[p.post.id]?.cover} text={watchText(p.entry.platform, p.post.format)} className="max-w-none" />}
-                >
-                  <SaveButton source={fromFollowPost(p.account, p.post)} />
-                </PostCard>
-              ))}
-            </div>
-          )}
-          {feed.length > shown.length && (
+          {view.cards.length > shown.length && (
             <div className="flex justify-center">
               <Button variant="outline" className={`h-10 ${TOUCH}`} onClick={() => setLimit(shown.length + PAGE)}>
-                Show {Math.min(PAGE, feed.length - shown.length)} more of {feed.length - shown.length}
+                Show {Math.min(PAGE, view.cards.length - shown.length)} more of {view.cards.length - shown.length}
               </Button>
             </div>
           )}
         </>
-      )}
+      ) : all.length > 0 && (
+        <div className="space-y-3 py-8 text-center text-sm text-muted-foreground">
+          <p>{picked && !state.posts[picked.key] ? `Nothing read from @${picked.entry.handle} yet.` : "No posts match these filters."}</p>
+          <Button variant="outline" className={`h-10 ${TOUCH}`} onClick={clear}>Clear</Button>
+        </div>
+      ))}
 
-      {state.accounts.length > 0 && (
-        <div className="space-y-1 border-t border-border/60 pt-4 text-xs text-muted-foreground">
+      {has && (
+        <div className="space-y-3 border-t border-border/60 pt-4">
           {now && (
-            <p className="flex items-center gap-1.5" aria-live="polite">
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
               <CircleNotchIcon className="h-3.5 w-3.5 animate-spin" /> Reading @{now.handle}, about a minute{waiting > 1 ? `, ${waiting - 1} more after it` : ""}...
             </p>
           )}
-          {stopped && !reading && <p role="alert" className="text-destructive">{stopped.message}</p>}
-          <p>We read each account's newest posts once a week, when you open this tab.</p>
+          {stopped && !reading && <p role="alert" className="text-xs text-destructive">{stopped.message}</p>}
+          {tools}
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <p>
+              The formats that win among these:{" "}
+              <Link to={links.socialNorthStar()} className="font-medium text-primary hover:underline [@media(pointer:coarse)]:py-3">Social north star</Link>
+            </p>
+            <p>We read each account's newest posts once a week, when you open this tab.</p>
+          </div>
         </div>
       )}
     </section>
   );
 }
 
-function AccountCard({ userId, a }: { userId: string; a: SimilarEntry }) {
+function AccountRow({ userId, a }: { userId: string; a: SimilarEntry }) {
   const key = accountKey(a);
   const failed = readFailure(key);
   const badge = a.via === "added" ? "Added" : a.kind ? KIND[a.kind] : null;
   return (
-    <li className="flex w-48 shrink-0 flex-col gap-1 rounded-xl border border-border/60 bg-card p-2.5">
-      <p className="flex items-center gap-1.5 text-xs font-medium">
-        <span className="truncate">{a.name}</span>
-        {isReading(key) && <CircleNotchIcon className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" aria-label={`Reading @${a.handle}`} />}
-      </p>
-      <p className="truncate text-[11px] text-muted-foreground">@{a.handle} <span title={NAME[a.platform]}>{SHORT[a.platform]}</span></p>
-      <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        {badge && <span className="rounded-full bg-muted px-1.5 py-0.5 font-medium text-foreground">{badge}</span>}
-        {a.followers !== null && <span className="tabular-nums">{fmt(a.followers)} followers</span>}
-      </p>
-      {failed && <p className="line-clamp-2 text-[11px] text-destructive">{failed.message}</p>}
-      <Button size="sm" variant="ghost" className={`mt-auto h-8 self-start px-2 text-xs ${TOUCH}`} onClick={() => dismissAccount(userId, key)}>
-        Not this one
-      </Button>
-    </li>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span className="min-w-0 truncate font-medium text-foreground">@{a.handle} <span className="font-normal text-muted-foreground">{NAME[a.platform]}</span></span>
+      {badge && <span className="rounded-full bg-muted px-1.5 py-0.5 font-medium text-foreground">{badge}</span>}
+      {a.followers !== null && <span className="tabular-nums">{fmt(a.followers)} followers</span>}
+      {failed && <span role="alert" className="text-destructive">{failed.message}</span>}
+      <Button size="sm" variant="ghost" className={`h-8 px-2 text-xs ${TOUCH}`} onClick={() => dismissAccount(userId, key)}>Not this one</Button>
+    </div>
+  );
+}
+
+function SimilarCard({ p, linked, poster }: { p: SimilarPost; linked: boolean; poster?: string }) {
+  const ref = useScrollToItem<HTMLElement>(linked);
+  const { entry: e, account: a, post } = p;
+  const open = safeExternalUrl(post.url);
+  const numbers = [post.views !== null ? `${fmt(post.views)} views` : "", `${fmt(post.likes)} likes`, `${fmt(post.comments)} comments`].filter(Boolean).join(", ");
+  // the ad library's card: the post with its tags and Remix over it, then whose post, what it says and the numbers.
+  // Remix drops under the player once it plays, so it never covers the player's controls.
+  return (
+    <article ref={ref} className={`relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-card ${linked ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`}>
+      <div className="group relative">
+        <VideoEmbed url={post.url} label={`${e.name}'s post`} poster={poster} text={watchText(e.platform, post.format)} className="max-w-none rounded-none border-0" />
+        <span className="pointer-events-none absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-1 group-has-[iframe]:hidden">
+          <span className="rounded-full bg-background/90"><OutlierBadge outlier={p.outlier} /></span>
+          {p.fresh && <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">New</span>}
+        </span>
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center group-has-[iframe]:static group-has-[iframe]:pt-2">
+          <span className="pointer-events-auto rounded-full bg-background/90 p-0.5 shadow-sm backdrop-blur">
+            <RemixButton source={fromFollowPost(a, post)} label={`${e.name}'s post`} variant="ghost" className="h-8 rounded-full px-3 [@media(pointer:coarse)]:h-11">
+              <Button asChild size="sm" variant="ghost" className="h-8 gap-1.5 rounded-full px-3 [@media(pointer:coarse)]:h-11">
+                <Link to={remixUrl(a, post)}><ShuffleIcon className="h-3.5 w-3.5" /> Remix</Link>
+              </Button>
+            </RemixButton>
+          </span>
+        </div>
+      </div>
+      <div className="space-y-1 px-3 pb-2 pt-2.5">
+        <div className="flex items-center gap-1">
+          <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-muted-foreground">{e.name} <span className="font-normal">@{e.handle}</span></p>
+          <CopyLinkButton path={links.swipe({ tab: "similar", post: p.key })} label={`Copy link to ${e.name}'s post`} className="-my-2 -mr-2 h-8 w-8" />
+        </div>
+        <p className="line-clamp-2 text-xs font-semibold text-foreground">{post.caption || "No caption"}</p>
+        <p className="text-[11px] text-muted-foreground">{[`${NAME[e.platform]} ${postKind(e.platform, post.format).toLowerCase()}`, post.postedAt ? dayMonth(post.postedAt) : ""].filter(Boolean).join(" | ")}</p>
+        <p className="text-[11px] tabular-nums text-muted-foreground">{numbers}</p>
+        <div className="-mx-1 flex flex-wrap items-center gap-1 pt-1">
+          <SaveButton source={fromFollowPost(a, post)} />
+          {open && (
+            <Button asChild size="sm" variant="ghost" className={`h-8 gap-1.5 px-2 ${TOUCH}`}>
+              <a href={open} target="_blank" rel="noopener noreferrer"><ArrowSquareOutIcon className="h-3.5 w-3.5" /> Open</a>
+            </Button>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
 
