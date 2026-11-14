@@ -5,7 +5,8 @@
 // most 3, what it is about first, then a product, an angle, a presenter or a length, only where its maker takes one,
 // are asked one at a time in the thread. Answers wait on this device (content-studio-makeflow-<scoped uid>) so a
 // reload resumes. The last step is the agent's own priced card for a format the agent makes (agentFormat), else the
-// maker's page beside the chat with the answers in its existing address params (PAGE_TAKES, takesOf).
+// maker's page beside the chat with the answers in its existing address params (PAGE_TAKES, takesOf). A video format
+// made on its own page (formatMaker.ts: a presenter talk or an editor template) opens that page, not the editor.
 
 import { CaretCircleRightIcon, FilmSlateIcon, ImageSquareIcon, TextAaIcon, type Icon } from "@phosphor-icons/react";
 import { FORMATS, formatHref, type FormatDef } from "@/data/formats";
@@ -14,6 +15,7 @@ import type { AgentFormat } from "@/lib/agentCards";
 import { appendMsg, newMsg, type AgentMsg } from "@/lib/agentThreads";
 import { AGENT_ANSWERS, BUILT_IN_SKILLS } from "@/lib/chatSkills";
 import { CREATE_FORMATS, CREATE_KINDS, MORE_FORMATS, kindOf, kindOfFormat } from "@/lib/createFormats";
+import { lengthsOf, makerOf, type Maker } from "@/lib/formatMaker";
 import { slug as slugOf } from "@/lib/links";
 import { groupedPages, section } from "@/lib/nav";
 import { angleOrder, usedAngles } from "@/lib/photoAd";
@@ -107,6 +109,10 @@ const AGENT_TAKES = (f: AgentFormat): Partial<Record<QuestionId, string>> => (f 
 
 const pathOf = (href: string) => href.split("?")[0];
 
+/** A format made on its own page (MakeHere.tsx): a talk takes what it is about, who speaks and the length; a template its product and length. */
+const makerTakes = (m: Maker): Partial<Record<QuestionId, string>> =>
+  m.kind === "talk" ? { about: "topic", presenter: "who", length: "length" } : { ...(m.template.photos.includes("product") ? { product: "product" } : {}), length: "length" };
+
 /** What a maker's address takes, from the address itself: the video editor's AI kinds and panels, then the pages above. */
 export function takesOf(href: string, needs?: FormatDef["needs"]): Partial<Record<QuestionId, string>> {
   const [path, search = ""] = href.split("?");
@@ -172,8 +178,9 @@ function build(): MakeSkill[] {
       same.was = `${same.was} ${f.name}`;
       continue;
     }
-    // a video format opens straight on its form in the editor, as its page's "Use this format" does
-    const page = f.opens ? f.opens() : href;
+    // a video format opens straight on its form in the editor, as its page's "Use this format" does, unless its page makes it
+    const made = makerOf(f.opens?.());
+    const page = f.opens && !made ? f.opens() : href;
     const kind = kindOfFormat(f.kind);
     out.push({
       id: idFor(f.slug, f.name),
@@ -185,8 +192,8 @@ function build(): MakeSkill[] {
       price: f.price,
       href: page,
       ...(agentFormat ? { agentFormat } : {}),
-      takes: agentFormat ? AGENT_TAKES(agentFormat) : takesOf(page, f.needs),
-      ...(agentFormat === "speaking" ? { lengths: [...TALK_LENGTHS] } : page.includes("kind=explainer") ? { lengths: NARRATED_SECS } : {}),
+      takes: agentFormat ? AGENT_TAKES(agentFormat) : made ? makerTakes(made) : takesOf(page, f.needs),
+      ...(agentFormat === "speaking" ? { lengths: [...TALK_LENGTHS] } : made ? { lengths: [...lengthsOf(made)] } : page.includes("kind=explainer") ? { lengths: NARRATED_SECS } : {}),
       was: "",
       section: f.section,
     });

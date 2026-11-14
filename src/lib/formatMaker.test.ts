@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clipWordLine, lengthsOf, makerOf, spokenKeys, startLength, talkLine } from "./formatMaker";
+import { clipWordLine, lengthsOf, makeCaps, makePrice, makerOf, spokenKeys, startLength, talkLine } from "./formatMaker";
+import { priceOf, sumPrices } from "./prices";
 import { lengthFor } from "./talkingHead";
 import { templateById } from "../../supabase/functions/ai-video/templates.ts";
 
@@ -48,5 +49,26 @@ describe("the words against the length", () => {
     expect(spokenKeys(templateById("street-interview")!)).toEqual(["question", "answer"]);
     expect(spokenKeys(templateById("food-asmr")!)).toEqual([]);
     expect(spokenKeys(templateById("scene-kitchen")!)).toEqual([]);
+  });
+});
+
+describe("the price of a Make press", () => {
+  const talk = { kind: "talk", talk: "news" } as const;
+  const clip = { kind: "template", template: templateById("street-interview")! } as const;
+
+  it("prices a talk's voiceover and video at the length from the price table, and a new presenter's picture only when one is made", () => {
+    for (const length of [8, 15, 20, 30]) {
+      expect(makePrice(talk, { length, quality: "720p", presenter: false })).toEqual(sumPrices(priceOf("ai-video", { seconds: length }), priceOf("ai-voice")));
+    }
+    expect(makePrice(talk, { length: 20, quality: "720p", presenter: true })).toEqual(sumPrices(priceOf("ai-video", { seconds: 20 }), priceOf("ai-voice"), priceOf("ai-image")));
+    expect((makePrice(talk, { length: 30, quality: "720p", presenter: false }) as { usd: number }).usd).toBeGreaterThan((makePrice(talk, { length: 8, quality: "720p", presenter: false }) as { usd: number }).usd);
+    expect(makeCaps(talk, false)).toEqual(["ai-voice"]);
+    expect(makeCaps(talk, true)).toEqual(["ai-voice", "ai-image"]);
+  });
+
+  it("prices a clip at its length and quality, as the editor's Make the clip does", () => {
+    expect(makePrice(clip, { length: 4, quality: "480p", presenter: false })).toEqual(priceOf("ai-clip", { seconds: 4, quality: "480p" }));
+    expect(makePrice(clip, { length: 8, quality: "720p", presenter: true })).toEqual(priceOf("ai-clip", { seconds: 8, quality: "720p" }));
+    expect(makeCaps(clip, true)).toEqual([]);
   });
 });

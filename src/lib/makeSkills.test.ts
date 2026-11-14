@@ -57,8 +57,17 @@ describe("the make skills catalogue", () => {
     expect(skillById("talking-head")).toMatchObject({ agentFormat: "speaking", lengths: [8, 15, 20, 30] });
     // a static ad is the agent's layout card, with its page beside it and a 4:5 example
     expect(skillById("text-chat")).toMatchObject({ kind: "Static ads", agentFormat: "image", staticSlug: "text-chat", href: "/make/static/text-chat", poster: { ratio: "4/5" } });
-    // a video format opens straight on its form in the editor
+    // a video format opens straight on its form in the editor, unless its own page makes it
     expect(skillById("look-clay")?.href).toBe("/edit?panel=ai&kind=explainer&look=clay");
+    expect(skillById("news-anchor")).toMatchObject({ href: "/make/news-anchor", takes: { about: "topic", presenter: "who", length: "length" }, lengths: [8, 15, 20, 30] });
+    expect(skillById("template-unboxing")).toMatchObject({ href: "/make/template-unboxing", takes: { product: "product", length: "length" }, lengths: [4, 8] });
+    expect(skillById("template-street-interview")).toMatchObject({ href: "/make/template-street-interview", takes: { length: "length" } });
+  });
+
+  it("hands a format made on its own page the answers in that page's own params", () => {
+    expect(openHref(skillById("news-anchor")!, { about: "Car insurance", presenter: "mine", length: "30" })).toBe("/make/news-anchor?topic=Car+insurance&who=mine&length=30");
+    expect(openHref(skillById("template-unboxing")!, { product: "pd-brew1", length: "" })).toBe("/make/template-unboxing?product=pd-brew1");
+    expect(questionsFor(skillById("stage-talk")!, U).map((q) => q.id)).toEqual(["about", "presenter", "length"]);
   });
 
   it("files every skill under one of the picker's tabs and finds it by a word of its name, line or old names", () => {

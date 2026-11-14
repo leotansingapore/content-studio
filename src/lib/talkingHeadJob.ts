@@ -7,6 +7,9 @@
 // voiceover, until "Make it for US$x"), then makeAvatar with the toast in its extra. aiVideo.ts keeps the paid Speak
 // tokens in cs-ai-video-pending, so a reload resumes the video at no cost (resumeTalk). Each step is mirrored into
 // formatJob.ts for /library's Making now.
+// A presenter talk's page (/make/news-anchor and the rest, MakeHere.tsx) runs the same chain with `as`: its own name
+// and link for Making now, the talk's presenter setting, what the editor adds (the banner, the name tag, captions), and
+// no script write, since its box is the script.
 
 import { aiBusy, aiJob, makeAvatar, makePresenter, onAiJob, pendingAvatar, resumeAvatar, sliceVoiceover, type Pending, type Voiceover } from "@/lib/aiVideo";
 import { applyBrandRules } from "@/lib/brandRules";
@@ -26,7 +29,7 @@ import { speak, type VoiceId } from "@/lib/textVoice";
 import type { JoinExtra } from "@/lib/videoMedia";
 import type { AiMark } from "@/lib/videoProjects";
 import { noteOf } from "@/lib/wallJob";
-import { MAX_AVATAR_SECONDS } from "../../supabase/functions/ai-video/logic.ts";
+import { MAX_AVATAR_SECONDS, type SettingId } from "../../supabase/functions/ai-video/logic.ts";
 
 export interface TalkAsk {
   /** The post the script is written from; a clone's own script is already in `text`. */
@@ -52,6 +55,8 @@ export interface TalkAsk {
   agent?: { thread: string; msg: string };
   /** Leo's sign-ins: the script's words follow the picked voice's read (talkWords), for the writer and the topic check. */
   byVoice?: boolean;
+  /** Another format's page made it: its slug, name and page params for Making now, the presenter's setting, and what the editor adds. */
+  as?: { slug: string; label: string; params: Record<string, string | undefined>; setting: SettingId; extra?: JoinExtra };
 }
 
 export type TalkState = "writing" | "written" | "presenter" | "voice" | "priced" | "video" | "joining" | "done" | "failed";
@@ -102,18 +107,19 @@ const PRICED = "Waiting for you to check the price";
 let job: TalkJob | null = null;
 let seq = 0;
 /** The AI presenter made this session, reused while its look and setting stay the same. */
-let presenter: { url: string; look: string; setting: TalkSetting } | null = null;
+let presenter: { url: string; look: string; setting: SettingId } | null = null;
 const listeners = new Set<(j: TalkJob | null) => void>();
 
 function mirror(j: TalkJob | null) {
-  if (!j || j.state === "written" || (j.writeOnly && j.state === "failed")) return clearFormatJob(SLUG);
+  const slug = j?.ask?.as?.slug ?? SLUG;
+  if (!j || j.state === "written" || (j.writeOnly && j.state === "failed")) return clearFormatJob(slug);
   setFormatJob({
-    slug: SLUG,
-    label: "Talking head",
+    slug,
+    label: j.ask?.as?.label ?? "Talking head",
     format: "video",
     state: j.state === "failed" ? "failed" : j.state === "done" ? "ready" : "working",
     ...(j.state === "failed" ? { error: j.error } : { step: j.state === "priced" ? PRICED : j.step.replace(/\.\.\.$/, "") }),
-    href: j.state === "joining" || j.state === "done" ? links.edit() : links.makeFormat(SLUG, j.params),
+    href: j.state === "joining" || j.state === "done" ? links.edit() : links.makeFormat(slug, j.params),
   });
 }
 const set = (next: TalkJob | null) => {
@@ -134,13 +140,13 @@ export function onTalkJob(fn: (j: TalkJob | null) => void): () => void {
 export const dropTalk = () => void (job && !talkBusy() && set(null));
 
 /** The presenter's picture when one is made for this look and setting. */
-export const madePresenter = (look: string, setting: TalkSetting) =>
+export const madePresenter = (look: string, setting: SettingId) =>
   presenter && presenter.look === look.trim() && presenter.setting === setting ? presenter.url : null;
 
 /** A paid video this page made, waiting on this device (its toast is the talking head's). */
 export const ownsPending = (p: Pick<Pending, "extra"> | null) => p?.extra?.toast === TALK_TOAST;
 
-const paramsOf = (a: TalkAsk) => talkParams({ source: a.source?.key, who: a.who, setting: a.setting, length: a.length, voice: a.voice });
+const paramsOf = (a: TalkAsk) => a.as?.params ?? talkParams({ source: a.source?.key, who: a.who, setting: a.setting, length: a.length, voice: a.voice });
 
 /** Writes the script: from the post (the box as a steer when it is short), or from the box as a topic. */
 async function write(userId: string, a: TalkAsk, from: "source" | "topic"): Promise<{ script: string; caption: string; flags: Flags }> {
@@ -178,10 +184,11 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
   if (talkBusy() || aiBusy()) return;
   const id = ++seq;
   const fail = (patch: Partial<TalkJob>) => mine(id, { state: "failed", step: "", ...patch });
-  const from = writePlan(a.text, a.length, a.source, a.byVoice ? a.voice : undefined);
+  const from = a.as ? null : writePlan(a.text, a.length, a.source, a.byVoice ? a.voice : undefined);
   let said = { script: a.text.trim(), caption: a.caption ?? "", flags: undefined as Flags | undefined };
   const saved = a.who !== "photo" && a.who !== "presenter";
-  let face: Blob | string | null = a.who === "photo" ? a.photo : saved ? null : madePresenter(a.look, a.setting);
+  const setting = a.as?.setting ?? a.setting;
+  let face: Blob | string | null = a.who === "photo" ? a.photo : saved ? null : madePresenter(a.look, setting);
   const first: Pick<TalkJob, "state" | "step"> =
     from ? { state: "writing", step: WRITING } : a.who === "presenter" && !face ? { state: "presenter", step: PRESENTER } : { state: "voice", step: VOICE };
   set({ id, ...first, params: paramsOf(a), ask: a, ...(from ? {} : { script: said.script, caption: said.caption }) });
@@ -196,10 +203,10 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
 
   if (a.who === "presenter" && !face) {
     mine(id, { state: "presenter", step: PRESENTER });
-    await makePresenter(a.look.trim(), a.setting, a.agent);
+    await makePresenter(a.look.trim(), setting, a.agent);
     const p = aiJob();
     if (p?.kind !== "presenter" || p.state !== "done" || !p.url) return fail({ error: p?.error || PRESENTER_FAILED });
-    presenter = { url: p.url, look: a.look.trim(), setting: a.setting };
+    presenter = { url: p.url, look: a.look.trim(), setting };
     face = p.url;
   }
   const sp = saved ? speakerOf(speakers(userId), a.who) : null;
@@ -224,22 +231,24 @@ export async function startTalk(userId: string, a: TalkAsk): Promise<void> {
   if (needsPriceCheck(a.quoted ?? videoEstimate(a.length).usd, real.usd)) {
     return mine(id, { state: "priced", step: "", face, voice, ai, real: { seconds: voice.seconds, price: real } });
   }
-  await video(userId, id, face, voice, said.script, extraOf(a.source, said, ai, a.draftId), a.agent);
+  await video(userId, id, face, voice, said.script, extraOf(a.source, said, ai, a.draftId, a.as?.extra), a.agent);
 }
 
 /** "Make it for US$x" at the price check: the kept voiceover and face go to Speak. */
 export function goOnAtPrice(userId: string): Promise<void> {
   const j = job;
   if (j?.state !== "priced" || !j.face || !j.voice || aiBusy()) return Promise.resolve();
-  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags, script: j.script }, j.ai, j.ask?.draftId), j.ask?.agent);
+  return video(userId, j.id, j.face, j.voice, j.script ?? "", extraOf(j.ask?.source ?? null, { caption: j.caption ?? j.ask?.caption ?? "", flags: j.flags, script: j.script }, j.ai, j.ask?.draftId, j.ask?.as?.extra), j.ask?.agent);
 }
 
 /**
  * The editor's hand-off: the toast, caption, note and source, the AI mark (who speaks and in which voice), the post it
- * is for, and the script the premade voice says, so the editor captions it from the script with no transcribe.
+ * is for, and the script the premade voice says, so the editor captions it from the script with no transcribe; a
+ * presenter talk's page adds its own (`more`: the banner, the name tag, captions).
  */
-function extraOf(source: RemixSource | null, w: { caption: string; flags?: Flags; script?: string }, ai?: AiMark, draftId?: string): JoinExtra {
+function extraOf(source: RemixSource | null, w: { caption: string; flags?: Flags; script?: string }, ai?: AiMark, draftId?: string, more?: JoinExtra): JoinExtra {
   return {
+    ...more,
     toast: TALK_TOAST,
     ...(w.caption ? { caption: w.caption } : {}),
     ...(w.script?.trim() ? { said: w.script.trim() } : {}),
@@ -263,7 +272,8 @@ function follow(userId: string, id: number, start: () => void): Promise<void> {
       if (j.state === "working") return void mine(id, { state: j.step === JOINING ? "joining" : "video", step: j.step });
       off();
       if (j.state === "done") {
-        clearScript(userId);
+        // the talking head's own box empties; a presenter talk's page keeps its script for another take
+        if (!(job?.id === id && job.ask?.as)) clearScript(userId);
         mine(id, { state: "done", step: "" });
       } else mine(id, { state: "failed", step: "", error: j.error || START_FAILED, waiting: !!pendingAvatar() });
       resolve();

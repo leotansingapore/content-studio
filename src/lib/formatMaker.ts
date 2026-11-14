@@ -6,8 +6,10 @@
 //   (a new presenter's look too), so a reload or another visit keeps it (device only, like the talking head's).
 
 import { scoped } from "@/lib/profiles";
-import { TALK_LENGTHS, talkWords, wordLine, type TalkLength } from "@/lib/talkingHead";
-import { CLIP_SECONDS, TALKS, type Talk } from "../../supabase/functions/ai-video/logic.ts";
+import { priceOf, type Price } from "@/lib/prices";
+import { TALK_LENGTHS, talkCaps, talkPrice, talkWords, wordLine, type TalkLength } from "@/lib/talkingHead";
+import { CLIP_SECONDS, TALKS, type ClipQuality, type Talk } from "../../supabase/functions/ai-video/logic.ts";
+import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 import { templateById, type FieldKey, type VideoTemplate } from "../../supabase/functions/ai-video/templates.ts";
 import { speakingWords } from "../../supabase/functions/remix/logic.ts";
 
@@ -29,6 +31,17 @@ export function makerOf(opens: string | undefined): Maker | null {
 export const lengthsOf = (m: Maker): readonly number[] => (m.kind === "talk" ? TALK_LENGTHS : CLIP_SECONDS);
 /** A talk's script is aimed at 20 s, where its writer lands (50 to 75 words); a clip starts at 8 s, as the editor does. */
 export const startLength = (m: Maker): number => (m.kind === "talk" ? 20 : 8);
+
+/**
+ * What one Make press costs, from the price table: a talk's voiceover and video at the length, plus a new presenter's
+ * picture when one has to be made (the script is its own press); a clip at its length and quality.
+ */
+export function makePrice(m: Maker, o: { length: number; quality: ClipQuality; presenter: boolean }): Price | "pick" | null {
+  return m.kind === "talk" ? talkPrice({ length: o.length as TalkLength, write: false, presenter: o.presenter }) : priceOf("ai-clip", { seconds: o.length, quality: o.quality });
+}
+
+/** The caps a press spends beside the format's own (FormatShell's main cap): a talk's voiceover and any presenter picture. */
+export const makeCaps = (m: Maker, presenter: boolean): UsageFeature[] => (m.kind === "talk" ? talkCaps({ length: 20, write: false, presenter }) : []);
 
 /** The template's blanks that someone says out loud: none in a silent scene. */
 const SPOKEN: FieldKey[] = ["line", "question", "answer"];

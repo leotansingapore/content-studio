@@ -177,6 +177,28 @@ describe("one press", () => {
   });
 });
 
+describe("a presenter talk's page (as)", () => {
+  it("speaks its box as it is, even a short one, makes the presenter in the talk's setting, hands its own extra, and keeps its box", async () => {
+    saveTyped("u1", { script: "The talking head's own box", look: "" });
+    const seen: string[] = [];
+    const stop = onTalkJob(() => {
+      const f = formatJobs().find((j) => j.slug === "news-anchor");
+      if (f) seen.push(`${f.label} ${f.state} ${f.href}`);
+    });
+    const extra = { settings: { overlays: [], nameTag: "Hilltop" } };
+    await startTalk("u1", { ...ASK, text: "Rates went up", as: { slug: "news-anchor", label: "News anchor", params: { length: "30" }, setting: "news", extra } });
+    stop();
+    expect(order).toEqual(["presenter news", "speak george", "avatar"]);
+    expect(speak).toHaveBeenCalledWith("Rates went up", "george");
+    expect(ai.makeAvatar.mock.calls[0][3]).toEqual({ ...extra, toast: TALK_TOAST, said: "Rates went up", ai: { kind: "avatar", person: "generated", voice: "premade", voiceId: "george", madeAt: expect.any(String) } });
+    expect(seen[0]).toBe("News anchor working /make/news-anchor?length=30");
+    expect(seen[seen.length - 1]).toBe("News anchor ready /edit");
+    expect(formatJobs().some((j) => j.slug === "talking-head")).toBe(false);
+    expect(loadTyped("u1").script).toBe("The talking head's own box");
+    expect(madePresenter(ASK.look, "news")).toBe("https://cdn.example/news.png");
+  });
+});
+
 describe("a press that stops before Speak is paid for", () => {
   it("stops at a failed voiceover, with its words, and never calls makeAvatar", async () => {
     speak.mockRejectedValueOnce(new Error("Couldn't make the voiceover. Try again in a minute."));

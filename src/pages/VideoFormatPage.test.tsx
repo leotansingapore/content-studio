@@ -23,7 +23,8 @@ vi.mock("@/lib/supabase", () => ({
 import MakeFormatPage from "./MakeFormatPage";
 import VideoFormatPage, { needLine } from "./VideoFormatPage";
 import { FORMATS, explainerPrice } from "@/data/formats";
-import { makerOf } from "@/lib/formatMaker";
+import { makePrice, makerOf, saveTyped } from "@/lib/formatMaker";
+import { templateById } from "../../supabase/functions/ai-video/templates.ts";
 import { productsKey } from "@/lib/products";
 import { priceOf, priceText, type Price } from "@/lib/prices";
 
@@ -212,5 +213,51 @@ describe("a format made on its own page", () => {
     expect(html("template-food-asmr?more=open")).toMatch(/aria-label="Product".*>None<.*>Cold brew</);
     expect(html("template-food-asmr?product=pd-brew1")).toMatch(/More settings<\/span><span[^>]*>Cold brew, 720p, captions Bold</);
     expect(html("template-food-asmr?product=pd-gone")).toMatch(/More settings<\/span><span[^>]*>No product, 720p, captions Bold</);
+  });
+
+  it("prices the press for the length picked, says why it can't go yet, and keeps the editor one link away", () => {
+    as.leo = LEO;
+    const talk = { kind: "talk", talk: "news" } as const;
+    const chip = (length: number) => priceText(makePrice(talk, { length, quality: "720p", presenter: true }) as Price);
+    expect(html("news-anchor?who=presenter")).toContain(chip(20));
+    expect(html("news-anchor?who=presenter&length=30")).toContain(chip(30));
+    expect(chip(30)).not.toBe(chip(20));
+    let page = html("news-anchor");
+    expect(page).toMatch(/<button[^>]*disabled=""[^>]*>Make it<\/button>/);
+    expect(page).toContain("Type the script, or a topic and press Write it for me.");
+    expect(page).toMatch(/<a[^>]*href="\/edit\?panel=ai&kind=avatar&talk=news"[^>]*>Set it up in the video editor instead<\/a>/);
+    expect(html("template-street-interview")).toContain("Fill in &quot;The question&quot; first.");
+    expect(html("template-street-interview?length=4&quality=480p")).toContain(priceText(priceOf("ai-clip", { seconds: 4, quality: "480p" }) as Price));
+    // a template that can't work without a photo asks for one, and offers the upload
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) });
+    saveTyped("template-character-reference-lock", LEO.id, { fields: { scene: "A walk by the river", product: "", person: "", line: "Hi" } });
+    page = html("template-character-reference-lock");
+    expect(page).toContain("Upload a photo of the person");
+    for (const f of templateById("character-reference-lock")!.fields.filter((x) => x.required)) expect(page, f.key).not.toContain(`Fill in &quot;${f.label}&quot;`);
+    expect(page).toContain("Add a photo of the person first.");
+    // a script ready to speak: the press is open
+    saveTyped("stage-talk", LEO.id, { script: "One idea, told well, beats ten ideas told badly. Here is why." });
+    page = html("stage-talk?who=presenter");
+    expect(page).toMatch(/<button[^>]*>Make it<\/button>/);
+    expect(page).not.toMatch(/<button[^>]*disabled=""[^>]*>Make it<\/button>/);
+    // a paid video waiting on this device is finished in the editor first, never replaced
+    store.set("cs-ai-video-pending", JSON.stringify({ name: "x", tokens: ["t"], seconds: [8] }));
+    expect(html("stage-talk?who=presenter")).toContain("Your last AI video isn&#x27;t finished yet. Open the editor to finish it.");
+  });
+
+  it("fills the script from the agent's topic, with what the box held one Undo away", () => {
+    as.leo = LEO;
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) });
+    let page = html("stage-talk?topic=Why%20people%20skip%20travel%20insurance&who=presenter&length=30");
+    expect(page).toMatch(/<textarea[^>]*>Why people skip travel insurance<\/textarea>/);
+    expect(page).toMatch(/aria-pressed="true"[^>]*>30 s</);
+    expect(page).not.toContain(">Undo</button>");
+    saveTyped("stage-talk", LEO.id, { script: "My old words" });
+    page = html("stage-talk?topic=Saving%20for%20a%20flat");
+    expect(page).toMatch(/<textarea[^>]*>Saving for a flat<\/textarea>/);
+    expect(page).toContain(">Undo</button>");
+    expect(html("template-street-interview?topic=Anything")).not.toContain("Anything");
   });
 });
