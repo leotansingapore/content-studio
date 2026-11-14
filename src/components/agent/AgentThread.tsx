@@ -19,6 +19,7 @@ import { choose, onAgent, send, turnOf, type Turn } from "@/lib/agentRun";
 import { fieldsOf, madeOpen } from "@/lib/agentPlans";
 import { starterChips } from "@/lib/agentStarters";
 import { inFlight } from "@/lib/agentWork";
+import { useThreads } from "@/components/agent/useThreads";
 import { GONE_LINE, loadThreads, onThreadsChanged, patchMsg, type AgentMsg } from "@/lib/agentThreads";
 import { links } from "@/lib/links";
 import { cn } from "@/lib/utils";
@@ -59,18 +60,7 @@ export function newlyMade(seen: Map<string, string>, messages: AgentMsg[]): Agen
   return out;
 }
 
-export function useThreads(userId: string) {
-  const [, redraw] = useReducer((n: number) => n + 1, 0);
-  useEffect(() => {
-    const a = onThreadsChanged(redraw);
-    const b = onAgent(redraw);
-    return () => {
-      a();
-      b();
-    };
-  }, []);
-  return loadThreads(userId);
-}
+export { useThreads };
 
 export default function AgentThread({
   userId,

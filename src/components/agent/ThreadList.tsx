@@ -9,7 +9,7 @@ import { CaretDownIcon, DotsThreeIcon, PlusIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
-import { turnOf } from "@/lib/agentRun";
+import { turnOf } from "@/lib/agentTurns";
 import { archiveThread, deleteThread, renameThread, type AgentMsg, type AgentThread } from "@/lib/agentThreads";
 import { links } from "@/lib/links";
 import { cn } from "@/lib/utils";

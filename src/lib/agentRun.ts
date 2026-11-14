@@ -8,6 +8,7 @@
 // Stop aborts the Jev call only; after a press the make finishes. Turns, cards and receipts live in the thread
 // messages (agentThreads.ts), so a reload shows them and resumeAgent picks up what was running.
 
+import { emitTurns as emit, onAgent, turnOf, turns } from "@/lib/agentTurns";
 import { budgetAnswer } from "@/lib/agentBudget";
 import { needsCard, nextCard, runUndo, UNDONE, type AgentCard, type AgentFormat, type AgentPick, type Receipt } from "@/lib/agentCards";
 import { forgetPick, lastUndoable, learningLines, LEARNING_REMOVED, memoryAnswer, SEE_LEARNED, undidLine, UNDO_LINE, dismissNudge, noteCorrection } from "@/lib/agentMemory";
@@ -138,19 +139,12 @@ const skillsApi = (): SkillsApi | null => (skillsOverride !== undefined ? skills
 // ---------- the store ----------
 
 let clock: () => number = () => Date.now();
-const turns = new Map<string, Turn>();
 const aborts = new Map<string, AbortController>();
 const following = new Set<string>();
-const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
 const RUNNING: Turn["state"][] = ["starting", "thinking", "writing", "making"];
 const running = (t: Turn | undefined) => !!t && RUNNING.includes(t.state);
 
-export const turnOf = (threadId: string): Turn | null => turns.get(threadId) ?? null;
-export function onAgent(fn: () => void): () => void {
-  listeners.add(fn);
-  return () => void listeners.delete(fn);
-}
+export { turnOf, onAgent };
 
 function setTurn(thread: string, msg: string, patch: Partial<Turn>) {
   const t = turns.get(thread);
