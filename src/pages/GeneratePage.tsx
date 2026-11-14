@@ -40,7 +40,7 @@ import { VIDEO_FORMAT_GROUPS, VIDEO_FORMATS, videoFormatById, videoFormatRule } 
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { formatLines } from "@/lib/workingLibrary";
-import { attachImageTo, autoImage, fixImage, imageBusy, imageJob, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
+import { autoImage, fixImage, imageBusy, imageJob, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
 import { canCopyPictures, copyPicture, copyPost } from "@/lib/copyPost";
 import { currentScore, labelFor, loadScores, saveScore, scoreFix, scorePost, textKey, tipFor, type FactorId, type PostScore, type ScoreFormat } from "@/lib/postScore";
 import { otherFormulas, splitHook } from "@/lib/variants";
@@ -1112,8 +1112,6 @@ function Writer() {
   const [imagePromptLoading, setImagePromptLoading] = useState<boolean>(false);
   // "Make the image": one job at a time, kept outside React so it survives leaving the page
   const [imgJob, setImgJob] = useState<ImageJob | null>(imageJob);
-  const autoImaged = useRef(new Set<string>());
-  const briefPic = useRef<{ key: string; prompt: string } | null>(null);
   const [fixText, setFixText] = useState("");
   useEffect(() => {
     const off = onImageJob(setImgJob);
@@ -2136,7 +2134,6 @@ function Writer() {
     setHookOptions([]);
     setVariants([]);
     const base = buildBasePayload(answered);
-    void startBriefPicture(answered);
 
     try {
       if (hooksFirst) {
@@ -2242,48 +2239,8 @@ function Writer() {
     }
   };
 
-  const askImagePrompt = async (text: string): Promise<string> => {
-    const session = (await supabase.auth.getSession()).data.session;
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/generate-social-content`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? SUPABASE_ANON_KEY}`, apikey: SUPABASE_ANON_KEY },
-      body: JSON.stringify({
-        platform,
-        pillar,
-        pillarDetail: pillarDetail.trim(),
-        audience,
-        format,
-        ctaType,
-        ideaSource: ideaLine,
-        draft: text,
-        voiceSummary: voiceSummary ?? undefined,
-        singlish: singlish ? true : undefined,
-        profession: profession || undefined,
-        mode: "image-prompt",
-      }),
-    });
-    if (!r.ok) throw new Error(`image-prompt ${r.status}`);
-    const data = (await r.json()) as { prompt?: unknown };
-    return typeof data?.prompt === "string" ? data.prompt.trim() : "";
-  };
-
-  const startBriefPicture = async (answered?: string) => {
-    if (!userId || format === "short-video" || imageLeft === 0) return;
-    const key = [platform, format, pillar, pillarDetail.trim()].join("\n");
-    const held = briefPic.current;
-    const now = imageJob();
-    if (held?.key === key && now?.prompt === held.prompt && now.state !== "failed") return;
-    briefPic.current = null;
-    if (imageBusy()) return;
-    const idea = [pillarDetail.trim(), ideaContext.trim(), answered?.trim()].filter(Boolean).join("\n\n");
-    const prompt = await askImagePrompt(idea).catch(() => "");
-    if (!prompt || imageBusy()) return;
-    void autoImage(userId, prompt, pillarDetail.trim().slice(0, 80));
-    if (imageJob()?.prompt === prompt) briefPic.current = { key, prompt };
-  };
-
   const fetchAuxForDraft = useCallback(
-    async (text: string, id?: string) => {
+    async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
       const url = `${SUPABASE_URL}/functions/v1/generate-social-content`;
@@ -2309,12 +2266,8 @@ function Writer() {
         profession: profession || undefined,
       };
 
-      const brief = briefPic.current && imageJob()?.prompt === briefPic.current.prompt ? briefPic.current : null;
       setHashtagsLoading(true);
-      if (brief) {
-        setImagePrompt(brief.prompt);
-        if (userId && id && format === "text-post") void attachImageTo(userId, id, brief.prompt);
-      } else setImagePromptLoading(true);
+      setImagePromptLoading(true);
 
       const hashtagsPromise = fetch(url, {
         method: "POST",
@@ -2340,7 +2293,7 @@ function Writer() {
         })
         .finally(() => setHashtagsLoading(false));
 
-      const imagePromptPromise = brief ? Promise.resolve() : fetch(url, {
+      const imagePromptPromise = fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify({ ...baseFields, mode: "image-prompt" }),
@@ -2350,13 +2303,8 @@ function Writer() {
           return (await r.json()) as { prompt?: string; error?: string };
         })
         .then((data) => {
-          if (typeof data?.prompt === "string") {
-            setImagePrompt(data.prompt);
-            if (userId && id && data.prompt.trim() && format !== "short-video" && !imageBusy() && !autoImaged.current.has(id) && !getDraftById(userId, id)?.attached?.length) {
-              autoImaged.current.add(id);
-              void autoImage(userId, data.prompt, (chosenHook || trimmed.split("\n")[0] || "AI image").slice(0, 80), format === "text-post" ? id : undefined);
-            }
-          }
+          // The picture waits for "Make the image": it is a paid AI image, so it never starts on its own.
+          if (typeof data?.prompt === "string") setImagePrompt(data.prompt);
         })
         .catch((err) => {
           console.error("image-prompt fetch failed:", err);
@@ -2497,7 +2445,7 @@ function Writer() {
     if (makeLang && id) setAutoTranslate({ id, lang: makeLang });
     // Fire hashtags + image-prompt in parallel; failures don't block. The
     // draft card's saved line confirms the pick, so no toast over the editor.
-    void fetchAuxForDraft(v.text, id);
+    void fetchAuxForDraft(v.text);
   };
 
   // Everything copied from here is headed for a social platform, none of which
