@@ -89,6 +89,8 @@ describe("my skills", () => {
     expect(skill("Tighten for LinkedIn")).toBeNull();
     expect(skill("tighten FOR linkedin")).toBe("You already have /tighten-for-linkedin. Pick another name.");
     expect(skill("Check")).toBe("You already have /check. Pick another name.");
+    // the agent's ready answers take their slashes too
+    expect(skill("Best")).toBe("You already have /best. Pick another name.");
     for (let i = 2; i <= 12; i++) expect(skill(`Skill ${i}`)).toBeNull();
     expect(skill("Thirteen")).toBe(FULL_LINE);
     expect(FULL_LINE).toBe("You can keep 12 skills. Delete one to add another.");
@@ -127,9 +129,9 @@ describe("runSkill without a run", () => {
   it("answers an unknown skill with the list (answer only once ads are stored) and Open skills, saving nothing", async () => {
     skill("Tighten for LinkedIn");
     const r = await runSkill(UID, "nope", {}, NOW);
-    expect(r).toMatchObject({ id: "", step: "unknown", lines: ["No skill called /nope. Yours are /check, /retro, /check-week, /tighten-for-linkedin."], links: [{ label: "Open skills", path: "/skills" }] });
+    expect(r).toMatchObject({ id: "", step: "unknown", lines: ["No skill called /nope. Yours are /check, /retro, /check-week, /trending, /best, /angles, /tighten-for-linkedin."], links: [{ label: "Open skills", path: "/skills" }] });
     store.set(`content-studio-competitor-ads-${UID}`, JSON.stringify({ c1: { checkedAt: "2026-10-21T00:00:00Z", pageId: null, pageName: "Finch", ads: [AD("1", "2026-10-20")], seen: [], fresh: [] } }));
-    expect((await runSkill(UID, "nope", {}, NOW)).lines[0]).toBe("No skill called /nope. Yours are /check, /retro, /check-week, /answer, /tighten-for-linkedin.");
+    expect((await runSkill(UID, "nope", {}, NOW)).lines[0]).toBe("No skill called /nope. Yours are /check, /retro, /check-week, /answer, /trending, /best, /angles, /tighten-for-linkedin.");
     expect(loadSkillRuns(UID)).toEqual([]);
     expect(fn.calls).toEqual([]);
   });

@@ -5,6 +5,7 @@
 // shortcut: one synced array, last write wins across devices; split per thread if Leo uses two devices at once.
 
 import { newId, type AgentCard, type AgentFormat, type Receipt } from "@/lib/agentCards";
+import type { Answer } from "@/lib/agentAnswers";
 import { logActivity } from "@/lib/activity";
 import { scoped } from "@/lib/profiles";
 import { SAVE_FAILED, type Saved } from "@/lib/voiceMemory";
@@ -45,6 +46,8 @@ export interface AgentMsg {
   job?: { kind: JobKind; state: "running" | "done" | "failed"; drafts?: string[]; open?: string; title?: string; name?: string; startedAt: string; endedAt?: string };
   card?: AgentCard;
   receipt?: Receipt;
+  /** A ready answer drawn as its card (agentAnswers.ts): trending posts, the best post, or angles for an audience. */
+  answer?: Answer;
   error?: boolean;
   /** Its words quote text from outside the app (a competitor's ad, a page read), so it is never sent to the feedback service. */
   quotes?: true;

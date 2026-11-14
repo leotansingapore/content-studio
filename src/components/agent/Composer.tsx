@@ -14,7 +14,7 @@ import SlashMenu, { slashItems, type SlashItem } from "@/components/agent/SlashM
 import { meterLine, leftOf } from "@/lib/agentBudget";
 import { onAgent, send, stop, turnOf, type Chip } from "@/lib/agentRun";
 import { readUsage, type Usage } from "@/lib/aiUsage";
-import { BUILT_IN_SKILLS, loadMySkills } from "@/lib/chatSkills";
+import { AGENT_ANSWERS, BUILT_IN_SKILLS, loadMySkills } from "@/lib/chatSkills";
 import { loadThreads } from "@/lib/agentThreads";
 import { SKILLS, openPicks, pickFrom, saveFlow, skillById } from "@/lib/makeSkills";
 import { AVATAR_MAX, priceText } from "@/lib/prices";
@@ -174,7 +174,7 @@ const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
 
   const turn = threadId ? turnOf(threadId) : null;
   const running = !!turn && RUNNING.has(turn.state);
-  const skills: SlashItem[] = [...BUILT_IN_SKILLS, ...loadMySkills(userId), ...SKILLS.map((x) => ({ slash: x.id, name: x.name, kind: x.kind, was: x.was, make: true as const }))];
+  const skills: SlashItem[] = [...BUILT_IN_SKILLS, ...AGENT_ANSWERS, ...loadMySkills(userId), ...SKILLS.map((x) => ({ slash: x.id, name: x.name, kind: x.kind, was: x.was, make: true as const }))];
   const items = menuShut ? [] : slashItems(text, skills);
 
   const clear = () => {

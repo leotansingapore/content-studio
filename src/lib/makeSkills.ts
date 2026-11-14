@@ -12,7 +12,7 @@ import { FORMATS, formatHref, type FormatDef } from "@/data/formats";
 import { STATIC_FORMATS, staticFormatHref, staticShotSrc } from "@/data/staticFormats";
 import type { AgentFormat } from "@/lib/agentCards";
 import { appendMsg, newMsg, type AgentMsg } from "@/lib/agentThreads";
-import { BUILT_IN_SKILLS } from "@/lib/chatSkills";
+import { AGENT_ANSWERS, BUILT_IN_SKILLS } from "@/lib/chatSkills";
 import { CREATE_FORMATS, CREATE_KINDS, MORE_FORMATS, kindOf, kindOfFormat } from "@/lib/createFormats";
 import { slug as slugOf } from "@/lib/links";
 import { groupedPages, section } from "@/lib/nav";
@@ -126,7 +126,7 @@ export function takesOf(href: string, needs?: FormatDef["needs"]): Partial<Recor
 const KIND_ICON: Record<string, Icon> = { Words: TextAaIcon, "Slides and pictures": ImageSquareIcon, Video: FilmSlateIcon };
 
 function build(): MakeSkill[] {
-  const taken = new Set(BUILT_IN_SKILLS.map((b) => b.slash));
+  const taken = new Set([...BUILT_IN_SKILLS, ...AGENT_ANSWERS].map((b) => b.slash));
   const idFor = (...names: string[]) => {
     const id = names.map(slugOf).find((x) => x && !taken.has(x)) ?? `make-${taken.size}`;
     taken.add(id);

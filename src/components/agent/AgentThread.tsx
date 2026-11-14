@@ -7,6 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState, 
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowDownIcon, ArrowUpIcon, CircleNotchIcon, SparkleIcon } from "@phosphor-icons/react";
 import ActionCard, { hhmm } from "@/components/agent/ActionCard";
+import AnswerCard from "@/components/agent/AnswerCard";
 import Composer, { useAgentUsage, type ComposerHandle } from "@/components/agent/Composer";
 import { chipAction, DONE, isAppPath, type DockIdentity } from "@/components/agent/dockActions";
 import FbChip from "@/components/agent/FbChip";
@@ -287,6 +288,7 @@ export default function AgentThread({
                 <p className={cn("max-w-[92%] whitespace-pre-wrap break-words text-sm leading-relaxed", m.error && "text-destructive")}>{m.text}</p>
               )}
               {!!m.picks?.length && onPick && <PickList ids={m.picks} disabled={live} onPick={(n) => onPick(m, n)} />}
+              {m.answer && threadId && <AnswerCard userId={userId} threadId={threadId} msgId={m.id} answer={m.answer} />}
               {m.card && threadId && <ActionCard userId={userId} threadId={threadId} msg={m as AgentMsg & { card: NonNullable<AgentMsg["card"]> }} usage={usage} onSend={(t) => sendHere(m.id, t)} />}
               {/* a priced make on its way; a saved change (a note, a move) lands at once and shows none */}
               {inFlight(m) && (m.job || m.card?.price) && (

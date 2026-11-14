@@ -35,6 +35,17 @@ export const BUILT_IN_SKILLS: { id: BuiltInId; name: string; slash: string; desc
   { id: "answer", name: "Answer a competitor's new ad", slash: "answer", description: "Three posts that answer a competitor's newest ad.", needs: "none" },
 ];
 
+/**
+ * The agent's ready answers (agentAnswers.ts): each draws a card in the chat from its "/" command or its starter sent
+ * unchanged, and is never a saved run, so /skills sends it to the chat. Their slashes are taken like the built-ins'.
+ */
+export const AGENT_ANSWERS: { id: "trending" | "best" | "angles"; slash: string; name: string; starter: string; description: string }[] = [
+  { id: "trending", slash: "trending", name: "What is trending in my niche", starter: "What is trending in my niche?", description: "Top posts in your niche and this week's template trends, each with Remix." },
+  { id: "best", slash: "best", name: "Which post did best", starter: "Which post did best?", description: "Your best posted post by engagement, with its numbers and Make another like it." },
+  { id: "angles", slash: "angles", name: "Find new angles", starter: "Find new angles", description: "Five new angles for your audience, ready to plan a campaign with." },
+];
+const TAKEN = [...BUILT_IN_SKILLS, ...AGENT_ANSWERS].map((b) => b.slash);
+
 /** One of yours: a saved instruction run in Write, on one of your posts or as a new post's topic. */
 export interface MySkill {
   /** "s" + base 36, never uuid-shaped. */
@@ -133,7 +144,7 @@ export function saveMySkill(userId: string, s: Pick<MySkill, "name" | "instructi
   if (!instruction) return "Say what it should do.";
   const list = loadMySkills(userId);
   const old = s.id ? list.find((x) => x.id === s.id) : undefined;
-  if (BUILT_IN_SKILLS.some((b) => b.slash === slash) || list.some((x) => x.slash === slash && x.id !== old?.id)) return `You already have /${slash}. Pick another name.`;
+  if (TAKEN.includes(slash) || list.some((x) => x.slash === slash && x.id !== old?.id)) return `You already have /${slash}. Pick another name.`;
   if (!old && list.length >= MAX_SKILLS) return FULL_LINE;
   const item: MySkill = { id: old?.id ?? s.id ?? newSkillId(), name, slash, instruction, works: s.works === "new" ? "new" : "post", updatedAt: new Date().toISOString() };
   return write(skillsKey(userId), old ? list.map((x) => (x.id === old.id ? item : x)) : [...list, item], SKILLS_CHANGED) ? null : SAVE_FAILED;
@@ -333,7 +344,7 @@ export async function runSkill(userId: string, skill: string, input: { postId?: 
   const own = built ? undefined : mine.find((s) => s.slash === skill);
   const base = { id: "", skill, name: built?.name ?? own?.name ?? `/${skill}`, at: now.toISOString(), by: "you" as const, title: "", lines: [] as string[], links: [] as SkillRun["links"] };
   if (!built && !own) {
-    const yours = [...BUILT_IN_SKILLS.filter((b) => b.id !== "answer" || answerShown(userId)).map((b) => b.slash), ...mine.map((s) => s.slash)].map((s) => `/${s}`);
+    const yours = [...BUILT_IN_SKILLS.filter((b) => b.id !== "answer" || answerShown(userId)).map((b) => b.slash), ...AGENT_ANSWERS.map((a) => a.slash), ...mine.map((s) => s.slash)].map((s) => `/${s}`);
     return { ...base, step: "unknown", lines: [`No skill called /${skill}. Yours are ${yours.join(", ")}.`], links: [{ label: "Open skills", path: links.skills() }] };
   }
   const needsPost = built ? built.needs === "post" : own!.works === "post";

@@ -856,6 +856,23 @@ describe("skills", () => {
   });
 });
 
+describe("ready answers", () => {
+  it("a starter sent unchanged or its slash draws its card with no Jev call and nothing priced; other words still ask Jev", async () => {
+    saveDrafts(UID, [post({ status: "posted", postedAt: "2026-10-02T00:00:00.000Z", metrics: { impressions: 900, reactions: 40, comments: 6 } })]);
+    let id = await say("Which post did best?", null);
+    expect(last(id).answer).toMatchObject({ kind: "best", post: { id: "p1", title: "Three CPF myths" } });
+    expect(last(id).meta?.steps).toBe(0);
+    id = await say("/trending", null);
+    expect(last(id).answer?.kind).toBe("trending");
+    id = await say("Find new angles", null);
+    expect(last(id).answer).toEqual({ kind: "angles", audience: null });
+    expect(jev.bodies).toEqual([]);
+    expect(fake.calls).toEqual([]);
+    await say("Which post did best this month?", null);
+    expect(jev.bodies).toHaveLength(1);
+  });
+});
+
 describe("what Home reads", () => {
   it("lists waiting cards, says what is waiting, and what was just made", async () => {
     const id = await say("make a carousel about CPF", { act: "make", format: "carousel" });

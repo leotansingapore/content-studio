@@ -23,7 +23,7 @@ import { STATIC_FORMATS, staticFormatHref, staticShotSrc } from "@/data/staticFo
 import { ADS } from "@/lib/adsSwipe";
 import { loadCarousels } from "@/lib/carousel";
 import { loadCompetitorAds } from "@/lib/competitorAds";
-import { brandFacts, loadCompetitors } from "@/lib/competitors";
+import { loadCompetitors } from "@/lib/competitors";
 import { CREATE_FORMATS, CREATE_KINDS, MORE_FORMATS, kindOf, kindOfFormat, type CreateFormat } from "@/lib/createFormats";
 import { loadCreateTopic, tileHref } from "@/lib/createTopic";
 import { loadDesigns } from "@/lib/design";
@@ -32,7 +32,7 @@ import { FORMAT_TRENDS, formatRemixUrl, formatTag, type FormatTrend } from "@/li
 import { loadImages } from "@/lib/images";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
-import { MATCH_AT, brandSig, loadFeed, loadNiche, type FeedItem } from "@/lib/nicheFeed";
+import { nichePosts, type FeedItem } from "@/lib/nicheFeed";
 import { priceOf, type Price } from "@/lib/prices";
 import { adviserBrand, professionFor } from "@/lib/profession";
 import { ownBrandName } from "@/lib/remixBrand";
@@ -282,18 +282,7 @@ export default function StudioPage() {
   const openable = (k: FormatTrend["kind"]) => !!leo || CUSTOMER_FORMATS.some((w) => w.to.startsWith(`/make/${k}`));
   // the latest drop at any age, as Blitz reads it; its date is on the row, so an old drop never reads as this week's
   const templates = useMemo(() => FORMAT_TRENDS.items.filter((t) => openable(t.kind)).slice(0, ROW), [leo]); // eslint-disable-line react-hooks/exhaustive-deps
-  const posts = useMemo(() => {
-    if (!leo || !userId) return [];
-    const facts = brandFacts(userId);
-    const state = loadNiche(userId);
-    const scores = (facts.sells || facts.serves) && state.brandSig === brandSig(facts) ? state.scores : {};
-    const hidden = new Set(state.hidden);
-    // the brand's own sources always count; the shared drops only once Jev has matched them to this brand
-    return loadFeed(userId)
-      .filter((i) => i.kind === "organic" && !hidden.has(i.id) && (i.from === "cp" || i.from === "fo" || (scores[i.id] ?? 0) >= MATCH_AT))
-      .sort((a, b) => (b.outlier?.ratio ?? 0) - (a.outlier?.ratio ?? 0) || b.at - a.at)
-      .slice(0, ROW);
-  }, [leo, userId]);
+  const posts = useMemo(() => (leo && userId ? nichePosts(userId, ROW) : []), [leo, userId]);
   const trendTabs = TRENDS.filter((t) => (t === "Trending posts" ? !!leo : templates.length > 0));
   const [trendPick, setTrend] = useUrlLabel("trend", trendTabs);
   // with no niche posts yet, the templates lead

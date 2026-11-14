@@ -300,6 +300,21 @@ export function nicheFor(userId: string, sig: string): NicheState {
   return s.brandSig === sig ? s : saveNiche(userId, { ...s, brandSig: sig, scores: {} });
 }
 
+/**
+ * Studio's Trending posts row and the agent's "What is trending in my niche?": the brand's organic niche posts, its
+ * own sources always and the shared drops only once Jev has matched them to it, biggest jump on their usual first.
+ */
+export function nichePosts(userId: string, max: number): FeedItem[] {
+  const facts = brandFacts(userId);
+  const state = loadNiche(userId);
+  const scores = (facts.sells || facts.serves) && state.brandSig === brandSig(facts) ? state.scores : {};
+  const hidden = new Set(state.hidden);
+  return loadFeed(userId)
+    .filter((i) => i.kind === "organic" && !hidden.has(i.id) && (i.from === "cp" || i.from === "fo" || (scores[i.id] ?? 0) >= MATCH_AT))
+    .sort((a, b) => (b.outlier?.ratio ?? 0) - (a.outlier?.ratio ?? 0) || b.at - a.at)
+    .slice(0, max);
+}
+
 // ---- The matching job, outside React ---------------------------------------------------------------------------
 
 /** The brand's own sources (its competitors, Following, its space) are asked first; the shared drops after. */

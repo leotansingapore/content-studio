@@ -8,6 +8,7 @@ import { staticFormatBySlug } from "@/data/staticFormats";
 import { leftOf, needsOf, refusal, shortOf, cheaperFor, unitOf, type Need, type Plan, type Short } from "@/lib/agentBudget";
 import { newCardId, nextCard, estimateScript, type AgentAct, type AgentCard, type AgentFormat, type CardStep, type Receipt } from "@/lib/agentCards";
 import { LEARNING_RECORDED, SEE_LEARNED, UNDO_LINE, correctionNudge, followingLine, scopeWords, type Correction, type Nudge } from "@/lib/agentMemory";
+import type { Answer } from "@/lib/agentAnswers";
 import { patchMsg, plainQuote, type AgentMsg } from "@/lib/agentThreads";
 import { logActivity, type ActivityKind } from "@/lib/activity";
 import { readUsage, type Usage } from "@/lib/aiUsage";
@@ -76,6 +77,8 @@ export interface Reply {
   /** A numbered pick list of make skills, and the topic it was asked about (agentThreads AgentMsg.picks). */
   picks?: string[];
   topic?: string;
+  /** A ready answer's card (agentThreads AgentMsg.answer). */
+  answer?: Answer;
 }
 /** The engine's turn while a press runs: the step line, and one more server call. */
 export interface Live {

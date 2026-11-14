@@ -1,14 +1,15 @@
 // The agent (docs/north-star/items/agent-chat.md; phase6-build-brief.md, "Agent engine API"): one turn at a time per
 // thread, run outside React like the makers' jobs, so leaving /agent loses nothing. A message goes to assistant-act
-// once (Jev picks the act and fills its slots; a "/" message, one sent with a static format's layout, and one sent with
-// a make skill's answers (makeSkills.ts, `make`) never ask Jev), and the agent answers with a fixed line, a card, or the
-// feedback service's words. A card's press runs its plan
+// once (Jev picks the act and fills its slots; a "/" message, a ready answer's starter (agentAnswers.ts), one sent with a
+// static format's layout, and one sent with a make skill's answers (makeSkills.ts, `make`) never ask Jev), and the agent
+// answers with a fixed line, a card, or the feedback service's words. A card's press runs its plan
 // (agentPlans.ts): every priced step waits for a press on a card that shows its price, and a typed yes approves only
 // the one proposed card, only under US$1.
 // Stop aborts the Jev call only; after a press the make finishes. Turns, cards and receipts live in the thread
 // messages (agentThreads.ts), so a reload shows them and resumeAgent picks up what was running.
 
 import { emitTurns as emit, onAgent, turnOf, turns } from "@/lib/agentTurns";
+import { answerFor, answerOf } from "@/lib/agentAnswers";
 import { budgetAnswer } from "@/lib/agentBudget";
 import { needsCard, nextCard, runUndo, UNDONE, type AgentCard, type AgentFormat, type AgentPick, type Receipt } from "@/lib/agentCards";
 import { forgetPick, lastUndoable, learningLines, LEARNING_REMOVED, memoryAnswer, SEE_LEARNED, undidLine, UNDO_LINE, dismissNudge, noteCorrection } from "@/lib/agentMemory";
@@ -282,6 +283,9 @@ type Out = Reply & { turn?: TurnState };
 async function decide(userId: string, thread: string, msg: string, text: string, o: SendOpts, signal: AbortSignal, live: ReturnType<typeof liveFor>): Promise<Out> {
   if (o.layout) return layoutReply(userId, o.layout, o.topic || text, live);
   if (o.make) return answersReply(userId, thread, o.make, text, live);
+  // trending, the best post and angles: their starter sent unchanged, or their "/" command, drawn as a card
+  const ready = o.chip || o.source ? null : answerOf(text);
+  if (ready) return { answer: answerFor(userId, ready) };
   const messages = (threadOf(userId, thread)?.messages ?? []).filter((m) => m.id !== msg);
   const api = skillsApi();
   if (text.startsWith("/")) return slash(userId, text, api, live);

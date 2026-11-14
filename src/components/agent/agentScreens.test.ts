@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/agentRun", () => ({ send: vi.fn(), stop: vi.fn(), turnOf: () => null, onAgent: () => () => undefined, press: vi.fn(), editCard: vi.fn(), undoReceipt: vi.fn(), resumeAgent: vi.fn() }));
 vi.mock("@/lib/agentStarters", () => ({ starterChips: () => [] }));
-vi.mock("@/lib/chatSkills", () => ({ BUILT_IN_SKILLS: [], loadMySkills: () => [] }));
+vi.mock("@/lib/chatSkills", () => ({ BUILT_IN_SKILLS: [], AGENT_ANSWERS: [], loadMySkills: () => [] }));
 vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://abc.supabase.co", supabase: { auth: {}, from: () => ({}) } }));
 
 import { ENGINE_CHIP, metaLine, newlyMade, runLabel } from "./AgentThread";

@@ -1,5 +1,5 @@
-// Skills (/skills, Leo's sign-ins only; docs/north-star/items/agent-skills.md): the four ready-made skills, your own
-// slash skills and the last 30 results, all from src/lib/chatSkills.ts, whose runs go on outside React. ?run=<id> opens a
+// Skills (/skills, Leo's sign-ins only; docs/north-star/items/agent-skills.md): the four ready-made skills, the agent's
+// three ready answers (Ask the agent sends the "/" command to a new chat), your own slash skills and the last 30 results, all from src/lib/chatSkills.ts, whose runs go on outside React. ?run=<id> opens a
 // result and marks it seen (push); ?skill=<id> opens the post chooser for a skill that needs a post (push), and with
 // &post=<id> runs a free skill on that post and becomes ?run=<new id> (replace), while a priced one waits for its button;
 // ?edit=<slash> and ?new=1 open the form (push). "Run every week" waits for scheduled skills (phase 6 Q4). Everyone
@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { seedThread } from "@/lib/agentThreads";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
-  BUILT_IN_SKILLS, FULL_LINE, INSTRUCTION_CHARS, MAX_SKILLS, NAME_CHARS, PICK_LINE, PRICED, QUOTING, answerShown, isRunning, loadMySkills, loadSkillRuns, markSeen,
+  AGENT_ANSWERS, BUILT_IN_SKILLS, FULL_LINE, INSTRUCTION_CHARS, MAX_SKILLS, NAME_CHARS, PICK_LINE, PRICED, QUOTING, answerShown, isRunning, loadMySkills, loadSkillRuns, markSeen,
   onSkillsChanged, postChoices, postTitle, removeMySkill, restoreMySkill, runSkill, saveMySkill, skillRunText, slashOf, type MySkill, type SkillRun,
 } from "@/lib/chatSkills";
 import { keyToDate, timeLabel } from "@/lib/dueDates";
@@ -143,6 +143,23 @@ function Skills({ userId }: { userId: string }) {
               </li>
             );
           })}
+          {/* a card in the agent's chat, sent on arrival with no Jev call; nothing here is priced before its own press */}
+          {AGENT_ANSWERS.map((a) => (
+            <li key={a.id} className={`${CARD} flex flex-col gap-2`}>
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-semibold">{a.name}</span>
+                <code className="text-xs text-muted-foreground">/{a.slash}</code>
+              </div>
+              <p className="text-sm text-muted-foreground">{a.description}</p>
+              <div className="mt-auto pt-1">
+                <Button asChild size="sm" variant="outline" className={`h-10 ${TOUCH}`}>
+                  <Link to={links.agent({ ask: `/${a.slash}` })} state={{ send: true, from: { label: "Skills", path: links.skills() } }}>
+                    Ask the agent
+                  </Link>
+                </Button>
+              </div>
+            </li>
+          ))}
         </ul>
       </section>
 
