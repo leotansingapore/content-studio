@@ -29,3 +29,22 @@ describe("Blitz while making today's deck", () => {
     expect(html().split("Making today&#x27;s deck").length - 1).toBe(1);
   });
 });
+
+describe("a card that couldn't be made", () => {
+  const failed = (error: string) => ({ id: "f1", format: "wall", source: null, topic: { title: "T", angle: "" }, why: "", state: "failed", error }) as BlitzCard;
+
+  it("counts only made cards as ready", () => {
+    deck.cards = [failed("Couldn't make this one."), ...making(2)];
+    expect(html()).toContain("Making today&#x27;s 3, 0 ready");
+  });
+
+  it("offers Try again only when another try can work", async () => {
+    const { DEAD_LINE, FAILED_LINE } = await import("@/lib/blitz");
+    deck.running = false;
+    deck.cards = [failed(FAILED_LINE)];
+    expect(html()).toContain("Try again");
+    deck.cards = [failed(DEAD_LINE)];
+    expect(html()).not.toContain("Try again");
+    deck.running = true;
+  });
+});

@@ -23,7 +23,7 @@ import { loadSlideshows, removeSlideshow, saveSlideshow, slideshowToDraft, type 
 import { makeBody, slideshowBusy, slideshowJob, startSlideshow } from "@/lib/slideshowJob";
 import { findWinners, loadWinners } from "@/lib/winners";
 import {
-  CAPPED_LINE, FAILED_LINE, emptyReason, loadBlitz, loadStored, madeCount, patchCard, pickDeck, rememberUsed, saveBlitz, usedKeyOf, usedKeys,
+  CAPPED_LINE, DEAD_LINE, FAILED_LINE, emptyReason, loadBlitz, loadStored, madeCount, patchCard, pickDeck, rememberUsed, saveBlitz, usedKeyOf, usedKeys,
   type BlitzCard, type Pools,
 } from "@/lib/blitz";
 
@@ -117,6 +117,15 @@ async function run(userId: string): Promise<void> {
         saveBlitz(userId, { ...s, capped: true, cards: s.cards.filter((c) => c.state !== "waiting" && c.state !== "making") });
         break;
       }
+      if (made === "dead") {
+        const next = card.swapped ? null : replacementFor(userId, card);
+        if (next) {
+          const s = loadBlitz(userId);
+          saveBlitz(userId, { ...s, cards: s.cards.map((c) => (c.id === card.id ? next : c)) });
+        } else patchCard(userId, card.id, { state: "failed", error: DEAD_LINE });
+        mirror(userId);
+        continue;
+      }
       patchCard(userId, card.id, made);
       mirror(userId);
     }
@@ -127,8 +136,26 @@ async function run(userId: string): Promise<void> {
   }
 }
 
-/** One card's make: its patch, or "capped" when the day's remixes are gone. */
-export async function makeCard(userId: string, card: BlitzCard): Promise<Partial<BlitzCard> | "capped"> {
+/**
+ * A fresh card for one whose source the writer turned away, under the same id so the card in view stays put: one
+ * pick from today's pools that no deck has used (pickDeck falls back to used sources when fresh ones run out, and a
+ * repeat would fail the same way). Null when nothing fresh is left.
+ */
+function replacementFor(userId: string, card: BlitzCard): BlitzCard | null {
+  const s = loadBlitz(userId);
+  const taken = new Set([...usedKeys(userId), ...s.cards.map(usedKeyOf)].filter(Boolean));
+  const [next] = pickDeck(loadPools(userId), s.mix, taken, { n: 1, media: loadMedia(userId).length > 0 });
+  const key = next ? usedKeyOf(next) : "";
+  if (!next || !key || taken.has(key)) return null;
+  rememberUsed(userId, [key]);
+  return { ...next, id: card.id, swapped: true };
+}
+
+/**
+ * One card's make: its patch, "capped" when the day's remixes are gone, or "dead" when the writer turned the source
+ * away (a 422, unusable or refused: billed, and the same source fails the same way again).
+ */
+export async function makeCard(userId: string, card: BlitzCard): Promise<Partial<BlitzCard> | "capped" | "dead"> {
   const topic = card.source ? "" : (card.topic?.title ?? "");
   const note = card.source ? "" : (card.topic?.angle ?? "");
   // the brand's Name your business choice (Settings > Post choices): Never, Sometimes (a flip per card) or Always
@@ -143,6 +170,7 @@ export async function makeCard(userId: string, card: BlitzCard): Promise<Partial
     const j = slideshowJob();
     if (j?.id === id && j.state === "done" && j.showId) return { state: "new", showId: j.showId };
     if (j?.id === id && j.capped) return "capped";
+    if (j?.id === id && j.refused) return "dead";
     return { state: "failed", error: FAILED_LINE };
   }
   try {
@@ -152,7 +180,8 @@ export async function makeCard(userId: string, card: BlitzCard): Promise<Partial
     const caption = stripDashes(applyBrandRules(res.result.caption, loadBrand(userId), "tiktok")).trim();
     return text ? { state: "new", wall: { text, caption } } : { state: "failed", error: FAILED_LINE };
   } catch (e) {
-    return e instanceof EdgeError && e.code === "daily_limit" ? "capped" : { state: "failed", error: FAILED_LINE };
+    if (e instanceof EdgeError && e.code === "daily_limit") return "capped";
+    return e instanceof EdgeError && e.status === 422 ? "dead" : { state: "failed", error: FAILED_LINE };
   }
 }
 

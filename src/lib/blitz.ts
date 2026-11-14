@@ -57,6 +57,8 @@ export interface BlitzCard {
   /** The My posts entry a kept card became. */
   draftId?: string;
   error?: string;
+  /** Dealt in place of a card whose source the writer turned away (blitzJob), so it is never swapped twice. */
+  swapped?: true;
 }
 
 export interface BlitzState {
@@ -68,6 +70,8 @@ export interface BlitzState {
 }
 
 export const FAILED_LINE = "Couldn't make this one.";
+/** The writer turned this source away twice in a row; another try is billed and fails the same way, so it only skips. */
+export const DEAD_LINE = "This one couldn't be made from its source. Skip it.";
 export const CAPPED_LINE = "Today's remixes are used up. More at 8am Singapore time.";
 export const NO_SOURCES_LINE = "Add a competitor so Blitz has ads to remix.";
 

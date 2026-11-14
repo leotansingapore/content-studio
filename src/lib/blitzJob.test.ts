@@ -18,7 +18,7 @@ vi.mock("@/lib/slideshowJob", async (orig) => ({
 vi.mock("@/lib/ideasInbox", async (orig) => ({ ...(await orig<typeof import("./ideasInbox")>()), poolIdeas: () => [] }));
 vi.mock("@/lib/remix", async (orig) => ({ ...(await orig<typeof import("./remix")>()), requestMake }));
 
-import { DEFAULT_MIX, deckDay, loadBlitz, saveBlitz, type BlitzCard } from "./blitz";
+import { DEAD_LINE, DEFAULT_MIX, deckDay, loadBlitz, saveBlitz, usedKeyOf, type BlitzCard } from "./blitz";
 import { alsoMake, blitzBusy, keepCard, loadPools, nothingToDraw, retryCard, skipCard, startDeck, undoKeep, whyEmpty } from "./blitzJob";
 import { FORMAT_TRENDS } from "./formatTrends";
 import { DEFAULT_CHOICES, savePostChoices } from "./postChoices";
@@ -118,6 +118,45 @@ describe("making the deck", () => {
     expect(loadBlitz(UID).cards[0]).toMatchObject({ state: "failed", error: "Couldn't make this one." });
     await run("c1");
     expect(loadBlitz(UID).cards[0]).toMatchObject({ state: "new", wall: { text: "Second go" } });
+  });
+});
+
+describe("a source the writer turns away", () => {
+  const turnedAway = () => new EdgeError("That remix came back in a shape that can't be used. Try again.", 422, "unusable");
+
+  it("deals a fresh source in its place, under the same id, without a second try on the dead one", async () => {
+    requestMake.mockRejectedValueOnce(turnedAway()).mockResolvedValue(wallOk("Fresh words"));
+    seed([card("c1", "wall")]);
+    await run("c1");
+    const c = loadBlitz(UID).cards[0];
+    expect(c).toMatchObject({ id: "c1", state: "new", swapped: true });
+    expect(usedKeyOf(c)).not.toBe(usedKeyOf(card("c1", "wall")));
+    // the dead source was written once, never retried
+    expect(requestMake.mock.calls.length + startSlideshow.mock.calls.length).toBe(2);
+  });
+
+  it("only offers Skip when the swapped card is turned away too, so no paid retry fails the same way", async () => {
+    requestMake.mockRejectedValue(turnedAway());
+    seed([card("c1", "wall", { swapped: true })]);
+    await run("c1");
+    expect(loadBlitz(UID).cards[0]).toMatchObject({ state: "failed", error: DEAD_LINE });
+    expect(requestMake).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats a slideshow the maker refused the same way", async () => {
+    startSlideshow.mockImplementationOnce(async () => {
+      fake.show = { id: ++fake.seq, state: "failed", refused: true, error: "That slideshow can't be turned into something safe to post." };
+    });
+    seed([card("c1", "slideshow", { swapped: true })]);
+    await run("c1");
+    expect(loadBlitz(UID).cards[0]).toMatchObject({ state: "failed", error: DEAD_LINE });
+  });
+
+  it("keeps Try again for a make that never went through", async () => {
+    requestMake.mockRejectedValueOnce(new EdgeError("Down", 503));
+    seed([card("c1", "wall")]);
+    await run("c1");
+    expect(loadBlitz(UID).cards[0]).toMatchObject({ state: "failed", error: "Couldn't make this one." });
   });
 });
 

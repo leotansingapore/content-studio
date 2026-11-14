@@ -14,7 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import {
-  CAPPED_LINE, FORMAT_LABELS, keptCount, keyAction, loadBlitz, onBlitzChanged, openCards, pending, sourceChip, type BlitzCard,
+  CAPPED_LINE, DEAD_LINE, FORMAT_LABELS, keptCount, keyAction, loadBlitz, madeCount, onBlitzChanged, openCards, pending, sourceChip, type BlitzCard,
 } from "@/lib/blitz";
 import { alsoMake, blitzBusy, editHref, keepCard, nothingToDraw, onBlitzJob, retryCard, skipCard, startDeck, undoKeep, whyEmpty } from "@/lib/blitzJob";
 import { links } from "@/lib/links";
@@ -95,7 +95,13 @@ function Blitz({ userId }: { userId: string }) {
 
   const running = blitzBusy();
   const open = openCards(s.cards);
-  const card = open.find((c) => c.id === cardParam) ?? open[0] ?? null;
+  // the card in view stays put while others land: a retried or swapped card earlier in the deck never jumps in
+  // front of the one being read (a K pressed then would keep the wrong card)
+  const shown = useRef<string | null>(null);
+  const live = (id: string | null) => (id ? s.cards.find((c) => c.id === id && c.state !== "kept" && c.state !== "skipped") : undefined);
+  const card = live(cardParam) ?? live(shown.current) ?? open[0] ?? null;
+  shown.current = card?.id ?? null;
+  const remaking = card?.state === "waiting" || card?.state === "making";
   const made = s.cards.filter((c) => c.state !== "waiting" && c.state !== "making").length;
   const kept = keptCount(s.cards);
   useEffect(() => setWhy(false), [card?.id]);
@@ -129,7 +135,7 @@ function Blitz({ userId }: { userId: string }) {
   // K, S and E act on the open card; the newest handler is read on each key
   const onKey = useRef<(e: KeyboardEvent) => void>();
   onKey.current = (e: KeyboardEvent) => {
-    if (!card) return;
+    if (!card || remaking) return;
     const act = keyAction(e);
     if (!act) return;
     if (act === "skip") skip(card);
@@ -146,7 +152,7 @@ function Blitz({ userId }: { userId: string }) {
 
   // the deck is being made: the line beside the heading says so once, and the card area is a quiet skeleton
   const dealing = !nothing && (running || (!s.cards.length && !s.capped));
-  const status = dealing ? (s.cards.length ? `Making today's ${s.cards.length}, ${made} ready` : "Making today's deck") : open.length ? `${open.length} left today` : "";
+  const status = dealing ? (s.cards.length ? `Making today's ${s.cards.length}, ${madeCount(s.cards)} ready` : "Making today's deck") : open.length ? `${open.length} left today` : "";
 
   return (
     <div className="space-y-5">
@@ -189,9 +195,15 @@ function Blitz({ userId }: { userId: string }) {
               {card.state === "failed" ? (
                 <div className="flex aspect-[4/5] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border p-6 text-center">
                   <p className="text-sm font-medium">{card.error || "Couldn't make this one."}</p>
-                  <Button variant="outline" onClick={() => retryCard(userId, card.id)}>
-                    <ArrowCounterClockwiseIcon /> Try again
-                  </Button>
+                  {card.error !== DEAD_LINE && (
+                    <Button variant="outline" onClick={() => retryCard(userId, card.id)}>
+                      <ArrowCounterClockwiseIcon /> Try again
+                    </Button>
+                  )}
+                </div>
+              ) : remaking ? (
+                <div className="flex aspect-[4/5] animate-pulse items-center justify-center rounded-xl bg-muted p-6 text-sm text-muted-foreground" aria-busy="true">
+                  Making this one
                 </div>
               ) : (
                 <BlitzPreview userId={userId} card={card} />
@@ -199,7 +211,7 @@ function Blitz({ userId }: { userId: string }) {
             </div>
             <div className="flex items-start justify-center gap-6">
               <div className="flex flex-col items-center gap-1">
-                <button type="button" className={cn(ROUND, "border-border bg-background hover:bg-muted")} onClick={() => skip(card)} aria-label="Skip" aria-keyshortcuts="S">
+                <button type="button" className={cn(ROUND, "border-border bg-background hover:bg-muted")} onClick={() => skip(card)} disabled={remaking} aria-label="Skip" aria-keyshortcuts="S">
                   <XIcon className="h-6 w-6" />
                 </button>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">Skip <Key k="S" /></span>
