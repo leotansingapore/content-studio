@@ -88,6 +88,14 @@ export function withSignOff(text: string, signOff: string | null | undefined): s
   return kept ? `${body}\n\n${kept}` : body;
 }
 
+/** The brand's legal lines on the end of an ad's text, each once: a line the text already carries is not added again. */
+export function withLegal(text: string, lines: readonly string[] | undefined): string {
+  const flat = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+  const body = text.trimEnd();
+  const missing = (lines ?? []).map((l) => l.trim()).filter((l) => l && !flat(body).includes(flat(l)));
+  return missing.length ? `${body}${body ? "\n\n" : ""}${missing.join("\n")}` : text;
+}
+
 // Disclosure labels a post can carry, in the order they are written.
 export const DISCLOSURES = {
   ai: { label: "AI-assisted", line: "Written with AI assistance." },

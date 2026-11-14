@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { allowedLinks, applyBrandRules, avoidList, brandOffers, brandRulesLine, capEmoji, countEmoji, hashtagMax, offerUrl } from "@/lib/brandRules";
+import { describe, expect, it, vi } from "vitest";
+import { allowedLinks, applyBrandRules, avoidList, brandOffers, brandRulesLine, capEmoji, countEmoji, guidelineLines, hashtagMax, offerUrl } from "@/lib/brandRules";
 import { MAX_AVOID_CHARS, sanitizeBrand } from "@/lib/carousel";
 import { checkLimits, countHashtags, strayLinks } from "@/lib/platformCounters";
 
@@ -66,6 +66,37 @@ describe("words the brand never uses", () => {
     expect(sanitizeBrand({ avoidWords: "cheapest,\nhustle" }).avoidWords).toBe("cheapest,\nhustle");
     expect(sanitizeBrand({ avoidWords: "x".repeat(MAX_AVOID_CHARS + 50) }).avoidWords).toHaveLength(MAX_AVOID_CHARS);
     expect(sanitizeBrand({ avoidWords: ["cheapest"] }).avoidWords).toBeUndefined();
+  });
+});
+
+describe("the Profile's Avoid list", () => {
+  it("is checked beside the kit's words for the brand's user, and never added to the writer's rules line", () => {
+    const uid = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+    const row = (id: string, text: string) => ({ id, text, scope: "all", source: "typed", createdAt: "2026-11-14T01:00:00.000Z" });
+    const store = new Map([[`content-studio-learnings-${uid}`, JSON.stringify([row("l1", "Avoid: guaranteed returns"), row("l2", "Avoid: Cheapest"), row("l3", "keep it short")])]]);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: () => {}, removeItem: () => {} });
+    try {
+      expect(avoidList({ avoidWords: "cheapest" }, uid)).toEqual(["cheapest", "guaranteed returns"]);
+      expect(avoidList({ avoidWords: "cheapest" })).toEqual(["cheapest"]);
+      expect(brandRulesLine({ avoidWords: "cheapest" })).toContain("Never use these words or phrases: cheapest.");
+      expect(checkLimits("We promise Guaranteed returns.", "instagram", [], avoidList(null, uid)).warnings.map((w) => w.message)).toContain('Words you never use: "guaranteed returns".');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("pasted brand guidelines", () => {
+  it("become one line each, list marks off, once each, numbers in the words kept", () => {
+    expect(guidelineLines("Our voice\n\n- Never say cheap\n• Always sign off warmly\n2. Use plain words\n1.5% fee applies\n-5% is not a mark\n  never say cheap  ")).toEqual([
+      "Our voice",
+      "Never say cheap",
+      "Always sign off warmly",
+      "Use plain words",
+      "1.5% fee applies",
+      "-5% is not a mark",
+    ]);
+    expect(guidelineLines(Array.from({ length: 80 }, (_, i) => `line ${i}`).join("\n"))).toHaveLength(60);
   });
 });
 

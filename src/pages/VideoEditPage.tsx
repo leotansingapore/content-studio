@@ -1748,7 +1748,7 @@ export function Editor({ userId, leo, project, onSave, onBack }: {
   const copyCaption = () =>
     navigator.clipboard.writeText(postText).then(() => toast({ title: brandKit?.signOff?.trim() ? "Caption copied with your sign-off" : "Caption copied" }));
   const brandLinks = useMemo(() => allowedLinks(brandKit, loadSocialAccounts(userId)), [brandKit, userId]);
-  const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram", brandLinks, avoidList(brandKit)).warnings : []), [caption, postText, brandLinks, brandKit]);
+  const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram", brandLinks, avoidList(brandKit, userId)).warnings : []), [caption, postText, brandLinks, brandKit, userId]);
   // a video made from a post saves back to it (Leo only); read again after a save, in case it was the fallback
   const ownPost = useMemo(() => (leo && project.draftId ? getDraftById(userId, project.draftId) : null), [leo, userId, project.draftId, savedDraft]);
   const saveLabel = ownPost ? (savedDraft ? "Saved to your post" : "Save to your post") : savedDraft ? "Saved to All posts" : "Save to All posts";

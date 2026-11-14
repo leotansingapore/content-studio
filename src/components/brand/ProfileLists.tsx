@@ -1,14 +1,23 @@
 // Brand > Profile's lists (/playbook), as Fastlane's Profile has them: a label with "0 of 10", the rows, and Add opening
-// one field in place. Each list saves to the store its writers already read (voiceMemory.ts), so nothing here is sent
-// anywhere new. Remove turns a row off with Undo, as /voice does.
+// one field in place. Each list saves to the store its writers already read (voiceMemory.ts learnings and facts), or
+// to the brand kit for what code adds (legal lines), so nothing here is sent anywhere new. Remove has Undo, as /voice.
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { PlusIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
-import { LEARNING_CHARS, RULES, addRule, onMemoryChanged, rulesOf, setLearningOff, type RuleKind } from "@/lib/voiceMemory";
+import { NO_ROOM, kitOf } from "@/components/brand/profileSave";
+import { guidelineLines } from "@/lib/brandRules";
+import { MAX_LEGAL, MAX_LEGAL_CHARS, saveBrand } from "@/lib/carousel";
+import { adviserBrand } from "@/lib/profession";
+import {
+  FACT_CHARS, FACT_KINDS, LEARNING_CHARS, MAX_FACTS, RULES, addFactOf, addRule, factsOf, fullLine, onMemoryChanged, rulesOf, setFactOff, setLearningOff,
+  type FactKind, type RuleKind,
+} from "@/lib/voiceMemory";
 
 /** A Profile group's heading and its one card, the way ProfileRows draws them. */
 export const GROUP_H2 = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
@@ -134,5 +143,184 @@ export function ToneLists({ uid }: { uid: string }) {
       <RuleList uid={uid} kind="do" label="Do" placeholder="Write like you talk to a friend" />
       <RuleList uid={uid} kind="dont" label="Don't" placeholder="Open with a question" />
     </div>
+  );
+}
+
+/** One of the Profile's fact lists (Product claims): its rows, Add and Remove. */
+export function FactList({ uid, kind, id, label, hint, placeholder }: { uid: string; kind: FactKind; id: string; label: string; hint?: ReactNode; placeholder: string }) {
+  const rows = useMemoryRead(() => factsOf(uid, kind), [uid, kind]);
+  const removed = useRemove();
+  const cap = FACT_KINDS[kind].max ?? MAX_FACTS;
+  return (
+    <CountedList id={id} label={label} hint={hint} rows={rows} max={cap} chars={FACT_CHARS - FACT_KINDS[kind].lead.length} placeholder={placeholder}
+      add={(t) => { const r = addFactOf(uid, kind, t); return "error" in r ? r.error : null; }}
+      remove={(rowId) => removed((on) => setFactOff(uid, rowId, on))} />
+  );
+}
+
+const legalOf = (uid: string) => kitOf(uid).legal ?? [];
+const saveLegal = (uid: string, lines: string[]) => saveBrand(uid, { ...kitOf(uid), legal: lines });
+
+/** Adds a legal line to the brand kit; the line to show when it couldn't. */
+export function addLegal(uid: string, text: string): string | null {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (!t) return "Type one first.";
+  const now = legalOf(uid);
+  if (now.some((l) => l.toLowerCase() === t.toLowerCase())) return null;
+  if (now.length >= MAX_LEGAL) return fullLine(MAX_LEGAL);
+  if (t.length > MAX_LEGAL_CHARS) return `Keep it under ${MAX_LEGAL_CHARS} characters.`;
+  saveLegal(uid, [...now, t]);
+  return legalOf(uid).length > now.length ? null : NO_ROOM;
+}
+
+/** The brand kit's legal lines: added to the end of every ad's text (RunAsAdSheet, plainText withLegal). */
+function LegalList({ uid }: { uid: string }) {
+  const [rows, setRows] = useState(() => legalOf(uid));
+  const removed = useRemove();
+  // brand kit saves fire no event, so the list reads again after its own changes and after an import (bump)
+  useEffect(() => onLegalChanged(() => setRows(legalOf(uid))), [uid]);
+  return (
+    <CountedList id="legal" label="Legal lines" hint="Lines your ads must carry, added to the end of each one." rows={rows.map((text, i) => ({ id: String(i), text }))}
+      max={MAX_LEGAL} chars={MAX_LEGAL_CHARS} placeholder={adviserBrand(uid) ? "This advertisement has not been reviewed by the Monetary Authority of Singapore." : "Terms and conditions apply."}
+      add={(t) => { const e = addLegal(uid, t); legalChanged(); return e; }}
+      remove={(rowId) => {
+        const line = rows[Number(rowId)];
+        removed((off) => {
+          const now = legalOf(uid);
+          if (!off && now.length >= MAX_LEGAL) return { ok: false, error: fullLine(MAX_LEGAL) };
+          saveLegal(uid, off ? now.filter((l) => l !== line) : [...now, line]);
+          legalChanged();
+          return { ok: true };
+        });
+      }} />
+  );
+}
+
+const LEGAL_CHANGED = "content-studio-legal-changed";
+const legalChanged = () => window.dispatchEvent(new Event(LEGAL_CHANGED));
+const onLegalChanged = (fn: () => void) => {
+  window.addEventListener(LEGAL_CHANGED, fn);
+  return () => window.removeEventListener(LEGAL_CHANGED, fn);
+};
+
+const PICKS = [
+  { id: "legal", label: "Legal line" },
+  { id: "claim", label: "Product claim" },
+  { id: "avoid", label: "Avoid" },
+  { id: "do", label: "Do" },
+  { id: "dont", label: "Don't" },
+] as const;
+type Pick = (typeof PICKS)[number]["id"];
+const LABEL = Object.fromEntries(PICKS.map((p) => [p.id, p.label])) as Record<Pick, string>;
+/** The most characters a line may have in each list. */
+const ROOM: Record<Pick, number> = {
+  legal: MAX_LEGAL_CHARS,
+  claim: FACT_CHARS - FACT_KINDS.claim.lead.length,
+  avoid: LEARNING_CHARS - RULES.avoid.lead.length,
+  do: LEARNING_CHARS - RULES.do.lead.length,
+  dont: LEARNING_CHARS - RULES.dont.lead.length,
+};
+
+function addPicked(uid: string, kind: Pick, text: string): string | null {
+  if (text.length > ROOM[kind]) return `too long for ${LABEL[kind]}`;
+  if (kind === "legal") return addLegal(uid, text);
+  const r = kind === "claim" ? addFactOf(uid, "claim", text) : addRule(uid, kind, text);
+  return "error" in r ? r.error : null;
+}
+
+/** "Paste your brand guidelines": each line with a tick and the list it goes to; Add puts the ticked ones in. */
+function GuidelinesImport({ uid }: { uid: string }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [lines, setLines] = useState<{ text: string; on: boolean; kind: Pick }[] | null>(null);
+  const [line, setLine] = useState("");
+  const ticked = lines?.filter((l) => l.on).length ?? 0;
+  const set = (i: number, patch: Partial<{ on: boolean; kind: Pick }>) => setLines((ls) => ls && ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  const add = () => {
+    if (!lines) return;
+    const kept: typeof lines = [];
+    const why = new Set<string>();
+    let added = 0;
+    for (const l of lines) {
+      if (!l.on) {
+        kept.push(l);
+        continue;
+      }
+      const error = addPicked(uid, l.kind, l.text);
+      if (error) {
+        kept.push(l);
+        why.add(error.replace(/\.$/, ""));
+      } else added++;
+    }
+    legalChanged();
+    setLines(kept);
+    setLine(`Added ${added}.${why.size ? ` ${ticked - added} not added: ${[...why].join("; ")}.` : ""}`);
+  };
+  if (!open) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3.5">
+        <p className="min-w-0 flex-1 text-xs text-muted-foreground">Have brand guidelines? Paste them and pick which lines to keep.</p>
+        <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className={`h-9 ${TOUCH}`}>Paste your brand guidelines</Button>
+      </div>
+    );
+  }
+  return (
+    <div id="guidelines" className="scroll-mt-20 space-y-3 px-4 py-3.5">
+      <Label htmlFor="pe-guidelines">Your brand guidelines</Label>
+      {!lines ? (
+        <>
+          <Textarea id="pe-guidelines" rows={6} value={text} maxLength={20000} onChange={(e) => setText(e.target.value)}
+            placeholder="Paste the text from your guidelines. Each line becomes one you can keep." />
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" disabled={!text.trim()} onClick={() => (setLines(guidelineLines(text).map((t) => ({ text: t, on: false, kind: "do" as Pick }))), setLine(""))} className={`h-9 ${TOUCH}`}>
+              Show the lines
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => (setOpen(false), setText(""))} className={`h-9 text-muted-foreground ${TOUCH}`}>Cancel</Button>
+          </div>
+        </>
+      ) : (
+        <>
+          {lines.length ? (
+            <ul className="space-y-1.5">
+              {lines.map((l, i) => (
+                <li key={`${i}-${l.text}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-muted/40 px-3 py-1.5 text-sm">
+                  <label className="flex min-h-9 min-w-0 flex-1 basis-56 cursor-pointer items-start gap-2.5 py-1 [@media(pointer:coarse)]:min-h-11">
+                    <input type="checkbox" checked={l.on} onChange={(e) => set(i, { on: e.target.checked })} className="mt-0.5 h-4 w-4 shrink-0 accent-primary" />
+                    <span className="min-w-0 [overflow-wrap:anywhere]">{l.text}</span>
+                  </label>
+                  <select aria-label={`List for: ${l.text}`} value={l.kind} onChange={(e) => set(i, { kind: e.target.value as Pick, on: true })}
+                    className={`h-9 rounded-md border border-input bg-background px-2 text-sm ${TOUCH}`}>
+                    {PICKS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">Every line is in.</p>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {lines.length > 0 && <Button type="button" size="sm" disabled={!ticked} onClick={add} className={`h-9 ${TOUCH}`}>{ticked ? `Add ${ticked} ticked` : "Tick the lines to keep"}</Button>}
+            <Button type="button" variant="ghost" size="sm" onClick={() => (setOpen(false), setText(""), setLines(null), setLine(""))} className={`h-9 text-muted-foreground ${TOUCH}`}>Done</Button>
+            <p aria-live="polite" className="text-xs text-muted-foreground">{line}</p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Fastlane's Rules: the guidelines import, then Legal lines, Product claims and Avoid. */
+export function RulesSection({ uid }: { uid: string }) {
+  return (
+    <section id="rules" aria-labelledby="rules-title" className="scroll-mt-20 space-y-2">
+      <h2 id="rules-title" className={GROUP_H2}>Rules</h2>
+      <div className={GROUP_CARD}>
+        <p className="px-4 py-3 text-xs text-muted-foreground">Every ad, script and caption the AI makes follows these.</p>
+        <GuidelinesImport uid={uid} />
+        <LegalList uid={uid} />
+        <FactList uid={uid} kind="claim" id="claims" label="Product claims" hint="Claims your ads and posts can make." placeholder="Set up in 10 minutes" />
+        <RuleList uid={uid} kind="avoid" label="Avoid" hint="What your content never shows or says. A post that uses one is flagged." placeholder="Guaranteed returns" />
+      </div>
+    </section>
   );
 }

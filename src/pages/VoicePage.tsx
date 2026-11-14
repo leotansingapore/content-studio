@@ -39,6 +39,7 @@ import {
   loadLearnings,
   onMemoryChanged,
   plainLearnings,
+  proofFacts,
   setFactOff,
   setLearningOff,
   type Learning,
@@ -662,10 +663,11 @@ function HowYouSound(p: {
 
 function FactsSection({ userId }: { userId: string }) {
   const { toast } = useToast();
-  const [rows, setRows] = useState(() => loadFacts(userId));
+  // Profile's Product claims are facts too, kept and capped there (voiceMemory FACT_KINDS)
+  const [rows, setRows] = useState(() => proofFacts(loadFacts(userId)));
   useEffect(() => {
-    setRows(loadFacts(userId));
-    return onMemoryChanged(() => setRows(loadFacts(userId)));
+    setRows(proofFacts(loadFacts(userId)));
+    return onMemoryChanged(() => setRows(proofFacts(loadFacts(userId))));
   }, [userId]);
   const [text, setText] = useDraft(`cs-voice-fact-${scoped(userId)}`);
   const [line, setLine] = useState<string | null>(null);

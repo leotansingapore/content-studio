@@ -658,6 +658,8 @@ export interface CarouselBrand {
   hashtagPolicy?: "ten" | "few" | "none";
   /** Words and phrases written posts leave out, as typed (commas or new lines between them; brandRules.ts avoidList). */
   avoidWords?: string;
+  /** Lines every ad must carry (Brand > Profile > Rules), added to the end of an ad's text (plainText.ts withLegal). */
+  legal?: string[];
   // North star phase 4 (Leo only): the fields below are read and written only on Leo's sign-ins.
   /** The brand's site, an http or https origin (brand-from-website), and when it was last read (ISO). */
   website?: string;
@@ -695,6 +697,8 @@ export const MAX_OFFERS = 5;
 export const MAX_OFFER_NAME = 60;
 export const MAX_OFFER_URL = 300;
 export const MAX_AVOID_CHARS = 400;
+export const MAX_LEGAL = 30;
+export const MAX_LEGAL_CHARS = 200;
 export const MAX_WEBSITE_CHARS = 200;
 export const MAX_PALETTE = 3;
 export const MAX_PALETTE_NAME = 20;
@@ -781,6 +785,9 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     emojiPolicy: r.emojiPolicy === "one" || r.emojiPolicy === "none" ? r.emojiPolicy : fallback.emojiPolicy,
     hashtagPolicy: r.hashtagPolicy === "ten" || r.hashtagPolicy === "few" || r.hashtagPolicy === "none" ? r.hashtagPolicy : fallback.hashtagPolicy,
     avoidWords: typeof r.avoidWords === "string" ? r.avoidWords.slice(0, MAX_AVOID_CHARS) : fallback.avoidWords,
+    legal: Array.isArray(r.legal)
+      ? r.legal.flatMap((l) => (typeof l === "string" && l.trim() ? [l.trim().slice(0, MAX_LEGAL_CHARS)] : [])).slice(0, MAX_LEGAL)
+      : fallback.legal,
     website: typeof r.website === "string" ? webOrigin(r.website) : fallback.website,
     websiteReadAt: typeof r.websiteReadAt === "string" ? isoTime(r.websiteReadAt) : fallback.websiteReadAt,
     palette: Array.isArray(r.palette)

@@ -10,6 +10,7 @@ import { dmFields, dmLinks } from "@/lib/bioPage";
 import type { CarouselBrand } from "@/lib/carousel";
 import { HASHTAG_CAP, countHashtags } from "@/lib/platformCounters";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
+import { rulesOf } from "@/lib/voiceMemory";
 
 type Rules = Pick<CarouselBrand, "offers" | "emojiPolicy" | "hashtagPolicy" | "avoidWords" | "instagram" | "facebook" | "whatsapp" | "whatsappText"> | null | undefined;
 
@@ -46,14 +47,31 @@ export function allowedLinks(brand: Rules, accounts: Parameters<typeof dmFields>
   return offers.length ? [...offers, ...dmLinks(dmFields(brand ?? null, accounts)).map((l) => l.url)] : [];
 }
 
-/** The words and phrases the kit says never to use, from what was typed: once each, at most 30. */
-export function avoidList(brand: Rules): string[] {
+/**
+ * The words and phrases the kit says never to use, from what was typed: once each, at most 30. Given the brand's user,
+ * the Profile's Avoid list follows (checked in code only: the writers get it in memoryLine, so brandRulesLine, which
+ * passes no user, sends what it always sent).
+ */
+export function avoidList(brand: Rules, userId?: string | null): string[] {
   const seen = new Set<string>();
-  return String(brand?.avoidWords ?? "")
+  const kit = String(brand?.avoidWords ?? "")
     .split(/[,\n]/)
     .map((w) => w.trim().replace(/\s+/g, " "))
     .filter((w) => w && !seen.has(w.toLowerCase()) && seen.add(w.toLowerCase()))
     .slice(0, 30);
+  if (!userId) return kit;
+  const have = new Set(kit.map((w) => w.toLowerCase()));
+  return [...kit, ...rulesOf(userId, "avoid").map((r) => r.text).filter((w) => !have.has(w.toLowerCase()) && have.add(w.toLowerCase()))];
+}
+
+/** Pasted brand guidelines as lines to pick from (Profile > Rules): one per line, list marks off, once each, 60 at most. */
+export function guidelineLines(text: string): string[] {
+  const seen = new Set<string>();
+  return String(text ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^\s*(?:[•·▪◦●]\s*|[-*–—>]+\s+|\d{1,3}[.)]\s+)/u, "").replace(/\s+/g, " ").trim())
+    .filter((l) => l && !seen.has(l.toLowerCase()) && seen.add(l.toLowerCase()))
+    .slice(0, 60);
 }
 
 /** The hashtags a post may keep: the kit's policy, held to the platform's cap; undefined when neither sets one. */

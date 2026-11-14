@@ -12,13 +12,16 @@ import {
   activeLearnings,
   addFact,
   addLearning,
+  addFactOf,
   addRule,
+  factsOf,
   isOn,
   loadFacts,
   loadLearnings,
   memoryLine,
   notesFor,
   plainLearnings,
+  proofFacts,
   rulesOf,
   setFactOff,
   setLearningOff,
@@ -197,6 +200,25 @@ describe("Profile's Do and Don't", () => {
     addRule(UID, "dont", "use slang", at(3));
     expect(memoryLine(UID, "posts")).toBe(`${MEMORY_HEADER}\n${KEEP_LEAD}Don't: use slang; Do: short lines; plain note`);
     expect(memoryLine(UID, "pictures")).toBe(`${MEMORY_HEADER}\n${KEEP_LEAD}plain note`);
+  });
+});
+
+describe("Profile's Avoid and Product claims", () => {
+  it("Avoid holds 30 beside Do and Don't and goes to pictures too", () => {
+    for (let i = 0; i < 30; i++) expect(addRule(UID, "avoid", `word ${i}`, at(i)).ok).toBe(true);
+    expect(addRule(UID, "avoid", "one more")).toEqual({ ok: false, error: "30 is the most. Remove one to add another." });
+    expect(addRule(UID, "do", "short lines", at(40)).ok).toBe(true);
+    expect(memoryLine(UID, "pictures")).toContain("Avoid: word 29");
+    expect(memoryLine(UID, "pictures")).not.toContain("Do: short lines");
+  });
+  it("claims are facts with a lead, 30 beside the 20 facts typed on /voice, which list only their own", () => {
+    for (let i = 0; i < MAX_FACTS; i++) addFact(UID, `fact ${i}`, at(i));
+    for (let i = 0; i < 30; i++) expect(addFactOf(UID, "claim", `claim ${i}`, at(30 + i)).ok).toBe(true);
+    expect(addFactOf(UID, "claim", "one more")).toEqual({ ok: false, error: "30 is the most. Remove one to add another." });
+    expect(addFact(UID, "one more fact")).toEqual({ ok: false, error: "20 is the most. Remove one to add another." });
+    expect(factsOf(UID, "claim")[0]).toMatchObject({ text: "claim 0" });
+    expect(proofFacts(loadFacts(UID))).toHaveLength(MAX_FACTS);
+    expect(memoryLine(UID, "posts", 5000)).toContain("fact 19; Claim: claim 0");
   });
 });
 

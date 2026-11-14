@@ -104,7 +104,7 @@ export default function PlatformCaptions({
 
   const text = set[tab] ?? "";
   const allowed = useMemo(() => allowedLinks(brand, loadSocialAccounts(userId)), [brand, userId]);
-  const avoid = useMemo(() => avoidList(brand), [brand]);
+  const avoid = useMemo(() => avoidList(brand, userId), [brand, userId]);
   const known = tab === "tiktok" || tab === "linkedin" || tab === "facebook" ? tab : null;
   const avoided = known ? [] : findWords(text, avoid);
   const parts = tab === "x" ? xParts(text) : [text];

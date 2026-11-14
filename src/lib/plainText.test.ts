@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanAiTells, scanAiTells, toPlainText, withCredit, withDisclosure, withSignOff, tagLinks } from "@/lib/plainText";
+import { cleanAiTells, scanAiTells, toPlainText, withCredit, withDisclosure, withLegal, withSignOff, tagLinks } from "@/lib/plainText";
 import type { RemixSource } from "@/lib/remixSource";
 
 describe("toPlainText (what a copied post pastes as)", () => {
@@ -159,5 +159,16 @@ describe("scanAiTells", () => {
     expect(out.words).toEqual(["a testament to", "leverage", "robust", "ecosystem"]);
     expect(out.changes).toBe(8);
     expect(cleanAiTells("We leverage the robust \u201Cecosystem\u201D \u2014 a testament to it.\u200B")).toEqual({ text: out.text, changes: 8 });
+  });
+});
+
+describe("withLegal", () => {
+  it("ends an ad with each legal line once, and leaves a text that carries them as it is", () => {
+    const legal = ["T&Cs apply.", "Not reviewed by MAS."];
+    expect(withLegal("Book a call.", legal)).toBe("Book a call.\n\nT&Cs apply.\nNot reviewed by MAS.");
+    expect(withLegal(withLegal("Book a call.", legal), legal)).toBe("Book a call.\n\nT&Cs apply.\nNot reviewed by MAS.");
+    expect(withLegal("Book a call.\n\nT&Cs   apply.", legal)).toBe("Book a call.\n\nT&Cs   apply.\n\nNot reviewed by MAS.");
+    expect(withLegal("Book a call.  ", [])).toBe("Book a call.  ");
+    expect(withLegal("", legal)).toBe("T&Cs apply.\nNot reviewed by MAS.");
   });
 });

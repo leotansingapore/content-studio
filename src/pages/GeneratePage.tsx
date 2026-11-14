@@ -1677,7 +1677,7 @@ function Writer() {
   // links that aren't the kit's offers are flagged under the post
   const brandLinks = useMemo(() => allowedLinks(brandKit, loadSocialAccounts(userId)), [brandKit, userId]);
   // ...and so are the words the kit says never to use
-  const brandAvoid = useMemo(() => avoidList(brandKit), [brandKit]);
+  const brandAvoid = useMemo(() => avoidList(brandKit, userId), [brandKit, userId]);
   // ...and, when the brand kit asks for it, UTM tracking on every link
   const forPosting = (text: string, plat: string = platform) => {
     const out = withCredit(withDisclosure(withSignOff(toPlainText(text), brandSignOff), disclosure), remixSource ?? undefined);

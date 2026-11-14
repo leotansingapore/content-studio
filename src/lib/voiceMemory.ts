@@ -88,9 +88,10 @@ function write<T extends { offAt?: string }>(key: string, event: string, rows: T
 
 export const isOn = (r: { offAt?: string }) => !r.offAt;
 
-// Brand > Profile's Do and Don't lists (/playbook) are learnings whose words start with a lead every reader prints as
-// written (memoryLine, the agent, slide-campaigns), so no reader needs to know them. Each kind has its own cap.
-export const RULES = { do: { lead: "Do: ", max: 10 }, dont: { lead: "Don't: ", max: 10 } } as const;
+// Brand > Profile's Do, Don't and Avoid lists (/playbook) are learnings whose words start with a lead every reader
+// prints as written (memoryLine, the agent, slide-campaigns), so no reader needs to know them. Each kind has its own
+// cap. Avoid is also checked in code: a post that uses one is flagged (brandRules.ts avoidList).
+export const RULES = { do: { lead: "Do: ", max: 10 }, dont: { lead: "Don't: ", max: 10 }, avoid: { lead: "Avoid: ", max: 30 } } as const;
 export type RuleKind = keyof typeof RULES;
 const RULE_KINDS = Object.keys(RULES) as RuleKind[];
 /** The Profile list a learning belongs to, from its lead; null for a plain learning. */
@@ -100,6 +101,25 @@ const learningCap = (text: string) => {
   return k ? RULES[k].max : MAX_LEARNINGS;
 };
 const sameKind = (text: string) => (l: Learning) => ruleKind(l.text) === ruleKind(text);
+
+// Profile's Product claims are facts with a lead the same way, 30 of them beside the 20 facts typed on /voice.
+export const FACT_KINDS: Record<"claim", { lead: string; max?: number }> = { claim: { lead: "Claim: ", max: 30 } };
+export type FactKind = keyof typeof FACT_KINDS;
+const FACT_KIND_IDS = Object.keys(FACT_KINDS) as FactKind[];
+/** The Profile list a fact belongs to, from its lead; null for a fact typed on /voice. */
+export const factKind = (text: string): FactKind | null => FACT_KIND_IDS.find((k) => text.startsWith(FACT_KINDS[k].lead)) ?? null;
+/** The cap a fact counts against: its kind's own, or MAX_FACTS shared by the proof facts. */
+const factGroup = (text: string): FactKind | "proof" => {
+  const k = factKind(text);
+  return k && FACT_KINDS[k].max ? k : "proof";
+};
+const factCap = (text: string) => {
+  const g = factGroup(text);
+  return g === "proof" ? MAX_FACTS : FACT_KINDS[g].max!;
+};
+const sameGroup = (text: string) => (f: Fact) => factGroup(f.text) === factGroup(text);
+/** The facts /voice lists and MAX_FACTS caps: all but the Profile's own-capped lists. */
+export const proofFacts = (rows: Fact[]) => rows.filter((f) => factGroup(f.text) === "proof");
 
 // ---------- facts ----------
 
@@ -122,19 +142,32 @@ export function addFact(userId: string, text: string, now = new Date()): Saved<F
   const rows = loadFacts(userId);
   const same = rows.find((f) => isOn(f) && f.text.toLowerCase() === t.toLowerCase());
   if (same) return { ok: true, item: same, existed: true };
-  if (rows.filter(isOn).length >= MAX_FACTS) return { ok: false, error: fullLine(MAX_FACTS) };
+  if (rows.filter(isOn).filter(sameGroup(t)).length >= factCap(t)) return { ok: false, error: fullLine(factCap(t)) };
   const item: Fact = { id: newId("f", now), text: t, createdAt: now.toISOString() };
   return write(factsKey(userId), FACTS_CHANGED, [...rows, item]) ? { ok: true, item } : { ok: false, error: SAVE_FAILED };
 }
 
-/** Remove (off true) or Undo (off false). Undo is refused when 20 are already on. */
+/** Remove (off true) or Undo (off false). Undo is refused when its list is full. */
 export function setFactOff(userId: string, id: string, off: boolean, now = new Date()): Saved<Fact> {
   const rows = loadFacts(userId);
   const row = rows.find((f) => f.id === id);
   if (!row) return { ok: false, error: SAVE_FAILED };
-  if (!off && row.offAt && rows.filter(isOn).length >= MAX_FACTS) return { ok: false, error: fullLine(MAX_FACTS) };
+  if (!off && row.offAt && rows.filter(isOn).filter(sameGroup(row.text)).length >= factCap(row.text)) return { ok: false, error: fullLine(factCap(row.text)) };
   const item: Fact = off ? { ...row, offAt: row.offAt ?? now.toISOString() } : (({ offAt: _o, ...r }) => r)(row);
   return write(factsKey(userId), FACTS_CHANGED, rows.map((f) => (f.id === id ? item : f))) ? { ok: true, item } : { ok: false, error: SAVE_FAILED };
+}
+
+/** One Profile fact list's rows on now, oldest first, each with its words after the lead. */
+export function factsOf(userId: string, kind: FactKind): { id: string; text: string }[] {
+  return loadFacts(userId)
+    .filter((f) => isOn(f) && factKind(f.text) === kind)
+    .map((f) => ({ id: f.id, text: f.text.slice(FACT_KINDS[kind].lead.length) }));
+}
+
+export function addFactOf(userId: string, kind: FactKind, text: string, now = new Date()): Saved<Fact> {
+  const t = str(text, FACT_CHARS - FACT_KINDS[kind].lead.length);
+  if (!t) return { ok: false, error: "Type one first." };
+  return addFact(userId, FACT_KINDS[kind].lead + t, now);
 }
 
 // ---------- learnings ----------

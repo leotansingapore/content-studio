@@ -109,7 +109,7 @@ export default function BatchPage() {
   // Leo's facts and learnings ride in through streamOnePost; his website voice (no posts behind it) is read here
   const leo = useLeoOnly();
   const offerLinks = useMemo(() => allowedLinks(loadBrand(userId), loadSocialAccounts(userId)), [userId]);
-  const avoidWords = useMemo(() => avoidList(loadBrand(userId)), [userId]);
+  const avoidWords = useMemo(() => avoidList(loadBrand(userId), userId), [userId]);
   // Leo only (brand-audiences): ?aud=<id> picks a saved audience, which wins over ?audience= and goes out in words
   const savedAudiences = useSavedAudiences(leo ? userId : null);
   const audPick = leo ? audienceFromParams(params, savedAudiences).aud : null;

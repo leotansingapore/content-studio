@@ -44,6 +44,8 @@ import {
   type Preflight,
 } from "@/lib/adlauncher";
 import { scanCompliance } from "@/lib/compliance";
+import { loadBrand } from "@/lib/carousel";
+import { withLegal } from "@/lib/plainText";
 import { links } from "@/lib/links";
 import { cn } from "@/lib/utils";
 
@@ -108,6 +110,8 @@ export default function RunAsAdSheet(p: {
   onClose: () => void;
 }) {
   const [words] = useState<[string, string]>(() => [p.headline, p.text]);
+  // the brand's legal lines (Profile > Rules) end every ad: shown in the text from the start, and put back if cut
+  const [legal] = useState(() => loadBrand(p.userId)?.legal ?? []);
   const [form, setForm] = useState<AdForm>(() => ({
     pageId: "",
     adAccountId: "",
@@ -115,7 +119,7 @@ export default function RunAsAdSheet(p: {
     url: "",
     privacyUrl: lastPrivacyUrl(p.userId),
     headline: p.headline.slice(0, COPY_LIMITS.headline),
-    primaryText: (p.text || p.headline).slice(0, COPY_LIMITS.primaryText),
+    primaryText: withLegal((p.text || p.headline).slice(0, COPY_LIMITS.primaryText), legal),
     cta: "LEARN_MORE",
     dailyBudget: "",
     days: "7",
@@ -193,8 +197,10 @@ export default function RunAsAdSheet(p: {
 
   const account = accounts?.find((a) => a.adAccountId === form.adAccountId);
   const currency = account?.currency ?? status?.account?.currency ?? "";
-  const problem = formProblem(form, p.person);
-  const flags = useMemo(() => scanCompliance([form.headline, form.primaryText].join("\n\n")), [form.headline, form.primaryText]);
+  // what is checked and sent: the form with the legal lines on the end of its text
+  const sent = useMemo(() => ({ ...form, primaryText: withLegal(form.primaryText, legal) }), [form, legal]);
+  const problem = formProblem(sent, p.person);
+  const flags = useMemo(() => scanCompliance([sent.headline, sent.primaryText].join("\n\n")), [sent.headline, sent.primaryText]);
   const total = Number(form.dailyBudget) > 0 && Number(form.days) > 0 ? Math.round(Number(form.dailyBudget) * Number(form.days) * 100) / 100 : null;
   const start = startOf(Date.now());
 
@@ -208,7 +214,7 @@ export default function RunAsAdSheet(p: {
       setProgress("Checking with AdLauncher...");
       const pre = await adlCall<Preflight>("preflight-launch", preflightArgs(form));
       const now = Date.now();
-      const args = campaignArgs(form, { name: campaignName(form, p.person, now, p.designId), imageUrl: url, now });
+      const args = campaignArgs(sent, { name: campaignName(sent, p.person, now, p.designId), imageUrl: url, now });
       const dry = await adlCall<CampaignResult>("create-campaign", args);
       setChecked({ args, pre, dry });
       setStep(pre.ok && pre.data.passed && dry.ok ? "checked" : "problems");
@@ -345,8 +351,9 @@ export default function RunAsAdSheet(p: {
         <Field label="Headline" htmlFor="ad-headline" count={`${form.headline.length}/${COPY_LIMITS.headline}`} over={form.headline.length > COPY_LIMITS.headline}>
           <Input id="ad-headline" value={form.headline} disabled={busy} onChange={(e) => set({ headline: e.target.value })} />
         </Field>
-        <Field label="Text" htmlFor="ad-text" count={`${form.primaryText.length}/${COPY_LIMITS.primaryText}`} over={form.primaryText.length > COPY_LIMITS.primaryText}>
+        <Field label="Text" htmlFor="ad-text" count={`${sent.primaryText.length}/${COPY_LIMITS.primaryText}`} over={sent.primaryText.length > COPY_LIMITS.primaryText}>
           <Textarea id="ad-text" rows={4} value={form.primaryText} disabled={busy} onChange={(e) => set({ primaryText: e.target.value })} />
+          {legal.length > 0 && <p className="text-[11px] text-muted-foreground">Ends with your legal lines, always.</p>}
         </Field>
         <Field label="Button">
           <Pick label="Button" value={form.cta} disabled={busy} onChange={(v) => set({ cta: v as AdForm["cta"] })} items={CTAS.map((c) => ({ id: c.id, label: c.label }))} />
