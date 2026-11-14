@@ -125,10 +125,11 @@ function Library({ userId, email }: { userId: string; email: string }) {
   // only what is on screen stays ticked: a filter or a delete drops the rest
   const visible = shown.filter((i) => pickable(i.key));
   const chosen = visible.filter((i) => picked.has(i.key));
+  // the same Set when there is nothing to clear: a new one each time would run this again, and again
   useEffect(() => {
-    if (!selecting) setPicked(new Set());
-    setConfirming(false);
-  }, [selecting, picked]);
+    if (!selecting) setPicked((p) => (p.size ? new Set() : p));
+  }, [selecting]);
+  useEffect(() => setConfirming(false), [selecting, picked]);
   useEffect(() => {
     if (!selecting) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && !document.querySelector("dialog[open]") && endSelect();
