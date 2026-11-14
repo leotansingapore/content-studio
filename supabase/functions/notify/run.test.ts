@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BUDGET_MS, confirmedEmail, EMAIL_RETAKE, PAGE, runPage, runUser, type Deps, type Options, type Sub } from "./run";
+import { BUDGET_MS, confirmedEmail, EMAIL_RETAKE, PAGE, runAlerts, runPage, runUser, type Deps, type Options, type Sub } from "./run";
+import type { Zernio } from "../_shared/zernio";
 import type { JevAnswer } from "../_shared/jev";
 import before from "./fixtures/busy-week-before.json";
 
@@ -216,6 +217,7 @@ describe("runPage", () => {
     expect(r.handedOff).toBe(true);
     expect(f.calls.filter((c) => c.startsWith("next"))).toEqual([
       `next ${JSON.stringify({ after: full[PAGE - 1].user_id })}`,
+      `next ${JSON.stringify({ job: "social" })}`,
       `next ${JSON.stringify({ after: full[1].user_id, upTo: full[PAGE - 1].user_id })}`,
     ]);
     expect(f.calls.filter((c) => c.startsWith("authUser"))).toHaveLength(2);
@@ -244,7 +246,8 @@ describe("runPage", () => {
     });
     const r = await runPage(deps, opts());
     expect(r.reports).toEqual([]);
-    expect(calls).toEqual([]);
+    // the hourly call's only other work: starting the connected-accounts pass
+    expect(calls).toEqual([`next ${JSON.stringify({ job: "social" })}`]);
   });
 });
 
@@ -401,5 +404,238 @@ describe("runUser: a hand-posted draft's linked numbers (learn-real-numbers)", (
 
   it("never reach anyone else's email: it reads as the typed numbers alone", async () => {
     for (const northStarUsers of [undefined, "", "someone-else"]) expect(await email([{ ...typed, live }], northStarUsers)).toBe(await email([typed], northStarUsers));
+  });
+});
+
+describe("runAlerts: failed posts and accounts to reconnect", () => {
+  // Zernio as it answers for one brand with Instagram, Facebook and LinkedIn connected (shapes from its openapi.json):
+  // a reel that failed on Instagram, a post that went out on LinkedIn but failed on Instagram, and LinkedIn's token revoked.
+  const ZP = "6650f1a2b3c4d5e6f7a8b9c0";
+  const IG = "6650f1a2b3c4d5e6f7a8b9c1";
+  const FB = "6650f1a2b3c4d5e6f7a8b9c2";
+  const LI = "6650f1a2b3c4d5e6f7a8b9c3";
+  const P1 = "6651aaaaaaaaaaaaaaaaaaa1";
+  const P2 = "6651aaaaaaaaaaaaaaaaaaa2";
+  const NOW = sg(2026, 10, 12, 10); // a Monday, 10am
+  const account = (_id: string, platform: string, username: string, needsReconnection = false) => ({ _id, platform, username, profileId: { _id: ZP }, enabled: true, needsReconnection });
+  const zernioData = {
+    accounts: [account(IG, "instagram", "sgmoneybro"), account(FB, "facebook", "sgmoneybro.page"), account(LI, "linkedin", "Ada Tan", true)],
+    failed: [{
+      _id: P1, status: "failed", content: "5 CPF myths", updatedAt: "2026-10-12T01:00:00Z",
+      platforms: [{ platform: "instagram", accountId: { _id: IG, platform: "instagram" }, status: "failed", errorMessage: "The video is longer than Instagram allows (90 seconds).", errorCategory: "user_content" }],
+    }],
+    partial: [{
+      _id: P2, status: "partial", content: "Term or whole life?", updatedAt: "2026-10-12T01:30:00Z",
+      platforms: [
+        { platform: "linkedin", accountId: { _id: LI }, status: "published", platformPostUrl: "https://www.linkedin.com/feed/update/1" },
+        { platform: "instagram", accountId: { _id: IG }, status: "failed", errorMessage: "Instagram couldn't fetch the picture." },
+      ],
+    }],
+    health: [
+      { accountId: IG, platform: "instagram", username: "sgmoneybro", status: "healthy", needsReconnect: false },
+      { accountId: LI, platform: "linkedin", username: "Ada Tan", status: "error", needsReconnect: true, disconnectionType: "unintentional", unhealthySince: "2026-10-12T00:10:00Z", issues: ["Token revoked"] },
+    ],
+  };
+  const drafts = {
+    [`content-studio-drafts-${UID}`]: JSON.stringify([
+      { id: "d1", hook: "5 CPF myths at 25", status: "scheduled", zernio: { key: "k1", postId: P1, status: "scheduled" } },
+      { id: "d2", hook: "Term or whole life?", status: "scheduled", zernio: { key: "k2", postId: P2 } },
+    ]),
+  };
+  const PUSH = [`fail:${P1}:${IG}`, `fail:${P2}:${IG}`, `reconnect:${LI}:2026-10-12`];
+  const MAIL = PUSH.map((i) => `mail:${i}`);
+
+  function alerts(over: Partial<Deps> & { data?: Partial<typeof zernioData>; done?: string[]; held?: string[]; broken?: string[] } = {}) {
+    const calls: string[] = [];
+    const log = (c: string) => calls.push(c);
+    const data = { ...zernioData, ...over.data };
+    const z: Zernio = async (method, path, req = {}) => {
+      const q = req.query ?? {};
+      log(`zernio ${method} ${path} ${new URLSearchParams(q as Record<string, string>)}`);
+      if (q.profileId && over.broken?.includes(q.profileId)) throw new Error("boom");
+      if (path === "/accounts") return { accounts: data.accounts };
+      if (path === "/posts") return { posts: q.status === "failed" ? data.failed : data.partial, pagination: { pages: 1 } };
+      if (path === "/accounts/health") return { accounts: data.health };
+      throw new Error(`unexpected ${path}`);
+    };
+    const { deps } = fake({
+      socialRows: async () => (log("socialRows"), [{ profile_id: "me", zernio_profile_id: ZP }]),
+      draftRows: async () => (log("draftRows"), drafts),
+      zernio: z,
+      subs: async () => (log("subs"), [sub(1, 1, NOW)]),
+      authUser: async () => (log("authUser"), { email: "ada@example.test", email_confirmed_at: "2026-01-01" }),
+      markSent: async (_u, items) => void log(`markSent ${items}`),
+      logged: async (_u, items) => (log(`logged ${items}`), new Set(items.filter((i) => over.done?.includes(i)))),
+      claim: async (_u, items, retake) => (log(`claim ${items} ${retake}`), new Set(items.filter((i) => !over.done?.includes(i) && !over.held?.includes(i)))),
+      sendPush: async (subs, m) => (log(`push ${m.title} | ${m.body} | ${m.url}`), 1),
+      sendEmail: async (to, e, key) => (log(`email ${to} ${key} ${e.subject}`), true),
+      ...over,
+    });
+    return { deps, calls };
+  }
+  const on = { failed: true, accounts: true, push: true };
+  const reads = (since = "2026-10-10T02:00:00.000Z") => [
+    "socialRows",
+    `zernio GET /accounts profileId=${ZP}&includeOverLimit=true`,
+    `zernio GET /posts status=failed&updatedSince=${encodeURIComponent(since)}&limit=50&profileId=${ZP}`,
+    `zernio GET /posts status=partial&updatedSince=${encodeURIComponent(since)}&limit=50&profileId=${ZP}`,
+    `zernio GET /accounts/health profileId=${ZP}`,
+  ];
+
+  it("a new failure, a partial one and a broken account: one alert per batch, then the day's email, each claimed first", async () => {
+    const { deps, calls } = alerts();
+    const r = await runAlerts(deps, UID, on, opts({ now: NOW }));
+    expect(calls).toEqual([
+      ...reads(),
+      "draftRows",
+      "subs",
+      `claim ${PUSH} null`,
+      `push 2 posts failed to go out | Instagram: "5 CPF myths at 25" / Instagram: "Term or whole life?" | /calendar?post=d1&profile=me`,
+      `markSent ${PUSH.slice(0, 2)}`,
+      "push Reconnect LinkedIn | LinkedIn, Ada Tan needs reconnecting before it can post again. | /accounts?profile=me",
+      `markSent ${PUSH[2]}`,
+      `logged ${MAIL}`,
+      "authUser",
+      `claim alerts-mail:2026-10-12 ${EMAIL_RETAKE}`,
+      `claim ${MAIL} ${EMAIL_RETAKE}`,
+      `email ada@example.test cs-alerts-mail:2026-10-12-${UID} 2 posts didn't go out, 1 account needs reconnecting`,
+      `markSent alerts-mail:2026-10-12,${MAIL}`,
+    ]);
+    expect((r.email as { text: string }).text).toContain(`Instagram: "5 CPF myths at 25"\nThe video is longer than Instagram allows (90 seconds).\nOpen it: https://app.postmosis.com/calendar?post=d1&profile=me`);
+    expect((r.email as { text: string }).text).toContain(`Instagram: "Term or whole life?"\nInstagram couldn't fetch the picture.\nIt went out on LinkedIn.`);
+  });
+
+  it("never tells the same failure twice: alerted and emailed already, nothing goes", async () => {
+    const { deps, calls } = alerts({ done: [...PUSH, ...MAIL] });
+    const r = await runAlerts(deps, UID, on, opts({ now: NOW }));
+    expect(calls.filter((c) => /^(push|email|markSent|authUser)/.test(c))).toEqual([]);
+    expect(r).toEqual({ user: UID.slice(0, 8), push: [], email: null });
+  });
+
+  it("a phone alert already sent still reaches the day's email, once", async () => {
+    const { deps, calls } = alerts({ done: PUSH });
+    await runAlerts(deps, UID, on, opts({ now: NOW }));
+    expect(calls.filter((c) => c.startsWith("push"))).toEqual([]);
+    expect(calls.filter((c) => c.startsWith("email"))).toHaveLength(1);
+  });
+
+  it("one email a day: once today's has gone, a new failure gets its phone alert and waits for tomorrow's email", async () => {
+    const { deps, calls } = alerts({ done: [PUSH[0], PUSH[2], "mail:" + PUSH[0], "mail:" + PUSH[2]], held: ["alerts-mail:2026-10-12"] });
+    await runAlerts(deps, UID, on, opts({ now: NOW }));
+    expect(calls.filter((c) => c.startsWith("push"))).toEqual([`push Post failed on Instagram | "Term or whole life?" Went out on LinkedIn. Instagram couldn't fetch the picture. | /calendar?post=d2&profile=me`]);
+    expect(calls.filter((c) => c.startsWith("claim"))).toEqual([`claim ${PUSH} null`, `claim alerts-mail:2026-10-12 ${EMAIL_RETAKE}`]);
+    expect(calls.some((c) => c.startsWith("email"))).toBe(false);
+    // the next day it is in the email, alone
+    const next = alerts({ done: [...PUSH, "mail:" + PUSH[0], "mail:" + PUSH[2]] });
+    const r = await runAlerts(next.deps, UID, on, opts({ now: NOW + DAY }));
+    expect(next.calls.filter((c) => c.startsWith("email"))).toEqual([`email ada@example.test cs-alerts-mail:2026-10-13-${UID} 1 post didn't go out`]);
+    expect((r.email as { text: string }).text.startsWith(`This post didn't go out:\n\nInstagram: "Term or whole life?"`)).toBe(true);
+  });
+
+  it("with phone alerts off, the email alone; with Failed posts off, no posts read; with Social accounts off, no health read", async () => {
+    const quiet = alerts();
+    await runAlerts(quiet.deps, UID, { ...on, push: false }, opts({ now: NOW }));
+    expect(quiet.calls.some((c) => c === "subs" || c.startsWith("push"))).toBe(false);
+    expect(quiet.calls.filter((c) => c.startsWith("email"))).toHaveLength(1);
+
+    const noFails = alerts();
+    const r = await runAlerts(noFails.deps, UID, { ...on, failed: false }, opts({ now: NOW }));
+    expect(noFails.calls.some((c) => c.includes("/posts") || c === "draftRows")).toBe(false);
+    expect(noFails.calls.filter((c) => c.startsWith("push"))).toEqual(["push Reconnect LinkedIn | LinkedIn, Ada Tan needs reconnecting before it can post again. | /accounts?profile=me"]);
+    expect((r.email as { subject: string }).subject).toBe("1 account needs reconnecting");
+
+    const noAccounts = alerts();
+    await runAlerts(noAccounts.deps, UID, { ...on, accounts: false }, opts({ now: NOW }));
+    expect(noAccounts.calls.some((c) => c.includes("/accounts/health"))).toBe(false);
+    expect(noAccounts.calls.filter((c) => c.startsWith("push"))).toHaveLength(1);
+  });
+
+  it("a quiet day: nothing failed and nothing broken, so nothing claimed or sent, and no health or drafts read", async () => {
+    const { deps, calls } = alerts({ data: { failed: [], partial: [], accounts: zernioData.accounts.map((a) => ({ ...a, needsReconnection: false })) } });
+    const r = await runAlerts(deps, UID, on, opts({ now: NOW }));
+    expect(calls).toEqual(reads().slice(0, 4));
+    expect(r).toEqual({ user: UID.slice(0, 8), push: [], email: null });
+  });
+
+  it("a dry run reads the log and sends, claims and marks nothing", async () => {
+    const { deps, calls } = alerts();
+    const r = await runAlerts(deps, UID, on, opts({ now: NOW, dryRun: true }));
+    expect(calls.filter((c) => /^(claim|markSent|push|email)/.test(c))).toEqual([]);
+    expect(calls).toContain(`logged ${PUSH}`);
+    expect(calls).toContain("logged alerts-mail:2026-10-12");
+    expect(r.push).toHaveLength(2);
+    expect(r.email).toMatchObject({ to: "a***@example.test", subject: "2 posts didn't go out, 1 account needs reconnecting", sent: null });
+  });
+
+  it("a test send goes to the test inbox only: no phone alert, nothing claimed or marked", async () => {
+    const { deps, calls } = alerts({ done: MAIL });
+    await runAlerts(deps, UID, on, opts({ now: NOW, only: UID, testTo: "delivered@resend.dev" }));
+    expect(calls.filter((c) => /^(claim|markSent|push|subs|logged|authUser)/.test(c))).toEqual([]);
+    expect(calls.filter((c) => c.startsWith("email"))).toEqual([`email delivered@resend.dev cs-alerts-mail:2026-10-12-${UID}-test 2 posts didn't go out, 1 account needs reconnecting`]);
+  });
+
+  it("a brand Zernio can't answer leaves the other brands' alerts alone", async () => {
+    const OTHER = "6650f1a2b3c4d5e6f7a8b9ff";
+    const { deps, calls } = alerts({
+      broken: [OTHER],
+      socialRows: async () => [{ profile_id: "pold", zernio_profile_id: OTHER }, { profile_id: "me", zernio_profile_id: ZP }],
+    });
+    const r = await runAlerts(deps, UID, on, opts({ now: NOW }));
+    expect(r.errors).toEqual(["pold: Error"]);
+    expect(calls.filter((c) => c.startsWith("email"))).toHaveLength(1);
+  });
+
+  it("never reads another profile's posts: a post naming an account outside the brand is dropped", async () => {
+    const stranger = { ...zernioData.failed[0], _id: "6651aaaaaaaaaaaaaaaaaaa9", platforms: [{ ...zernioData.failed[0].platforms[0], accountId: { _id: "6650f1a2b3c4d5e6f7a8b9ee" } }] };
+    const { deps, calls } = alerts({ data: { failed: [stranger], partial: [], accounts: zernioData.accounts.map((a) => ({ ...a, needsReconnection: false })) } });
+    await runAlerts(deps, UID, on, opts({ now: NOW }));
+    expect(calls.some((c) => /^(claim|push|email|draftRows)/.test(c))).toBe(false);
+  });
+});
+
+describe("runPage: the social job", () => {
+  const owner = (n: number, data = "") => {
+    const uid = `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+    return { user_id: uid, key: `content-studio-notify-${uid}`, data };
+  };
+  const zernio: Zernio = async () => ({ accounts: [] });
+
+  it("pages through owners with a connected account, switches on without a key, and chains as the social job", async () => {
+    const full = Array.from({ length: PAGE }, (_, i) => owner(i + 1, i === 1 ? '{"failed":false,"accounts":false}' : ""));
+    const seen: string[] = [];
+    const { deps, calls } = fake({ listOwners: async () => full, socialRows: async (uid) => (seen.push(uid), []), zernio });
+    const r = await runPage(deps, opts({ job: "social" }));
+    expect(calls.filter((c) => c.startsWith("next"))).toEqual([`next ${JSON.stringify({ after: full[PAGE - 1].user_id, job: "social" })}`]);
+    // the one with both switched off is skipped; the rest had no key, so theirs are on
+    expect(seen).toEqual(full.filter((_, i) => i !== 1).map((o) => o.user_id));
+    expect(r.reports).toHaveLength(PAGE - 1);
+  });
+
+  it("hands off as the social job too", async () => {
+    const full = Array.from({ length: PAGE }, (_, i) => owner(i + 1));
+    const f = fake({ listOwners: async () => full, zernio });
+    f.deps.socialRows = async () => (f.tick(BUDGET_MS + 1), []);
+    await runPage(f.deps, opts({ job: "social" }));
+    expect(f.calls.filter((c) => c.startsWith("next"))).toEqual([
+      `next ${JSON.stringify({ after: full[PAGE - 1].user_id, job: "social" })}`,
+      `next ${JSON.stringify({ after: full[0].user_id, upTo: full[PAGE - 1].user_id, job: "social" })}`,
+    ]);
+  });
+
+  it("does nothing without a Zernio key, and never starts itself again", async () => {
+    const off = fake({ listOwners: async () => [owner(1)], zernio: null });
+    expect(await runPage(off.deps, opts({ job: "social" }))).toEqual({ checked: 0, next: null, handedOff: false, reports: [] });
+    expect(off.calls).toEqual([]);
+    const on = fake({ listOwners: async () => [owner(1)], socialRows: async () => [], zernio });
+    await runPage(on.deps, opts({ job: "social" }));
+    expect(on.calls.some((c) => c.includes('"job":"social"'))).toBe(false);
+  });
+
+  it("is started once by the hourly call, never by a page it chains to, a dry run or one adviser", async () => {
+    for (const [o, starts] of [[opts(), true], [opts({ after: "x" }), false], [opts({ dryRun: true }), false], [opts({ only: UID }), false]] as const) {
+      const { deps, calls } = fake();
+      await runPage(deps, o);
+      expect(calls.includes(`next ${JSON.stringify({ job: "social" })}`), JSON.stringify(o)).toBe(starts);
+    }
   });
 });

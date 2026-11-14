@@ -55,6 +55,13 @@ describe("the notify function's gate", () => {
     expect(h.runs[0]).toMatchObject({ dryRun: true, now: Date.parse(weekAhead) });
   });
 
+  it("runs the social job only when asked for by name", async () => {
+    await call({ job: "social" });
+    await call({ job: "anything", dryRun: true });
+    await call({});
+    expect(h.runs.map((o) => o.job)).toEqual(["social", undefined, undefined]);
+  });
+
   it("sends a test email only to a test inbox, and only for one adviser", async () => {
     expect((await call({ testTo: "someone@example.com", only: ADA })).status).toBe(400);
     expect((await call({ testTo: "delivered@resend.dev" })).status).toBe(400);

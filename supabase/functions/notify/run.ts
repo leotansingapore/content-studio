@@ -3,8 +3,18 @@
 // is tested without a network.
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
+import { callerAccounts, scopedList, ZernioError, type Zernio } from "../_shared/zernio.ts";
 import {
   alertDay,
+  alertPrefs,
+  alertsEmail,
+  alertsMailDay,
+  failureMessage,
+  failuresOf,
+  FAIL_LOOKBACK_MS,
+  reconnectMessage,
+  reconnectsOf,
+  type BrandRead,
   briefAsk,
   briefFindings,
   dueMessage,
@@ -59,6 +69,14 @@ export interface Options {
   marketUsers?: string;
   /** NORTH_STAR_USERS: who gets What moved and the outlier alert (their brief and alerts switches still decide). */
   northStarUsers?: string;
+  /** "social": the pass over everyone with a connected account (failed posts, accounts to reconnect); the hourly call starts it. */
+  job?: "social";
+}
+
+/** A cs_social_profiles row: a brand and its Zernio profile. */
+export interface SocialRow {
+  profile_id: string;
+  zernio_profile_id: string;
 }
 
 export interface Sub {
@@ -99,8 +117,15 @@ export interface Deps {
   /** Jev's yes or no on each What moved finding, behind the adviser's "brief-pick" daily cap; null without one. */
   briefPick(uid: string, ask: { state: string; questions: Record<string, JevQuestion> }): Promise<Record<string, JevAnswer> | null>;
   /** Starts this function again as a fresh request with its own CPU budget. */
-  next(body: { after: string; upTo?: string }): Promise<void>;
+  next(body: { after?: string; upTo?: string; job?: "social" }): Promise<void>;
   clock(): number;
+  /** The social job: up to `limit` owners from cs_social_profiles in id order, each with their notify key's data ("" without one). */
+  listOwners(q: { after: string | null; upTo: string | null; only: string | null; limit: number }): Promise<PrefRow[]>;
+  socialRows(uid: string): Promise<SocialRow[]>;
+  /** The owner's synced drafts keys (content-studio-drafts-<uid>[~<profile>]), to name a failed post. */
+  draftRows(uid: string): Promise<Record<string, string>>;
+  /** Null without ZERNIO_API_KEY: the social job does nothing. */
+  zernio: Zernio | null;
 }
 
 /** Shared demo and QA logins (user@demo.com) sit on a domain nobody here owns. */
@@ -208,21 +233,119 @@ export async function runUser(deps: Deps, uid: string, prefs: Prefs, o: Options)
   return report;
 }
 
+/** Zernio's own words could name an account, so a log gets only its status and code. */
+const zernioErr = (e: unknown) => (e instanceof ZernioError ? `ZernioError ${e.status} ${e.code}` : e instanceof Error ? e.name : "error");
+
+/**
+ * One brand's failed and partly failed posts updated since `since`, and the health of any of its accounts that needs
+ * reconnecting, each read scoped to the brand's own accounts (H3 in docs/zernio-connection.md).
+ */
+export async function readBrand(z: Zernio, row: SocialRow, since: string, want: { failed: boolean; accounts: boolean }): Promise<BrandRead> {
+  const own = await callerAccounts(z, row.zernio_profile_id);
+  const ids = new Set(own.map((a) => a._id));
+  const read = (path: "/posts" | "/accounts/health", query = {}) => scopedList(z, path, row.zernio_profile_id, ids, query);
+  const posts = want.failed && ids.size
+    ? (await Promise.all(["failed", "partial"].map((status) => read("/posts", { status, updatedSince: since, limit: "50" })))).flat()
+    : [];
+  // health only when the account list already says one is broken: it carries when it broke, for the sent-log item
+  const health = want.accounts && own.some((a) => a.needsReconnection === true) ? await read("/accounts/health") : [];
+  return { profileId: row.profile_id, posts, health };
+}
+
+/**
+ * The social job for one owner: new failures and broken connections across their brands, one phone alert per batch
+ * (with phone alerts on) and at most one email a day. Nothing is told twice: each is claimed in the sent log first.
+ */
+export async function runAlerts(deps: Deps, uid: string, prefs: { failed: boolean; accounts: boolean; push: boolean }, o: Options) {
+  const report: { user: string; push: object[]; email: object | null; errors?: string[] } = { user: uid.slice(0, 8), push: [], email: null };
+  const test = !!o.testTo;
+  const since = new Date(o.now - FAIL_LOOKBACK_MS).toISOString();
+  const reads: BrandRead[] = [];
+  const errors: string[] = [];
+  for (const row of await deps.socialRows(uid)) {
+    // one brand Zernio can't answer for leaves the others' alerts alone; the next hour reads it again
+    try {
+      reads.push(await readBrand(deps.zernio!, row, since, prefs));
+    } catch (e) {
+      errors.push(`${row.profile_id}: ${zernioErr(e)}`);
+    }
+  }
+  if (errors.length) report.errors = errors;
+  const posts = reads.some((r) => r.posts.length);
+  const failures = prefs.failed && posts ? failuresOf(uid, reads, await deps.draftRows(uid)) : [];
+  const reconnects = prefs.accounts ? reconnectsOf(reads) : [];
+  if (!failures.length && !reconnects.length) return report;
+  const available = async (items: string[], retakeAfter: string | null) => {
+    if (o.dryRun) {
+      const done = await deps.logged(uid, items);
+      return new Set(items.filter((i) => !done.has(i)));
+    }
+    return deps.claim(uid, items, retakeAfter);
+  };
+
+  if (prefs.push && !test) {
+    const subs = (await deps.subs(uid)).filter((s) => Date.parse(s.updated_at) >= o.now - DEVICE_STALE_MS);
+    if (subs.length) {
+      const mine = await available([...failures, ...reconnects].map((x) => x.item), null);
+      const f = failures.filter((x) => mine.has(x.item));
+      const r = reconnects.filter((x) => mine.has(x.item));
+      const sends: [PushMessage | null, string[]][] = [
+        [failureMessage(f), f.map((x) => x.item)],
+        [reconnectMessage(r), r.map((x) => x.item)],
+      ];
+      for (const [m, sent] of sends) {
+        if (!m) continue;
+        const delivered = o.dryRun ? null : await deps.sendPush(subs, m);
+        if (delivered) await deps.markSent(uid, sent);
+        report.push.push({ ...m, devices: subs.length, delivered });
+      }
+    }
+  }
+
+  // the email takes each one under its own mail: item, so a phone alert already sent still reaches the day's email
+  const mail = (x: { item: string }) => `mail:${x.item}`;
+  const done = test ? new Set<string>() : await deps.logged(uid, [...failures, ...reconnects].map(mail));
+  const f = failures.filter((x) => !done.has(mail(x)));
+  const r = reconnects.filter((x) => !done.has(mail(x)));
+  if (!f.length && !r.length) return report;
+  const to = o.testTo ?? confirmedEmail(await deps.authUser(uid));
+  if (!to) {
+    report.email = { skipped: "no confirmed sign-in email" };
+  } else if (test || (await available([alertsMailDay(o.now)], EMAIL_RETAKE)).has(alertsMailDay(o.now))) {
+    const items = [...f, ...r].map(mail);
+    const mine = test || o.dryRun ? new Set(items) : await deps.claim(uid, items, EMAIL_RETAKE);
+    const email = alertsEmail(f.filter((x) => mine.has(mail(x))), r.filter((x) => mine.has(mail(x))), o.now);
+    // another run claimed every one of them between the look-up and the claim
+    if (!email) return report;
+    const sent = o.dryRun ? null : await deps.sendEmail(to, email, `cs-${email.item}-${uid}${test ? "-test" : ""}`);
+    // a failed send keeps both claims unsent; the next hourly run takes them again after EMAIL_RETAKE
+    if (sent && !test) await deps.markSent(uid, [email.item, ...items.filter((i) => mine.has(i))]);
+    report.email = { to: mask(to), subject: email.subject, text: email.text, sent };
+  }
+  return report;
+}
+
 export async function runPage(deps: Deps, o: Options) {
   const started = deps.clock();
-  const rows = await deps.listPrefs({ after: o.after, upTo: o.upTo, only: o.only, limit: PAGE });
+  const social = o.job === "social";
+  if (social && !deps.zernio) return { checked: 0, next: null, handedOff: false, reports: [] };
+  const q = { after: o.after, upTo: o.upTo, only: o.only, limit: PAGE };
+  const rows = social ? await deps.listOwners(q) : await deps.listPrefs(q);
   const chaining = !o.dryRun && !o.testTo && !o.only;
+  const job = social ? { job: "social" as const } : {};
   const pending: Promise<void>[] = [];
   // Start the next page before working on this one, so a killed request cannot stop the chain.
   const next = rows.length === PAGE && !o.upTo ? rows[PAGE - 1].user_id : null;
-  if (next && chaining) pending.push(deps.next({ after: next }));
+  if (next && chaining) pending.push(deps.next({ after: next, ...job }));
+  // The hourly call also starts the connected-accounts pass, a chain of its own.
+  if (chaining && !social && !o.after && !o.upTo) pending.push(deps.next({ job: "social" }));
 
   const reports: object[] = [];
   let done: string | null = null;
   let handedOff = false;
   for (const row of rows) {
     if (chaining && done && deps.clock() - started > BUDGET_MS) {
-      pending.push(deps.next({ after: done, upTo: o.upTo ?? rows[rows.length - 1].user_id }));
+      pending.push(deps.next({ after: done, upTo: o.upTo ?? rows[rows.length - 1].user_id, ...job }));
       handedOff = true;
       break;
     }
@@ -230,9 +353,10 @@ export async function runPage(deps: Deps, o: Options) {
     // Only the key named after the row's own user counts, so nobody can switch on someone else.
     if (row.key !== `${PREFS_PREFIX}${row.user_id}`) continue;
     const prefs = parsePrefs(row.data);
-    if (!prefs.email && !prefs.push) continue;
+    const alerts = alertPrefs(row.data);
+    if (social ? !alerts.failed && !alerts.accounts : !prefs.email && !prefs.push) continue;
     try {
-      reports.push(await runUser(deps, row.user_id, prefs, o));
+      reports.push(social ? await runAlerts(deps, row.user_id, alerts, o) : await runUser(deps, row.user_id, prefs, o));
     } catch (e) {
       const msg = (e instanceof Error ? e.message : String(e)).slice(0, 200);
       console.error("notify failed for a user", msg);

@@ -7,6 +7,14 @@ import { links } from "@/lib/links";
 import {
   APP_URL,
   alertDay,
+  alertPrefs,
+  alertsEmail,
+  failureMessage,
+  failuresOf,
+  reconnectMessage,
+  reconnectsOf,
+  sentDrafts,
+  type BrandRead,
   BRIEF_ASK,
   briefAsk,
   briefBody,
@@ -899,5 +907,164 @@ describe("What moved (find-alerts-digest)", () => {
       expect(outlierAlert(hits, at10, new Set([alertDay(at10)]))).toBeNull();
       expect(outlierAlert(hits, at10, new Set(["outlier:instagram:hit"]))).toBeNull();
     });
+  });
+});
+
+describe("failed posts and accounts to reconnect", () => {
+  const IG = "a".repeat(24);
+  const FB = "b".repeat(24);
+  const LI = "c".repeat(24);
+  const P1 = "1".repeat(24);
+  const P2 = "2".repeat(24);
+  const P3 = "3".repeat(24);
+  const drafts = {
+    [`content-studio-drafts-${UID}`]: JSON.stringify([
+      { id: "d1", hook: "Five CPF myths every new parent believes about the Ordinary Account", zernio: { key: "k1", postId: P1 } },
+      { id: "d0", hook: "Never sent" },
+    ]),
+    [`content-studio-drafts-${UID}~pbiz`]: JSON.stringify([{ id: "d2", hook: "Term or whole life?", zernio: { key: "k2", postId: P2 } }]),
+  };
+  const failed = {
+    _id: P1,
+    status: "failed",
+    content: "caption that the draft's hook names instead",
+    platforms: [
+      { platform: "instagram", accountId: { _id: IG }, status: "failed", errorMessage: "The video is longer than Instagram allows (90 seconds)." },
+      { platform: "facebook", accountId: FB, status: "pending" },
+    ],
+  };
+  const partial = {
+    _id: P2,
+    status: "partial",
+    platforms: [
+      { platform: "linkedin", accountId: LI, status: "published" },
+      { platform: "instagram", accountId: IG, status: "failed", errorMessage: "" },
+    ],
+  };
+  const reads: BrandRead[] = [
+    { profileId: "me", posts: [failed, { _id: P3, status: "published", platforms: [{ platform: "linkedin", accountId: LI, status: "published" }] }], health: [] },
+    { profileId: "pbiz", posts: [partial], health: [] },
+  ];
+
+  it("has both switches on unless switched off, whatever else the key holds", () => {
+    expect(alertPrefs(null)).toEqual({ failed: true, accounts: true, push: false });
+    expect(alertPrefs("not json")).toEqual({ failed: true, accounts: true, push: false });
+    expect(alertPrefs('{"email":false,"push":true}')).toEqual({ failed: true, accounts: true, push: true });
+    expect(alertPrefs('{"failed":false,"accounts":"no","push":"true"}')).toEqual({ failed: false, accounts: true, push: false });
+    expect(alertPrefs('{"accounts":false}')).toEqual({ failed: true, accounts: false, push: false });
+  });
+
+  it("finds the draft each Zernio post was sent from", () => {
+    expect([...sentDrafts(UID, "me", drafts)]).toEqual([[P1, { id: "d1", hook: "Five CPF myths every new parent believes about the Ordinary Account" }]]);
+    expect(sentDrafts(UID, "pbiz", drafts).get(P2)?.id).toBe("d2");
+    expect(sentDrafts(UID, "pnone", drafts).size).toBe(0);
+  });
+
+  it("takes every unpublished account of a failed post, only the failed ones of a partial post, and no published post", () => {
+    const f = failuresOf(UID, reads, drafts);
+    expect(f).toEqual([
+      {
+        item: `fail:${P1}:${IG}`,
+        post: P1,
+        profileId: "me",
+        platform: "Instagram",
+        words: "Five CPF myths every new parent believes about the Ordina...",
+        reason: "The video is longer than Instagram allows (90 seconds).",
+        posted: [],
+        url: "/calendar?post=d1&profile=me",
+      },
+      { item: `fail:${P1}:${FB}`, post: P1, profileId: "me", platform: "Facebook", words: "Five CPF myths every new parent believes about the Ordina...", reason: "", posted: [], url: "/calendar?post=d1&profile=me" },
+      { item: `fail:${P2}:${IG}`, post: P2, profileId: "pbiz", platform: "Instagram", words: "Term or whole life?", reason: "", posted: ["LinkedIn"], url: "/calendar?post=d2&profile=pbiz" },
+    ]);
+    // the link opens the post's calendar panel, on its brand (docs/deep-links.md)
+    expect(f[0].url).toBe(`${links.calendar({ post: "d1" })}&profile=me`);
+  });
+
+  it("names a post with no draft by its caption's first line, and links its brand's calendar", () => {
+    const [f] = failuresOf(UID, [{ profileId: "me", posts: [{ ...failed, _id: P3, content: "\n  Sent from Zernio itself\nmore", platforms: [failed.platforms[0]] }], health: [] }], drafts);
+    expect(f).toMatchObject({ item: `fail:${P3}:${IG}`, words: "Sent from Zernio itself", url: "/calendar?profile=me" });
+    // a malformed id or account is never an item
+    expect(failuresOf(UID, [{ profileId: "me", posts: [{ ...failed, _id: "x" }, { ...failed, platforms: [{ platform: "instagram", accountId: "nope", status: "failed" }] }], health: [] }], drafts)).toEqual([]);
+  });
+
+  it("asks for a reconnect once per break, never for an account disconnected on purpose", () => {
+    const health = [
+      { accountId: IG, platform: "instagram", username: "sgmoneybro", needsReconnect: true, disconnectionType: "unintentional", unhealthySince: "2026-10-11T18:30:00Z" },
+      { accountId: LI, platform: "linkedin", displayName: "Ada Tan", needsReconnect: true, unhealthySince: null },
+      { accountId: FB, platform: "facebook", username: "ada.page", needsReconnect: true, disconnectionType: "intentional" },
+      { accountId: "d".repeat(24), platform: "tiktok", needsReconnect: false, status: "warning" },
+    ];
+    expect(reconnectsOf([{ profileId: "pbiz", posts: [], health }])).toEqual([
+      // 18:30 UTC is 2:30am the next day in Singapore
+      { item: `reconnect:${IG}:2026-10-12`, profileId: "pbiz", platform: "Instagram", handle: "sgmoneybro", url: "/accounts?profile=pbiz" },
+      { item: `reconnect:${LI}:`, profileId: "pbiz", platform: "LinkedIn", handle: "Ada Tan", url: "/accounts?profile=pbiz" },
+    ]);
+  });
+
+  it("words one phone alert per batch: the post, where and why, or a count", () => {
+    const f = failuresOf(UID, reads, drafts);
+    expect(failureMessage(f.slice(0, 1))).toEqual({
+      title: "Post failed on Instagram",
+      body: '"Five CPF myths every new parent believes about the Ordina..." The video is longer than Instagram allows (90 seconds).',
+      url: "/calendar?post=d1&profile=me",
+      tag: "fail",
+      ttl: 43200,
+    });
+    expect(failureMessage(f.slice(0, 2))?.title).toBe("Post failed on Instagram and Facebook");
+    expect(failureMessage(f.slice(2))?.body).toBe('"Term or whole life?" Went out on LinkedIn.');
+    expect(failureMessage(f)).toEqual({
+      title: "2 posts failed to go out",
+      body: 'Instagram and Facebook: "Five CPF myths every new parent belie..." / Instagram: "Term or whole life?"',
+      url: "/calendar?post=d1&profile=me",
+      tag: "fail",
+      ttl: 43200,
+    });
+    expect(failureMessage([])).toBeNull();
+    const r = reconnectsOf([{ profileId: "me", posts: [], health: [{ accountId: IG, platform: "instagram", username: "sgmoneybro", needsReconnect: true }] }]);
+    expect(reconnectMessage(r)).toEqual({
+      title: "Reconnect Instagram",
+      body: "Instagram, sgmoneybro needs reconnecting before it can post again.",
+      url: "/accounts?profile=me",
+      tag: "reconnect",
+      ttl: 43200,
+    });
+    expect(reconnectMessage([...r, { ...r[0], item: "x", platform: "LinkedIn", handle: "" }])?.title).toBe("2 accounts need reconnecting");
+    expect(reconnectMessage([])).toBeNull();
+  });
+
+  it("words the day's email: each post with where, why and its link, then each account to reconnect", () => {
+    const f = failuresOf(UID, reads, drafts);
+    const r = reconnectsOf([{ profileId: "me", posts: [], health: [{ accountId: IG, platform: "instagram", username: "sgmoneybro", needsReconnect: true }] }]);
+    const now = sg(2026, 10, 12, 9);
+    expect(alertsEmail(f, r, now)).toEqual({
+      item: "alerts-mail:2026-10-12",
+      subject: "2 posts didn't go out, 1 account needs reconnecting",
+      text: [
+        "These posts didn't go out:",
+        "",
+        'Instagram and Facebook: "Five CPF myths every new parent believes about the Ordina..."',
+        "Instagram: The video is longer than Instagram allows (90 seconds).",
+        `Open it: ${APP_URL}/calendar?post=d1&profile=me`,
+        "",
+        'Instagram: "Term or whole life?"',
+        "It went out on LinkedIn.",
+        `Open it: ${APP_URL}/calendar?post=d2&profile=pbiz`,
+        "",
+        "This account needs reconnecting before it can post again:",
+        "",
+        "Instagram, sgmoneybro",
+        `Reconnect: ${APP_URL}/accounts?profile=me`,
+        "",
+        `You get these because they are switched on in Settings > Notifications. Switch them off there: ${APP_URL}/notifications`,
+      ].join("\n"),
+    });
+    expect(alertsEmail(f.slice(0, 1), [], now)).toMatchObject({
+      subject: "1 post didn't go out",
+      text: expect.stringMatching(/^This post didn't go out:\n\nInstagram: "Five CPF[^\n]*\nThe video is longer than Instagram allows \(90 seconds\)\.\nOpen it: /),
+    });
+    expect(alertsEmail([], [...r, { ...r[0], item: "x" }], now)?.subject).toBe("2 accounts need reconnecting");
+    expect(alertsEmail([], [], now)).toBeNull();
+    // the footer names the page the app has for it
+    expect(alertsEmail(f, [], now)?.text.endsWith(`${APP_URL}${links.notifications()}`)).toBe(true);
   });
 });

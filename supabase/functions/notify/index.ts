@@ -11,13 +11,19 @@
 //                    delivered@resend.dev or spleotan@gmail.com, and only with
 //                    `only`); no phone alerts, nothing claimed or logged
 //   now: ISO time    pretend it is this time (with dryRun or testTo only)
+//   job: "social"    the pass over everyone with a connected account: posts that
+//                    failed on Zernio and accounts to reconnect (Settings >
+//                    Notifications' Failed posts and Social accounts, on unless
+//                    switched off). The hourly call starts it as its own chain;
+//                    send it with dryRun to see that pass.
 //   after, upTo      page cursors; the function sets them for itself
 //
 // Secrets: NOTIFY_CRON_SECRET (the same value is in Vault as
 // cs_notify_cron_secret), VAPID_KEYS (JSON {publicKey, privateKey} JWKs),
 // RESEND_API_KEY, TYPESAFE_API_KEY (optional: Jev picks the email's one move
 // for the week; without it the email has none), NORTH_STAR_USERS (optional:
-// the uids that get What moved and the outlier alert). Deploy with --no-verify-jwt:
+// the uids that get What moved and the outlier alert), ZERNIO_API_KEY (the social
+// job reads failed posts and account health; unset, it does nothing). Deploy with --no-verify-jwt:
 // the secret header is the auth.
 //   supabase functions deploy notify --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
 
@@ -26,6 +32,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { ApplicationServer, importVapidKeys, PushMessageError, Urgency } from "jsr:@negrel/webpush@0.5.0";
 import { askJev } from "../_shared/jev.ts";
 import { consumeUsage } from "../_shared/usageCaps.ts";
+import { zernioClient } from "../_shared/zernio.ts";
 import { APP_URL, BRAND_KEYS, isPushEndpoint, PREFS_PREFIX } from "./logic.ts";
 import { runPage, type Deps, type Options } from "./run.ts";
 
@@ -57,6 +64,7 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : String(e)).sli
 let vapid: Promise<CryptoKeyPair> | null = null;
 
 function wire(secret: string): Deps {
+  const zernioKey = Deno.env.get("ZERNIO_API_KEY");
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
     auth: { persistSession: false },
   });
@@ -173,6 +181,34 @@ function wire(secret: string): Deps {
       if (!usage.allowed) return null;
       return askJev(ask.state, ask.questions, { who: "notify brief" });
     },
+    async listOwners({ after, upTo, only, limit }) {
+      // distinct owners in id order: a page of mapping rows holds a few brands per owner, so read on until `limit` owners or the end
+      const owners: string[] = [];
+      for (let from = after; ; ) {
+        let q = admin.from("cs_social_profiles").select("owner_id").order("owner_id").limit(100);
+        if (only) q = q.eq("owner_id", only);
+        if (from) q = q.gt("owner_id", from);
+        if (upTo) q = q.lte("owner_id", upTo);
+        const data = ok(await q) ?? [];
+        for (const r of data) if (owners[owners.length - 1] !== r.owner_id) owners.push(r.owner_id as string);
+        if (data.length < 100 || owners.length >= limit) break;
+        from = owners[owners.length - 1];
+      }
+      const page = owners.slice(0, limit);
+      if (!page.length) return [];
+      const keys = page.map((u) => `${PREFS_PREFIX}${u}`);
+      const prefs = ok(await admin.from("cs_user_data").select("user_id,key,data").in("user_id", page).in("key", keys)) ?? [];
+      // only the key named after the owner counts, as listPrefs; no key at all is "" (both switches on)
+      return page.map((u) => ({ user_id: u, key: `${PREFS_PREFIX}${u}`, data: (prefs.find((p) => p.user_id === u && p.key === `${PREFS_PREFIX}${u}`)?.data as string) ?? "" }));
+    },
+    async socialRows(uid) {
+      return ok(await admin.from("cs_social_profiles").select("profile_id,zernio_profile_id").eq("owner_id", uid)) ?? [];
+    },
+    async draftRows(uid) {
+      const rows = ok(await admin.from("cs_user_data").select("key,data").eq("user_id", uid).like("key", `content-studio-drafts-${uid}%`)) ?? [];
+      return Object.fromEntries(rows.map((r) => [r.key as string, r.data as string]));
+    },
+    zernio: zernioKey ? zernioClient(zernioKey) : null,
     async next(body) {
       const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify`, {
         method: "POST",
@@ -215,6 +251,7 @@ Deno.serve(async (req) => {
     testTo,
     marketUsers: Deno.env.get("MARKET_USERS"),
     northStarUsers: Deno.env.get("NORTH_STAR_USERS"),
+    ...(body.job === "social" ? { job: "social" as const } : {}),
   };
   const deps = wire(secret);
 
@@ -227,7 +264,7 @@ Deno.serve(async (req) => {
     }
   }
   const work = runPage(deps, o)
-    .then((r) => console.log("notify page", JSON.stringify({ checked: r.checked, users: r.reports.length, next: !!r.next, handedOff: r.handedOff })))
+    .then((r) => console.log("notify page", JSON.stringify({ job: o.job ?? "prefs", checked: r.checked, users: r.reports.length, next: !!r.next, handedOff: r.handedOff })))
     .catch((e) => console.error("notify page failed", errText(e)));
   if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work);
   else await work;

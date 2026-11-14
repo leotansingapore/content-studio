@@ -1095,3 +1095,192 @@ export function outlierAlert(hits: OutlierFinding[], now: number, logged: Set<st
     message: { title: `@${f.handle} posted a hit`, body: `${usualOf(f)}. Tap to make your own.`, url: findingUrl(f), tag: "outlier", ttl: 3 * 3600 },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Failed posts and accounts to reconnect (Settings > Notifications: Failed posts, Social accounts). run.ts reads
+// them from Zernio for every brand with a connected account (the "social" job). Each failed post on each account,
+// and each broken connection, is one sent-log item, so a phone alert never tells it twice; the email takes the
+// same item with a mail: prefix, at most one email a Singapore day (alerts-mail:<day>).
+// ---------------------------------------------------------------------------
+
+/** The two switches are on unless switched off, so anyone with a connected account has them without a visit to Settings; push is the phone alerts switch. */
+export function alertPrefs(data: string | null | undefined): { failed: boolean; accounts: boolean; push: boolean } {
+  const p = parseJson(data);
+  const o = (p && typeof p === "object" ? p : {}) as Record<string, unknown>;
+  return { failed: o.failed !== false, accounts: o.accounts !== false, push: o.push === true };
+}
+
+/** How far back a run reads failed posts: one that missed today's email is still there for tomorrow's, and a missed run loses nothing. */
+export const FAIL_LOOKBACK_MS = 2 * DAY_MS;
+export const alertsMailDay = (now: number) => `alerts-mail:${sgDay(now)}`;
+
+/** One brand's reads from Zernio, already kept to its own accounts (run.ts readBrand). */
+export interface BrandRead {
+  profileId: string;
+  posts: unknown[];
+  health: unknown[];
+}
+
+/** A failed post on one account. */
+export interface Failure {
+  item: string;
+  /** Zernio's post id: a post that failed on two accounts is one post in the words. */
+  post: string;
+  profileId: string;
+  platform: string;
+  words: string;
+  reason: string;
+  /** Where the same post did go out (a partial post). */
+  posted: string[];
+  url: string;
+}
+
+export interface Reconnect {
+  item: string;
+  profileId: string;
+  platform: string;
+  handle: string;
+  url: string;
+}
+
+const NETWORK: Record<string, string> = { ...PLATFORM_LABEL, youtube: "YouTube", threads: "Threads" };
+const network = (p: unknown) => (typeof p === "string" && (NETWORK[p] ?? (p ? p[0].toUpperCase() + p.slice(1, 20) : ""))) || "Social";
+const ZID = /^[a-f0-9]{24}$/;
+const refOf = (v: unknown) => (typeof v === "string" ? v : (v as { _id?: unknown } | null)?._id);
+const zid = (v: unknown): string | null => {
+  const id = refOf(v);
+  return typeof id === "string" && ZID.test(id) ? id : null;
+};
+const listOf = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+const scopeOf = (uid: string, profileId: string) => (profileId === "me" ? uid : `${uid}~${profileId}`);
+
+/** Zernio post id -> the draft it was sent from, read from the brand's synced drafts (draftHistory.ts ZernioLink). */
+export function sentDrafts(uid: string, profileId: string, rows: Record<string, string>): Map<string, { id: string; hook: string }> {
+  const list = parseJson(rows[`content-studio-drafts-${scopeOf(uid, profileId)}`]);
+  const out = new Map<string, { id: string; hook: string }>();
+  for (const d of Array.isArray(list) ? list : []) {
+    const post = d?.zernio?.postId;
+    if (typeof d?.id === "string" && d.id && typeof post === "string") out.set(post, { id: d.id, hook: str(d.hook) ?? "" });
+  }
+  return out;
+}
+
+/**
+ * Every failed account of a failed or partly failed post, each with its sent-log item fail:<post>:<account>.
+ * On a failed post every account not published counts; on a partial one, those Zernio marks failed.
+ */
+export function failuresOf(uid: string, reads: BrandRead[], draftRows: Record<string, string>): Failure[] {
+  const out = new Map<string, Failure>();
+  for (const { profileId, posts } of reads) {
+    const drafts = sentDrafts(uid, profileId, draftRows);
+    const brand = `profile=${encodeURIComponent(profileId)}`;
+    for (const raw of posts) {
+      const p = (raw ?? {}) as { _id?: unknown; status?: unknown; content?: unknown; platforms?: unknown };
+      const post = zid(p._id);
+      if (!post || (p.status !== "failed" && p.status !== "partial")) continue;
+      const targets = (Array.isArray(p.platforms) ? p.platforms : []) as { platform?: unknown; accountId?: unknown; status?: unknown; errorMessage?: unknown }[];
+      const posted = [...new Set(targets.filter((t) => t?.status === "published").map((t) => network(t.platform)))];
+      const draft = drafts.get(post);
+      const words = clip(draft?.hook || (str(p.content) ?? "").split("\n").find((l) => l.trim()) || "Untitled post", 60);
+      for (const t of targets) {
+        const account = zid(t?.accountId);
+        if (!account || !(t.status === "failed" || (p.status === "failed" && t.status !== "published"))) continue;
+        const item = `fail:${post}:${account}`;
+        out.set(item, {
+          item,
+          post,
+          profileId,
+          platform: network(t.platform),
+          words,
+          reason: clip(str(t.errorMessage) ?? "", 160),
+          posted,
+          url: draft ? `/calendar?post=${encodeURIComponent(draft.id)}&${brand}` : `/calendar?${brand}`,
+        });
+      }
+    }
+  }
+  return [...out.values()];
+}
+
+/**
+ * Accounts Zernio says need reconnecting, each with its sent-log item reconnect:<account>:<the Singapore day it broke>,
+ * so a connection that breaks again later is told again. One the person or Zernio disconnected on purpose is left out.
+ */
+export function reconnectsOf(reads: BrandRead[]): Reconnect[] {
+  const out = new Map<string, Reconnect>();
+  for (const { profileId, health } of reads) {
+    for (const raw of health) {
+      const h = (raw ?? {}) as Record<string, unknown>;
+      const account = zid(h.accountId);
+      if (!account || h.needsReconnect !== true || h.disconnectionType === "intentional") continue;
+      const since = Date.parse(str(h.unhealthySince) ?? "");
+      const item = `reconnect:${account}:${Number.isNaN(since) ? "" : sgDay(since)}`;
+      out.set(item, { item, profileId, platform: network(h.platform), handle: clip(str(h.username) || str(h.displayName) || "", 40), url: `/accounts?profile=${encodeURIComponent(profileId)}` });
+    }
+  }
+  return [...out.values()];
+}
+
+/** Failures grouped by post, in the order found. */
+function byPost(failures: Failure[]): Failure[][] {
+  const groups = new Map<string, Failure[]>();
+  for (const f of failures) groups.set(f.post, [...(groups.get(f.post) ?? []), f]);
+  return [...groups.values()];
+}
+
+/** One phone alert for a run's new failures: the post, where it failed and why, or a count. */
+export function failureMessage(failures: Failure[]): PushMessage | null {
+  const posts = byPost(failures);
+  if (!posts.length) return null;
+  const [first] = posts[0];
+  if (posts.length === 1) {
+    const reason = posts[0].find((f) => f.reason)?.reason;
+    const body = [`"${first.words}"`, first.posted.length ? `Went out on ${listOf(first.posted)}.` : "", reason ?? ""].filter(Boolean).join(" ");
+    return { title: `Post failed on ${listOf(posts[0].map((f) => f.platform))}`, body: clip(body, 180), url: first.url, tag: "fail", ttl: 12 * 3600 };
+  }
+  return {
+    title: `${posts.length} posts failed to go out`,
+    body: clip(posts.map((g) => `${listOf(g.map((f) => f.platform))}: "${clip(g[0].words, 40)}"`).join(" / "), 180),
+    url: first.url,
+    tag: "fail",
+    ttl: 12 * 3600,
+  };
+}
+
+const accountName = (r: Reconnect) => (r.handle ? `${r.platform}, ${r.handle}` : r.platform);
+
+/** One phone alert for a run's newly broken connections. */
+export function reconnectMessage(reconnects: Reconnect[]): PushMessage | null {
+  if (!reconnects.length) return null;
+  const [r] = reconnects;
+  return reconnects.length === 1
+    ? { title: `Reconnect ${r.platform}`, body: clip(`${accountName(r)} needs reconnecting before it can post again.`, 180), url: r.url, tag: "reconnect", ttl: 12 * 3600 }
+    : { title: `${reconnects.length} accounts need reconnecting`, body: clip(`${reconnects.map(accountName).join(" / ")}. Reconnect them to keep posting.`, 180), url: r.url, tag: "reconnect", ttl: 12 * 3600 };
+}
+
+/** The day's email: each failed post with where and why and its link, then each account to reconnect. */
+export function alertsEmail(failures: Failure[], reconnects: Reconnect[], now: number): Email | null {
+  const posts = byPost(failures);
+  if (!posts.length && !reconnects.length) return null;
+  const lines: string[] = [];
+  if (posts.length) {
+    lines.push(posts.length === 1 ? "This post didn't go out:" : "These posts didn't go out:", "");
+    for (const g of posts) {
+      lines.push(`${listOf(g.map((f) => f.platform))}: "${g[0].words}"`);
+      const why = g.filter((f) => f.reason);
+      for (const f of why) lines.push(g.length > 1 ? `${f.platform}: ${f.reason}` : f.reason);
+      if (g[0].posted.length) lines.push(`It went out on ${listOf(g[0].posted)}.`);
+      lines.push(`Open it: ${APP_URL}${g[0].url}`, "");
+    }
+  }
+  if (reconnects.length) {
+    lines.push(reconnects.length === 1 ? "This account needs reconnecting before it can post again:" : "These accounts need reconnecting before they can post again:", "");
+    for (const r of reconnects) lines.push(accountName(r), `Reconnect: ${APP_URL}${r.url}`, "");
+  }
+  lines.push(`You get these because they are switched on in Settings > Notifications. Switch them off there: ${APP_URL}/notifications`);
+  const subject = [
+    posts.length ? `${plural(posts.length, "post")} didn't go out` : "",
+    reconnects.length ? `${plural(reconnects.length, "account")} need${reconnects.length === 1 ? "s" : ""} reconnecting` : "",
+  ].filter(Boolean).join(", ");
+  return { item: alertsMailDay(now), subject, text: lines.join("\n") };
+}

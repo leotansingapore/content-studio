@@ -109,6 +109,17 @@ Deployed `--no-verify-jwt`, like `notify`: it refuses anything without the `x-so
 
 The two cron jobs are in `supabase/hub/021_social_sweep.sql`, applied by hand after an independent review. Test with `{"job": "orphans", "dryRun": true}`.
 
+## Failed-post and reconnect alerts (`notify`, job `social`)
+
+The hourly `notify` call starts a second chain, `{"job":"social"}`, over every owner in `cs_social_profiles`. For each brand it
+reads the account set (M2), then `GET /v1/posts?status=failed` and `?status=partial` with `updatedSince` two days back, and
+`GET /v1/accounts/health` only when an account says `needsReconnection`, all through `scopedList` (H3). New failures (one
+sent-log item per post and account) and broken connections (per account and the day it broke; intentional disconnects left
+out) get one phone alert per batch when Phone alerts is on, and at most one email a Singapore day. Settings > Notifications'
+Failed posts and Social accounts are on unless switched off (`failed`, `accounts` in the notify key). Polling, not Zernio's
+`post.failed` / `account.disconnected` webhooks: no public endpoint or webhook secret to run. Test with
+`{"job": "social", "dryRun": true}`.
+
 ## Screens
 
 - Playbook > Social accounts at `/accounts` (built) has a Connect button per platform, each account's health with Reconnect, Disconnect with a confirm, the cap line when full. The open brand profile decides which accounts show.
