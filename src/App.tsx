@@ -9,14 +9,13 @@ import HomePage from "@/pages/HomePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import HubGate from "@/components/hub/HubGate";
 import { scheduleAfterLoad } from "@/lib/idle";
-import PublicRoadmap from "@/pages/PublicRoadmap";
 import { SECTIONS } from "@/lib/nav";
 
 // Every page inside the studio layout except Home is route-level lazy(), so
 // the reference data they import (inspiration, advisors, top posts: ~400 KB)
-// stays out of the main bundle. Auth, Home, the 404 page, the Hub gate and the
-// public roadmap stay eager: they render outside the layout's Suspense or are
-// the landing page. Avoid the manualChunks object form, which force-preloads
+// stays out of the main bundle. Auth, Home, the 404 page and the Hub gate stay
+// eager: they render outside the layout's Suspense or are the landing page. The
+// public roadmap is lazy behind its own Suspense (its board is ~60 KB). Avoid the manualChunks object form, which force-preloads
 // lazy chunks.
 
 /** A route-level lazy page that can also start its download before it renders. */
@@ -112,6 +111,7 @@ const JoinBrandPage = page(() => import("@/pages/JoinBrandPage"));
 const BrandTeamPage = page(() => import("@/pages/BrandTeamPage"));
 const VideoEditPage = page(() => import("@/pages/VideoEditPage"));
 // Public pages (no sign-in), each in its own chunk.
+const PublicRoadmap = page(() => import("@/pages/PublicRoadmap"));
 const PreviewReviewPage = page(() => import("@/pages/PreviewReviewPage"));
 const BioPublicPage = page(() => import("@/pages/BioPublicPage"));
 const LinkInBioPage = page(() => import("@/pages/LinkInBioPage"));
@@ -136,7 +136,14 @@ const AutomationsPage = page(() => import("@/pages/AutomationsPage"));
 const ROUTES = (
   <>
     {/* Public: what people asked for, what is being built, what shipped. */}
-    <Route path="/roadmap" element={<PublicRoadmap />} />
+    <Route
+      path="/roadmap"
+      element={
+        <Suspense fallback={null}>
+          <PublicRoadmap />
+        </Suspense>
+      }
+    />
     <Route path="/auth" element={<Auth />} />
     {/* Public: slides sent from Design to a phone (Send to phone), for a day. */}
     <Route

@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate, useNavigationType, useSearchPar
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
-import ExportPill from "@/components/ExportPill";
+import { scheduleAfterLoad } from "@/lib/idle";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market";
@@ -65,6 +65,9 @@ const RemixSheet = lazy(() => import("@/components/remix/RemixSheet"));
 const RemixPill = lazy(() => import("@/components/remix/RemixPill"));
 // "Your <format> is ready" when a background make finishes on another page (Leo, 11 Nov)
 const MadeToast = lazy(() => import("@/components/MadeToast"));
+// The export pill reads the video editor's export store, so it brings the editor's code (~150 KB): it mounts once the
+// page is up, and an export only ever starts from an editor page, which loads that code anyway.
+const ExportPill = lazy(() => import("@/components/ExportPill"));
 // Activity's recorder (Leo only) listens to every job store, so it loads in its own chunk too.
 const ActivityRecorder = lazy(() => import("@/components/ActivityRecorder"));
 
@@ -452,6 +455,9 @@ export default function StudioLayout() {
     );
   }, [leo, remixKey, setSearchParams]);
   const [remixLate, setRemixLate] = useState(false);
+  // the export pill and the made toast bring every job store: they mount once the opened page has drawn
+  const [late, setLate] = useState(false);
+  useEffect(() => scheduleAfterLoad(3_000, () => setLate(true)), []);
   useEffect(() => {
     if (!leo) return;
     const t = setTimeout(() => setRemixLate(true), 2500);
@@ -1004,12 +1010,14 @@ export default function StudioLayout() {
         </div>
       </div>
       <JumpTo open={jumpOpen} onClose={() => setJumpOpen(false)} email={email} />
-      <ExportPill />
-      <ErrorBoundary>
-        <Suspense fallback={null}>
-          <MadeToast />
-        </Suspense>
-      </ErrorBoundary>
+      {late && (
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <ExportPill />
+            <MadeToast />
+          </Suspense>
+        </ErrorBoundary>
+      )}
       {leo && (remixLate || remixKey) && (
         <ErrorBoundary resetKey={pathname}>
           <Suspense fallback={null}>

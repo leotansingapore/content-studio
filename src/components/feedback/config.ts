@@ -1,7 +1,7 @@
 // Content Studio's board on the feedback service. The key names exactly one board
 // there and nothing lists boards, so it can only ever reach Content Studio's posts.
 // Shared by the board page and the assistant dock.
-import { isFeedbackNew } from "./FeedbackBoard";
+import { isFeedbackNew } from "./feedbackSeen";
 
 export const FEEDBACK_API = "https://leotan-feedback.vercel.app/api/v1";
 export const FEEDBACK_BOARD_KEY = "fb_160b1f216061333a6eab92896d5619858b9e0a1a547effb0";

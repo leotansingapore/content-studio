@@ -5,7 +5,6 @@
 // the same path from its Blob, through sampleVideoFrames.
 
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
-import { loadVideo, seek } from "@/lib/videoMedia";
 import type { FrameInput, Pacing } from "../../supabase/functions/reel-visuals/logic.ts";
 import { LINK_COPY } from "../../supabase/functions/remix-link/logic.ts";
 
@@ -133,6 +132,8 @@ async function framesOf(
   signal?: AbortSignal,
   o: { max?: number; refuseOver?: number } = {},
 ): Promise<{ frames: FrameInput[]; pacing: Pacing }> {
+  // on demand: the video editor's code (~150 KB) would otherwise ride along with every page that can open a post
+  const { loadVideo, seek } = await import("@/lib/videoMedia");
   const v = await loadVideo(blob);
   try {
     if (o.refuseOver && v.duration > o.refuseOver + 0.5) throw new Error(LINK_COPY.tooLong);

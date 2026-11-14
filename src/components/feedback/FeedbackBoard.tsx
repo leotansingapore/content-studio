@@ -19,6 +19,7 @@
  * Every app's copy is an exact copy. Change it there, then run scripts/sync-dock.mjs.
  */
 
+import { feedbackSeenKey } from "./feedbackSeen";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 // ---------- types ----------
@@ -256,18 +257,7 @@ function readUrl(): UrlState | null {
 const categoryLabel = (c: Category) => CATEGORIES.find((x) => x.value === c)?.label ?? c;
 
 /** localStorage key set once the page has been opened; hosts read it to drop a "New" marker. */
-export function feedbackSeenKey(boardKey: string) {
-  return `fb_seen_${boardKey.slice(-8)}`;
-}
-
-/** True until the person has opened the page once in this browser. */
-export function isFeedbackNew(boardKey: string): boolean {
-  try {
-    return typeof window !== "undefined" && !localStorage.getItem(feedbackSeenKey(boardKey));
-  } catch {
-    return false;
-  }
-}
+export { feedbackSeenKey, isFeedbackNew } from "./feedbackSeen";
 
 // ---------- API client ----------
 
