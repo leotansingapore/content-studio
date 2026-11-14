@@ -62,6 +62,8 @@ export interface Campaign {
   pictures: "stock" | "mine"; goal?: string; target: { posts: number; winners: number };
   waitUntil?: string; posts: CampaignPost[];
   runs?: CampaignRuns; budget?: AdBudget; ads?: CampaignAd[];
+  /** When Launch was pressed: made posts go out on their days from then on (src/lib/campaignLaunch.ts). */
+  launchedAt?: string;
 }
 
 export interface CampaignAsk {
@@ -364,6 +366,24 @@ export function campaignStatus(c: Pick<Campaign, "posts">, today: string, adsMad
   const last = c.posts.reduce((m, p) => (p.day > m ? p.day : m), "");
   if (c.posts.length && last < today && c.posts.every((p) => p.state === "made" || p.state === "skipped")) return "done";
   return adsMade > 0 || c.posts.some((p) => p.state === "made") ? "running" : "draft";
+}
+
+export const LAUNCH_LINE = "Press Launch to review the schedule and cost. Nothing posts or is charged until you approve it.";
+export const NO_ACCOUNT_LINE = "Add an account so the posts go out by themselves, or launch and post them yourself.";
+
+/**
+ * The one line a campaign's row on /campaigns says in the warning tone, or null: posts that could not be written,
+ * then (once every post is written) Launch while it hasn't launched, then posts waiting for review once it has.
+ * Nothing while words are still being written, for a done campaign, or for Ads only (nothing of it launches).
+ */
+export function reasonLine(c: Pick<Campaign, "posts" | "accountIds" | "launchedAt" | "runs">, status: CampaignStatus): string | null {
+  const count = (state: PostState) => c.posts.filter((p) => p.state === state).length;
+  const failed = count("failed");
+  if (failed) return `${failed} ${failed === 1 ? "post" : "posts"} could not be written`;
+  if (status === "done" || c.runs === "ads" || !c.posts.length || count("waiting") || count("drafting")) return null;
+  if (!c.launchedAt) return c.accountIds?.length ? LAUNCH_LINE : NO_ACCOUNT_LINE;
+  const review = count("ready");
+  return review ? `${review} ${review === 1 ? "post waits" : "posts wait"} for your review.` : null;
 }
 
 export interface CampaignCost {

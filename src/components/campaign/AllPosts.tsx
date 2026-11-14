@@ -45,6 +45,15 @@ export function slideUrls(userId: string, p: CampaignPost): string[] {
   return slides.map((s, i) => svgDataUrl(renderSvg(layoutSlide({ title: s.title, body: s.body, index: i, total: slides.length, brand }, measure))));
 }
 
+/** The words a draft's tile shows before it is made. */
+export const draftWords = (p: Pick<CampaignPost, "hook" | "state">) => p.hook || (p.state === "failed" ? "This post could not be written." : "Waiting to be written.");
+
+/** A draft's tile inside its cover box: a carousel's first slide (`slide`, from slideUrls), else its words. */
+export const DraftTile = ({ words, slide }: { words: string; slide?: string }) =>
+  slide ? <img src={slide} alt="" loading="lazy" className="h-full w-full object-cover" /> : (
+    <p className="p-2.5 text-xs font-medium leading-snug [overflow-wrap:anywhere]"><span className="line-clamp-[7]">{words}</span></p>
+  );
+
 export default function AllPosts({ userId, campaign: c, posts, to }: { userId: string; campaign: Campaign; posts: CampaignPost[]; to: (n: number) => string }) {
   const [boards, setBoards] = useUrlState<"" | "1">("boards", "", { allowed: ["1"] });
   const all = boards === "1";
@@ -66,8 +75,7 @@ export default function AllPosts({ userId, campaign: c, posts, to }: { userId: s
   const stateChip = (p: CampaignPost) => (
     <span className={cn(CHIP, p.state === "made" ? "text-success" : p.state === "failed" ? "text-warning" : "text-muted-foreground")}>{STATE_CHIP[p.state]}</span>
   );
-  const words = (p: CampaignPost, show: Slideshow | undefined) =>
-    (p.state === "made" ? (show?.title ?? p.made?.text) : null) || p.hook || (p.state === "failed" ? "This post could not be written." : "Waiting to be written.");
+  const words = (p: CampaignPost, show: Slideshow | undefined) => (p.state === "made" ? (show?.title ?? p.made?.text) : null) || draftWords(p);
 
   const show = (s: Slideshow, n: number) => {
     const look = lookOf(userId, s);
@@ -82,9 +90,7 @@ export default function AllPosts({ userId, campaign: c, posts, to }: { userId: s
         <Link to={{ search: to(p.n) }} replace aria-label={`Post ${p.n}, ${day(p.day)}, ${FORMAT_NAME[p.format]}, ${STATE_CHIP[p.state]}: ${words(p, made)}`}
           className={cn("group flex h-full flex-col gap-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", p.state === "skipped" && "opacity-50")}>
           <div className={cn("relative aspect-[4/5] overflow-hidden rounded-lg border bg-muted/30 group-hover:border-primary/50", p.state === "ready" || p.state === "made" || p.state === "making" ? "border-border/60" : "border-dashed border-border")}>
-            {made ? show(made, 1) : cover ? <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover" /> : (
-              <p className="p-2.5 text-xs font-medium leading-snug [overflow-wrap:anywhere]"><span className="line-clamp-[7]">{words(p, made)}</span></p>
-            )}
+            {made ? show(made, 1) : <DraftTile words={words(p, made)} slide={cover} />}
           </div>
           {/* under the cover, never over it: a chip on a text tile hid its words */}
           <div className="min-w-0 space-y-0.5">

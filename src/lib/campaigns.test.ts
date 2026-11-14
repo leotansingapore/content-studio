@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AD_COUNT, adBits, adLayoutFor, adLayouts, addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignLine, dayOf, campaignFormats, campaignsKey,
   campaignStatus, type CampaignFormat, type CampaignPost, deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
-  planAds, planCampaign, type PostState, REMIX_MAKE, replanCampaign, runningAdSources, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
+  LAUNCH_LINE, NO_ACCOUNT_LINE, planAds, planCampaign, type PostState, reasonLine, REMIX_MAKE, replanCampaign, runningAdSources, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
 } from "./campaigns";
 import { MAX_DRAFTS, type DraftEntry } from "./draftHistory";
 import { priceOf, type Price } from "./prices";
@@ -213,6 +213,31 @@ describe("campaignStatus", () => {
   it("done when every post is made or skipped and the last day has passed", () => {
     expect(campaignStatus(c(["made", "made", "skipped"]), "2026-11-04")).toBe("done");
     expect(campaignStatus(c(["made", "ready", "skipped"]), "2026-11-04")).toBe("running");
+  });
+});
+
+describe("reasonLine", () => {
+  const c = (states: PostState[], o: Partial<Campaign> = {}) => campaign({ posts: states.map((state, i) => post(i + 1, { state })), ...o });
+  it("failed posts come first, even while others are written", () => {
+    expect(reasonLine(c(["failed", "drafting", "ready"], { accountIds: ["a1"] }), "draft")).toBe("1 post could not be written");
+    expect(reasonLine(c(["failed", "failed", "ready"], { launchedAt: "2026-11-01T00:00:00Z" }), "running")).toBe("2 posts could not be written");
+  });
+  it("says nothing while posts are being written, once done, or for Ads only", () => {
+    expect(reasonLine(c(["ready", "waiting"]), "draft")).toBeNull();
+    expect(reasonLine(c(["ready", "drafting"]), "draft")).toBeNull();
+    expect(reasonLine(c(["made", "skipped"]), "done")).toBeNull();
+    expect(reasonLine(c([], { runs: "ads" }), "draft")).toBeNull();
+  });
+  it("asks for Launch before launch, with or without accounts", () => {
+    expect(reasonLine(c(["ready", "made"], { accountIds: ["a1"] }), "running")).toBe(LAUNCH_LINE);
+    expect(reasonLine(c(["ready", "ready"]), "draft")).toBe(NO_ACCOUNT_LINE);
+    expect(reasonLine(c(["ready"], { accountIds: [] }), "draft")).toBe(NO_ACCOUNT_LINE);
+  });
+  it("once launched, counts the posts waiting for review", () => {
+    const launchedAt = "2026-11-01T00:00:00Z";
+    expect(reasonLine(c(["ready", "ready", "made"], { launchedAt }), "running")).toBe("2 posts wait for your review.");
+    expect(reasonLine(c(["ready", "made"], { launchedAt }), "running")).toBe("1 post waits for your review.");
+    expect(reasonLine(c(["made", "skipped"], { launchedAt }), "running")).toBeNull();
   });
 });
 

@@ -3,21 +3,23 @@
 // its writing progress from the drafting job (src/lib/campaignJob.ts), which this visit resumes for any campaign
 // with posts still to write. NO OPEN CAMPAIGN lists the saved audiences without one, each starting the wizard on
 // step 2. GOAL sits under the H1 (?goal=change opens it); ?show=done unfolds DONE. Each row shows its first made post's
-// picture as the Library draws it (coverKeys in src/lib/campaignBoard.ts), or none before anything is made. Everyone
-// else gets the 404 page.
+// picture as the Library draws it (coverKeys in src/lib/campaignBoard.ts), else its first written post's tile as All
+// posts draws a draft, else an empty box; and one line in the warning tone saying what to do next (reasonLine).
+// Everyone else gets the 404 page.
 
 import { useEffect, useMemo, useReducer } from "react";
 import { Link } from "react-router-dom";
 import { CaretRightIcon, PlusIcon } from "@phosphor-icons/react";
 import GoalLine from "@/components/GoalLine";
 import LibraryThumb, { readThumbSources, useFontsReady } from "@/components/library/LibraryThumb";
+import { DraftTile, draftWords, slideUrls } from "@/components/campaign/AllPosts";
 import { NoAudience } from "@/components/campaign/WhoStep";
 import { Button } from "@/components/ui/button";
 import { loadAudiences, onAudiencesChanged } from "@/lib/audiences";
 import { adCounts, adsMade, adViews, countsLine } from "@/lib/campaignAds";
 import { coverKeys } from "@/lib/campaignBoard";
 import { draftingOf, onCampaignJob, PAUSED_LINE, startDrafting, type Drafting } from "@/lib/campaignJob";
-import { campaignStatus, loadCampaigns, onCampaignsChanged, type Campaign, type CampaignStatus } from "@/lib/campaigns";
+import { campaignStatus, loadCampaigns, onCampaignsChanged, reasonLine, type Campaign, type CampaignPost, type CampaignStatus } from "@/lib/campaigns";
 import { loadCarousels } from "@/lib/carousel";
 import { loadDrafts } from "@/lib/draftHistory";
 import { localDateKey } from "@/lib/dueDates";
@@ -57,20 +59,21 @@ export default function CampaignsPage() {
 const toWrite = (c: Campaign) => c.posts.some((p) => p.state === "waiting" || p.state === "drafting");
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-/** The row's progress: writing, paused, or made and written; failed posts on a second line in the warning colour. */
-function progressOf(userId: string, c: Campaign, job: Drafting | null, now = Date.now()): { line: string; failed: string | null } {
+/** The row's progress: writing, paused, or made and written. */
+function progressOf(userId: string, c: Campaign, job: Drafting | null, now = Date.now()): string {
   const count = (...states: string[]) => c.posts.filter((p) => states.includes(p.state)).length;
   const n = c.posts.length;
   const written = count("ready", "making", "made", "skipped");
-  const failed = count("failed");
   const paused = job?.paused ?? (toWrite(c) && c.waitUntil && Date.parse(c.waitUntil) > now ? PAUSED_LINE : null);
   const posts = paused ?? (toWrite(c) ? `Writing ${job?.done ?? written} of ${job?.of ?? n}` : `${count("made")} of ${n} made | ${written} written`);
   // a campaign with ads: "10 ads | 2 made, 8 drafts" beside the posts' line (alone for Ads only)
   const k = c.ads?.length ? adCounts(adViews(c, loadImages(userId), imageWrite())) : null;
   const ads = k ? `${plural(k.live, "ad")} | ${countsLine(k)}` : "";
-  const line = [n ? posts : "", ads].filter(Boolean).join(". ");
-  return { line, failed: failed ? `${plural(failed, "post")} could not be written` : null };
+  return [n ? posts : "", ads].filter(Boolean).join(". ");
 }
+
+/** The post a row's picture shows before anything is made: the first written one. */
+const firstWritten = (c: Campaign): CampaignPost | undefined => [...c.posts].sort((a, b) => a.n - b.n).find((p) => p.hook && p.state !== "skipped");
 
 function Campaigns({ userId }: { userId: string }) {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
@@ -115,37 +118,47 @@ function Campaigns({ userId }: { userId: string }) {
   });
   const fontsReady = useFontsReady([...covers.values()].some((it) => it.thumb?.kind === "show"));
   const sources = useMemo(() => (library ? readThumbSources(userId, library.stores, fontsReady) : null), [userId, library, fontsReady]);
+  // nothing made yet: the first written post's tile, a carousel's first slide drawn once per set of words
+  const drafts = new Map(list.flatMap((c) => (covers.has(c.id) ? [] : [[c.id, firstWritten(c)] as const])));
+  const slideWant = [...drafts].map(([id, p]) => (p?.format === "carousel" ? `${id}:${p.n}:${p.hook}:${p.body}` : "")).join("|");
+  const slides = useMemo(
+    () => new Map([...drafts].flatMap(([id, p]) => (p?.format === "carousel" ? [[id, slideUrls(userId, p)[0]] as const] : []))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId, slideWant],
+  );
 
   const row = (c: Campaign) => {
-    const s = STATUS[status(c)];
-    const p = progressOf(userId, c, draftingOf(c.id));
+    const st = status(c);
+    const s = STATUS[st];
+    const progress = progressOf(userId, c, draftingOf(c.id));
+    const reason = reasonLine(c, st);
     const cover = covers.get(c.id);
+    const draft = drafts.get(c.id);
     return (
       <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border/60 bg-card p-4 shadow-card">
-        {cover && sources && (
-          <Link to={links.campaign(c.id)} tabIndex={-1} aria-hidden className={`relative block w-12 shrink-0 overflow-hidden rounded-md border border-border/60 bg-muted ${cover.format === "video" ? "aspect-[9/16]" : "aspect-[4/5]"}`}>
-            {/* the Library card's picture at its own size, shrunk: a title tile cut to 48 px read as broken words */}
+        <Link to={links.campaign(c.id)} tabIndex={-1} aria-hidden
+          className={`relative block w-12 shrink-0 overflow-hidden rounded-md border bg-muted ${cover?.format === "video" ? "aspect-[9/16]" : "aspect-[4/5]"} ${cover || draft ? "border-border/60" : "border-dashed border-border"}`}>
+          {/* the picture at its own size, shrunk: a title tile cut to 48 px read as broken words */}
+          {(cover ? sources : draft) && (
             <span className="absolute left-0 top-0 block h-[333.33%] w-[333.33%] origin-top-left scale-[0.3]">
-              <LibraryThumb item={cover} sources={sources} seen />
+              {cover && sources ? <LibraryThumb item={cover} sources={sources} seen /> : draft && <DraftTile words={draftWords(draft)} slide={slides.get(c.id)} />}
             </span>
-          </Link>
-        )}
+          )}
+        </Link>
         <div className="min-w-0 flex-1 basis-56">
           <Link to={links.campaign(c.id)} className="break-words font-medium hover:underline">{c.name}</Link>
           <p className="mt-0.5 break-words text-xs text-muted-foreground">
             {[c.audienceName, c.platforms.map(platformName).join(", ")].filter(Boolean).join(" | ")}
           </p>
         </div>
-        <div className="min-w-0 basis-48 text-sm" aria-live="polite">
-          <p className="tabular-nums">{p.line}</p>
-          {p.failed && <p className="text-warning">{p.failed}</p>}
-        </div>
+        <p className="min-w-0 basis-48 text-sm tabular-nums" aria-live="polite">{progress}</p>
         <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${s.tone}`}>
           <span aria-hidden className="h-2 w-2 rounded-[2px] border border-current" />{s.label}
         </span>
         <Button asChild variant="outline" size="sm">
           <Link to={links.campaign(c.id)} aria-label={`Open ${c.name}`}>Open</Link>
         </Button>
+        {reason && <p className="basis-full text-sm text-warning">{reason}</p>}
       </li>
     );
   };
