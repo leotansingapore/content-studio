@@ -72,7 +72,9 @@ const WHO: TemplateField = { key: "person", label: "Who is in it", placeholder: 
 const SCENE_WARNINGS = ["Nobody speaks. Your words go on top in the editor."];
 const SCENE_AVOID = ["Anyone speaking or mouthing words", "On-screen text, captions or signs with words", "Logos or brand names", "Close-up hands on small objects"];
 const SKIT_WARNINGS = ["Keep each line under 8 words, or the lips slip out of sync.", "Two or three lines fit in 8 seconds."];
-const SKIT_RULE = "Each person speaks only the lines given, in order, and the speakers look clearly different.";
+// the writer reworded a given line in 6 of 12 test prompts (14 Nov), so every person-on-camera template carries this
+const KEEP_LINES = "Spoken lines from the details are used word for word, exactly as typed, in quotes: never reworded, shortened or swapped. Write a new line only where none is given.";
+const SKIT_RULE = `${KEEP_LINES} Each person speaks only the lines given, in order, and the speakers look clearly different.`;
 
 const PHASE3_TEMPLATES: VideoTemplate[] = [
   {
@@ -239,7 +241,7 @@ const PHASE3_TEMPLATES: VideoTemplate[] = [
     ],
     avoid: ["Talking over each other", "Logos on the mic", "Long spoken lines"],
     leoOnly: true,
-    rule: "Each person speaks only their own line, in order from beginner to expert, and the speakers look clearly different.",
+    rule: `${KEEP_LINES} Each person speaks only their own line, in order from beginner to expert, and the speakers look clearly different.`,
   },
   {
     id: "two-host-podcast",
@@ -304,7 +306,7 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     ],
     avoid: ["The phone's screen in view", "A second person in frame", "Long spoken lines"],
     leoOnly: true,
-    rule: "The claim is heard from the phone, never spoken by the person on camera; they speak only the answer.",
+    rule: `${KEEP_LINES} The claim is heard from the phone, never spoken by the person on camera; they speak only the answer.`,
   },
   {
     id: "unboxing",
@@ -320,6 +322,8 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     warnings: ["Labels and logos come out garbled. Add your text in the editor.", "Keep what they say short, or the lips slip out of sync."],
     structure: [
       "Opening line: the length, vertical 9:16, a handheld phone over a table at home",
+      // the 14 Nov test make lost the person (the writer skipped them) and showed a stranger who wasn't Singaporean
+      "Who: the person on camera described once (face, hair, outfit), their hands in most beats and their face when they look up",
       "Product lock: the product broken into its parts (shape, colours, materials, proportions)",
       "Beats in order: a closed plain box on the table, hands lift the lid, take the product out, turn it to the light, then the person looks up and reacts",
       "Each spoken line inside the beat where it is said",
@@ -332,6 +336,7 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     ],
     avoid: ["Printed labels or brand text up close", "Hands warping around the product", "Long spoken lines"],
     leoOnly: true,
+    rule: KEEP_LINES,
   },
   {
     id: "notes-presenter",
@@ -354,6 +359,7 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     guidance: ["Keep the upper half of the page clear of the person.", "Even, bright light on the person, matching the page."],
     avoid: ["Any words or numbers on the page", "Logos on the mic", "Long spoken lines"],
     leoOnly: true,
+    rule: KEEP_LINES,
   },
   {
     id: "comment-reply",
@@ -376,7 +382,7 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     guidance: ["Casual and direct, like replying to a friend.", "Natural light and a real room."],
     avoid: ["Reading the comment aloud word for word", "Text or captions in the frame", "Long spoken lines"],
     leoOnly: true,
-    rule: "The person speaks only the answer; the comment stays unspoken.",
+    rule: `${KEEP_LINES} The person speaks only the answer; the comment stays unspoken.`,
   },
   {
     id: "question-box",
@@ -399,7 +405,7 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     guidance: ["Warm and quick, like an answer between other things.", "One continuous take."],
     avoid: ["Text or captions in the frame", "A second person", "Long spoken lines"],
     leoOnly: true,
-    rule: "The person speaks only the answer; the question stays unspoken.",
+    rule: `${KEEP_LINES} The person speaks only the answer; the question stays unspoken.`,
   },
   {
     id: "car-call",
@@ -444,6 +450,7 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     guidance: ["Real phone flaws: a little hand shake, natural light, no beauty filter.", "Face chest-up or wider."],
     avoid: ["Studio lighting", "Faces filling the frame", "Long spoken lines"],
     leoOnly: true,
+    rule: KEEP_LINES,
   },
   {
     id: "car-split",
@@ -488,6 +495,7 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     guidance: ["The board stays fully in frame.", "Even light, no glare on the board."],
     avoid: ["Letters, words or numbers on the board", "Logos on the marker", "Long spoken lines"],
     leoOnly: true,
+    rule: KEEP_LINES,
   },
   {
     id: "baby-podcast",
@@ -532,6 +540,7 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     guidance: ["Keep the whole laptop screen in frame and in focus, beside the person, never behind their head.", "Soft, even light, so the screen reads without glare."],
     avoid: ["Close-ups of the screen", "Logos on the laptop", "Long spoken lines"],
     leoOnly: true,
+    rule: KEEP_LINES,
     lock: SCREEN_LOCK,
   },
   {
@@ -556,6 +565,7 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     guidance: ["The phone stays still and upright, its screen facing the lens the whole time.", "Realistic hands with five fingers, kept on the phone's edges, off the screen."],
     avoid: ["Close-ups of the screen", "The screen turning away from the lens", "Logos on the phone", "Long spoken lines"],
     leoOnly: true,
+    rule: KEEP_LINES,
     lock: SCREEN_LOCK,
   },
 ];

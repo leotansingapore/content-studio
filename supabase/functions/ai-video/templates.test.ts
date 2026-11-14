@@ -124,6 +124,13 @@ describe("the people on camera (Fastlane's Studio > Create, 11 Nov)", () => {
     }
   });
 
+  it("has the writer keep every given line word for word (it reworded 6 of 12 in the 14 Nov test prompts)", () => {
+    for (const id of ["street-interview", "three-levels", "two-host-podcast", ...ON_CAMERA.filter((x) => x !== "singing-ad")]) {
+      expect(templateSystem(templateById(id)!, 8, null), id).toContain("Spoken lines from the details are used word for word, exactly as typed, in quotes");
+    }
+    for (const t of editorTemplates(false)) expect(templateSystem(t, 8, null), t.id).not.toContain("word for word");
+  });
+
   it("shows the brand's screenshot on the laptop or phone as it is, not locked like a product", () => {
     const written = JSON.stringify({ prompt: "Vertical 9:16, 8 seconds. A woman at a desk turns her laptop to the lens; its screen shows @image1. 0-4s she points, 4-8s she speaks." });
     for (const id of ["laptop-presenter", "phone-app-presenter"]) {
