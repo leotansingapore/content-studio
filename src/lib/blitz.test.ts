@@ -23,7 +23,7 @@ const ad = (i: number, days: number): { ad: AdLike } => ({
   ad: { adId: `a${i}`, advertiser: `Rival ${"ABCDEFGHIJKL"[i]}`, format: "image", headline: `Ad ${i}`, body: "Body", cta: null, link: null, start: new Date(NOW.getTime() - days * 86_400_000).toISOString().slice(0, 10), platforms: [], image: "", libraryUrl: "", industry: null, hookFamily: null } as AdLike,
 });
 const trend = (i: number, kind: FormatTrend["kind"], views: number): FormatTrend => ({
-  id: `tiktok-${i}`, kind, url: `https://www.tiktok.com/@t${i}/video/${i}`, author: `t${i}`, caption: "", views, likes: 10, slides: kind === "slideshow" ? 5 : null, cover: "", hook: `Hook ${i}`, structure: ["one"], postedAt: "2026-11-01", fit: 0.8,
+  id: `tiktok-${i}`, kind, url: `https://www.tiktok.com/@t${i}/video/${i}`, author: `t${i}`, caption: "", views, likes: 10, slides: kind === "slideshow" ? 5 : null, cover: "", hook: `Hook ${i}`, structure: ["one"], postedAt: "2026-11-01", fit: 0.8, finance: null,
 });
 const winner = (i: number, ratio: number): Winner => ({
   draft: { id: `d${i}`, createdAt: "2026-11-01T00:00:00Z", hook: `Winner ${i}`, draft: "Words", pillar: "topic", pillarDetail: "", audience: "general", format: "text-post", platform: "linkedin", ctaType: "x" } as DraftEntry,

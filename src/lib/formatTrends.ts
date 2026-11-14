@@ -31,6 +31,8 @@ export interface FormatTrend {
   postedAt: string;
   /** Jev's reusable probability; null sorts last. */
   fit: number | null;
+  /** Jev's probability the post is about personal finance; null when unasked, read as finance (nicheFeed's formatTrendsFor). */
+  finance: number | null;
 }
 export interface FormatTrendsFile {
   fetched: string | null;
@@ -58,6 +60,7 @@ function cleanItem(raw: unknown): FormatTrend | null {
   if (views === null || likes === null || !hook || structure.length < 2 || !DAY_RE.test(postedAt)) return null;
   const slides = count(raw.slides);
   const fit = count(raw.fit);
+  const finance = count(raw.finance);
   return {
     id,
     kind,
@@ -72,6 +75,7 @@ function cleanItem(raw: unknown): FormatTrend | null {
     structure,
     postedAt,
     fit: fit !== null && fit <= 1 ? fit : null,
+    finance: finance !== null && finance <= 1 ? finance : null,
   };
 }
 

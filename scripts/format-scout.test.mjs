@@ -136,6 +136,7 @@ describe("shaping an item", () => {
       structure: ["Hook: a numbered list promise", "One habit with a reason"],
       postedAt: "2026-10-24",
       fit: 0.81,
+      finance: null,
     });
     expect(item.caption.length).toBeLessThanOrEqual(240);
     expect(item.caption.length).toBeGreaterThan(230);
@@ -180,7 +181,7 @@ describe("Jev's keep rule", () => {
     expect(keeps({ reusable: 0.9, unsafe: 0.3 })).toBe(false);
     expect(keeps({ reusable: 0.9, unsafe: null })).toBe(false);
     expect(keeps(null)).toBe(false);
-    expect(Object.values(QUESTIONS).map((q) => q.type)).toEqual(["noul", "noul"]);
+    expect(Object.values(QUESTIONS).map((q) => q.type)).toEqual(["noul", "noul", "noul"]);
   });
 });
 
@@ -225,7 +226,7 @@ const fakeSee = vi.fn(async (_prompt, dir) => {
   if (!names[0].includes("-")) return id === WALL ? '{"kind":"wall-of-text","hook":"POV: your first payslip","structure":["Scene","Turn","Lesson"]}' : '{"kind":"other"}';
   return JSON.stringify({ hook: `Hook ${id}`, structure: names.map((_, k) => `Job of slide ${k + 1}`) });
 });
-const fakeAsk = vi.fn(async (state) => (state.hook === `Hook ${UNSAFE}` ? { reusable: 0.9, unsafe: 0.8 } : { reusable: 0.7, unsafe: 0.05 }));
+const fakeAsk = vi.fn(async (state) => (state.hook === `Hook ${UNSAFE}` ? { reusable: 0.9, unsafe: 0.8 } : { reusable: 0.7, unsafe: 0.05, finance: 0.123 }));
 const fakeGrab = vi.fn(async (_url, file) => (fs.writeFileSync(file, "jpeg"), true));
 const KEYS = { APIFY_TOKEN: "fake", TYPESAFE_API_KEY: "fake" };
 const fakes = (o = {}) => ({ env: KEYS, args: [], scrape: vi.fn(async () => DATASET), price: async () => 0.0037, see: fakeSee, ask: fakeAsk, grab: fakeGrab, now: NOW, ...tmp(), ...o });
@@ -256,7 +257,7 @@ describe("run", () => {
     expect(file.items).toHaveLength(10);
     expect(file.items.map((i) => i.id)).not.toContain(`tiktok-${OTHER}`);
     expect(file.items.map((i) => i.id)).not.toContain(`tiktok-${UNSAFE}`);
-    expect(file.items.find((i) => i.kind === "wall-of-text")).toMatchObject({ id: `tiktok-${WALL}`, slides: null, hook: "POV: your first payslip", fit: 0.7 });
+    expect(file.items.find((i) => i.kind === "wall-of-text")).toMatchObject({ id: `tiktok-${WALL}`, slides: null, hook: "POV: your first payslip", fit: 0.7, finance: 0.12 });
     expect(file.items[0]).toMatchObject({ kind: "slideshow", slides: 5, structure: ["Job of slide 1", "Job of slide 2", "Job of slide 3", "Job of slide 4", "Job of slide 5"] });
     for (const i of file.items) expect(fs.existsSync(path.join(o.coverDir, path.basename(i.cover)))).toBe(true);
     // old covers no item points at are pruned; the folder's .gitkeep stays
@@ -465,7 +466,7 @@ describe("untrusted pictures and replies", () => {
     // 9 slideshows less the secret-hooked one and the unsafe one; both walls had a secret for a hook
     expect(items).toHaveLength(8);
     for (const i of items) {
-      expect(Object.keys(i).sort()).toEqual(["author", "caption", "cover", "fit", "hook", "id", "kind", "likes", "postedAt", "slides", "structure", "url", "views"]);
+      expect(Object.keys(i).sort()).toEqual(["author", "caption", "cover", "finance", "fit", "hook", "id", "kind", "likes", "postedAt", "slides", "structure", "url", "views"]);
       expect(i.kind).toBe("slideshow");
       expect(i.structure).toEqual(["Hook: a promise", "One habit per slide"]);
       // the post's own caption is shown as text on its card; it never went to Claude

@@ -1,18 +1,22 @@
 // A ready answer in the agent's thread (agentAnswers.ts), in the MADE block's frame: a tag, then what was asked for.
-// Trending: up to 5 posts and templates, each with its picture, why it is trending and Remix (a new chat with the post
-// attached, or the format's page). Best post: its numbers, when it went out and Make another like it. Angles: the
+// Trending: up to 5 niche posts, then Formats taking off (up to 3 templates), each with its picture, why it is trending,
+// Remix (a new chat with the post attached, or the format's page) and Hide (gone for this brand here and in Studio). Best post: its numbers, when it went out and Make another like it. Angles: the
 // wizard's price and uses left before Suggest spends, then the angles and Plan a campaign with these. Each empty
 // state names the one page that fixes it.
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
-import { RepeatIcon, TrendUpIcon } from "@phosphor-icons/react";
+import { EyeSlashIcon, RepeatIcon, TrendUpIcon } from "@phosphor-icons/react";
 import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
+import { ToastAction } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { seedWizard, suggestAngles, anotherLikeIt, type Answer, type TrendRow } from "@/lib/agentAnswers";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { SUGGEST_COUNT, jobKey, onSuggest, suggestJob, suggestVersion } from "@/lib/angleSuggest";
+import { brandFacts } from "@/lib/competitors";
 import { links } from "@/lib/links";
+import { hideItem, loadNiche, onNicheChanged, unhideItem } from "@/lib/nicheFeed";
 import { reasonText } from "@/lib/prices";
 import { dayMonth } from "@/lib/remixSource";
 import { platformName } from "@/lib/socialConnect";
@@ -37,7 +41,51 @@ function Thumb({ cover }: { cover?: string }) {
   );
 }
 
-function Trending({ rows, niche }: { rows: TrendRow[]; niche: boolean }) {
+function TrendList({ rows, onHide }: { rows: TrendRow[]; onHide(r: TrendRow): void }) {
+  return (
+    <ol className="divide-y divide-border/60">
+      {rows.map((r) => (
+        <li key={r.id ?? r.remix} className="flex items-center gap-3 p-3">
+          <Thumb cover={r.cover} />
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 break-words text-sm font-medium">{r.title}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{r.who}</p>
+            <p className="line-clamp-2 text-xs tabular-nums text-muted-foreground">{r.why}</p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-1">
+            <Button asChild size="sm" variant="outline" className="h-11 sm:h-9">
+              <Link to={r.remix} aria-label={`Remix: ${r.title}`}>
+                <RepeatIcon className="h-4 w-4" aria-hidden /> Remix
+              </Link>
+            </Button>
+            {r.id && (
+              <Button type="button" size="sm" variant="ghost" className="h-11 gap-1.5 text-muted-foreground sm:h-9" aria-label={`Hide: ${r.title}`} onClick={() => onHide(r)}>
+                <EyeSlashIcon className="h-4 w-4" aria-hidden /> Hide
+              </Button>
+            )}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function Trending({ userId, rows, formats = [], niche }: { userId: string; rows: TrendRow[]; formats?: TrendRow[]; niche: boolean }) {
+  const { toast } = useToast();
+  const [hidden, setHidden] = useState(() => new Set(loadNiche(userId).hidden));
+  useEffect(() => onNicheChanged(() => setHidden(new Set(loadNiche(userId).hidden))), [userId]);
+  const shown = (list: TrendRow[]) => list.filter((r) => !r.id || !hidden.has(r.id));
+  const hide = (r: TrendRow) => {
+    hideItem(userId, r.id!);
+    toast({
+      title: `Hidden for ${brandFacts(userId).name || "this brand"}.`,
+      duration: 6000,
+      action: <ToastAction altText="Undo" onClick={() => unhideItem(userId, r.id!)}>Undo</ToastAction>,
+    });
+  };
+  const posts = shown(rows);
+  const templates = shown(formats);
+  const heading = useId();
   return (
     <section aria-label="Trending in your niche" className={BOX}>
       <header className={HEAD}>
@@ -46,32 +94,22 @@ function Trending({ rows, niche }: { rows: TrendRow[]; niche: boolean }) {
           See all
         </Link>
       </header>
-      {rows.length > 0 && (
-        <ol className="divide-y divide-border/60">
-          {rows.map((r, i) => (
-            <li key={i} className="flex items-center gap-3 p-3">
-              <Thumb cover={r.cover} />
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 break-words text-sm font-medium">{r.title}</p>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">{r.who}</p>
-                <p className="line-clamp-2 text-xs tabular-nums text-muted-foreground">{r.why}</p>
-              </div>
-              <Button asChild size="sm" variant="outline" className="h-11 shrink-0 sm:h-9">
-                <Link to={r.remix} aria-label={`Remix: ${r.title}`}>
-                  <RepeatIcon className="h-4 w-4" aria-hidden /> Remix
-                </Link>
-              </Button>
-            </li>
-          ))}
-        </ol>
-      )}
+      {posts.length > 0 && <TrendList rows={posts} onHide={hide} />}
       {!niche && (
-        <p className={`px-4 py-3 text-sm text-muted-foreground ${rows.length ? "border-t border-border/60" : ""}`}>
-          No posts from your niche yet. Follow an account or watch a competitor and their best posts show here.{" "}
+        <p className={`px-4 py-3 text-sm text-muted-foreground ${posts.length ? "border-t border-border/60" : ""}`}>
+          Nothing from your niche is taking off yet. Watch a competitor or follow an account and their best posts show here.{" "}
           <Link to={links.swipe({ tab: "foryou" })} className={LINK}>
             Open For you
           </Link>
         </p>
+      )}
+      {templates.length > 0 && (
+        <section aria-labelledby={heading} className="border-t border-border/60">
+          <h3 id={heading} className="px-4 pt-3 text-xs font-semibold text-muted-foreground">
+            Formats taking off
+          </h3>
+          <TrendList rows={templates} onHide={hide} />
+        </section>
       )}
     </section>
   );
@@ -175,7 +213,7 @@ function Angles({ userId, threadId, msgId, answer }: { userId: string; threadId:
 }
 
 export default function AnswerCard({ userId, threadId, msgId, answer }: { userId: string; threadId: string; msgId: string; answer: Answer }) {
-  if (answer.kind === "trending") return <Trending rows={answer.rows} niche={answer.niche} />;
+  if (answer.kind === "trending") return <Trending userId={userId} rows={answer.rows} formats={answer.formats} niche={answer.niche} />;
   if (answer.kind === "best") return <Best answer={answer} />;
   return <Angles userId={userId} threadId={threadId} msgId={msgId} answer={answer} />;
 }

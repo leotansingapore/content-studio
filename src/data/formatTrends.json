@@ -22,7 +22,8 @@
         "Habit about protecting focus time before others"
       ],
       "postedAt": "2026-09-12",
-      "fit": 0.88
+      "fit": 0.88,
+      "finance": 0.01
     },
     {
       "id": "tiktok-7671361322885336341",
@@ -43,7 +44,8 @@
         "Fourth tip: a skill to build with an app plug"
       ],
       "postedAt": "2026-08-07",
-      "fit": 0.87
+      "fit": 0.87,
+      "finance": 0.06
     },
     {
       "id": "tiktok-7688994334825483521",
@@ -63,7 +65,8 @@
         "Call to follow for more topics"
       ],
       "postedAt": "2026-09-24",
-      "fit": 0.87
+      "fit": 0.87,
+      "finance": 0.99
     },
     {
       "id": "tiktok-7669605224113392910",
@@ -89,7 +92,8 @@
         "Risk explained with a bike down a hill"
       ],
       "postedAt": "2026-08-03",
-      "fit": 0.87
+      "fit": 0.87,
+      "finance": 0.99
     },
     {
       "id": "tiktok-7670820962597670162",
@@ -112,7 +116,8 @@
         "Closing push to act now instead of later"
       ],
       "postedAt": "2026-08-06",
-      "fit": 0.86
+      "fit": 0.86,
+      "finance": 0.02
     },
     {
       "id": "tiktok-7695506338067139872",
@@ -132,7 +137,8 @@
         "Soccer penalty example closing the visual pattern"
       ],
       "postedAt": "2026-10-11",
-      "fit": 0.85
+      "fit": 0.85,
+      "finance": 0.01
     },
     {
       "id": "tiktok-7689006215283756310",
@@ -155,7 +161,8 @@
         "Call to share your own tips in comments"
       ],
       "postedAt": "2026-09-24",
-      "fit": 0.85
+      "fit": 0.85,
+      "finance": 0.01
     },
     {
       "id": "tiktok-7668646399575067918",
@@ -177,7 +184,8 @@
         "Closing push to start living now"
       ],
       "postedAt": "2026-07-31",
-      "fit": 0.84
+      "fit": 0.84,
+      "finance": 0.02
     },
     {
       "id": "tiktok-7684032065825688839",
@@ -203,7 +211,8 @@
         "Travel view closes the post with a final reward"
       ],
       "postedAt": "2026-09-10",
-      "fit": 0.79
+      "fit": 0.79,
+      "finance": 0.39
     }
   ]
 }

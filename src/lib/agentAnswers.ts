@@ -9,9 +9,9 @@ import { addSuggested, jobKey, loadWork, saveWork, startSuggest, suggestJob } fr
 import { loadAudiences } from "@/lib/audiences";
 import { AGENT_ANSWERS, postTitle } from "@/lib/chatSkills";
 import { draftStatus, loadDrafts } from "@/lib/draftHistory";
-import { FORMAT_TRENDS, formatRemixUrl } from "@/lib/formatTrends";
+import { formatRemixUrl } from "@/lib/formatTrends";
 import { links } from "@/lib/links";
-import { nichePosts } from "@/lib/nicheFeed";
+import { formatItemId, formatTrendsFor, nichePosts } from "@/lib/nicheFeed";
 import { sourceKey } from "@/lib/remixSource";
 import { compactNum } from "@/lib/topPosts";
 import { loadThreads, patchMsg } from "@/lib/agentThreads";
@@ -20,9 +20,11 @@ import { times } from "../../supabase/functions/_shared/outlier.ts";
 export type AnswerKind = (typeof AGENT_ANSWERS)[number]["id"];
 
 export interface TrendRow {
+  /** Its id in the brand's hidden list (nicheFeed hideItem); answers before 14 Nov have none. */
+  id?: string;
   title: string;
   who: string;
-  /** Why it is trending: its jump on the account's usual and its numbers, or the drop's views. */
+  /** Why it is trending: its jump on the account's usual and its views, or its views alone. */
   why: string;
   /** An app path or https; none draws the format's tile. */
   cover?: string;
@@ -37,7 +39,8 @@ export interface BestPost {
   numbers: string;
 }
 export type Answer =
-  | { kind: "trending"; rows: TrendRow[]; niche: boolean }
+  /** rows: the brand's niche; formats: the template drop, under its own heading (answers before 14 Nov mixed both in rows). */
+  | { kind: "trending"; rows: TrendRow[]; formats?: TrendRow[]; niche: boolean }
   | { kind: "best"; post: BestPost | null; posted: boolean }
   | { kind: "angles"; audience: { id: string; name: string } | null; angles?: { title: string; line: string }[]; error?: string };
 
@@ -48,33 +51,33 @@ export function answerOf(text: string): AnswerKind | null {
   return AGENT_ANSWERS.find((a) => t === a.starter || word === a.slash)?.id ?? null;
 }
 
-const TREND_ROWS = 5;
-const NICHE_ROWS = 3;
+const NICHE_ROWS = 5;
+const FORMAT_ROWS = 3;
 const firstLine = (s: string) => s.split("\n").map((l) => l.trim()).find(Boolean)?.slice(0, 120) ?? "";
 
-/** Studio's Trending posts (the brand's niche, up to 3) topped up with the template drop, 5 rows at most. */
+/** Studio's Trending posts (the brand's niche, up to 5), then Formats taking off (the template drop for this brand, up to 3). */
 export function trendingAnswer(userId: string): Answer {
   const posts = nichePosts(userId, NICHE_ROWS);
-  const rows: TrendRow[] = [
-    ...posts.map((p) => {
-      const ratio = p.outlier?.ratio ?? 0;
-      return {
-        title: firstLine(p.text) || "No caption",
-        who: p.who,
-        why: [ratio >= 1.5 ? `${times(ratio)} their usual` : "", p.numbers || p.meta].filter(Boolean).join(", "),
-        ...(p.source.cover ? { cover: p.source.cover } : {}),
-        remix: links.agent({ remix: p.source.key }),
-      };
-    }),
-    ...FORMAT_TRENDS.items.slice(0, TREND_ROWS - posts.length).map((t) => ({
-      title: t.hook,
-      who: `@${t.author}`,
-      why: `${compactNum(t.views)} views, TikTok`,
-      cover: t.cover,
-      remix: formatRemixUrl(t),
-    })),
-  ];
-  return { kind: "trending", rows, niche: posts.length > 0 };
+  const rows: TrendRow[] = posts.map((p) => {
+    const ratio = p.outlier?.ratio;
+    return {
+      id: p.id,
+      title: firstLine(p.text) || "No caption",
+      who: p.who,
+      why: [ratio != null ? `${times(ratio)} their usual` : "", p.views ? `${compactNum(p.views)} views` : ""].filter(Boolean).join(", "),
+      ...(p.source.cover ? { cover: p.source.cover } : {}),
+      remix: links.agent({ remix: p.source.key }),
+    };
+  });
+  const formats: TrendRow[] = formatTrendsFor(userId).slice(0, FORMAT_ROWS).map((t) => ({
+    id: formatItemId(t.id),
+    title: t.hook,
+    who: `@${t.author}`,
+    why: `${compactNum(t.views)} views, TikTok`,
+    cover: t.cover,
+    remix: formatRemixUrl(t),
+  }));
+  return { kind: "trending", rows, formats, niche: posts.length > 0 };
 }
 
 const n = (count: number, one: string) => `${compactNum(count)} ${one}${count === 1 ? "" : "s"}`;

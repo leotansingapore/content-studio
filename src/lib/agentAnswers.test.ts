@@ -23,8 +23,10 @@ import { anglesAnswer, answerOf, bestAnswer, seedWizard, suggestAngles, trending
 import { loadWork, startSuggest } from "@/lib/angleSuggest";
 import { newMsg, newThread, loadThreads } from "@/lib/agentThreads";
 import { saveAudience } from "@/lib/audiences";
+import { saveBrand } from "@/lib/carousel";
 import { saveDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { FORMAT_TRENDS } from "@/lib/formatTrends";
+import { formatItemId, formatTrendsFor, hideItem } from "@/lib/nicheFeed";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const store = new Map<string, string>();
@@ -65,16 +67,39 @@ describe("answerOf", () => {
 });
 
 describe("trending", () => {
-  it("tops up with the template drop when the brand has no niche posts, and says how to get them", () => {
+  it("puts the template drop under its own heading, never in the niche list, and says how to get niche posts", () => {
     const a = trendingAnswer(UID);
     if (a.kind !== "trending") throw new Error("kind");
     expect(a.niche).toBe(false);
-    expect(a.rows).toHaveLength(Math.min(5, FORMAT_TRENDS.items.length));
+    expect(a.rows).toEqual([]);
+    expect(a.formats).toHaveLength(Math.min(3, FORMAT_TRENDS.items.length));
     const t = FORMAT_TRENDS.items[0];
-    expect(a.rows[0]).toMatchObject({ title: t.hook, who: `@${t.author}`, cover: t.cover });
-    expect(a.rows[0].why).toMatch(/views, TikTok$/);
+    expect(a.formats![0]).toMatchObject({ id: `ft:${t.id}`, title: t.hook, who: `@${t.author}`, cover: t.cover });
+    expect(a.formats![0].why).toMatch(/views, TikTok$/);
     // Remix opens the template's own format page with it attached
-    expect(a.rows[0].remix).toMatch(/^\/make\//);
+    expect(a.formats![0].remix).toMatch(/^\/make\//);
+  });
+
+  it("shows a brand that isn't an adviser's no personal finance format", () => {
+    const finance = FORMAT_TRENDS.items.filter((t) => (t.finance ?? 1) >= 0.5).map((t) => `ft:${t.id}`);
+    // the bundled drop has some, or this proves nothing
+    expect(finance.length).toBeGreaterThan(0);
+    saveBrand(UID, { color: "#1E3A8A", name: "Tok Tok Kueh", handle: "", profession: "kueh shop" });
+    const a = trendingAnswer(UID);
+    if (a.kind !== "trending") throw new Error("kind");
+    expect(a.formats!.length).toBeGreaterThan(0);
+    for (const r of a.formats!) expect(finance).not.toContain(r.id);
+  });
+
+  it("a hidden item never comes back, in the answer or in Studio's row", () => {
+    const a = trendingAnswer(UID);
+    if (a.kind !== "trending") throw new Error("kind");
+    const gone = a.formats![0];
+    hideItem(UID, gone.id!);
+    const b = trendingAnswer(UID);
+    if (b.kind !== "trending") throw new Error("kind");
+    expect(b.formats!.map((r) => r.id)).not.toContain(gone.id);
+    expect(formatTrendsFor(UID).map((t) => formatItemId(t.id))).not.toContain(gone.id);
   });
 });
 

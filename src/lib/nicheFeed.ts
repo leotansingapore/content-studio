@@ -11,19 +11,23 @@ import { type FeedPost, feedPosts, loadCompetitorPosts } from "@/lib/competitorP
 import { brandFacts, loadCompetitors } from "@/lib/competitors";
 import { callFn } from "@/lib/edgeFn";
 import { type FollowedAccount, loadFollowing, remixUrl, type TrackedPost } from "@/lib/following";
+import { FORMAT_TRENDS, type FormatTrend } from "@/lib/formatTrends";
 import { sgDay } from "@/lib/goals";
+import { adviserBrand } from "@/lib/profession";
 import { scoped } from "@/lib/profiles";
 import { dayMonth, fromAd, fromFollowPost, fromTopPost, fromTrend, type RemixSource } from "@/lib/remixSource";
+import { loadSimilar, similarFeed } from "@/lib/similarAccounts";
 import { buildRemixUrl, compactNum, generatorFormat, getAllTopPosts, type TopPostWithAdvisor } from "@/lib/topPosts";
 import { buildTrendRemixUrl, getTrends, type TrendEntry } from "@/lib/trends";
-import { byOutlier, type Outlier, scoreAccount } from "../../supabase/functions/_shared/outlier.ts";
+import { byOutlier, OUTLIER, type Outlier, scoreAccount } from "../../supabase/functions/_shared/outlier.ts";
 import { MATCH_MAX, MATCH_TEXT } from "../../supabase/functions/competitors/logic.ts";
 
 const DAY = 86_400_000;
 
-export type FeedFrom = "tp" | "tr" | "fo" | "cp" | "ca" | "sa" | "sg";
+/** sm: an account like yours (similarAccounts.ts), in nichePosts only. */
+export type FeedFrom = "tp" | "tr" | "fo" | "cp" | "ca" | "sa" | "sg" | "sm";
 export const CHIPS: Record<FeedFrom, string> = {
-  tp: "SG creator", tr: "Trend", fo: "Following", cp: "Your competitor", ca: "Your competitor", sa: "In your space", sg: "Singapore pick",
+  tp: "SG creator", tr: "Trend", fo: "Following", cp: "Your competitor", ca: "Your competitor", sa: "In your space", sg: "Singapore pick", sm: "Account like yours",
 };
 
 export interface FeedItem {
@@ -40,6 +44,8 @@ export interface FeedItem {
   meta: string;
   /** "88K views, 1.2K likes"; "" for ads. */
   numbers: string;
+  /** The post's views, where the data has them. */
+  views?: number | null;
   /** Organic posts whose account has a usual (Following, competitors); null where the data has none. */
   outlier: Outlier | null;
   /** The post's date, or the ad's start (ms); 0 when unknown. */
@@ -74,11 +80,11 @@ const metaOf = (format: string, platform: string, at: number) =>
 const numbersOf = (views: number | null | undefined, likes: number | undefined, comments: number | undefined) =>
   (views ? [`${compactNum(views)} views`, `${compactNum(likes ?? 0)} likes`] : [`${compactNum(likes ?? 0)} likes`, `${compactNum(comments ?? 0)} comments`]).join(", ");
 
-function trackedItem(from: "fo" | "cp", a: FollowedAccount, p: TrackedPost, who: string, outlier: Outlier | null): FeedItem {
+function trackedItem(from: "fo" | "cp" | "sm", a: FollowedAccount, p: TrackedPost, who: string, outlier: Outlier | null): FeedItem {
   const at = time(p.postedAt);
   return {
     id: `${from}:${a.platform}:${p.id}`, from, kind: "organic", account: `@${a.handle}`, who, text: p.caption, meta: metaOf(p.format, a.platform, at),
-    numbers: numbersOf(p.views, p.likes, p.comments), outlier, at, active: false, days: null, source: fromFollowPost(a, p), remixUrl: remixUrl(a, p), url: p.url || null,
+    numbers: numbersOf(p.views, p.likes, p.comments), views: p.views ?? null, outlier, at, active: false, days: null, source: fromFollowPost(a, p), remixUrl: remixUrl(a, p), url: p.url || null,
   };
 }
 
@@ -100,7 +106,7 @@ export function buildFeed(s: FeedStores, now = Date.now()): FeedItem[] {
     const at = time(p.timestamp);
     out.push({
       id: `tp:${p.advisorId}-${p.shortCode}`, from: "tp", kind: "organic", account: p.handle, who: p.advisorName, text: p.caption || p.idea?.hook || "",
-      meta: metaOf(generatorFormat(p), "instagram", at), numbers: numbersOf(p.views, p.likes, p.comments), outlier: null, at, active: false, days: null,
+      meta: metaOf(generatorFormat(p), "instagram", at), numbers: numbersOf(p.views, p.likes, p.comments), views: p.views ?? null, outlier: null, at, active: false, days: null,
       source: fromTopPost(p, { id: p.advisorId, name: p.advisorName, handle: p.handle }), remixUrl: buildRemixUrl(p, { name: p.advisorName, handle: p.handle }), url: p.url || null,
     });
   }
@@ -109,7 +115,7 @@ export function buildFeed(s: FeedStores, now = Date.now()): FeedItem[] {
     const account = t.author ? `@${t.author.replace(/^@/, "")}` : t.source_label;
     out.push({
       id: `tr:${t.id}`, from: "tr", kind: "organic", account, who: account, text: [t.title, t.trend_source ?? t.why_it_works].filter(Boolean).join(". "),
-      meta: metaOf(t.format, t.platform, at), numbers: t.likes || t.views ? numbersOf(t.views, t.likes, t.comments) : "", outlier: null, at, active: false, days: null,
+      meta: metaOf(t.format, t.platform, at), numbers: t.likes || t.views ? numbersOf(t.views, t.likes, t.comments) : "", views: t.views ?? null, outlier: null, at, active: false, days: null,
       source: fromTrend(t), remixUrl: buildTrendRemixUrl(t), url: t.source_url || null,
     });
   }
@@ -300,19 +306,52 @@ export function nicheFor(userId: string, sig: string): NicheState {
   return s.brandSig === sig ? s : saveNiche(userId, { ...s, brandSig: sig, scores: {} });
 }
 
+/** With no usual to go by, the views that make a niche post worth showing as trending. */
+export const NICHE_MIN_VIEWS = 10_000;
+/** Trending: at least 1.5x its account's usual, or, when the usual is unknown, NICHE_MIN_VIEWS. */
+export const trendingPost = (i: Pick<FeedItem, "outlier" | "views">) =>
+  i.outlier?.ratio != null ? i.outlier.ratio >= OUTLIER.tiers.above : (i.views ?? 0) >= NICHE_MIN_VIEWS;
+/** The post's platform and id, the same for a competitor's, a followed account's and an account like yours. */
+const postOf = (i: FeedItem) => i.id.slice(i.id.indexOf(":") + 1);
+
 /**
- * Studio's Trending posts row and the agent's "What is trending in my niche?": the brand's organic niche posts, its
- * own sources always and the shared drops only once Jev has matched them to it, biggest jump on their usual first.
+ * Studio's Trending posts row and the agent's "What is trending in my niche?": the brand's organic niche posts that
+ * are trending (trendingPost), from its competitors, Following and accounts like it, plus, on an adviser's brand only,
+ * the Singapore drops (Top posts, Trends) once Jev has matched them to it. Best outlier first (byOutlier: the jump on
+ * the usual, weighted by the account's reach), then views, then newest.
  */
 export function nichePosts(userId: string, max: number): FeedItem[] {
   const facts = brandFacts(userId);
   const state = loadNiche(userId);
   const scores = (facts.sells || facts.serves) && state.brandSig === brandSig(facts) ? state.scores : {};
   const hidden = new Set(state.hidden);
-  return loadFeed(userId)
-    .filter((i) => i.kind === "organic" && !hidden.has(i.id) && (i.from === "cp" || i.from === "fo" || (scores[i.id] ?? 0) >= MATCH_AT))
-    .sort((a, b) => (b.outlier?.ratio ?? 0) - (a.outlier?.ratio ?? 0) || b.at - a.at)
+  // Top posts and Trends are Singapore personal finance: an adviser brand's only (nav.ts)
+  const drops = adviserBrand(userId);
+  const feed = loadFeed(userId);
+  const own = new Set(feed.filter((i) => i.from === "cp" || i.from === "fo").map(postOf));
+  const like = similarFeed(loadSimilar(userId))
+    .map((p) => trackedItem("sm", p.account, p.post, p.entry.name || `@${p.entry.handle}`, p.outlier))
+    .filter((i) => !own.has(postOf(i)));
+  return [...feed, ...like]
+    .filter((i) => i.kind === "organic" && !hidden.has(i.id) && trendingPost(i)
+      && (i.from === "cp" || i.from === "fo" || i.from === "sm" || (drops && (scores[i.id] ?? 0) >= MATCH_AT)))
+    .sort((a, b) => byOutlier(a.outlier ?? NONE, b.outlier ?? NONE) || (b.views ?? 0) - (a.views ?? 0) || b.at - a.at)
     .slice(0, max);
+}
+
+/** A format trend's id in the brand's hidden list, beside the feed's. */
+export const formatItemId = (id: string) => `ft:${id}`;
+/** Jev's finance probability at or over this is personal finance. */
+export const FINANCE_MAX = 0.5;
+
+/**
+ * Studio's Template trends and the agent's Formats taking off: the weekly drop less the ones hidden for this brand
+ * and, on a brand that isn't an adviser's, less personal finance (the scout's finance answer; unasked counts as finance).
+ */
+export function formatTrendsFor(userId: string | null, items: FormatTrend[] = FORMAT_TRENDS.items): FormatTrend[] {
+  const hidden = new Set(userId ? loadNiche(userId).hidden : []);
+  const adviser = adviserBrand(userId);
+  return items.filter((t) => !hidden.has(formatItemId(t.id)) && (adviser || (t.finance ?? 1) < FINANCE_MAX));
 }
 
 // ---- The matching job, outside React ---------------------------------------------------------------------------

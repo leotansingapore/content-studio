@@ -15,6 +15,7 @@ import { getDraftById } from "@/lib/draftHistory";
 import { loadFollowing } from "@/lib/following";
 import { scoped } from "@/lib/profiles";
 import { loadSavedClones } from "@/lib/reelClone";
+import { loadSimilar } from "@/lib/similarAccounts";
 import { FORMAT_TRENDS } from "@/lib/formatTrends";
 import { fromAd, fromClone, fromDraft, fromFollowPost, fromFormatTrend, fromInspiration, fromTopPost, fromTrend, seenSources, type RemixSource } from "@/lib/remixSource";
 import { getTopPostsForAdvisor } from "@/lib/topPosts";
@@ -76,8 +77,8 @@ export function resolveSource(key: string, userId: string): RemixSource | null {
     case "follow": {
       const [platform, ...id] = rest.split(":");
       const postId = id.join(":");
-      // Following first, then a competitor's posts (Their posts): the same follow:<platform>:<post id> keys
-      for (const a of [...loadFollowing(userId), ...Object.values(loadCompetitorPosts(userId))]) {
+      // Following first, then a competitor's posts (Their posts), then accounts like yours: the same follow:<platform>:<post id> keys
+      for (const a of [...loadFollowing(userId), ...Object.values(loadCompetitorPosts(userId)), ...Object.values(loadSimilar(userId).posts)]) {
         if (a.platform !== platform) continue;
         const post = a.posts.find((p) => p.id === postId);
         if (post) return fromFollowPost(a, post);

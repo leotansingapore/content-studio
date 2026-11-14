@@ -32,7 +32,7 @@ import { FORMAT_TRENDS, formatRemixUrl, formatTag, type FormatTrend } from "@/li
 import { loadImages } from "@/lib/images";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
-import { nichePosts, type FeedItem } from "@/lib/nicheFeed";
+import { formatTrendsFor, nichePosts, type FeedItem } from "@/lib/nicheFeed";
 import { priceOf, type Price } from "@/lib/prices";
 import { adviserBrand, professionFor } from "@/lib/profession";
 import { ownBrandName } from "@/lib/remixBrand";
@@ -166,7 +166,7 @@ function TemplateTrendCard({ t }: { t: FormatTrend }) {
   );
 }
 
-/** An organic post from the brand's niche (its competitors, Following, or a drop post Jev matched to it): who, where, its numbers, the words, and Remix. */
+/** A trending organic post from the brand's niche (nichePosts): who, where, its numbers, the words, and Remix. */
 function TrendingPostCard({ item }: { item: FeedItem }) {
   const ratio = item.outlier?.ratio ?? null;
   return (
@@ -281,7 +281,8 @@ export default function StudioPage() {
   // ---- trending: the brand's niche posts (Leo's For you feed) and the weekly template drop ----
   const openable = (k: FormatTrend["kind"]) => !!leo || CUSTOMER_FORMATS.some((w) => w.to.startsWith(`/make/${k}`));
   // the latest drop at any age, as Blitz reads it; its date is on the row, so an old drop never reads as this week's
-  const templates = useMemo(() => FORMAT_TRENDS.items.filter((t) => openable(t.kind)).slice(0, ROW), [leo]); // eslint-disable-line react-hooks/exhaustive-deps
+  // less the ones hidden for this brand and, on a brand that isn't an adviser's, personal finance (nicheFeed)
+  const templates = useMemo(() => formatTrendsFor(userId).filter((t) => openable(t.kind)).slice(0, ROW), [leo, userId]); // eslint-disable-line react-hooks/exhaustive-deps
   const posts = useMemo(() => (leo && userId ? nichePosts(userId, ROW) : []), [leo, userId]);
   const trendTabs = TRENDS.filter((t) => (t === "Trending posts" ? !!leo : templates.length > 0));
   const [trendPick, setTrend] = useUrlLabel("trend", trendTabs);
@@ -450,7 +451,7 @@ export default function StudioPage() {
           id="trending"
           title={trend === "Template trends" ? "Remix trending templates" : "Remix trending posts"}
           count={trendCount}
-          sub={trend === "Template trends" ? `Slideshows and walls of text taking off on TikTok${DROP_DAY ? `, read ${DROP_DAY}` : ""}.` : "Top posts from your niche: your competitors, accounts you follow and posts matched to your brand."}
+          sub={trend === "Template trends" ? `Slideshows and walls of text taking off on TikTok${DROP_DAY ? `, read ${DROP_DAY}` : ""}.` : "Posts beating their usual, from your competitors, accounts you follow and accounts like yours."}
           more={trend === "Template trends" ? undefined : { to: links.swipe({ tab: "foryou" }), label: "See all" }}
           tabs={
             trendTabs.length > 1 && (
@@ -472,7 +473,7 @@ export default function StudioPage() {
             </ul>
           ) : posts.length === 0 ? (
             <p className="flex flex-wrap items-center gap-x-1 text-sm text-muted-foreground">
-              No posts from your niche yet. Follow an account or watch a competitor and their best posts show here.
+              Nothing from your niche is taking off yet. Watch a competitor or follow an account and their best posts show here.
               <Link to={links.swipe({ tab: "foryou" })} className="inline-flex min-h-9 items-center rounded-md px-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
                 Open For you
               </Link>

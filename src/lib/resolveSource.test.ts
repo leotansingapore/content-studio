@@ -124,6 +124,12 @@ describe("resolveSource", () => {
     // Following wins when it holds the same post
     saveFollowing(UID, [{ platform: "instagram", handle: "fan.account", addedAt: "", history: [], seen: [], fresh: [], posts: [post as FollowedAccount["posts"][number]] }]);
     expect(resolveSource("follow:instagram:C9comp", UID)).toMatchObject({ author: "@fan.account" });
+    // then an account like yours (the agent's trending answer remixes its posts by the same key)
+    const theirs = { ...post, id: "C9like" };
+    window.localStorage.setItem(`content-studio-similar-${UID}`, JSON.stringify({ accounts: [], dismissed: [], posts: {
+      "instagram:likeyours": { platform: "instagram", handle: "likeyours", addedAt: "", history: [], posts: [theirs], seen: [], fresh: [] },
+    } }));
+    expect(resolveSource("follow:instagram:C9like", UID)).toMatchObject({ key: "follow:instagram:C9like", author: "@likeyours" });
   });
 
   it("reads pasted links from their store without the read text, and audit keys from the seen registry", () => {

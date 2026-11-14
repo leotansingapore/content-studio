@@ -249,3 +249,71 @@ describe("the match job", () => {
     expect(callFn).not.toHaveBeenCalled();
   });
 });
+
+describe("nichePosts: what is trending in the brand's niche", () => {
+  const U = "u-niche";
+  const at = (id: string, views: number | null) => post(id, views, 5);
+  const usual = (p: string, views: number | null) => Array.from({ length: 5 }, (_, k) => at(`${p}${k}`, views));
+  const like = { platform: "instagram" as const, handle: "likeyours", name: "Like Yours", followers: null, kind: null, via: "search", addedAt: ago(30) };
+  const kueh = account("kueh", [...usual("K", 1000), at("BIG", 12_000), at("MID", 3000)]);
+
+  beforeEach(async () => {
+    const { saveFollowing } = await import("@/lib/following");
+    const { saveSimilar, accountKey } = await import("@/lib/similarAccounts");
+    saveFollowing(U, [
+      kueh,
+      // likes only, all alike: at their usual
+      account("noviews", usual("N", null)),
+      // too few posts for a usual: only real reach counts
+      account("newacct", [at("F1", 50_000), at("F2", 500)]),
+    ]);
+    // an account like yours, and one that is also followed (shows once, as Following's)
+    const mine = { ...like, handle: "kueh" };
+    saveSimilar(U, {
+      accounts: [like, mine], dismissed: [], month: null,
+      posts: { [accountKey(like)]: account("likeyours", [...usual("S", 1000), at("SBIG", 5000)]), [accountKey(mine)]: kueh },
+    });
+  });
+
+  it("keeps only posts beating their usual or with real reach, best outlier first, then views, accounts like yours included", () => {
+    expect(n.nichePosts(U, 10).map((i) => i.id)).toEqual(["fo:instagram:BIG", "sm:instagram:SBIG", "fo:instagram:MID", "fo:instagram:F1"]);
+    expect(n.nichePosts(U, 2)).toHaveLength(2);
+    expect(n.trendingPost({ outlier: null, views: 9_999 })).toBe(false);
+    expect(n.trendingPost({ outlier: { ...scores.P0, ratio: 1.49 }, views: 1_000_000 })).toBe(false);
+  });
+
+  it("leaves out what is hidden for the brand", () => {
+    expect(n.nichePosts(U, 10).map((i) => i.id)).toContain("sm:instagram:SBIG");
+    n.hideItem(U, "sm:instagram:SBIG");
+    expect(n.nichePosts(U, 10).map((i) => i.id)).not.toContain("sm:instagram:SBIG");
+  });
+
+  it("shows the Singapore drops Jev matched only on an adviser's brand", async () => {
+    const top = getAllTopPosts().find((p) => (p.views ?? 0) >= n.NICHE_MIN_VIEWS)!;
+    const id = `tp:${top.advisorId}-${top.shortCode}`;
+    n.saveNiche(U, { ...n.EMPTY_NICHE, brandSig: n.brandSig(facts), scores: { [id]: 0.9 } });
+    // nothing set reads as an adviser's
+    expect(n.nichePosts(U, 50).map((i) => i.id)).toContain(id);
+    const { saveBrand } = await import("@/lib/carousel");
+    saveBrand(U, { color: "#1E3A8A", name: "Tok Tok Kueh", handle: "", profession: "kueh shop" });
+    expect(n.nichePosts(U, 50).map((i) => i.id)).not.toContain(id);
+  });
+});
+
+describe("formatTrendsFor: Studio's Template trends and the agent's Formats taking off", () => {
+  const U = "u-formats";
+  const t = (id: string, finance: number | null) => ({ id, finance }) as unknown as import("@/lib/formatTrends").FormatTrend;
+  const items = [t("tiktok-1", 0.99), t("tiktok-2", 0.1), t("tiktok-3", null), t("tiktok-4", 0.5)];
+
+  it("keeps personal finance off a brand that isn't an adviser's, unasked counting as finance", async () => {
+    expect(n.formatTrendsFor(U, items).map((i) => i.id)).toEqual(["tiktok-1", "tiktok-2", "tiktok-3", "tiktok-4"]);
+    const { saveBrand } = await import("@/lib/carousel");
+    saveBrand(U, { color: "#1E3A8A", name: "Tok Tok Kueh", handle: "", profession: "kueh shop" });
+    expect(n.formatTrendsFor(U, items).map((i) => i.id)).toEqual(["tiktok-2"]);
+  });
+
+  it("leaves out what is hidden for the brand", () => {
+    n.hideItem(U, n.formatItemId("tiktok-2"));
+    expect(n.formatTrendsFor(U, items).map((i) => i.id)).toEqual(["tiktok-1", "tiktok-3", "tiktok-4"]);
+  });
+});

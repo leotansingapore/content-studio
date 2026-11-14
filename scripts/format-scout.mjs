@@ -70,6 +70,11 @@ export const QUESTIONS = {
     type: "noul",
     instructions: "Does this post rely on sexual content, medical or mental-health claims, hate, or harm to a named person?",
   },
+  // not a keep rule: a brand that isn't an adviser's never sees a personal finance format (nicheFeed's formatTrendsFor)
+  finance: {
+    type: "noul",
+    instructions: "Is this post about personal finance: money, saving, investing, insurance, debt, budgeting or financial terms?",
+  },
 };
 
 // ---- pure helpers -------------------------------------------------------------------------------------------------
@@ -201,7 +206,7 @@ export function pickCandidates(items, now = Date.now()) {
 }
 
 /** The stored item: formatTrends.json's shape. */
-export function shapeItem(p, reading, fit) {
+export function shapeItem(p, reading, fit, finance = null) {
   return {
     id: `tiktok-${p.id}`,
     kind: reading.kind,
@@ -216,6 +221,7 @@ export function shapeItem(p, reading, fit) {
     structure: reading.structure,
     postedAt: p.postedAt,
     fit,
+    finance,
   };
 }
 
@@ -372,11 +378,11 @@ async function claudeSees(prompt, dir) {
   return stdout;
 }
 
-/** Jev's reusable and unsafe probabilities, or null when Jev answered nothing. */
+/** Jev's reusable, unsafe and finance probabilities, or null when Jev answered nothing. */
 async function jevAsk(env, state) {
   const { askJev, noulOf } = await import("../supabase/functions/_shared/jev.ts"); // Node 22.18+ loads TypeScript
   const answers = await askJev(state, QUESTIONS, { who: "cs-format-scout" }, { env: { get: (n) => env[n] } });
-  return answers ? { reusable: noulOf(answers, "reusable"), unsafe: noulOf(answers, "unsafe") } : null;
+  return answers ? { reusable: noulOf(answers, "reusable"), unsafe: noulOf(answers, "unsafe"), finance: noulOf(answers, "finance") } : null;
 }
 
 // ---- one run ------------------------------------------------------------------------------------------------------
@@ -498,7 +504,7 @@ export async function run({
       console.log(
         `  ${kept ? "kept     " : "left out "} [${label(p, reading.kind)}] @${p.author} ${p.views} views  reusable ${score(s?.reusable)}  unsafe ${score(s?.unsafe)}  ${reading.hook}`,
       );
-      if (kept) fresh.push(shapeItem(p, reading, Math.round(s.reusable * 100) / 100));
+      if (kept) fresh.push(shapeItem(p, reading, Math.round(s.reusable * 100) / 100, s.finance == null ? null : Math.round(s.finance * 100) / 100));
     });
 
     let prev = [];

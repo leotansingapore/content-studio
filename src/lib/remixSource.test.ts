@@ -106,6 +106,7 @@ describe("a trending format", () => {
     structure: ["Hook: a numbered list promise", "One habit with a one-line reason", "Another habit, same shape", "Call to follow for part two"],
     postedAt: "2026-10-20",
     fit: 0.81,
+    finance: null,
   };
   const wall: FormatTrend = { ...slideshow, kind: "wall-of-text", slides: null, structure: ["A POV line that sets the scene", "The twist", "The lesson"] };
 
