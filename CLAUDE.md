@@ -115,9 +115,15 @@
   live) per device from the account menu or the phone More sheet (`src/lib/theme.ts`, `cs-theme`). `index.html`
   darkens before first paint only for a device that chose dark (or System on a dark device); public pages (/roadmap, /auth, /review, /l, /join, /t, /phone) stay light, and `theme.test.ts` keeps index.html's list equal to
   `PUBLIC_PATH`. Colour with tokens; a palette colour (`text-amber-800`, `bg-sky-50`) needs its `dark:` pair.
-- Heavy pages are route-level `lazy()` in `src/App.tsx`; the `<Suspense>`
-  lives around `<Outlet/>` in StudioLayout. Do NOT add a vite `manualChunks`
-  object — the object form force-preloads lazy chunks.
+- Heavy pages are route-level `lazy()` in `src/App.tsx`, through `page()` so each has a `preload`: the opened page's
+  code downloads at boot (alongside the session and the sync pull), a link's when the pointer rests on it, the
+  sidebar sections' 3 s after load. The `<Suspense>` lives around `<Outlet/>` in StudioLayout. Do NOT add a vite
+  `manualChunks` object — the object form force-preloads lazy chunks.
+- Keep the main script lean (14 Nov: 1.45 MB, cut to 1.24 MB): nothing StudioLayout, HomePage or App imports
+  statically may pull a job store, the video editor (`videoMedia`) or a whole board. Import the small piece
+  (`agentTurns`, `useThreads`, `feedbackSeen`), import heavy code on demand inside the function that needs it, and
+  mount background widgets (ExportPill, MadeToast) after `scheduleAfterLoad`. The first sync pull reads stamps
+  first and the data of only the rows a device lacks (`stampsAll`).
 
 ## Testing
 
