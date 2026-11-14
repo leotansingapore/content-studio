@@ -69,9 +69,9 @@ describe("reasonText", () => {
     expect(reasonText({ left: 1, uses: 3, leo: true })).toBe("This needs 3 uses and 1 is left today.");
   });
 
-  it("says nothing to anyone but Leo", () => {
-    expect(reasonText({ left: 0, leo: false })).toBeNull();
-    expect(reasonText({ left: 2, uses: 3, leo: false })).toBeNull();
+  it("explains it to everyone, with no price", () => {
+    expect(reasonText({ left: 0, leo: false })).toBe("Back at 8am Singapore time.");
+    expect(reasonText({ left: 2, uses: 3, leo: false })).toBe("This needs 3 uses and 2 are left today.");
   });
 
   it("says nothing while the run can go or usage is unread", () => {

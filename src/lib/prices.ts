@@ -32,9 +32,10 @@ export function chipText(a: { price: Price | "pick" | null; left: number | null;
   return { text: [head, after].filter(Boolean).join(" | "), out };
 }
 
-/** The line under a disabled button, for Leo only (null for everyone else); null while the button can run. */
-export function reasonText(a: { left: number | null; uses?: number; leo: boolean }): string | null {
-  if (!a.leo || a.left === null) return null;
+/** The line under a disabled button, for everyone (no price in it), so a customer out of uses never meets a dead button;
+ * null while the button can run. `leo` is still accepted from callers but no longer gates it (Leo, 14 Nov). */
+export function reasonText(a: { left: number | null; uses?: number; leo?: boolean }): string | null {
+  if (a.left === null) return null;
   if (a.left === 0) return "Back at 8am Singapore time.";
   const uses = Math.max(1, a.uses ?? 1);
   if (uses <= a.left) return null;
