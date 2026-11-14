@@ -181,6 +181,18 @@ export function saveImage(userId: string, img: SavedImage, now = new Date()): Sa
   return list;
 }
 
+/** Takes one design off the list (its picture stays in Photos and videos); the Library's Delete, undone with saveImage. */
+export function removeImage(userId: string, id: string): SavedImage[] {
+  const list = loadImages(userId).filter((x) => x.id !== id);
+  try {
+    storage()?.setItem(PREFIX + scoped(userId), JSON.stringify(list));
+  } catch {
+    // storage blocked: the list still shows for this visit
+  }
+  globalThis.dispatchEvent?.(new Event(CHANGED));
+  return list;
+}
+
 /** The line under a design whose picture this device doesn't hold. */
 export function pictureLine(img: Pick<SavedImage, "pictureKey">, found: boolean | undefined): string | null {
   return img.pictureKey && img.pictureKey !== HEADSHOT && found === false ? "The picture is on another device." : null;

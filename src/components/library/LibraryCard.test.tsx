@@ -36,6 +36,15 @@ describe("a Library card", () => {
     expect(out).toContain('aria-label="Copy link to Three CPF myths"');
   });
 
+  it("in Select, is one checkbox over the whole card that opens nothing, with no hover tools", () => {
+    const out = html(<LibraryCard item={item()} sources={sources} picked onPick={() => undefined} />);
+    expect(out).toMatch(/<label class="absolute inset-0 z-20[^"]*"><input type="checkbox" aria-label="Select Three CPF myths"[^>]*checked=""/);
+    expect(out).toMatch(/<a[^>]*aria-label="Open Three CPF myths"[^>]*tabindex="-1"/);
+    expect(out).not.toContain(">Schedule</a>");
+    // a 44px target on a phone
+    expect(out).toContain("[@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11");
+  });
+
   it("keeps a failure's Try again in words, on every screen", () => {
     const out = html(<LibraryCard item={item({ status: "failed", note: "Zernio couldn't post it.", retryHref: "/drafts?status=scheduled", scheduleHref: undefined })} sources={sources} />);
     expect(out).toMatch(/<a[^>]*class="relative z-10[^"]*"[^>]*href="\/drafts\?status=scheduled"[^>]*>Try again<\/a>|<a[^>]*href="\/drafts\?status=scheduled"[^>]*class="relative z-10[^"]*"[^>]*>Try again<\/a>/);
@@ -80,6 +89,20 @@ describe("the Library page", () => {
     const out = html(<LibraryPage />);
     expect(out).toMatch(/<ul[^>]*xl:grid-cols-6[^>]*><li[^>]*><a[^>]*href="\/edit"[^>]*>.*?Upload your own<\/a><\/li>/);
     expect(html(<LibraryPage />, "/library?format=text")).not.toContain("Upload your own");
+  });
+
+  it("puts Select in the header row; ?select=1 ticks cards instead of opening them, with the count and the actions", () => {
+    seed();
+    expect(html(<LibraryPage />)).toMatch(/<button[^>]*>Select<\/button>/);
+    const out = html(<LibraryPage />, "/library?select=1");
+    expect(out).toMatch(/role="toolbar" aria-label="Selected items"/);
+    expect(out).toContain("0 selected");
+    expect(out).toContain("Select all");
+    expect(out).toMatch(/<button[^>]*disabled=""[^>]*>Delete<\/button>/);
+    expect(out).toMatch(/<button[^>]*disabled=""[^>]*>Download<\/button>/);
+    expect(out).toContain(">Done</button>");
+    expect(out).toContain('aria-label="Select Three CPF myths"');
+    expect(out).not.toContain("Upload your own");
   });
 
   it("says an empty library in one heading, one sentence and one button, Create", () => {

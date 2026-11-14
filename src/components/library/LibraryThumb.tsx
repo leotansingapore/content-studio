@@ -114,14 +114,15 @@ export function imagePictures(g: Pick<SavedImage, "layout" | "words" | "pictureK
   return [pictured ? g.pictureKey : undefined, g.layout === "expectation" ? secondPicture(g.words) : undefined];
 }
 
-/** An /image design as /image draws it; a picture not on this device is left out. */
+/** An /image design as /image draws it, a picture not on this device left out: the thumb, and the Library's Download. */
+export async function imageDrawing(g: SavedImage, brand: CarouselBrand) {
+  const pic = (key?: string) => (key === HEADSHOT ? Promise.resolve(brand.photo) : devicePicture(key));
+  const [picture, picture2] = await Promise.all(imagePictures(g).map(pic));
+  measure ??= createCanvasMeasure();
+  return layoutImage(imageInput(g, brand, picture, picture2), g.size, measure);
+}
 const drawImage = (g: SavedImage, brand: CarouselBrand) =>
-  once(`g|${g.id}|${g.updatedAt}|${brandKey(brand)}|${brand.photo?.length ?? 0}`, async () => {
-    const pic = (key?: string) => (key === HEADSHOT ? Promise.resolve(brand.photo) : devicePicture(key));
-    const [picture, picture2] = await Promise.all(imagePictures(g).map(pic));
-    measure ??= createCanvasMeasure();
-    return svgDataUrl(renderSvg(layoutImage(imageInput(g, brand, picture, picture2), g.size, measure)));
-  });
+  once(`g|${g.id}|${g.updatedAt}|${brandKey(brand)}|${brand.photo?.length ?? 0}`, async () => svgDataUrl(renderSvg(await imageDrawing(g, brand))));
 
 function Drawn({ draw, contain }: { draw: () => Promise<string>; contain?: boolean }) {
   const [url, setUrl] = useState<string | null>(null);

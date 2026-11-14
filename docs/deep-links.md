@@ -137,6 +137,7 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | /library | status | all, ready, scheduled, posted, making (the Building chip), failed | all | replace | /library?status=ready |
 | /library | q | search text over titles, post words, slide words, Design words and captions | empty | replace | /library?q=cpf |
 | /library | panel | making: the Making now sheet (from the bottom on a phone); its button shows while something is made or failed | closed | push | /library?panel=making |
+| /library | select | 1: Select, a checkbox on every card with Select all, Download, Delete (Undo) and Done; Escape or Done leaves it | off | push | /library?select=1 |
 
 A link to an item that has not loaded yet keeps its param and opens when the data arrives; a link to an
 item that is gone opens the page without it and says so in one line ("That post is no longer here",

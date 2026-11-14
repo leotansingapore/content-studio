@@ -4,7 +4,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ClockIcon, ArrowSquareOutIcon, CircleNotchIcon } from "@phosphor-icons/react";
+import { ClockIcon, ArrowSquareOutIcon, CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import CampaignPostLink from "@/components/campaign/CampaignPostLink";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import LibraryThumb, { useOnScreen, type ThumbSources } from "@/components/library/LibraryThumb";
@@ -22,7 +22,8 @@ const fileHere = (key: string) => {
   return onDevice.get(key)!;
 };
 
-function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSources }) {
+/** `onPick` puts the card in Select: the whole card is its checkbox and opens nothing. */
+function LibraryCard({ item, sources, picked, onPick }: { item: LibraryItem; sources: ThumbSources; picked?: boolean; onPick?: () => void }) {
   const [ref, seen] = useOnScreen<HTMLDivElement>();
   const [here, setHere] = useState(true);
   useEffect(() => {
@@ -38,7 +39,7 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
 
   // a ready post's Schedule and any card's Copy link: shown over the picture on hover or focus with a mouse, left out
   // on touch (the editor the card opens has both), as Fastlane's cards carry no buttons at rest
-  const tools = !making && !failed && (
+  const tools = !making && !failed && !onPick && (
     <span className="absolute inset-x-1.5 bottom-1.5 z-10 hidden items-center justify-end gap-1 transition-opacity [@media(pointer:fine)]:flex [@media(pointer:fine)]:opacity-0 [@media(pointer:fine)]:focus-within:opacity-100 [@media(pointer:fine)]:group-hover/card:opacity-100">
       {item.scheduleHref && (
         <Button asChild size="sm" variant="secondary" className="h-7 px-2 text-xs shadow-sm">
@@ -52,7 +53,7 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
   return (
     // the whole card opens the piece (the title's link stretches over it); the links inside sit above that
     <article className="group/card relative flex w-full min-w-0 flex-col gap-1.5">
-      <div className={cn("relative overflow-hidden rounded-lg border border-border/60 bg-muted transition-colors group-hover/card:border-primary/40", item.format === "video" ? "aspect-[9/16]" : "aspect-[4/5]")}>
+      <div className={cn("relative overflow-hidden rounded-lg border border-border/60 bg-muted transition-colors group-hover/card:border-primary/40", picked && "border-primary ring-2 ring-primary", item.format === "video" ? "aspect-[9/16]" : "aspect-[4/5]")}>
         <div ref={ref} className="h-full w-full">
           <LibraryThumb item={item} sources={sources} seen={seen} />
         </div>
@@ -63,7 +64,7 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
         {item.source && <p className="truncate text-[11px] text-muted-foreground" title={item.source}>{item.source}</p>}
         <p className="truncate text-sm font-medium leading-snug" title={`${item.kind} | ${item.title}`}>
           {/* a failed job's Try again opens the same maker, so the card opens it too */}
-          <Link to={item.href} aria-label={`Open ${item.title}`} className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring">
+          <Link to={item.href} aria-label={`Open ${item.title}`} tabIndex={onPick ? -1 : undefined} className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring">
             <span className="text-muted-foreground">{item.kind} | </span>
             {item.title}
           </Link>
@@ -96,6 +97,17 @@ function LibraryCard({ item, sources }: { item: LibraryItem; sources: ThumbSourc
           </Link>
         )}
       </div>
+      {onPick && (
+        // the box sits in the corner; the label covers the whole card above its links, so any tap on it ticks the box
+        <label className="absolute inset-0 z-20 cursor-pointer">
+          <input type="checkbox" checked={!!picked} onChange={onPick} aria-label={`Select ${item.title}`.slice(0, 120)} className="peer sr-only" />
+          <span className="absolute left-0 top-0 flex h-9 w-9 items-center justify-center peer-focus-visible:[&>span]:ring-2 peer-focus-visible:[&>span]:ring-ring [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
+            <span className={cn("flex h-5 w-5 items-center justify-center rounded-md border-2 shadow-sm", picked ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background/90")}>
+              {picked && <CheckIcon weight="bold" className="h-3 w-3" aria-hidden />}
+            </span>
+          </span>
+        </label>
+      )}
     </article>
   );
 }

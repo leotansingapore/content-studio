@@ -43,6 +43,23 @@ export async function svgToPng(svg: string): Promise<Blob> {
   return svgToBlob(svg, "image/png");
 }
 
+/** The design's PNG (or JPEG, for an ad) at its own pixel size (svgToPng draws 1080x1350 only); /image and the Library's Download. */
+export async function svgPng(svg: string, width: number, height: number, type: "image/png" | "image/jpeg" = "image/png"): Promise<Blob> {
+  const img = new Image();
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("The image couldn't be drawn."));
+    img.src = svgDataUrl(svg);
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("This browser can't draw images.");
+  ctx.drawImage(img, 0, 0, width, height);
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("The image couldn't be created."))), type, 0.92));
+}
+
 /** JPEG bytes of a slide, for the PDF (a document post). */
 export async function svgToJpeg(svg: string): Promise<Uint8Array> {
   return new Uint8Array(await (await svgToBlob(svg, "image/jpeg", 0.92)).arrayBuffer());

@@ -47,7 +47,7 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import { AI_FOLDER, imageBusy, imageJob, makeImage, onImageJob, resumeImage, type ImageJob } from "@/lib/aiImage";
 import { DEFAULT_BRAND, loadBrand, slugify } from "@/lib/carousel";
 import { SLIDE_FONTS, renderSvg, type SlideFont, type SlidePaper } from "@/lib/carouselLayout";
-import { createCanvasMeasure, downloadBlob, svgDataUrl } from "@/lib/carouselRender";
+import { createCanvasMeasure, downloadBlob, svgDataUrl, svgPng } from "@/lib/carouselRender";
 import { scanCompliance } from "@/lib/compliance";
 import { getFile, putFile } from "@/lib/deviceFiles";
 import { draftsChanged, getDraftById, newDraftId, setDraftAttached, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
@@ -124,23 +124,6 @@ export default function ImagePage() {
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
   if (!leo) return <NotFoundPage notOnAccount />;
   return <ImageEditor userId={leo.id} />;
-}
-
-/** The design's PNG (or JPEG, for an ad) at its own pixel size (carouselRender's svgToPng draws 1080x1350 only). */
-async function svgPng(svg: string, width: number, height: number, type: "image/png" | "image/jpeg" = "image/png"): Promise<Blob> {
-  const img = new Image();
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error("The image couldn't be drawn."));
-    img.src = svgDataUrl(svg);
-  });
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("This browser can't draw images.");
-  ctx.drawImage(img, 0, 0, width, height);
-  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("The image couldn't be created."))), type, 0.92));
 }
 
 const blobDataUrl = (b: Blob) =>
