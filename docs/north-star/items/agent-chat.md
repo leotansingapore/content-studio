@@ -102,7 +102,7 @@ At 390 px the thread list hides behind a "Chats" button at the top left. It open
 
 Empty thread (`/agent`):
 
-- The agent's mark, the heading "What are we making?", the composer, then "OR START WITH ONE OF THESE" and up to 8 starters from `starterChips(userId)`, Fastlane's eight built from the brand's facts (read 14 Nov), each shown only when what it needs exists, the least useful dropped first when there are more:
+- The agent's mark, the heading "What are we working on?" (Fastlane's), the composer, then "OR START WITH ONE OF THESE" and up to 8 starters from `starterChips(userId)`, Fastlane's eight built from the brand's facts (read 14 Nov), each shown only when what it needs exists, the least useful dropped first when there are more:
   - "Remix a post from my Swipe file" (shown when `/swipe` holds at least one saved item)
   - "Make an image for <first audience>" and "Find new angles" (an audience, `src/lib/audiences.ts`)
   - "Make a 15s video with a question hook" (always; dropped second when over 8)
@@ -164,7 +164,7 @@ The dock for Leo: the same thread view, compact, with "Open full chat" in its he
 | Where | String |
 | --- | --- |
 | Nav, title | "Agent", "Agent - Content Studio" |
-| Empty | "What are we making?", "OR START WITH ONE OF THESE" |
+| Empty | "What are we working on?", "OR START WITH ONE OF THESE" |
 | Composer | placeholder "Ask for a post, a remix, a video or a campaign", hint "Enter to send \| Shift and Enter for a new line", chips "Post", "Carousel", "Video", "Campaign", button "Send" |
 | Run | "Starting", "Thinking <n>s", "Writing <n>s", "Making" |
 | Meta | "<HH:MM> \| <n> steps \| <s>s", "<HH:MM> \| <s>s" |

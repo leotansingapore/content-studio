@@ -221,7 +221,7 @@ export default function AgentThread({
                 <SparkleIcon className="h-5 w-5" />
               </span>
             )}
-            <h2 className={cn("font-serif font-semibold tracking-tight", compact ? "text-lg" : "text-2xl sm:text-3xl")}>What are we making?</h2>
+            <h2 className={cn("font-serif font-semibold tracking-tight", compact ? "text-lg" : "text-2xl sm:text-3xl")}>What are we working on?</h2>
           </div>
           {flow && <div className="flex justify-center">{flow}</div>}
           {composerEl}
