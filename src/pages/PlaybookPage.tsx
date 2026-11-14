@@ -119,7 +119,8 @@ export default function PlaybookPage() {
     .filter(Boolean) as Adv[];
 
   return (
-    <div className="space-y-6">
+    // a jump lands each section under the phone's top bar plus the section links (about 115px), the links alone from lg
+    <div className="space-y-6 [&_[id]]:scroll-mt-32 lg:[&_[id]]:scroll-mt-20">
       <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Profile
@@ -147,6 +148,15 @@ export default function PlaybookPage() {
               {next && !rowOpen && <NextGap row={next} onOpen={openRow} />}
             </span>
           </div>
+          {/* the page runs about 6,000px to Brand kit since Your voice and the kit joined it (14 Nov): a link to each
+              group, kept in view while scrolling. Phones scroll the row sideways inside itself, never the page. */}
+          <nav aria-label="Profile sections" className="sticky top-14 z-20 -mx-4 flex gap-1 overflow-x-auto bg-canvas/90 px-4 py-1.5 backdrop-blur-md [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:top-0 lg:mx-0 lg:px-0">
+            {[...groups.filter((g) => g.id !== "on-file"), { id: "rules", title: "Rules" }, { id: "kit", title: "Brand kit" }].map((s) => (
+              <Link key={s.id} to={{ hash: s.id }} replace className="inline-flex min-h-9 shrink-0 items-center rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground [@media(pointer:coarse)]:min-h-11">
+                {s.title}
+              </Link>
+            ))}
+          </nav>
           {/* Fastlane's order: the groups to Tone and voice, then Rules, then what the brand keeps on file */}
           <ProfileGroups groups={groups.filter((g) => g.id !== "on-file")} uid={uid} openId={editing} next={after} onOpen={openRow} onClose={closeRow} onSaved={redraw}
             extra={{
