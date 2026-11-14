@@ -671,11 +671,13 @@ describe("mode angles", () => {
   const cands = (n: number) => Array.from({ length: n }, (_, i) => ({ title: `Angle ${i} here`, line: `Line ${i}.` }));
   const ans = (fits: number | null, unsafe: number | null = 0.1) => ({ fits: { type: "noul" as const, noul: fits ?? undefined }, unsafe: { type: "noul" as const, noul: unsafe ?? undefined } });
 
-  it("keepAngles keeps at fits 0.5, drops at 0.49 and at unsafe 0.5, top 5 by fit", () => {
+  it("keepAngles keeps at fits 0.5, tops up from near misses, never unsafe ones, top 5 by fit", () => {
     const r = keepAngles(cands(8), [ans(0.5), ans(0.49), ans(0.9, 0.5), ans(0.7), ans(0.8), ans(0.6), ans(0.95), ans(0.55)]);
     expect(r.scored).toBe(true);
     expect(r.angles.map((a) => a.fit)).toEqual([0.95, 0.8, 0.7, 0.6, 0.55]);
-    expect(keepAngles(cands(2), [ans(0.5), ans(0.49)]).angles.map((a) => a.title)).toEqual(["Angle 0 here"]);
+    // fewer than 5 that fit: a near miss tops them up, best first; one under ANGLE_NEAR or unsafe never does
+    expect(keepAngles(cands(4), [ans(0.3), ans(0.5), ans(0.49), ans(0.24)]).angles.map((a) => a.title)).toEqual(["Angle 1 here", "Angle 2 here", "Angle 0 here"]);
+    expect(keepAngles(cands(2), [ans(0.5), ans(0.45, 0.6)]).angles.map((a) => a.title)).toEqual(["Angle 0 here"]);
   });
 
   it("keepAngles falls back to the first 5 pattern-clean candidates, unscored, when Jev gives nothing", () => {

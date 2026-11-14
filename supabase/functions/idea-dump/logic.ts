@@ -849,6 +849,8 @@ export const MAX_ANGLES = 5;
 /** Proposed cuts (phase 5 decision 12): the integrator sets them after the first 20 real runs. */
 export const ANGLE_FITS = 0.5;
 export const ANGLE_UNSAFE = 0.5;
+/** The floor a near miss tops the five up from (keepAngles). */
+export const ANGLE_NEAR = 0.25;
 /** Two candidates Jev reads as the same reason to care at this or more count as one (proposed, decision 12). */
 export const ANGLE_SAME = 0.5;
 
@@ -986,8 +988,10 @@ export function sameAsk(cands: AngleCandidate[], used: string[] = []): { state: 
 /**
  * The top 5 by `fits` that fit (ANGLE_FITS or more) and are safe (`unsafe` under ANGLE_UNSAFE; the compliance
  * patterns when Jev left `unsafe` out), skipping one that `same` (sameAsk's answers) reads as a better one's reason, or
- * as a used angle again, at ANGLE_SAME or more. With no `fits` answer at all, the first 5 pattern-clean distinct
- * candidates that are not a used angle again, unscored.
+ * as a used angle again, at ANGLE_SAME or more. Fewer than 5 that fit are topped up with the near misses (ANGLE_NEAR
+ * up to ANGLE_FITS, best first, the same safe, fresh and distinct rules): Leo 14 Nov, one suggestion gives 5, since a
+ * second one costs a daily use. With no `fits` answer at all, the first 5 pattern-clean distinct candidates that are not
+ * a used angle again, unscored.
  */
 export function keepAngles(
   candidates: AngleCandidate[],
@@ -1002,9 +1006,11 @@ export function keepAngles(
   if (read.every((r) => r.fits === null)) {
     return { angles: distinct(read.filter((r) => clean(r.a) && fresh(r.k))).map((r) => ({ ...r.a, fit: null })), scored: false };
   }
-  const kept = read.filter((r) => r.fits !== null && r.fits >= ANGLE_FITS && (r.unsafe === null ? clean(r.a) : r.unsafe < ANGLE_UNSAFE) && fresh(r.k));
-  kept.sort((x, y) => (y.fits ?? 0) - (x.fits ?? 0));
-  return { angles: distinct(kept).map((r) => ({ ...r.a, fit: r.fits })), scored: true };
+  const safe = (r: (typeof read)[number]) => (r.unsafe === null ? clean(r.a) : r.unsafe < ANGLE_UNSAFE) && fresh(r.k);
+  const best = (x: (typeof read)[number], y: (typeof read)[number]) => (y.fits ?? 0) - (x.fits ?? 0);
+  const kept = read.filter((r) => r.fits !== null && r.fits >= ANGLE_FITS && safe(r)).sort(best);
+  const near = read.filter((r) => r.fits !== null && r.fits < ANGLE_FITS && r.fits >= ANGLE_NEAR && safe(r)).sort(best);
+  return { angles: distinct([...kept, ...near]).map((r) => ({ ...r.a, fit: r.fits })), scored: true };
 }
 
 // ---- Mode "campaign": up to 7 of a campaign's posts in one call ---------------
