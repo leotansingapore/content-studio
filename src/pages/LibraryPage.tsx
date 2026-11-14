@@ -225,7 +225,7 @@ function Library({ userId, email }: { userId: string; email: string }) {
     setBusy(true);
     try {
       const { saved, skipped } = await downloadItems(userId, chosen, stores);
-      const left = skipped ? `${n(skipped, "item")} skipped: text posts and videos have no file to download here.` : undefined;
+      const left = skipped ? `${n(skipped, "item")} skipped: text posts, videos and designs without words have nothing to download.` : undefined;
       toast(saved ? { title: saved === 1 ? "Downloaded" : `${saved} items downloaded`, description: left } : { title: "Nothing to download", description: left, variant: "destructive" });
     } finally {
       setBusy(false);

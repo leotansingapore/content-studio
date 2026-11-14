@@ -119,7 +119,9 @@ async function filesOf(userId: string, it: LibraryItem, s: BulkStores): Promise<
   }
   if (t?.kind === "image") {
     const g = s.images.find((x) => x.id === t.imageId);
-    if (!g) return [];
+    // as /image's own Download: a design without its words yet has nothing to save
+    const { imageBlock } = await import("@/lib/imageLayout");
+    if (!g || imageBlock(g.layout, g.words)) return [];
     const [{ imageDrawing }, { renderSvg }, { svgPng }] = await Promise.all([import("@/components/library/LibraryThumb"), import("@/lib/carouselLayout"), import("@/lib/carouselRender")]);
     const d = await imageDrawing(g, loadBrand(userId) ?? DEFAULT_BRAND);
     return [{ file: await svgPng(renderSvg(d), d.width, d.height), name: `${base}.png` }];

@@ -11,7 +11,7 @@ import { layoutSlide, readableOn, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 import { FORMAT_H, FRAME_W, ensureDesignFonts, type Design } from "@/lib/design";
 import { getFile } from "@/lib/deviceFiles";
-import { isMeme, layoutImage, secondPicture, staticPhoto } from "@/lib/imageLayout";
+import { imageBlock, isMeme, layoutImage, secondPicture, staticPhoto } from "@/lib/imageLayout";
 import { HEADSHOT, type SavedImage } from "@/lib/images";
 import type { LibraryItem } from "@/lib/library";
 import type { Slideshow } from "@/lib/slideshow";
@@ -104,9 +104,12 @@ const firstSlide = (c: SavedCarousel, brand: CarouselBrand) =>
     return svgDataUrl(renderSvg(layoutSlide({ title: s.title, body: s.body, index: 0, total: c.slides.length, brand, image, align: c.align, scale: c.scale, font: c.font, paper: c.paper }, measure)));
   });
 
-/** What /image's preview hands layoutImage for a saved design, without the grey sample words. */
+/**
+ * What /image's preview hands layoutImage for a saved design. One not finished yet (saved before its words, as a
+ * campaign's ad is) keeps the preview's grey sample words: without them an empty layout drew a blank tile.
+ */
 export function imageInput(g: SavedImage, brand: CarouselBrand, picture?: string, picture2?: string) {
-  return { layout: g.layout, words: g.words, brand, font: g.font, paper: g.paper, align: g.align, picture, picture2, samples: false } as const;
+  return { layout: g.layout, words: g.words, brand, font: g.font, paper: g.paper, align: g.align, picture, picture2, samples: !!imageBlock(g.layout, g.words) } as const;
 }
 /** The device keys of the pictures the design's layout draws: its own, and Expectation vs reality's second. */
 export function imagePictures(g: Pick<SavedImage, "layout" | "words" | "pictureKey">): [string | undefined, string | undefined] {
