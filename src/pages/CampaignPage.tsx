@@ -1,5 +1,5 @@
 // One campaign (/campaigns/:id, Leo's sign-ins only; docs/north-star/items/plan-campaign-page.md): the header with
-// Configure (?configure=1: name, pace and length), Rename and Delete (Undo), the paused and finished states, then, in
+// Configure (?configure=1: the settings sheet from the right, ConfigurePanel), Rename and Delete (Undo), the paused and finished states, then, in
 // Fastlane's order, the review queue under #queue (Review, or All posts with the ads group first), the ads group under
 // the deck in Review (?ads=all, ?ads=send; src/components/campaign/AdsGroup.tsx), and the cost, where and goal panels
 // on one row last. Ads only shows the ads group alone. Opening it resumes any posts still to be written

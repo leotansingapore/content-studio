@@ -368,6 +368,20 @@ export function campaignStatus(c: Pick<Campaign, "posts">, today: string, adsMad
   return adsMade > 0 || c.posts.some((p) => p.state === "made") ? "running" : "draft";
 }
 
+/** Campaigns post from 5 accounts at most (the wizard's limit). */
+export const CAMPAIGN_ACCOUNTS = 5;
+
+/**
+ * The campaign with one more connected account (Configure's "+ Add an account"): its platform joins the campaign's
+ * when it is one a plan can hold. Null when it can't: launched already, picked already, or 5 picked.
+ */
+export function withAccount(c: Campaign, a: { id: string; platform: string }): Campaign | null {
+  const ids = c.accountIds ?? [];
+  if (c.launchedAt || ids.includes(a.id) || ids.length >= CAMPAIGN_ACCOUNTS) return null;
+  const plan = (["linkedin", "instagram", "facebook", "tiktok"] as string[]).includes(a.platform) && !c.platforms.includes(a.platform as PlanPlatform);
+  return { ...c, accountIds: [...ids, a.id], ...(plan ? { platforms: [...c.platforms, a.platform as PlanPlatform] } : {}) };
+}
+
 export const LAUNCH_LINE = "Press Launch to review the schedule and cost. Nothing posts or is charged until you approve it.";
 export const NO_ACCOUNT_LINE = "Add an account so the posts go out by themselves, or launch and post them yourself.";
 

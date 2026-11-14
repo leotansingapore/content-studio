@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AD_COUNT, adBits, adLayoutFor, adLayouts, addCampaign, AI_VIDEO, angleCounts, buildCampaignPosts, type Campaign, type CampaignAsk, CAMPAIGNS_CHANGED, campaignCost, campaignLine, dayOf, campaignFormats, campaignsKey,
   campaignStatus, type CampaignFormat, type CampaignPost, deleteCampaign, draftsDropped, dropsPostedDraft, getCampaign, isWinner, keyAction, LIMIT_LINE, loadCampaigns, MAX_CAMPAIGNS, nextToReview,
-  LAUNCH_LINE, NO_ACCOUNT_LINE, planAds, planCampaign, type PostState, reasonLine, REMIX_MAKE, replanCampaign, runningAdSources, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
+  LAUNCH_LINE, NO_ACCOUNT_LINE, withAccount, planAds, planCampaign, type PostState, reasonLine, REMIX_MAKE, replanCampaign, runningAdSources, replanLock, restoreCampaign, saveCampaigns, SIZE_LINE, updatePost, videosLeft, winnersFor,
 } from "./campaigns";
 import { MAX_DRAFTS, type DraftEntry } from "./draftHistory";
 import { priceOf, type Price } from "./prices";
@@ -238,6 +238,19 @@ describe("reasonLine", () => {
     expect(reasonLine(c(["ready", "ready", "made"], { launchedAt }), "running")).toBe("2 posts wait for your review.");
     expect(reasonLine(c(["ready", "made"], { launchedAt }), "running")).toBe("1 post waits for your review.");
     expect(reasonLine(c(["made", "skipped"], { launchedAt }), "running")).toBeNull();
+  });
+});
+
+describe("withAccount", () => {
+  it("adds a connected account and its platform once, up to 5, and never after launch", () => {
+    const c = campaign({ accountIds: ["a1"], platforms: ["linkedin"] });
+    expect(withAccount(c, { id: "a2", platform: "instagram" })).toMatchObject({ accountIds: ["a1", "a2"], platforms: ["linkedin", "instagram"] });
+    expect(withAccount(c, { id: "a3", platform: "linkedin" })?.platforms).toEqual(["linkedin"]);
+    expect(withAccount(c, { id: "a4", platform: "threads" })).toMatchObject({ accountIds: ["a1", "a4"], platforms: ["linkedin"] });
+    expect(withAccount(campaign({ platforms: ["linkedin"] }), { id: "a1", platform: "linkedin" })?.accountIds).toEqual(["a1"]);
+    expect(withAccount(c, { id: "a1", platform: "linkedin" })).toBeNull();
+    expect(withAccount(campaign({ accountIds: ["1", "2", "3", "4", "5"] }), { id: "6", platform: "linkedin" })).toBeNull();
+    expect(withAccount({ ...c, launchedAt: "2026-11-01T00:00:00Z" }, { id: "a2", platform: "instagram" })).toBeNull();
   });
 });
 
