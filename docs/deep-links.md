@@ -580,7 +580,7 @@ page. Same rules as above: built in src/lib/links.ts, defaults left out of links
 | /edit | lang | Leo only. with script=1: zh, ms, ta, that language's version open for review | none | replace | /edit?p=vm1abc2&script=1&lang=zh |
 | /media | view | Leo only. sets: the sets view; ?folder=<set name> opens one set, as today | the library | replace | /media?view=sets |
 | /media | starters | Leo only. 1: the starter sets sheet over the sets view (8 sets of free Pexels photos and clips) | closed | replace | /media?view=sets&starters=1 |
-| /media | kind | Leo only. photos, videos | all | replace | /media?kind=videos |
+| /media | kind | photos (the Images chip), videos (the Clips chip); the chips show when the files hold both kinds | all | replace | /media?kind=videos |
 | /media | type | Leo only. person, logo, product, past-post, screen, footage, other | any | replace | /media?kind=photos&type=logo |
 | /brand | #section | Leo only, beside today's sections: website, people, font, on-every-post, language. #products, #script-product and #demo-videos open Brand > Products or Brand > Demo videos instead (links.ts brandPartAddress) | top | (anchor) | /brand#website |
 | /brand | website | Leo only. review: this device's waiting website read; with nothing waiting the section shows and the param is dropped (replace) | none | push | /brand?website=review#website |

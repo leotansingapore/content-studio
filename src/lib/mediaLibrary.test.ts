@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addMedia, applySort, filterMedia, foldersOf, loadMedia, mediaRoom, removeMedia, updateMedia } from "@/lib/mediaLibrary";
+import { addMedia, applySort, filterMedia, foldersOf, loadMedia, mediaKinds, mediaRoom, removeMedia, updateMedia, type MediaItem } from "@/lib/mediaLibrary";
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -34,6 +34,13 @@ describe("media library", () => {
     expect(filterMedia(list, "", "Me").map((m) => m.name)).toEqual(["Headshot"]);
     expect(filterMedia(list, "", "-").map((m) => m.name)).toEqual(["Desk"]);
     expect(foldersOf(list)).toEqual(["Events", "Me"]);
+  });
+
+  it("counts the kinds a list holds for the Images and Clips chips: a photo saved without a kind is an image", () => {
+    const list = [item("cimg-a00001"), { ...item("cimg-a00002"), kind: "photo" }, { ...item("cvid-a00003"), kind: "video" }] as MediaItem[];
+    expect(mediaKinds(list)).toEqual({ photos: 2, videos: 1 });
+    expect(mediaKinds(list.slice(0, 2))).toEqual({ photos: 2, videos: 0 });
+    expect(filterMedia(list, "", "", { kind: "videos" }).map((m) => m.key)).toEqual(["cvid-a00003"]);
   });
 
   // Pinned on today's code (main e0e6cf48) before brand-media-library: what every other account and caller reads.

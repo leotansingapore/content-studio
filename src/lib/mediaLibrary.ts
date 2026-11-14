@@ -189,6 +189,15 @@ export function filterMedia(list: MediaItem[], query: string, folder: string, o:
   );
 }
 
+/**
+ * How many of each kind the list holds, for Photos and videos' kind chips (Fastlane's Images and Clips): a chip is drawn
+ * only for a kind with files behind it. Hook clips and audio are never kept here, so they have no chip.
+ */
+export function mediaKinds(list: MediaItem[]): { photos: number; videos: number } {
+  const videos = list.filter((m) => m.kind === "video").length;
+  return { photos: list.length - videos, videos };
+}
+
 export function foldersOf(list: MediaItem[]): string[] {
   return [...new Set(list.map((m) => m.folder).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }

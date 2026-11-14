@@ -18,7 +18,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import { getFile } from "@/lib/deviceFiles";
 import { clock } from "@/lib/hookDemo";
-import { addMedia, filterMedia, foldersOf, loadMedia, MEDIA_TYPES, mediaRoom, removeMedia, storePicture, updateMedia, type MediaItem, type MediaType } from "@/lib/mediaLibrary";
+import { addMedia, filterMedia, foldersOf, loadMedia, MEDIA_TYPES, mediaKinds, mediaRoom, removeMedia, storePicture, updateMedia, type MediaItem, type MediaType } from "@/lib/mediaLibrary";
 import { loadSets, onStarterChange, SETS_CHANGED, setsWith, type MediaSet } from "@/lib/mediaSets";
 import { onSortChange, sortMedia, sortState, waitingSort } from "@/lib/mediaSort";
 import { FULL_LINE } from "@/lib/mediaUpload";
@@ -50,7 +50,7 @@ export default function MediaPage() {
   const [folderParam, setFolderParam] = useUrlState("folder", "");
   const [adding, setAdding] = useState(0);
   const [stock, setStock] = useState(false);
-  // Leo's filters (docs/deep-links.md): ?kind=photos|videos, ?type=<type>; a value outside the lists reads as all
+  // filters (docs/deep-links.md): ?kind=photos|videos (anyone, once both kinds are here), ?type=<type> (Leo); a value outside the lists reads as all
   const [kind, setKind] = useUrlState<(typeof KINDS)[number]>("kind", "", { allowed: KINDS });
   const [type, setType] = useUrlState<(typeof TYPES)[number]>("type", "", { allowed: TYPES });
   const sort = useSyncExternalStore(onSortChange, sortState);
@@ -167,10 +167,13 @@ export default function MediaPage() {
   const setFolder = (id: string) => setFolderParam(id === "-" ? "none" : id);
   // the card being typed in stays put while its box has focus, even once its folder or name stops matching the filter
   const [held, setHeld] = useState<string | null>(null);
+  // Fastlane's Images and Clips, for anyone whose files hold both kinds; ?kind keeps its photos and videos values
+  const kinds = useMemo(() => mediaKinds(items), [items]);
+  const twoKinds = kinds.photos > 0 && kinds.videos > 0;
   const shown = useMemo(() => {
-    const hit = new Set(filterMedia(items, query, folder, leo ? { kind: kind || undefined, type: type || undefined } : {}).map((m) => m.key));
+    const hit = new Set(filterMedia(items, query, folder, { kind: (twoKinds && kind) || undefined, ...(leo ? { type: type || undefined } : {}) }).map((m) => m.key));
     return items.filter((m) => hit.has(m.key) || m.key === held);
-  }, [items, query, folder, leo, kind, type, held]);
+  }, [items, query, folder, leo, kind, twoKinds, type, held]);
   const hold = (key: string) => ({ onFocus: () => setHeld(key), onBlur: () => setHeld(null) });
   // ?item=<picture key> (docs/deep-links.md): that picture is scrolled to and marked
   const [itemKey] = useUrlItem("item");
@@ -235,31 +238,35 @@ export default function MediaPage() {
               </button>
             ))}
           </div>
-          {leo && (
+          {(leo || twoKinds) && (
             <div className="flex w-full flex-wrap items-center gap-2">
-              <div className="flex gap-1.5" role="group" aria-label="Photos or videos">
-                {([["", "All"], ["photos", "Photos"], ["videos", "Videos"]] as const).map(([id, label]) => (
-                  <FilterChip key={id || "all"} active={kind === id} onClick={() => setKind(id)}>
-                    {label}
-                  </FilterChip>
-                ))}
-              </div>
-              <div className="flex items-center gap-1">
-                <Select value={type || "any"} onValueChange={(v) => setType(v === "any" ? "" : (v as MediaType))}>
-                  <SelectTrigger aria-label="Type" className="h-9 w-auto gap-1.5 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
-                    <span className="text-muted-foreground">Type:</span> <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any</SelectItem>
-                    {MEDIA_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {TYPE_LABEL[t]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <InfoTip label="About types">We sort each file when you add it. Tap a type to change it.</InfoTip>
-              </div>
+              {twoKinds && (
+                <div className="flex gap-1.5" role="group" aria-label="Kind">
+                  {([["", "All", kinds.photos + kinds.videos], ["photos", "Images", kinds.photos], ["videos", "Clips", kinds.videos]] as const).map(([id, label, n]) => (
+                    <FilterChip key={id || "all"} active={kind === id} count={n} onClick={() => setKind(id)}>
+                      {label}
+                    </FilterChip>
+                  ))}
+                </div>
+              )}
+              {leo && (
+                <div className="flex items-center gap-1">
+                  <Select value={type || "any"} onValueChange={(v) => setType(v === "any" ? "" : (v as MediaType))}>
+                    <SelectTrigger aria-label="Type" className="h-9 w-auto gap-1.5 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+                      <span className="text-muted-foreground">Type:</span> <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      {MEDIA_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {TYPE_LABEL[t]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <InfoTip label="About types">We sort each file when you add it. Tap a type to change it.</InfoTip>
+                </div>
+              )}
             </div>
           )}
         </div>
