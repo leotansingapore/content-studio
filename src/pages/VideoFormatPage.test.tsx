@@ -171,4 +171,14 @@ describe("a format made on its own page", () => {
     expect(html("template-food-asmr")).not.toContain("spoken words");
     expect(html("template-food-asmr")).toContain(priceText(priceOf("ai-clip", { seconds: 8, quality: "720p" }) as Price));
   });
+
+  it("offers the lengths its maker takes as chips, kept in the address, and aims the words at the one picked", () => {
+    as.leo = LEO;
+    const chips = (page: string) => [...page.matchAll(/<button[^>]*aria-pressed="(true|false)"[^>]*>(\d+) s<\/button>/g)].map((m) => `${m[2]}${m[1] === "true" ? "*" : ""}`);
+    expect(chips(html("news-anchor"))).toEqual(["8", "15", "20*", "30"]);
+    expect(html("news-anchor?length=30")).toContain("Aim for 72 to 96 words for 30 seconds.");
+    expect(chips(html("news-anchor?length=12"))).toEqual(["8", "15", "20*", "30"]);
+    expect(chips(html("template-street-interview"))).toEqual(["4", "8*"]);
+    expect(html("template-street-interview?length=4")).toContain("Up to 13 spoken words fit 4 seconds.");
+  });
 });

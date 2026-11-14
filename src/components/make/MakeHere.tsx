@@ -2,9 +2,11 @@
 // talk (News anchor, Stage talk, Spokesperson) or an editor template, set up here the way Fastlane's format pages do,
 // instead of in the video editor. Talks: the script, with "Write it for me" (ai-video talk-script, presenter.ts, the
 // editor's own writer) and the news banner. Templates: the template's own blanks. Under each, the words against the
-// length (speakingWords). Typed words stay on this device (formatMaker.ts loadTyped).
+// length (speakingWords), and the lengths its maker takes as chips; a written script moves the length to the one it
+// fills. Typed words stay on this device (formatMaker.ts loadTyped).
+// URL (docs/deep-links.md): length=<seconds> (replace), one of lengthsOf.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CircleNotchIcon } from "@phosphor-icons/react";
 import ComplianceChips from "@/components/ComplianceChips";
@@ -14,14 +16,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FilterChip } from "@/components/ui/filter-chip";
 import { Textarea } from "@/components/ui/textarea";
 import type { FormatDef } from "@/data/formats";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { scanCompliance } from "@/lib/compliance";
-import { clipWordLine, countWords, loadTyped, saveTyped, spokenKeys, startLength, talkLine, type Maker, type Typed } from "@/lib/formatMaker";
+import { clipWordLine, countWords, lengthsOf, loadTyped, saveTyped, spokenKeys, startLength, talkLine, type Maker, type Typed } from "@/lib/formatMaker";
 import { MAS_FLAG, loadTalk, offerNames, onTalkScript, pickOffer, takeScript, talkScript, writeTalkScript } from "@/lib/presenter";
 import { adviserBrand } from "@/lib/profession";
-import type { TalkLength } from "@/lib/talkingHead";
+import { lengthFor, type TalkLength } from "@/lib/talkingHead";
+import { useUrlState } from "@/lib/urlState";
 import { BANNER_MAX } from "@/lib/videoEdit";
 import { MAX_FIELD, MAX_TOPIC } from "../../../supabase/functions/ai-video/logic.ts";
 
@@ -35,13 +39,16 @@ export default function MakeHere({ def, maker, userId }: { def: FormatDef & { op
   const [params] = useSearchParams();
   const [typed, setTyped] = useState<Typed>(() => loadTyped(def.slug, userId));
   useEffect(() => saveTyped(def.slug, userId, typed), [def.slug, userId, typed]);
-  const length = startLength(maker);
+  const lengths = lengthsOf(maker);
+  const [lengthParam, setLengthParam] = useUrlState<string>("length", String(startLength(maker)), { allowed: lengths.map(String) });
+  const length = Number(lengthParam);
+  const setLength = (n: number) => setLengthParam(String(n));
 
   const options = (
     <>
       {def.preview && <Examples def={def} />}
       {maker.kind === "talk" ? (
-        <TalkScript userId={userId} talk={maker.talk} typed={typed} setTyped={setTyped} length={length as TalkLength} offer={pickOffer(offerNames(userId), params.get("offer"), loadTalk(userId).offer)} />
+        <TalkScript userId={userId} talk={maker.talk} typed={typed} setTyped={setTyped} length={length as TalkLength} onWritten={(n) => setLength(lengthFor(n))} offer={pickOffer(offerNames(userId), params.get("offer"), loadTalk(userId).offer)} />
       ) : (
         <Card className="border-border/60 shadow-card">
           <CardContent className="space-y-3 pt-4 sm:pt-5">
@@ -66,6 +73,15 @@ export default function MakeHere({ def, maker, userId }: { def: FormatDef & { op
           </CardContent>
         </Card>
       )}
+      <Card className="border-border/60 shadow-card">
+        <CardContent className="space-y-4 pt-4 sm:pt-5">
+          <Field label="Length">
+            {lengths.map((n) => (
+              <FilterChip key={n} active={length === n} onClick={() => setLength(n)}>{n} s</FilterChip>
+            ))}
+          </Field>
+        </CardContent>
+      </Card>
     </>
   );
 
@@ -81,12 +97,14 @@ export default function MakeHere({ def, maker, userId }: { def: FormatDef & { op
 }
 
 /** The script box of a presenter talk, with the format's own writer and, for News anchor, the banner's headline. */
-function TalkScript({ userId, talk, typed, setTyped, length, offer }: {
+function TalkScript({ userId, talk, typed, setTyped, length, onWritten, offer }: {
   userId: string;
   talk: Extract<Maker, { kind: "talk" }>["talk"];
   typed: Typed;
   setTyped: (f: (t: Typed) => Typed) => void;
   length: TalkLength;
+  /** A written script landed, this many words long. */
+  onWritten: (words: number) => void;
   offer: number | null;
 }) {
   const script = typed.script ?? "";
@@ -96,6 +114,8 @@ function TalkScript({ userId, talk, typed, setTyped, length, offer }: {
   const [job, setJob] = useState(talkScript);
   const scriptRef = useRef(script);
   scriptRef.current = script;
+  const written = useRef(onWritten);
+  written.current = onWritten;
   useEffect(() => {
     const take = (j: ReturnType<typeof talkScript>) => {
       setJob(j);
@@ -103,6 +123,7 @@ function TalkScript({ userId, talk, typed, setTyped, length, offer }: {
       if (!s?.say) return;
       if (scriptRef.current.trim() && scriptRef.current !== s.say) setUndo(scriptRef.current);
       setTyped((t) => ({ ...t, script: s.say, headline: s.headline ?? "" }));
+      written.current(countWords(s.say));
     };
     take(talkScript());
     return onTalkScript(take);
@@ -163,6 +184,15 @@ function TalkScript({ userId, talk, typed, setTyped, length, offer }: {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5" role="group" aria-label={label}>
+      <p className={FIELD_LABEL}>{label}</p>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
   );
 }
 

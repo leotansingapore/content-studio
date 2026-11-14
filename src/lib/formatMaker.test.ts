@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clipWordLine, makerOf, spokenKeys, startLength, talkLine } from "./formatMaker";
+import { clipWordLine, lengthsOf, makerOf, spokenKeys, startLength, talkLine } from "./formatMaker";
+import { lengthFor } from "./talkingHead";
 import { templateById } from "../../supabase/functions/ai-video/templates.ts";
 
 describe("which formats are made on their own page", () => {
@@ -11,6 +12,15 @@ describe("which formats are made on their own page", () => {
       expect(makerOf(href), href).toBeNull();
     }
     expect(makerOf(undefined)).toBeNull();
+  });
+
+  it("offers the lengths each maker takes: a talk's voiceover up to 30 seconds, a clip 4 or 8", () => {
+    expect(lengthsOf({ kind: "talk", talk: "news" })).toEqual([8, 15, 20, 30]);
+    expect(lengthsOf({ kind: "template", template: templateById("street-interview")! })).toEqual([4, 8]);
+  });
+
+  it("moves a talk to the longest length a written script fills", () => {
+    expect([10, 20, 55, 71, 75].map(lengthFor)).toEqual([8, 8, 20, 20, 30]);
   });
 
   it("starts a talk at 20 seconds, where its writer lands, and a clip at the editor's 8", () => {

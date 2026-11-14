@@ -6,7 +6,7 @@
 //   reload or another visit keeps it (device only, like the talking head's).
 
 import { scoped } from "@/lib/profiles";
-import { talkWords, wordLine, type TalkLength } from "@/lib/talkingHead";
+import { TALK_LENGTHS, talkWords, wordLine, type TalkLength } from "@/lib/talkingHead";
 import { CLIP_SECONDS, TALKS, type Talk } from "../../supabase/functions/ai-video/logic.ts";
 import { templateById, type FieldKey, type VideoTemplate } from "../../supabase/functions/ai-video/templates.ts";
 import { speakingWords } from "../../supabase/functions/remix/logic.ts";
@@ -25,10 +25,10 @@ export function makerOf(opens: string | undefined): Maker | null {
   return template ? { kind: "template", template } : null;
 }
 
+/** The lengths its maker takes: a talk's voiceover runs to 30 s (the talking head's lengths), a clip is 4 or 8 s. */
+export const lengthsOf = (m: Maker): readonly number[] => (m.kind === "talk" ? TALK_LENGTHS : CLIP_SECONDS);
 /** A talk's script is aimed at 20 s, where its writer lands (50 to 75 words); a clip starts at 8 s, as the editor does. */
 export const startLength = (m: Maker): number => (m.kind === "talk" ? 20 : 8);
-/** A clip's lengths, as the editor offers them. */
-export const CLIP_LENGTHS: readonly number[] = CLIP_SECONDS;
 
 /** The template's blanks that someone says out loud: none in a silent scene. */
 const SPOKEN: FieldKey[] = ["line", "question", "answer"];

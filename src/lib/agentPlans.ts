@@ -45,7 +45,7 @@ import { resolveSource } from "@/lib/resolveSource";
 import { cutAtWord } from "@/lib/scriptCaption";
 import { removeSlideshow } from "@/lib/slideshow";
 import { onSlideshowJob, slideshowBusy, slideshowJob, startSlideshow, stepText as showStep } from "@/lib/slideshowJob";
-import { DEFAULT_LENGTH, TALK_LENGTHS, asTopic, defaultWho, scriptEstimate, scriptSeconds, speakers, wordCount, type TalkLength, type TalkWho } from "@/lib/talkingHead";
+import { DEFAULT_LENGTH, TALK_LENGTHS, asTopic, defaultWho, lengthFor, scriptEstimate, scriptSeconds, speakers, wordCount, type TalkLength, type TalkWho } from "@/lib/talkingHead";
 import { WRITE_FAILED, goOnAtPrice, madePresenter, onTalkJob, resumeTalk, startTalk, talkBusy, talkJob, type TalkAsk } from "@/lib/talkingHeadJob";
 import { VOICES, type VoiceId } from "@/lib/textVoice";
 import { applyBrandRules } from "@/lib/brandRules";
@@ -318,8 +318,6 @@ export function wordsFor(length: TalkLength, voice: VoiceId): number {
   while (n > 12 && scriptSeconds(n, voice) >= length) n--;
   return n;
 }
-/** The longest length whose words the script reaches, so the talking head never takes the script for a topic and writes a new one. */
-const lengthFor = (words: number): TalkLength => [...TALK_LENGTHS].reverse().find((s) => words >= speakingWords(s).low) ?? TALK_LENGTHS[0];
 export const MIN_SCRIPT_WORDS = speakingWords(TALK_LENGTHS[0]).low;
 export const MAX_SCRIPT_WORDS = 70;
 

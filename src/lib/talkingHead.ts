@@ -48,6 +48,9 @@ export const wordCount = (t: string) => t.split(/\s+/).filter(Boolean).length;
 export const talkWords = (s: TalkLength, voice?: VoiceId) =>
   voice ? scriptWords({ seconds: s, words: Math.floor(s * readWps(voice) + 1e-9) }) : speakingWords(s);
 
+/** The longest length whose words the script reaches, so the talking head never takes the script for a topic and writes a new one. */
+export const lengthFor = (words: number): TalkLength => [...TALK_LENGTHS].reverse().find((s) => words >= speakingWords(s).low) ?? TALK_LENGTHS[0];
+
 /** Under the script box: the words against the length's target (talkWords); nothing while it is empty. */
 export function wordLine(n: number, s: TalkLength, voice?: VoiceId): string {
   if (n <= 0) return "";
