@@ -18,7 +18,6 @@ import {
   getTrackedPosts,
   withReal,
   getTrend,
-  getBreakdown,
   getLengthCorrelation,
   getInsights,
   hashtagRanking,
@@ -37,10 +36,8 @@ import {
   type Followers,
   type RankMetric,
   type TrackedPost,
-  labelForDimension,
   MIN_GROUP_SAMPLE,
   parseCount,
-  type BreakdownDimension,
   type Insight,
 } from "@/lib/analytics";
 import { RankBars, type RankBarRow } from "@/components/charts/RankBars";
@@ -150,7 +147,7 @@ const LENGTH_LABEL: Record<string, string> = {
   over: "Too long",
 };
 
-// ?rank= and ?by= values: words in the URL, the metric or dimension in the code.
+// ?rank= values: words in the URL, the metric in the code.
 const RANK_PARAM: Record<string, RankMetric> = {
   engagements: "engagementTotal",
   "engagement-rate": "engagementRate",
@@ -181,13 +178,6 @@ function rankValue(d: TrackedPost, metric: RankMetric, followers: Followers): st
   return n.toLocaleString();
 }
 
-const DIMENSION_TABS: { id: BreakdownDimension; label: string }[] = [
-  { id: "platform", label: "Platform" },
-  { id: "pillar", label: "Pillar" },
-  { id: "format", label: "Format" },
-  { id: "hookFormula", label: "Hook formula" },
-];
-const BY_PARAM: Record<string, BreakdownDimension> = { platform: "platform", pillar: "pillar", format: "format", "hook-formula": "hookFormula" };
 const paramOf = <V,>(map: Record<string, V>, v: V, fallback: string) => Object.keys(map).find((k) => map[k] === v) ?? fallback;
 
 const INSIGHT_STYLE: Record<
@@ -482,10 +472,7 @@ const FOLD = "inline-flex min-h-11 cursor-pointer list-none items-center gap-1 t
 export default function AnalyticsPage() {
   const [userId, setUserId] = useState<string | null | undefined>(undefined);
   const [postedCount, setPostedCount] = useState(0);
-  // Period, breakdown, best-time platform and ranking live in the URL (docs/deep-links.md), as words.
-  const [by, setBy] = useUrlState("by", "platform", { allowed: Object.keys(BY_PARAM) });
-  const dimension = BY_PARAM[by] ?? "platform";
-  const setDimension = (d: BreakdownDimension) => setBy(paramOf(BY_PARAM, d, "platform"));
+  // Period, best-time platform and ranking live in the URL (docs/deep-links.md), as words; the split is PostSplits'.
   // Bumps whenever bulk metrics are saved (or real ones pulled) so every derived memo recomputes.
   const [metricsVersion, setMetricsVersion] = useState(0);
   const bumpMetrics = useCallback(() => setMetricsVersion((v) => v + 1), []);
@@ -729,17 +716,6 @@ export default function AnalyticsPage() {
         detail: `${PLATFORM_LABEL[p.platform] ?? p.platform} · ${p.impressions.toLocaleString()} impressions`,
       })),
     [userId, metricsVersion],
-  );
-
-  const breakdownRows: RankBarRow[] = useMemo(
-    () =>
-      getBreakdown(userId, dimension).map((r) => ({
-        key: r.key,
-        label: labelForDimension(dimension, r.key),
-        value: r.avgEngagementRate,
-        count: r.count,
-      })),
-    [userId, dimension, metricsVersion],
   );
 
   const lengthRows: RankBarRow[] = useMemo(
@@ -1198,7 +1174,7 @@ export default function AnalyticsPage() {
             <LabelMixCard userId={userId} rows={mix.rows} posts={mix.posts} unlabelled={mix.unlabelled} onLabelsChange={setLabels} />
           )}
 
-          {userId && <PostSplits userId={userId} posts={tracked} />}
+          {userId && <PostSplits userId={userId} posts={tracked} tag={allTime} />}
           {userId && <WhatWins userId={userId} drafts={drafts} />}
 
           {hasData ? (
@@ -1245,43 +1221,6 @@ export default function AnalyticsPage() {
                 </CardHeader>
                 <CardContent>
                   <TrendChart points={trendPoints} />
-                </CardContent>
-              </Card>
-
-              {/* Breakdown by dimension */}
-              <Card className="border-border/60 shadow-card">
-                <CardHeader className="space-y-2.5">
-                  <CardTitle className="flex items-center gap-2 font-serif text-lg">
-                    Engagement rate by {DIMENSION_TABS.find((t) => t.id === dimension)?.label.toLowerCase()} {allTime}
-                  </CardTitle>
-                  <div className="flex gap-1.5">
-                    {DIMENSION_TABS.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setDimension(t.id)}
-                        aria-pressed={dimension === t.id}
-                        className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                          dimension === t.id
-                            ? "border-primary/60 bg-primary/10 text-primary"
-                            : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <RankBars
-                    rows={breakdownRows}
-                    minSample={MIN_GROUP_SAMPLE}
-                    emptyLabel={
-                      dimension === "hookFormula"
-                        ? "Shows once posts written from a formula hook in Write have numbers."
-                        : undefined
-                    }
-                  />
                 </CardContent>
               </Card>
 

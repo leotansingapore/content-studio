@@ -220,7 +220,7 @@ so one that is gone shows everything.
 | /marketing-north-star | status, area, phase, ask, app | status: todo, started, done; area: leaks, loop, position, faces, creators, scale; phase: 1-6; ask: an MK_ASKS id (src/data/marketingNorthStar.ts); app: finternship, at, sb, cmfas | all | replace | /marketing-north-star?app=at&status=todo |
 | /marketing-north-star | open | comma list of area ids whose cards show | none | replace | /marketing-north-star?open=leaks,loop |
 | /analytics | period | 7d, 30d, 90d, all | 30d | replace | /analytics?period=90d |
-| /analytics | by | platform, pillar, format, hook-formula (engagement rate by) | platform | replace | /analytics?by=hook-formula |
+| /analytics | split | platform, format, pillar, hook-formula, audience, campaign (engagements per post by); a split with fewer than 2 groups opens the first one shown. An old link's `by` (the engagement rate card it replaced) opens the same split | platform | replace | /analytics?split=hook-formula |
 | /analytics | time | linkedin, instagram, facebook, tiktok (best time to post for) | all platforms | replace | /analytics?time=linkedin |
 | /analytics | audit | `<platform>:<post id>` of one of your own posts in the account audit: shown as "The linked post" at the top of that account's audit, scrolled to and marked; Copy link on each best post and each post that fell short | none | set by links | /analytics?audit=instagram%3A3456789012345678901 |
 | /analytics | rank | engagements, engagement-rate, impressions, reactions, comments, shares, reach, comment-ratio (top posts by) | engagements | replace | /analytics?period=7d&rank=engagement-rate |
