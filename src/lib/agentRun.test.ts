@@ -215,6 +215,7 @@ import { confirmAngles } from "@/lib/angles";
 import { saveAudience } from "@/lib/audiences";
 import { loadShadow, saveAutonomy } from "@/lib/autonomy";
 import { campaignCost, loadCampaigns } from "@/lib/campaigns";
+import { links } from "@/lib/links";
 import { loadCompetitors } from "@/lib/competitors";
 import { loadDrafts, saveDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { registerEditTarget } from "@/lib/editTarget";
@@ -574,6 +575,12 @@ describe("nothing priced runs before its card's press", () => {
     const later = campaignCost({ posts: Array.from({ length: posts }, () => ({ format: "text-post", state: "waiting" })) as never }, { video: null, remix: null });
     expect(c.details?.find((d) => d.label === "Later makes")?.value).toBe(later.usd ? expect.any(String) : "None: every post is words only");
     expect(c.needs).toEqual([{ feature: "campaign-draft", n: 4 }]);
+    // what it plans: the angles, formats, platform and the day it starts, and where to change them
+    expect(c.line).toMatch(/^28 posts over 4 weeks, 7 a week from (Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2}, for Young parents\.$/);
+    expect(c.details?.find((d) => d.label === "Angles")?.value).toBe("School fees add up");
+    expect(c.details?.find((d) => d.label === "Post formats")?.value).toBe("Text post, Carousel, Short video script");
+    expect(c.details?.find((d) => d.label === "Platform")?.value).toBe("Instagram");
+    expect(c.link).toEqual({ label: "Change in the planner", path: links.campaignNew({ audience: a.audience.id, step: "angles" }) });
     expect(priced()).toEqual([]);
     await approve(id);
     expect(priced()).toEqual(["startDrafting"]);

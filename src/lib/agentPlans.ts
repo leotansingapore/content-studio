@@ -20,10 +20,10 @@ import { anglesFor } from "@/lib/angles";
 import { loadAudiences } from "@/lib/audiences";
 import { addCampaign, campaignCost, FREE_FORMATS, planCampaign, type CampaignAsk, type CampaignFormat } from "@/lib/campaigns";
 import { BATCH, startDrafting } from "@/lib/campaignJob";
-import { PACES } from "@/lib/campaignWizard";
+import { FORMAT_NAME, PACES } from "@/lib/campaignWizard";
 import { addCompetitor, loadCompetitors, MAX_COMPETITORS, parseInput, runRead, sameCompetitor, type Competitor } from "@/lib/competitors";
 import { scanCompliance } from "@/lib/compliance";
-import { localDateKey } from "@/lib/dueDates";
+import { keyToDate, localDateKey } from "@/lib/dueDates";
 import { loadDrafts } from "@/lib/draftHistory";
 import { currentEditTarget, type EditTarget, type Proposal } from "@/lib/editTarget";
 import { IMAGE_FIELDS, isStatic, mainWords, staticPhoto } from "@/lib/imageLayout";
@@ -33,6 +33,7 @@ import { loadMedia } from "@/lib/mediaLibrary";
 import { adFacts, loadProducts, productBits, productLabel } from "@/lib/products";
 import { loadProjects } from "@/lib/videoProjects";
 import { loadPositioning } from "@/lib/positioning";
+import { platformName } from "@/lib/socialConnect";
 import { priceOf, priceText, sumPrices, WRITE_PRICE, type Price } from "@/lib/prices";
 import { defaultOutput } from "@/lib/remix";
 import { loadRemixPrefs, ownBrandName, speakerFor } from "@/lib/remixBrand";
@@ -469,16 +470,21 @@ export async function campaignReply(userId: string, o: { audience: string | null
   const needs = needsOf("campaign", { posts });
   const writing = sum(...Array.from({ length: Math.ceil(posts / BATCH) }, () => price("campaign-draft")));
   const makes = [later.made.slideshows && `${later.made.slideshows} slideshows`, later.made.walls && `${later.made.walls} walls of text`, later.made.videos && `${later.made.videos} AI videos`].filter(Boolean).join(", ");
+  const start = keyToDate(c.startDay).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   return {
     card: card("campaign", { plan: "campaign", act: o.act, p: o.p, ask }, {
       title: `Campaign: ${ask.name}`,
-      line: `${posts} posts over ${ask.weeks} weeks, ${ask.perWeek} a week, for ${aud.name}.`,
+      line: `${posts} posts over ${ask.weeks} weeks, ${ask.perWeek} a week from ${start}, for ${aud.name}.`,
       details: [
+        { label: "Angles", value: ask.angles.map((a) => a.title).join(", ") },
+        { label: "Post formats", value: ask.formats.map((f) => FORMAT_NAME[f]).join(", ") },
+        { label: ask.platforms.length > 1 ? "Platforms" : "Platform", value: ask.platforms.map(platformName).join(", ") },
         { label: "Writing them", value: writing ? priceText(writing) : "Free" },
         { label: "Later makes", value: later.usd ? `About US$${later.usd.toFixed(2)} for ${makes}, each with its own price when you make it` : "None: every post is words only" },
       ],
       price: writing,
       needs,
+      link: { label: "Change in the planner", path: links.campaignNew({ audience: aud.id, step: "angles" }) },
     }, now),
   };
 }

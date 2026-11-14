@@ -77,6 +77,8 @@ export interface AgentCard {
   /** Warnings that never block: Jev's MAS flag, or scanCompliance's matches. */
   flags?: string[];
   details?: { label: string; value: string }[];
+  /** Where to change it by hand, under the details (a campaign's planner). */
+  link?: { label: string; path: string };
   /** What Approve spends (PriceChip), the Higgsfield credits beside a video's price, and the uses it needs today. */
   price?: Price;
   credits?: number;

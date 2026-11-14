@@ -299,6 +299,11 @@ export default function ActionCard({
                 ))}
               </dl>
             )}
+            {details && card.link && (
+              <Link to={card.link.path} className="inline-flex min-h-9 items-center text-xs font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+                {card.link.label}
+              </Link>
+            )}
           </div>
         )}
 
