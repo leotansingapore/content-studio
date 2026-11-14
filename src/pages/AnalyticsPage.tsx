@@ -78,6 +78,7 @@ import RemixButton from "@/components/remix/RemixButton";
 import GradePanel, { GradeChip } from "@/components/analytics/GradePanel";
 import WinnerCard from "@/components/analytics/WinnerCard";
 import WhatWins from "@/components/analytics/WhatWins";
+import PostSplits from "@/components/analytics/PostSplits";
 import ScoreCheck from "@/components/analytics/ScoreCheck";
 import { realMetrics } from "../../supabase/functions/social/metrics.ts";
 import { platformName, socialConnectShown } from "@/lib/socialConnect";
@@ -1197,6 +1198,7 @@ export default function AnalyticsPage() {
             <LabelMixCard userId={userId} rows={mix.rows} posts={mix.posts} unlabelled={mix.unlabelled} onLabelsChange={setLabels} />
           )}
 
+          {userId && <PostSplits userId={userId} posts={tracked} />}
           {userId && <WhatWins userId={userId} drafts={drafts} />}
 
           {hasData ? (
