@@ -4,7 +4,7 @@
 // labelling run outside React (src/lib/adLibrary.ts, src/lib/competitorAds.ts); this only draws their state.
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { FunnelIcon, ImageBrokenIcon, CircleNotchIcon, PencilLineIcon, PlayIcon, ArrowsClockwiseIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { FunnelIcon, ImageBrokenIcon, CircleNotchIcon, PencilLineIcon, PlayIcon, ArrowsClockwiseIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import AdDetailDrawer, { LoadingAdDrawer, useLinkedAd } from "@/components/AdDetailDrawer";
 import PriceChip from "@/components/PriceChip";
 import RemixButton from "@/components/remix/RemixButton";
@@ -115,6 +115,11 @@ export default function AdLibrary({ userId }: { userId: string }) {
   const missed = spaceMissed();
   const hasSpace = space.keywords.length > 0 || space.ads.length > 0;
   const hasDrop = all.some((a) => a.scope === "sg");
+  // no space words yet: the ones we would search (Your market, Mentions, the Plan's topics) as chips to drop, and one
+  // press that saves them and runs the priced check. Nothing runs until that press.
+  const suggested = useMemo(() => (hasSpace ? [] : spaceWordsFor(userId)), [userId, hasSpace, version]);
+  const [dropped, setDropped] = useState<string[]>([]);
+  const picks = suggested.filter((w) => !dropped.includes(w));
 
   const pickScope = (s: string) => update({ scope: s === "all" ? null : s, industry: null });
   const clear = () => update({ running: null, run: null, format: null, platform: null, emotion: null, audience: null, hook: null, industry: null });
@@ -130,6 +135,11 @@ export default function AdLibrary({ userId }: { userId: string }) {
     setSpaceWords(userId, cleanWords);
     setEditing(false);
     if (willCheck) void runSpaceCheck(userId);
+  };
+  const showSpace = () => {
+    setSpaceWords(userId, picks);
+    void runSpaceCheck(userId);
+    pickScope("space");
   };
   const shown = cards.slice(0, limit);
 
@@ -221,6 +231,35 @@ export default function AdLibrary({ userId }: { userId: string }) {
           </Button>
           {readWhy && <p className="text-xs text-muted-foreground">{readWhy}</p>}
         </div>
+      )}
+
+      {suggested.length > 0 && (
+        <section aria-labelledby="space-ask" className="space-y-3 rounded-xl border border-border/60 bg-card p-4">
+          <div className="space-y-0.5">
+            <h3 id="space-ask" className="text-sm font-semibold">In your space</h3>
+            <p className="text-xs text-muted-foreground">Meta ads other brands run in Singapore for these words.</p>
+          </div>
+          {picks.length > 0 ? (
+            <ul className="flex flex-wrap gap-1.5" aria-label="Search words">
+              {picks.map((w) => (
+                <li key={w} className={`inline-flex min-h-9 max-w-full items-center gap-0.5 rounded-full border border-border/70 bg-background pl-3 text-xs font-medium ${TOUCH}`}>
+                  <span className="min-w-0 truncate">{w}</span>
+                  <button type="button" onClick={() => setDropped((d) => [...d, w])} aria-label={`Remove ${w}`}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
+                    <XIcon className="h-3 w-3" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">No words left. Set your space to type your own.</p>
+          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button className={`h-10 ${TOUCH}`} onClick={showSpace} disabled={!picks.length || busy || Boolean(why)}>Show ads in your space</Button>
+            {!busy && <PriceChip feature="space-ads" left={left} />}
+          </div>
+          {why && picks.length > 0 && <p className="text-xs text-muted-foreground">{why}</p>}
+        </section>
       )}
 
       {!all.length ? (
