@@ -25,6 +25,13 @@ describe("remixUrl", () => {
     expect(url.searchParams.get("source")).toBe("audit:instagram:C9xyz");
     expect(url.searchParams.get("format")).toBe("carousel");
   });
+
+  it("asks for adviser compliance on an adviser brand only", () => {
+    const ctx = (adviser?: boolean) => new URL(remixUrl(rated(), "instagram", "leo.tan", null, adviser), "https://x").searchParams.get("ctx")!;
+    expect(ctx()).toContain("Keep it compliant for a licensed Singapore financial consultant.");
+    expect(ctx(false)).not.toContain("financial");
+    expect(ctx(false)).toMatch(/Don't reuse the original wording\. Original caption: ".+"$/);
+  });
 });
 
 const snap = (takenAt: string, followers: number | null): AuditSnapshot => ({

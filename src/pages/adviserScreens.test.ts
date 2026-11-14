@@ -379,6 +379,10 @@ describe("Create guide", () => {
     device(COACH);
     const coach = draw(createElement(AnalyticsPage), "/analytics");
     expect(coach.indexOf("Analyze a creator")).toBeGreaterThan(coach.indexOf("Your accounts"));
+    // the curated creators are Singapore finance: an adviser's lookup says so, anyone else's takes any handle
+    expect(adviser).toContain("curated SG finance/insurance creators");
+    expect(coach).toContain("Paste any public Instagram handle or profile link.");
+    expect(coach).not.toMatch(/finance|insurance|thewokesalaryman/);
   });
 
   it("leads Analytics with the results once posts have numbers, and with the accounts until then", async () => {

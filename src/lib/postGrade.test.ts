@@ -145,6 +145,10 @@ describe("Try a new version", () => {
     expect(q.get("ctx")).toContain("This post of mine got 0.4x my usual engagement on LinkedIn. The likely reason: the topic.");
     expect(q.get("ctx")).toContain("no promised returns, no named insurer products, no invented numbers");
     expect(q.get("ctx")).toContain(`Original: "${long.draft.slice(0, 300)}"`);
+    // any other brand: no adviser rules, only the no-invented-numbers one
+    const other = params(tryVersionUrl(long, 0.4, "topic", ctx, false)!).get("ctx")!;
+    expect(other).toContain("Keep the topic, don't reuse the original wording, and don't invent numbers. Original:");
+    expect(other).not.toMatch(/adviser|insurer|returns/);
   });
 
   it("carries the best post's formula for a hook reason, and the best format for a format reason", () => {

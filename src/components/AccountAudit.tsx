@@ -58,6 +58,7 @@ import {
   type RatedPost,
 } from "@/lib/accountAudit";
 import type { SocialAccounts } from "@/lib/socialAccounts";
+import { adviserBrand } from "@/lib/profession";
 import type { FollowerSeries } from "../../supabase/functions/social/metrics.ts";
 import ProfileScore from "@/components/ProfileScore";
 import { TrendChart } from "@/components/charts/TrendChart";
@@ -852,7 +853,7 @@ function AuditPostRow({ p, platform, handle, pick, linked = false }: {
         {/* Leo's Remix button remembers the post on press, so the sheet resolves its audit: key */}
         <RemixButton source={fromAuditPost(p, platform, handle)} note={pick && `Angle for the new version: ${pick.newAngle}`}>
           <Button asChild size="sm" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5">
-            <Link to={remixUrl(p, platform, handle, pick?.newAngle)}>
+            <Link to={remixUrl(p, platform, handle, pick?.newAngle, adviserBrand())}>
               <MagicWandIcon className="h-3.5 w-3.5" /> Remix this
             </Link>
           </Button>
@@ -999,7 +1000,7 @@ function PostIdeas({
                     </Button>
                     <Button asChild size="sm" className="h-7 [@media(pointer:coarse)]:h-11 gap-1.5 px-2.5 text-xs">
                       <Link
-                        to={ideaWriteUrl(idea, platform, handle, source)}
+                        to={ideaWriteUrl(idea, platform, handle, source, !profession)}
                         onClick={() => {
                           setIdeaStatus(idea.id, "used").catch(() => {});
                         }}

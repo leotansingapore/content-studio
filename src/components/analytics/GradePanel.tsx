@@ -12,6 +12,7 @@ import { InfoTip } from "@/components/ui/info-tip";
 import RemixButton from "@/components/remix/RemixButton";
 import { labelForDimension, type TrackedPost } from "@/lib/analytics";
 import { links } from "@/lib/links";
+import { adviserBrand } from "@/lib/profession";
 import { BAND_LABEL, REASON_NAME, directionOf, fixLine, gradeContext, reasonFor, tryVersionUrl, type Band, type Grade, type ReasonAnswer } from "@/lib/postGrade";
 import { fromDraft } from "@/lib/remixSource";
 import { WINNER_NOTE } from "@/lib/versionsJob";
@@ -113,7 +114,7 @@ export default function GradePanel({
   const ctx = direction ? gradeContext(post, tracked) : null;
   const found = answer && answer !== "reading" && answer.state === "found" ? answer.reason : null;
   const fix = found && direction && ctx ? fixLine(found, direction, ctx) : null;
-  const tryUrl = found && direction === "below" && graded && ctx ? tryVersionUrl(post, graded.ratio, found, ctx) : null;
+  const tryUrl = found && direction === "below" && graded && ctx ? tryVersionUrl(post, graded.ratio, found, ctx, adviserBrand(userId)) : null;
   const openPost = links.generate({ draft: post.id });
 
   return (

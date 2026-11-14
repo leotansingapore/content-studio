@@ -136,6 +136,12 @@ describe("the hand-off to Write", () => {
     expect(q(url).get("ctx")).toBe(`I haven't tried the ${HOOK_FORMULAS.find((f) => f.id === "myth-bust")!.name} hook yet. Write one post with it. Keep it compliant for a licensed Singapore financial adviser.`);
     expect(q(tryItUrl("format", "short-video", "linkedin")).get("ctx")).toContain("I haven't tried Short video yet.");
   });
+
+  it("leaves the adviser's compliance line off any other brand's Make another and Try it", () => {
+    const row = { key: "carousel", label: "Carousels", posts: 8, score: 2.1, platform: "linkedin" };
+    expect(q(makeAnotherUrl("format", row, false)).get("ctx")).toBe("My Carousels posts get 2.1x my usual. Write a new post in that shape on a fresh topic. Do not reuse my earlier wording.");
+    expect(q(tryItUrl("format", "short-video", "linkedin", false)).get("ctx")).toBe("I haven't tried Short video yet. Write one post with it.");
+  });
 });
 
 describe("the post tags store", () => {

@@ -22,7 +22,10 @@ import {
 } from "@phosphor-icons/react";
 import { adviserBrand } from "@/lib/profession";
 
+// The curated set is Singapore finance and insurance creators: an adviser brand's. Any other brand looks up any public
+// Instagram handle live, with no curated suggestions or matches and no finance words.
 export default function CreatorLookup() {
+  const adviser = adviserBrand();
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
   // Live Instagram fallback (analyze-ig-creator edge function via Apify).
@@ -31,19 +34,19 @@ export default function CreatorLookup() {
   const [liveError, setLiveError] = useState<string | null>(null);
 
   const suggestions = useMemo(
-    () => (submitted ? [] : searchAdvisors(query)),
-    [query, submitted],
+    () => (submitted || !adviser ? [] : searchAdvisors(query)),
+    [query, submitted, adviser],
   );
 
   const analysis = useMemo(() => {
-    if (!submitted) return null;
+    if (!submitted || !adviser) return null;
     const advisor = findAdvisor(submitted);
     return advisor ? analyzeCreator(advisor) : null;
-  }, [submitted]);
+  }, [submitted, adviser]);
 
   const notFound = submitted !== null && !analysis && !liveAnalysis && !liveLoading;
   // Curated entry that exists but has no analyzed posts (directory-only).
-  const curatedNoData = notFound && submitted ? findAdvisor(submitted) : null;
+  const curatedNoData = notFound && submitted && adviser ? findAdvisor(submitted) : null;
   // Fall back to the curated entry's own handle so directory-only Instagram
   // creators can still be analyzed live.
   const liveCandidate = submitted
@@ -115,7 +118,7 @@ export default function CreatorLookup() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSubmit(query);
               }}
-              placeholder="e.g. @thewokesalaryman"
+              placeholder={adviser ? "e.g. @thewokesalaryman" : "e.g. @handle or a profile link"}
               className="pl-9"
             />
           </div>
@@ -136,13 +139,15 @@ export default function CreatorLookup() {
           )}
         </div>
 
-        {!submitted && (
+        {!submitted && (adviser ? (
           <p className="text-[11px] text-muted-foreground">
             {ANALYZABLE_COUNT} curated SG finance/insurance creators, or any
             public Instagram handle. Paste @handle or a profile URL for a live
             analysis.
           </p>
-        )}
+        ) : (
+          <p className="text-[11px] text-muted-foreground">Paste any public Instagram handle or profile link.</p>
+        ))}
 
         {analysis && <CreatorInsights analysis={analysis} />}
         {!analysis && liveAnalysis && (
@@ -168,7 +173,9 @@ export default function CreatorLookup() {
             <p className="font-medium text-foreground">
               {curatedNoData
                 ? `${curatedNoData.name} is in our directory, but we haven't analyzed their posts yet.`
-                : `No match for "${submitted}" in our curated set.`}
+                : !adviser
+                  ? liveCandidate ? `${liveCandidate.handle} isn't analyzed yet.` : `"${submitted}" isn't an Instagram handle or profile link.`
+                  : `No match for "${submitted}" in our curated set.`}
             </p>
             {liveCandidate ? (
               <>
@@ -192,15 +199,19 @@ export default function CreatorLookup() {
               </>
             ) : (
               <>
+                {adviser ? (
                 <p className="text-xs text-muted-foreground">
                   This covers {ANALYZABLE_COUNT} curated SG finance/insurance
                   creators. For anyone else, paste their Instagram handle
                   (like @handle) or profile URL and we'll analyze their latest
                   posts live.
                 </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Paste their Instagram handle (like @handle) or profile link and we&apos;ll analyze their latest posts live.</p>
+                )}
                 <div className="flex flex-wrap gap-2 pt-1">
                   {/* Creators is an adviser brand's library */}
-                  {adviserBrand() && <Button asChild variant="outline" size="sm" className="gap-1.5">
+                  {adviser && <Button asChild variant="outline" size="sm" className="gap-1.5">
                     <Link to="/profiles">Browse covered creators</Link>
                   </Button>}
                   <Button variant="ghost" size="sm" onClick={reset}>

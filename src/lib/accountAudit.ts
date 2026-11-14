@@ -224,6 +224,8 @@ export function remixUrl(
   platform: AuditPlatform,
   handle: string,
   newAngle?: string | null,
+  /** An adviser brand (adviserBrand): only then the MAS line. */
+  adviser = true,
 ): string {
   const name = platform === "instagram" ? "Instagram" : "TikTok";
   const standing =
@@ -234,7 +236,7 @@ export function remixUrl(
     `This is one of MY OWN best ${name} posts (@${handle}, ${standing}). Write a fresh version in my voice: keep the topic and what made it work, but use a new hook and a new example. Don't reuse the original wording.`,
     newAngle ? `Angle for the new version: ${newAngle}` : "",
     post.caption ? `Original caption: "${oneLine(post.caption, 300)}"` : "",
-    "Keep it compliant for a licensed Singapore financial consultant.",
+    adviser ? "Keep it compliant for a licensed Singapore financial consultant." : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -345,6 +347,7 @@ export function ideaWriteUrl(
   platform: AuditPlatform,
   handle: string,
   basedOn?: RatedPost,
+  adviser = true,
 ): string {
   const name = platform === "instagram" ? "Instagram" : "TikTok";
   const ctx = [
@@ -356,7 +359,7 @@ export function ideaWriteUrl(
         }.`
       : "",
     idea.why ? `Why it should travel: ${idea.why}` : "",
-    "Match my voice. Keep it compliant for a licensed Singapore financial consultant.",
+    adviser ? "Match my voice. Keep it compliant for a licensed Singapore financial consultant." : "Match my voice.",
   ]
     .filter(Boolean)
     .join(" ");

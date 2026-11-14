@@ -145,26 +145,27 @@ export function subLine(drafts: DraftEntry[], now: number): string {
   return `Since ${new Date(oldest).toLocaleDateString("en-SG", { day: "numeric", month: "short", timeZone: "Asia/Singapore" })}, ${count}`;
 }
 
-const MAS = "Keep it compliant for a licensed Singapore financial adviser.";
+// an adviser brand's only (adviserBrand): any other brand's Write gets no adviser rules
+const MAS = " Keep it compliant for a licensed Singapore financial adviser.";
 
-/** "Make another": Write in that group's shape on its network, with the no-copy line. */
-export function makeAnotherUrl(by: WinsBy, row: WinRow): string {
+/** "Make another": Write in that group's shape on its network, with the no-copy line (and the MAS line for an adviser brand). */
+export function makeAnotherUrl(by: WinsBy, row: WinRow, adviser = true): string {
   return links.generate({
     platform: row.platform,
     format: by === "format" ? row.key : undefined,
     formula: by === "hook" ? row.key : undefined,
-    ctx: `My ${row.label} posts${row.score !== null ? ` get ${times(row.score)} my usual` : ""}. Write a new post in that shape on a fresh topic. Do not reuse my earlier wording. ${MAS}`,
+    ctx: `My ${row.label} posts${row.score !== null ? ` get ${times(row.score)} my usual` : ""}. Write a new post in that shape on a fresh topic. Do not reuse my earlier wording.${adviser ? MAS : ""}`,
   });
 }
 
 /** "Try it" on something not tried yet. */
-export function tryItUrl(kind: "format" | "hook", key: string, platform: string): string {
+export function tryItUrl(kind: "format" | "hook", key: string, platform: string, adviser = true): string {
   const name = kind === "hook" ? `the ${hookFormula(key)?.name ?? key} hook` : labelForDimension("format", key);
   return links.generate({
     platform,
     format: kind === "format" ? key : undefined,
     formula: kind === "hook" ? key : undefined,
-    ctx: `I haven't tried ${name} yet. Write one post with it. ${MAS}`,
+    ctx: `I haven't tried ${name} yet. Write one post with it.${adviser ? MAS : ""}`,
   });
 }
 

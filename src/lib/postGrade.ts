@@ -152,13 +152,13 @@ export function offeredReasons(post: TrackedPost, tracked: TrackedPost[], direct
   return REASONS.filter((r) => (r !== "timing" || !!c.bestSlot) && (r !== "format" || !!c.bestFormat) && fixLine(r, direction, c) !== null);
 }
 
-/** "Try a new version": Write on the post's topic with the fix, the best formula or format for those reasons, and the MAS line. */
-export function tryVersionUrl(post: TrackedPost, ratio: number, reason: Reason, c: GradeContext): string | null {
+/** "Try a new version": Write on the post's topic with the fix, the best formula or format for those reasons, and the MAS line on an adviser brand. */
+export function tryVersionUrl(post: TrackedPost, ratio: number, reason: Reason, c: GradeContext, adviser = true): string | null {
   const fix = fixLine(reason, "below", c);
   if (!fix) return null;
   const ctx = [
     `This post of mine got ${times(ratio)} my usual engagement on ${c.network}. The likely reason: ${REASON_NAME[reason]}.`,
-    `Write a new version that fixes that: ${fix.replace(/\.$/, "")}. Keep the topic, don't reuse the original wording, and keep it compliant for a licensed Singapore financial adviser: no promised returns, no named insurer products, no invented numbers. Original: "${toPlainText(post.draft).slice(0, 300)}"`,
+    `Write a new version that fixes that: ${fix.replace(/\.$/, "")}. Keep the topic, don't reuse the original wording, and ${adviser ? "keep it compliant for a licensed Singapore financial adviser: no promised returns, no named insurer products, no invented numbers" : "don't invent numbers"}. Original: "${toPlainText(post.draft).slice(0, 300)}"`,
   ].join("\n");
   return links.generate({
     pillar: post.pillar || undefined,

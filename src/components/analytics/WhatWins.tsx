@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { adviserBrand } from "@/lib/profession";
 import { useUrlState } from "@/lib/urlState";
 import { scoped } from "@/lib/profiles";
 import { hookFormula } from "@/lib/hookFormulas";
@@ -151,6 +152,7 @@ export default function WhatWins({ userId, drafts }: { userId: string; drafts: D
   const stillUntried = new Set(untriedHooks(drafts, tags, now));
   const tryHooks = hooks.filter((h) => stillUntried.has(h) && hookFormula(h));
   const tryFormats = enough ? untriedFormats(drafts, now, niche) : [];
+  const adviser = adviserBrand(userId);
 
   return (
     <Card id="what-wins" className="scroll-mt-20 border-border/60 shadow-card">
@@ -210,7 +212,7 @@ export default function WhatWins({ userId, drafts }: { userId: string; drafts: D
                     name={r.label}
                     detail={[`${r.posts} ${r.posts === 1 ? "post" : "posts"}`, r.score === null ? "Too few to say" : `${times(r.score)} your usual`]}
                     muted={r.score === null}
-                    to={r.score === null ? undefined : makeAnotherUrl(by, r)}
+                    to={r.score === null ? undefined : makeAnotherUrl(by, r, adviser)}
                     action="Make another"
                   />
                 ))}
@@ -223,14 +225,14 @@ export default function WhatWins({ userId, drafts }: { userId: string; drafts: D
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Not tried yet</h3>
                 <ul className="divide-y divide-border/60">
                   {tryHooks.map((h) => (
-                    <Row key={h} name={`${hookFormula(h)!.name} hook`} to={tryItUrl("hook", h, platform)} action="Try it" />
+                    <Row key={h} name={`${hookFormula(h)!.name} hook`} to={tryItUrl("hook", h, platform, adviser)} action="Try it" />
                   ))}
                   {tryFormats.map((f) => (
                     <Row
                       key={f.format}
                       name={f.label}
                       detail={f.niche === null ? [] : [`${times(f.niche)} their usual in your niche`]}
-                      to={tryItUrl("format", f.format, platform)}
+                      to={tryItUrl("format", f.format, platform, adviser)}
                       action="Try it"
                     />
                   ))}

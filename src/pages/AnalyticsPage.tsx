@@ -1493,13 +1493,12 @@ export default function AnalyticsPage() {
 
       {userId && <ThisWeekCard userId={userId} version={metricsVersion} grade={leoOn ? weekGrade : undefined} />}
 
-      {/* an adviser's page opens on the recruitment tracker (shown once a recruit kit exists); any other brand opens on its own posts and finds both below */}
+      {/* an adviser's page opens on the recruitment tracker (shown once a recruit kit exists); the kit is an adviser brand's, so no other brand gets it */}
       {adviser && <RecruitNumbers />}
 
       {resultsFirst ? <>{results}{setup}</> : <>{setup}{results}</>}
 
       {userId && <ScoreCheck userId={userId} drafts={drafts} />}
-      {!adviser && <RecruitNumbers />}
       {/* its curated list is Singapore finance, but any public handle works */}
       {!adviser && <CreatorLookup />}
     </div>
