@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MagnifyingGlassIcon, TrendUpIcon, CaretDownIcon, BookmarkSimpleIcon, FunnelIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, CaretDownIcon, BookmarkSimpleIcon, FunnelIcon, PlusIcon } from "@phosphor-icons/react";
 import ReelCard from "@/components/ReelCard";
 import IndustryNews from "@/components/IndustryNews";
 import AdsSwipe from "@/components/AdsSwipe";
@@ -18,6 +18,7 @@ import { withParam, useGoneItem, useShownCount, useUrlFlag, useUrlItem, useUrlLa
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
+import { loadCompetitors, onCompetitorsChanged } from "@/lib/competitors";
 import { loadPositioning } from "@/lib/positioning";
 import { links } from "@/lib/links";
 import { adviserBrand } from "@/lib/profession";
@@ -67,6 +68,16 @@ const KIND_OPTIONS = [
 const PAGE_SIZE = 12;
 
 type Tab = "posts" | "foryou" | "news" | "ads" | "search" | "hooks" | "similar";
+// the one line under the h1 (an adviser brand keeps its finance creators line instead)
+const SUBTITLE: Partial<Record<Tab, string>> = {
+  similar: "How apps and creators like yours post on Instagram and TikTok",
+  foryou: "Posts and ads that fit what your brand sells",
+  news: "Stories from your feeds and the names you watch",
+  ads: "What your competitors and brands in your space run on Meta",
+  search: "TikTok and YouTube videos that beat their account's size",
+  hooks: "Hook formulas and the real opening lines that used them",
+};
+const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 // Leo's tabs (phase 2): a link naming one waits for the session rather than flashing Top posts first.
 const LEO_TABS = ["search", "foryou", "hooks", "similar"];
 
@@ -124,6 +135,10 @@ export default function SwipeFilePage() {
     };
   }, [leo]);
   const adsTab = ADS.length > 0 || Boolean(leo && leoAds);
+  // the header's "Your competitors N": /competitors is Leo's, so only his sign-ins read the brand's list
+  const [rivalsRead, rereadRivals] = useState(0);
+  useEffect(() => onCompetitorsChanged(() => rereadRivals((n) => n + 1)), []);
+  const rivals = useMemo(() => (leo ? loadCompetitors(leo.id).list.length : 0), [leo, rivalsRead]);
   // Top posts and the Singapore ads are Singapore personal finance: another brand's page opens on News, and its ads
   // tab opens only from a link (Leo's ads tab is his own library and stays). Leo's open on Apps like yours there, and
   // an adviser brand offers it as a tab too (Leo 1 Nov: competitor accounts for any brand).
@@ -274,6 +289,7 @@ export default function SwipeFilePage() {
   const adsHead = !!leo && tab === "ads";
   const heading = adsHead ? "Ads" : adviser ? "Top posts to swipe" : tabs.find((t) => t.id === tab)?.label ?? "News";
   const title = adsHead ? "Ads" : adviser ? "Top posts" : heading;
+  const subtitle = adviser && !adsHead ? `Real high-performing posts from ${ADVISOR_COUNT} SG finance creators.` : tabs.some((t) => t.id === tab) ? SUBTITLE[tab] : undefined;
   useEffect(() => {
     document.title = `${title} - Postmosis`;
     return () => {
@@ -293,14 +309,24 @@ export default function SwipeFilePage() {
 
   return (
     <div className="space-y-5">
-      <header className="space-y-1.5">
-        <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          <TrendUpIcon className="h-6 w-6 text-primary" />
-          {heading}
-        </h1>
-        {adviser && !adsHead && <p className="max-w-2xl text-sm text-muted-foreground">
-          Real high-performing posts from {ADVISOR_COUNT} SG finance creators.
-        </p>}
+      {/* Radar's header: the title and one line, the competitor buttons on the right (under it on a phone). Outlined, so
+          each tab's own action stays the one filled button (law 7) */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1.5">
+          <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">{heading}</h1>
+          {subtitle && <p className="max-w-2xl text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
+        {leo && (
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button asChild variant="outline" className={`h-10 rounded-full ${TOUCH}`}>
+              <Link to={links.competitors({ view: "list" })}>Your competitors <span className="tabular-nums text-muted-foreground">{rivals}</span></Link>
+            </Button>
+            {/* /competitors opens with its add bar on top, so the list is the add state */}
+            <Button asChild variant="outline" className={`h-10 gap-1.5 rounded-full ${TOUCH}`}>
+              <Link to={links.competitors({ view: "list" })}><PlusIcon className="h-4 w-4" aria-hidden />Add competitor</Link>
+            </Button>
+          </div>
+        )}
       </header>
 
       {tabs.length > 1 && <div

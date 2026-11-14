@@ -284,6 +284,39 @@ describe("Top posts, the Singapore ads and Trends", () => {
     }
   });
 
+  it("give Leo's page the Radar header on every tab: one line under the h1, Your competitors with the count and Add competitor", () => {
+    as.user = { id: "u1", email: "tanjunsing@gmail.com" };
+    const rivals = { "content-studio-competitors-u1": { list: [{ id: "finch-ab12", name: "Finch" }, { id: "tiimo-cd34", name: "Tiimo" }], dismissed: [] } };
+    device(COACH, rivals);
+    const lines: Record<string, string> = {
+      "/swipe": "How apps and creators like yours post on Instagram and TikTok",
+      "/swipe?tab=foryou": "Posts and ads that fit what your brand sells",
+      "/swipe?tab=news": "Stories from your feeds and the names you watch",
+      "/swipe?tab=search": "TikTok and YouTube videos that beat their account's size",
+      "/swipe?tab=hooks": "Hook formulas and the real opening lines that used them",
+    };
+    for (const [path, line] of Object.entries(lines)) {
+      const html = draw(createElement(SwipeFilePage), path);
+      expect(html, path).toMatch(new RegExp(`</h1><p[^>]*>${line.replace(/'/g, "&#x27;")}</p>`));
+      expect(html, path).toMatch(/<a [^>]*href="\/competitors\?view=list"[^>]*>Your competitors <span[^>]*>2<\/span><\/a>/);
+      expect(html, path).toMatch(/<a [^>]*href="\/competitors\?view=list"[^>]*><svg[^]*?<\/svg>Add competitor<\/a>/);
+    }
+    // an adviser brand keeps its finance creators line, and the buttons
+    device(ADVISER, rivals);
+    const adviser = draw(createElement(SwipeFilePage), "/swipe");
+    expect(adviser).toContain("SG finance creators");
+    expect(adviser).toContain("Add competitor");
+  });
+
+  it("leave the competitor buttons off everyone else's page, since /competitors is Leo's", () => {
+    for (const brand of [COACH, ADVISER]) {
+      device(brand);
+      const html = draw(createElement(SwipeFilePage), "/swipe");
+      expect(html, brand).not.toContain("Your competitors");
+      expect(html, brand).not.toContain("Add competitor");
+    }
+  });
+
   it("never show Apps like yours to anyone else, on any brand", () => {
     for (const brand of [ADVISER, COACH]) {
       device(brand);

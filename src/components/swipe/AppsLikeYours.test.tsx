@@ -51,7 +51,8 @@ describe("Apps like yours under the page's heading", () => {
     const h = html();
     expect(h).not.toContain("accounts</span>");
     expect(h).not.toContain("this month");
-    expect(h).toContain("See how apps and creators like yours post");
+    // the page's header line says what the tab is for, so the tab doesn't say it again
+    expect(h).not.toContain("See how apps and creators like yours post");
     expect(h).not.toContain("Social north star");
   });
 });

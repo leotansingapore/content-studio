@@ -135,7 +135,6 @@ export default function AppsLikeYours({ userId }: { userId: string }) {
         </div>
       )}
 
-      {!state.accounts.length && <p className="text-sm text-muted-foreground">See how apps and creators like yours post on Instagram and TikTok, then remix their best.</p>}
       {find}
       <AddAccount userId={userId} />
 
