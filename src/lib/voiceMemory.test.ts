@@ -222,6 +222,23 @@ describe("Profile's Avoid and Product claims", () => {
   });
 });
 
+describe("Profile's current promotion", () => {
+  it("is the first fact while it runs, and drops out after its last day by itself", () => {
+    store.set(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#1E3A8A", name: "", handle: "", promo: { text: "20% off your first month", until: "2026-11-30" } }));
+    addFact(UID, "12 years as an adviser", at(0));
+    const on = memoryLine(UID, "posts");
+    expect(on).toBe([MEMORY_HEADER, `${FACTS_LEAD}My current offer, to quote word for word: 20% off your first month (last day 30 Nov 2026); 12 years as an adviser`].join("\n"));
+    vi.useFakeTimers({ now: new Date(2026, 11, 1, 9) });
+    try {
+      expect(memoryLine(UID, "posts")).toBe([MEMORY_HEADER, `${FACTS_LEAD}12 years as an adviser`].join("\n"));
+      vi.setSystemTime(new Date(2026, 10, 30, 23, 59));
+      expect(memoryLine(UID, "posts")).toBe(on);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("memoryLine", () => {
   it("is empty with nothing saved", () => {
     expect(memoryLine(UID, "posts")).toBe("");

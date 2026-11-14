@@ -12,10 +12,10 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { NO_ROOM, kitOf } from "@/components/brand/profileSave";
 import { guidelineLines } from "@/lib/brandRules";
-import { MAX_LEGAL, MAX_LEGAL_CHARS, saveBrand } from "@/lib/carousel";
+import { MAX_LEGAL, MAX_LEGAL_CHARS, MAX_PROMO_CHARS, livePromo, localDay, saveBrand } from "@/lib/carousel";
 import { adviserBrand } from "@/lib/profession";
 import {
-  FACT_CHARS, FACT_KINDS, LEARNING_CHARS, MAX_FACTS, RULES, addFactOf, addRule, factsOf, fullLine, onMemoryChanged, rulesOf, setFactOff, setLearningOff,
+  FACT_CHARS, FACT_KINDS, LEARNING_CHARS, MAX_FACTS, RULES, addFactOf, addRule, dayWords, factsOf, fullLine, onMemoryChanged, rulesOf, setFactOff, setLearningOff,
   type FactKind, type RuleKind,
 } from "@/lib/voiceMemory";
 
@@ -131,7 +131,7 @@ export function RuleList({ uid, kind, label, hint, placeholder }: { uid: string;
   return (
     <CountedList id={kind} label={label} hint={hint} rows={rows} max={RULES[kind].max} chars={LEARNING_CHARS - RULES[kind].lead.length} placeholder={placeholder}
       add={(t) => { const r = addRule(uid, kind, t); return "error" in r ? r.error : null; }}
-      remove={(id) => removed((on) => setLearningOff(uid, id, on))} />
+      remove={(id) => removed((off) => setLearningOff(uid, id, off))} />
   );
 }
 
@@ -154,7 +154,7 @@ export function FactList({ uid, kind, id, label, hint, placeholder }: { uid: str
   return (
     <CountedList id={id} label={label} hint={hint} rows={rows} max={cap} chars={FACT_CHARS - FACT_KINDS[kind].lead.length} placeholder={placeholder}
       add={(t) => { const r = addFactOf(uid, kind, t); return "error" in r ? r.error : null; }}
-      remove={(rowId) => removed((on) => setFactOff(uid, rowId, on))} />
+      remove={(rowId) => removed((off) => setFactOff(uid, rowId, off))} />
   );
 }
 
@@ -177,7 +177,7 @@ export function addLegal(uid: string, text: string): string | null {
 function LegalList({ uid }: { uid: string }) {
   const [rows, setRows] = useState(() => legalOf(uid));
   const removed = useRemove();
-  // brand kit saves fire no event, so the list reads again after its own changes and after an import (bump)
+  // brand kit saves fire no event, so the list reads again on LEGAL_CHANGED: its own changes and an import's
   useEffect(() => onLegalChanged(() => setRows(legalOf(uid))), [uid]);
   return (
     <CountedList id="legal" label="Legal lines" hint="Lines your ads must carry, added to the end of each one." rows={rows.map((text, i) => ({ id: String(i), text }))}
@@ -321,6 +321,56 @@ export function RulesSection({ uid }: { uid: string }) {
         <FactList uid={uid} kind="claim" id="claims" label="Product claims" hint="Claims your ads and posts can make." placeholder="Set up in 10 minutes" />
         <RuleList uid={uid} kind="avoid" label="Avoid" hint="What your content never shows or says. A post that uses one is flagged." placeholder="Guaranteed returns" />
       </div>
+    </section>
+  );
+}
+
+/** Fastlane's Current promotion: the offer's exact words and an optional last day, kept on the brand kit; every writer
+ * gets it as a fact while it runs (voiceMemory memoryLine, carousel livePromo) and stops after the last day. */
+export function PromoSection({ uid }: { uid: string }) {
+  const [saved, setSaved] = useState(() => kitOf(uid).promo);
+  const [text, setText] = useState(saved?.text ?? "");
+  const [until, setUntil] = useState(saved?.until ?? "");
+  const [error, setError] = useState("");
+  const write = (promo: { text: string; until?: string } | undefined) => {
+    saveBrand(uid, { ...kitOf(uid), promo });
+    setSaved(kitOf(uid).promo);
+  };
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    if (until && until < localDay()) return setError("Pick a last day from today on.");
+    write({ text: text.trim(), ...(until ? { until } : {}) });
+    setError("");
+  };
+  const none = () => {
+    write(undefined);
+    setText("");
+    setUntil("");
+    setError("");
+  };
+  const changed = text.trim() !== (saved?.text ?? "") || until !== (saved?.until ?? "");
+  const status = !saved ? "" : livePromo({ promo: saved }) ? (saved.until ? `On until ${dayWords(saved.until)}.` : "On, with no last day.") : `Ended ${dayWords(saved.until!)}. The AI no longer uses it.`;
+  return (
+    <section id="promotion" aria-labelledby="promotion-title" className="scroll-mt-20 space-y-2">
+      <h2 id="promotion-title" className={GROUP_H2}>Current promotion</h2>
+      <form onSubmit={save} className="space-y-3 rounded-xl border border-border/60 bg-card px-4 py-3.5 shadow-card">
+        <p className="text-xs text-muted-foreground">The AI uses your exact words while it runs, and stops after the last day.</p>
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+          <div className="min-w-0 space-y-1.5">
+            <Label htmlFor="pe-promo">Your current offer</Label>
+            <Input id="pe-promo" value={text} maxLength={MAX_PROMO_CHARS} placeholder="20% off your first month" onChange={(e) => (setText(e.target.value), setError(""))} className={TOUCH} />
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <Label htmlFor="pe-promo-until">Last day <span className="font-normal text-muted-foreground">(optional)</span></Label>
+            <Input id="pe-promo-until" type="date" min={localDay()} value={until} onChange={(e) => (setUntil(e.target.value), setError(""))} className={TOUCH} />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="submit" size="sm" disabled={!text.trim() || !changed} className={`h-9 ${TOUCH}`}>Save offer</Button>
+          <Button type="button" size="sm" variant="outline" disabled={!saved && !text && !until} onClick={none} className={`h-9 ${TOUCH}`}>No offer</Button>
+          <p aria-live="polite" className={`text-xs ${error ? "text-destructive" : status.startsWith("On") ? "text-success" : "text-muted-foreground"}`}>{error || status}</p>
+        </div>
+      </form>
     </section>
   );
 }

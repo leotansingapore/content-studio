@@ -9,6 +9,7 @@
 
 import { scoped } from "@/lib/profiles";
 import { loadCoachProfile } from "@/lib/coachProfile";
+import { livePromo, loadBrand } from "@/lib/carousel";
 
 export const MAX_FACTS = 20;
 export const FACT_CHARS = 160;
@@ -296,6 +297,11 @@ export function onMemoryChanged(fn: () => void): () => void {
 export const MEMORY_HEADER = "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):";
 export const FACTS_LEAD = "- Facts you may state about me (state no other facts, numbers, awards or results about me): ";
 export const KEEP_LEAD = "- Keep doing or avoid: ";
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "2026-11-30" -> "30 Nov 2026". */
+export const dayWords = (day: string) => `${Number(day.slice(8, 10))} ${MONTH_NAMES[Number(day.slice(5, 7)) - 1]} ${day.slice(0, 4)}`;
+/** Profile's current promotion as the first fact, while it runs (carousel.ts livePromo). */
+export const promoFact = (p: { text: string; until?: string }) => `My current offer, to quote word for word: ${p.text}${p.until ? ` (last day ${dayWords(p.until)})` : ""}`;
 
 function block(facts: string[], keep: string[]): string {
   if (!facts.length && !keep.length) return "";
@@ -309,7 +315,9 @@ function block(facts: string[], keep: string[]): string {
  * fact never goes before a learning.
  */
 export function memoryLine(userId: string, scope: Exclude<LearningScope, "all">, max = 1500): string {
-  const facts = loadFacts(userId).filter(isOn).map((f) => f.text);
+  const promo = livePromo(loadBrand(userId));
+  // the promotion first, so a long block leaves out the oldest facts before it
+  const facts = [...(promo ? [promoFact(promo)] : []), ...loadFacts(userId).filter(isOn).map((f) => f.text)];
   const learned = activeLearnings(loadLearnings(userId))
     // Do and Don't are about the words, so a picture's prompt goes without them
     .filter((l) => (l.scope === scope || l.scope === "all") && !(scope === "pictures" && (ruleKind(l.text) === "do" || ruleKind(l.text) === "dont")))

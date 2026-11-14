@@ -660,6 +660,8 @@ export interface CarouselBrand {
   avoidWords?: string;
   /** Lines every ad must carry (Brand > Profile > Rules), added to the end of an ad's text (plainText.ts withLegal). */
   legal?: string[];
+  /** The offer on now (Brand > Profile > Current promotion), in the brand's words, and its last day (YYYY-MM-DD). */
+  promo?: { text: string; until?: string };
   // North star phase 4 (Leo only): the fields below are read and written only on Leo's sign-ins.
   /** The brand's site, an http or https origin (brand-from-website), and when it was last read (ISO). */
   website?: string;
@@ -699,6 +701,7 @@ export const MAX_OFFER_URL = 300;
 export const MAX_AVOID_CHARS = 400;
 export const MAX_LEGAL = 30;
 export const MAX_LEGAL_CHARS = 200;
+export const MAX_PROMO_CHARS = 200;
 export const MAX_WEBSITE_CHARS = 200;
 export const MAX_PALETTE = 3;
 export const MAX_PALETTE_NAME = 20;
@@ -758,6 +761,24 @@ const slotList = (raw: unknown[]) => [...new Set(raw.filter((x): x is string => 
 const slotsByOf = (r: Record<string, unknown>): CarouselBrand["slotsBy"] =>
   Object.fromEntries(SOCIAL_PLATFORMS.flatMap((p) => (Array.isArray(r[p]) ? [[p, slotList(r[p] as unknown[])]] : [])));
 
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** The promotion's words, trimmed, and a last day only when it is a YYYY-MM-DD day; undefined with no words. */
+function promoOf(raw: unknown): CarouselBrand["promo"] {
+  const p = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const text = typeof p.text === "string" ? p.text.trim().slice(0, MAX_PROMO_CHARS) : "";
+  if (!text) return undefined;
+  return typeof p.until === "string" && DAY.test(p.until) ? { text, until: p.until } : { text };
+}
+
+/** The day on this device's calendar, as YYYY-MM-DD. */
+export const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** The promotion while it runs: through its last day, then undefined, so it drops out of every writer by itself. */
+export function livePromo(kit: Pick<CarouselBrand, "promo"> | null | undefined, now = new Date()): CarouselBrand["promo"] {
+  const p = kit?.promo;
+  return p?.text && (!p.until || p.until >= localDay(now)) ? p : undefined;
+}
+
 export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BRAND): CarouselBrand {
   const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   return {
@@ -788,6 +809,7 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     legal: Array.isArray(r.legal)
       ? r.legal.flatMap((l) => (typeof l === "string" && l.trim() ? [l.trim().slice(0, MAX_LEGAL_CHARS)] : [])).slice(0, MAX_LEGAL)
       : fallback.legal,
+    promo: "promo" in r ? promoOf(r.promo) : fallback.promo,
     website: typeof r.website === "string" ? webOrigin(r.website) : fallback.website,
     websiteReadAt: typeof r.websiteReadAt === "string" ? isoTime(r.websiteReadAt) : fallback.websiteReadAt,
     palette: Array.isArray(r.palette)

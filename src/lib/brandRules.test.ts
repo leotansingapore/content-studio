@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { allowedLinks, applyBrandRules, avoidList, brandOffers, brandRulesLine, capEmoji, countEmoji, guidelineLines, hashtagMax, offerUrl } from "@/lib/brandRules";
-import { MAX_AVOID_CHARS, sanitizeBrand } from "@/lib/carousel";
+import { MAX_AVOID_CHARS, livePromo, sanitizeBrand } from "@/lib/carousel";
 import { checkLimits, countHashtags, strayLinks } from "@/lib/platformCounters";
 
 const offers = [
@@ -83,6 +83,18 @@ describe("the Profile's Avoid list", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("the current promotion", () => {
+  it("keeps its words and a real last day, and runs through that day only", () => {
+    expect(sanitizeBrand({ promo: { text: "  20% off  ", until: "2026-11-30" } }).promo).toEqual({ text: "20% off", until: "2026-11-30" });
+    expect(sanitizeBrand({ promo: { text: "20% off", until: "30 Nov" } }).promo).toEqual({ text: "20% off" });
+    expect(sanitizeBrand({ promo: { text: "  " } }).promo).toBeUndefined();
+    const kit = { promo: { text: "20% off", until: "2026-11-30" } };
+    expect(livePromo(kit, new Date(2026, 10, 30, 23, 0))).toEqual(kit.promo);
+    expect(livePromo(kit, new Date(2026, 11, 1, 0, 1))).toBeUndefined();
+    expect(livePromo({ promo: { text: "Always on" } }, new Date(2030, 0, 1))).toEqual({ text: "Always on" });
   });
 });
 
