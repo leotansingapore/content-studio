@@ -170,6 +170,17 @@ describe("the people on camera (Fastlane's Studio > Create, 11 Nov)", () => {
     // the claim is a spoken line too: over 8 words would slip out of sync, so it is refused before paying
     expect(ok({ template: "reaction-claim", fields: { question: "one two three four five six seven eight nine" } })).toMatchObject({ ok: false });
   });
+
+  it("keeps the 14 Nov test makes' misses out: faces from the first frame in the cars, and each person named once", () => {
+    for (const id of ["car-call", "car-split"]) {
+      const s = templateSystem(templateById(id)!, 8, null);
+      expect(s, id).toContain("From the first frame, each half is framed on");
+      expect(s, id).toContain("Opening on the dashboard");
+      expect(s, id).toContain("on the steering wheel too");
+    }
+    expect(templateSystem(templateById("two-host-podcast")!, 8, null)).toContain("each host described once (ethnicity, age, face, hair, outfit)");
+    expect(templateSystem(templateById("reaction-claim")!, 8, null)).toContain("described once exactly as given (ethnicity, age");
+  });
 });
 
 describe("a template clip request", () => {

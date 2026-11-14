@@ -256,6 +256,8 @@ const PHASE3_TEMPLATES: VideoTemplate[] = [
     structure: [
       "Opening line: the length, vertical 9:16, a small podcast studio",
       "Two hosts, each at a microphone on a boom arm, warm light",
+      // the 14 Nov test make drifted on both hosts' age and look: name each one once, up front
+      "Who: each host described once (ethnicity, age, face, hair, outfit), the two clearly different",
       "Beats in order: the host asks the question, the guest answers",
       "Each spoken line inside the beat where it is said",
     ],
@@ -294,7 +296,8 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     warnings: SKIT_WARNINGS,
     structure: [
       "Opening line: the length, vertical 9:16, a phone camera propped at chest height, one take, at home",
-      "Who: one person holding a phone low, watching a clip on it, the phone's screen turned away from the lens",
+      // the 14 Nov test make came out a different ethnicity from the one asked for
+      "Who: the person on camera described once exactly as given (ethnicity, age, face, hair, outfit), holding a phone low, watching a clip on it, the phone's screen turned away from the lens",
       "Beat 1: a voice from the phone's small speaker says the claim; they watch, eyebrows rising",
       "Beat 2: they lower the phone, look straight into the lens and say the answer",
       "Each spoken line inside the beat where it is said",
@@ -420,12 +423,14 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     structure: [
       "Opening line: the length, vertical 9:16, split screen: top half and bottom half, each a phone on a dashboard mount facing the driver's seat",
       "Top half: the first friend in her car; bottom half: the other friend in a different car, different clothes and car interior",
+      // the 14 Nov test make opened on an empty dashboard for 3 to 4 seconds
+      "From the first frame, each half is framed on the driver's face and shoulders; the dashboard is only a thin strip at the bottom edge",
       "Both on a hands-free call through earbuds, eyes mostly on the road, daylight through the windscreen",
       "Beats in order: the first friend says the problem, the other friend answers",
       "Each spoken line inside the beat where it is said, from the half where it is said",
     ],
     guidance: ["A clean straight line between the halves.", "Light traffic outside, steady and calm."],
-    avoid: ["Hands off the wheel for long", "Logos in the cars", "Long spoken lines"],
+    avoid: ["Opening on the dashboard, the wheel or an empty seat", "Hands off the wheel for long", "Car badges or logos, on the steering wheel too", "Long spoken lines"],
     leoOnly: true,
     rule: SKIT_RULE,
   },
@@ -466,11 +471,12 @@ const PERSON_TEMPLATES: VideoTemplate[] = [
     structure: [
       "Opening line: the length, vertical 9:16, split screen: the driver in the top half, the passenger in the bottom half, the same car",
       "Each half a phone on the dashboard facing one seat, daylight, the same street passing behind",
+      "From the first frame, each half is framed on that person's face and shoulders; the dashboard is only a thin strip at the bottom edge",
       "Beats in order: the driver says the problem, the passenger answers and lifts what they show",
       "Each spoken line inside the beat where it is said, from the half where it is said",
     ],
     guidance: ["The two friends look clearly different and wear different clothes.", "Steady and calm, light traffic."],
-    avoid: ["Readable screens", "Logos in the car", "Long spoken lines"],
+    avoid: ["Opening on the dashboard or an empty seat", "Readable screens", "Car badges or logos, on the steering wheel too", "Long spoken lines"],
     leoOnly: true,
     rule: SKIT_RULE,
   },
