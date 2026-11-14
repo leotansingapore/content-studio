@@ -74,7 +74,7 @@ describe("brandOverview", () => {
   it("edits the basics in place and links the rest: products, audiences, voice and what is on file open their own pages", () => {
     const edits = (o: Partial<OverviewInput>) => Object.fromEntries(brandOverview({ ...empty, ...o }).flatMap((g) => g.rows).map((r) => [r.id, r.edit ?? null]));
     expect(edits({})).toEqual({
-      name: "name", does: "does", sells: "offer", edge: "edge", who: "who", topics: "topics", logo: "logo", colours: "colours", voice: null, avoid: "avoid", signoff: "signoff",
+      name: "name", does: "does", country: "country", sells: "offer", edge: "edge", who: "who", niche: "niche", topics: "topics", logo: "logo", colours: "colours", voice: null, avoid: "avoid", signoff: "signoff",
     });
     const p = { id: "pd-a", name: "Tracker", what: "", forWho: "", price: "$9", pictures: [], sources: [], use: true, from: "you" as const, addedAt: "" };
     const leo = edits({ leo: true, products: [p] });
@@ -88,5 +88,18 @@ describe("brandOverview", () => {
   it("shows the logo itself as the logo row's value", () => {
     expect(row({ ...empty, kit: { ...DEFAULT_BRAND, logo: "data:image/png;base64,x" } }, "logo").image).toBe("data:image/png;base64,x");
     expect(row(empty, "logo").image).toBeUndefined();
+  });
+});
+
+describe("Country and Niche", () => {
+  it("open in place on the brand kit and are never chased as a gap", () => {
+    const groups = brandOverview({ leo: false, kit: null, positioning: null, voice: null });
+    const rows = groups.flatMap((g) => g.rows);
+    expect(rows.find((r) => r.id === "country")).toMatchObject({ edit: "country", optional: true, value: "" });
+    expect(rows.find((r) => r.id === "niche")).toMatchObject({ edit: "niche", optional: true, value: "" });
+    expect(completeness(groups).missing.map((r) => r.id)).not.toContain("country");
+    const set = brandOverview({ leo: false, kit: { ...DEFAULT_BRAND, country: " Singapore ", niche: "Cafes" }, positioning: null, voice: null }).flatMap((g) => g.rows);
+    expect(set.find((r) => r.id === "country")?.value).toBe("Singapore");
+    expect(set.find((r) => r.id === "niche")?.value).toBe("Cafes");
   });
 });

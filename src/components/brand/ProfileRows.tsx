@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isSet, type OverviewGroup, type OverviewRow, type ProfileEdit } from "@/lib/brandOverview";
 import { kitOf, saveProfileField, type ProfileField } from "@/components/brand/profileSave";
 import { GROUP_CARD, GROUP_H2 } from "@/components/brand/ProfileLists";
-import { BRAND_PRESETS, MAX_AVOID_CHARS, MAX_IMAGE_CHARS, MAX_NAME_CHARS, MAX_OFFER_NAME, MAX_OFFER_URL, MAX_SIGNOFF_CHARS, normalizeHex } from "@/lib/carousel";
+import { BRAND_PRESETS, MAX_AVOID_CHARS, MAX_COUNTRY_CHARS, MAX_IMAGE_CHARS, MAX_NAME_CHARS, MAX_NICHE_CHARS, MAX_OFFER_NAME, MAX_OFFER_URL, MAX_SIGNOFF_CHARS, normalizeHex } from "@/lib/carousel";
 import { isAdviser } from "@/lib/profession";
 import { offerUrl } from "@/lib/brandRules";
 import { EMPTY_POSITIONING, loadPositioning } from "@/lib/positioning";
@@ -216,6 +216,10 @@ function Editor({ kind, uid, save }: { kind: ProfileEdit; uid: string; save: (er
           <ProfessionFieldEdit initial={kit.profession ?? ""} save={to("profession")} />
         </div>
       );
+    case "country":
+      return <TextEdit label="Country" initial={kit.country ?? ""} max={MAX_COUNTRY_CHARS} placeholder="Singapore" save={to("country")} />;
+    case "niche":
+      return <TextEdit label="Niche" initial={kit.niche ?? ""} max={MAX_NICHE_CHARS} placeholder={isAdviser(kit.profession) ? "Young families buying their first home" : "Gut health for busy women"} save={to("niche")} />;
     case "offer":
       return <OfferEdit uid={uid} save={save} />;
     case "edge":

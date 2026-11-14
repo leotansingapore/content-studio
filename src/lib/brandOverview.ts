@@ -11,7 +11,7 @@ import type { Product } from "@/lib/products";
 import type { VoiceProfile } from "@/lib/voiceProfile";
 
 /** The rows Profile edits in place, each against the store its page saves to. */
-export type ProfileEdit = "name" | "does" | "offer" | "price" | "edge" | "who" | "topics" | "proof" | "logo" | "colours" | "avoid" | "signoff";
+export type ProfileEdit = "name" | "does" | "country" | "offer" | "price" | "edge" | "who" | "niche" | "topics" | "proof" | "logo" | "colours" | "avoid" | "signoff";
 
 export interface OverviewRow {
   id: string;
@@ -89,6 +89,7 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
       rows: [
         { id: "name", label: "Name", value: t(kit?.name) || t(i.marketName), to: "/brand#you", add: "Add your name", edit: "name" },
         { id: "does", label: "What you do", value: t(pos?.oneLiner) || t(kit?.profession) || t(kit?.role), to: pos?.oneLiner ? "/plan" : "/brand#you", add: "Say what you do", edit: "does" },
+        { id: "country", label: "Country", value: t(kit?.country), to: "/playbook#identity", add: "Add your country", optional: true, edit: "country" },
         ...(i.leo ? [{ id: "website", label: "Website", value: t(kit?.website).replace(/^https?:\/\//, ""), to: "/brand#website", add: "Add your website" }] : []),
       ],
     },
@@ -110,6 +111,7 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
         i.leo
           ? { id: "who", label: "Who buys", value: "", chips: audiences.length ? audiences.map((a) => a.name) : who, to: "/audiences", add: "Add an audience" }
           : { id: "who", label: "Who buys", value: "", chips: who, to: "/plan", add: "Say who you serve", edit: "who" },
+        { id: "niche", label: "Niche", value: t(kit?.niche), to: "/playbook#personas", add: "Add your niche", optional: true, edit: "niche" },
         { id: "topics", label: "Topics", value: "", chips: pos?.topics ?? [], to: "/plan", add: "Add your topics", edit: "topics" },
       ],
     },

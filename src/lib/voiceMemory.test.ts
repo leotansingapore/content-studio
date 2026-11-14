@@ -252,6 +252,16 @@ describe("Profile's current promotion", () => {
   });
 });
 
+describe("Profile's Country and Niche", () => {
+  it("go to the writers as facts when typed, and add nothing when empty", () => {
+    const kit = (more: object) => store.set(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#1E3A8A", name: "", handle: "", ...more }));
+    kit({ country: "  ", niche: "" });
+    expect(memoryLine(UID, "posts")).toBe("");
+    kit({ country: "Singapore", niche: "Young families buying their first home" });
+    expect(memoryLine(UID, "videos")).toBe(`${MEMORY_HEADER}\n${FACTS_LEAD}Where I work: Singapore; My niche: Young families buying their first home`);
+  });
+});
+
 describe("memoryLine", () => {
   it("is empty with nothing saved", () => {
     expect(memoryLine(UID, "posts")).toBe("");

@@ -320,9 +320,17 @@ function block(facts: string[], keep: string[]): string {
  * fact never goes before a learning.
  */
 export function memoryLine(userId: string, scope: Exclude<LearningScope, "all">, max = 1500): string {
-  const promo = livePromo(loadBrand(userId));
-  // the promotion first, so a long block leaves out the oldest facts before it
-  const facts = [...(promo ? [promoFact(promo)] : []), ...loadFacts(userId).filter(isOn).map((f) => f.text)];
+  const kit = loadBrand(userId);
+  const promo = livePromo(kit);
+  const country = kit?.country?.trim();
+  const niche = kit?.niche?.trim();
+  // the promotion and the Profile's Country and Niche first, so a long block leaves out the oldest facts before them
+  const facts = [
+    ...(promo ? [promoFact(promo)] : []),
+    ...(country ? [`Where I work: ${country}`] : []),
+    ...(niche ? [`My niche: ${niche}`] : []),
+    ...loadFacts(userId).filter(isOn).map((f) => f.text),
+  ];
   const learned = activeLearnings(loadLearnings(userId))
     // Do and Don't are about the words, so a picture's prompt goes without them
     .filter((l) => (l.scope === scope || l.scope === "all") && !(scope === "pictures" && (ruleKind(l.text) === "do" || ruleKind(l.text) === "dont")))

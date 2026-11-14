@@ -10,7 +10,7 @@ import { loadSocialAccounts } from "@/lib/socialAccounts";
 
 export const NO_ROOM = "This device is out of room, so that wasn't saved. Clear some space, then try again.";
 
-export type ProfileField = "name" | "oneLiner" | "profession" | "edge" | "who" | "topics" | "price" | "proof" | "avoid" | "signoff" | "logo" | "color" | "offerName" | "offerUrl";
+export type ProfileField = "name" | "oneLiner" | "profession" | "country" | "niche" | "edge" | "who" | "topics" | "price" | "proof" | "avoid" | "signoff" | "logo" | "color" | "offerName" | "offerUrl";
 
 /** The kit as the brand kit page starts it: the saved one, else a new one with the handle of a connected account. */
 export function kitOf(uid: string): CarouselBrand {
@@ -45,6 +45,10 @@ export function saveProfileField(uid: string, field: ProfileField, value: string
       return kit(uid, { name: value });
     case "profession":
       return kit(uid, { profession: value });
+    case "country":
+      return kit(uid, { country: value });
+    case "niche":
+      return kit(uid, { niche: value });
     case "avoid":
       return kit(uid, { avoidWords: value });
     case "signoff":

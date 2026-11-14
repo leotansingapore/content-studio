@@ -633,6 +633,9 @@ export interface CarouselBrand {
   role?: string;
   /** "What do you do?" in the brand's words (src/lib/profession.ts); unset is a financial adviser. Every AI writer writes for it. */
   profession?: string;
+  /** Brand > Profile's Country and Niche, as typed; the writers get them as facts (voiceMemory memoryLine). */
+  country?: string;
+  niche?: string;
   /** Square headshot as a small JPEG data URL: carousel footers and the video end card. */
   photo?: string;
   /** Logo as a PNG/WebP data URL: the video watermark. */
@@ -694,6 +697,8 @@ export const DEFAULT_BRAND: CarouselBrand = { color: BRAND_PRESETS[0].color, nam
 export const MAX_NAME_CHARS = 40;
 export const MAX_HANDLE_CHARS = 40;
 export const MAX_ROLE_CHARS = 50;
+export const MAX_COUNTRY_CHARS = 60;
+export const MAX_NICHE_CHARS = 120;
 export const MAX_SIGNOFF_CHARS = 600;
 export const MAX_DM_CHARS = 100;
 export const MAX_WA_TEXT = 300;
@@ -791,6 +796,8 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     handle: typeof r.handle === "string" ? r.handle.slice(0, MAX_HANDLE_CHARS) : fallback.handle,
     role: typeof r.role === "string" ? r.role.slice(0, MAX_ROLE_CHARS) : fallback.role,
     profession: typeof r.profession === "string" ? r.profession.slice(0, MAX_PROFESSION_CHARS) : fallback.profession,
+    country: typeof r.country === "string" ? r.country.slice(0, MAX_COUNTRY_CHARS) : fallback.country,
+    niche: typeof r.niche === "string" ? r.niche.slice(0, MAX_NICHE_CHARS) : fallback.niche,
     photo: "photo" in r ? sanitizeImage(r.photo) : fallback.photo,
     logo: "logo" in r ? sanitizeImage(r.logo) : fallback.logo,
     signOff: typeof r.signOff === "string" ? r.signOff.slice(0, MAX_SIGNOFF_CHARS) : fallback.signOff,
