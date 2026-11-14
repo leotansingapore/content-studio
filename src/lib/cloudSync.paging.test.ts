@@ -51,6 +51,14 @@ describe("the sync pull past 1,000 rows", () => {
     expect(asked).toHaveLength(3);
   });
 
+  it("reads every row's stamp past 1,000 rows too, three pages in key order", async () => {
+    rows = Array.from({ length: 2345 }, (_, k) => row(k));
+    const { data, error } = await supabaseBackend(ME).stampsAll!();
+    expect(error).toBeNull();
+    expect(new Set(data!.map((r) => r.key)).size).toBe(2345);
+    expect(asked).toHaveLength(3);
+  });
+
   it("asks once when the account fits one page, and again only after a full one", async () => {
     rows = Array.from({ length: 1000 }, (_, k) => row(k));
     expect((await supabaseBackend(ME).pull()).data).toHaveLength(1000);

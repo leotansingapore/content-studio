@@ -27,6 +27,9 @@ const SYNC_PREFIX = "content-studio-";
 const META_KEY = "cs-sync-meta"; // deliberately outside SYNC_PREFIX
 const PENDING_PREFIX = "cs-sync-pending-"; // + user id; also outside SYNC_PREFIX
 const PUSH_DEBOUNCE_MS = 800;
+// The first pull's data reads: keys per read (each is in the URL), and past this many a whole read is quicker.
+const DELTA_CHUNK = 40;
+const DELTA_MAX = 200;
 const RETRY_DELAYS_MS = [2_000, 10_000, 30_000, 60_000];
 const SIGN_OUT_WAIT_MS = 3_000;
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
@@ -120,6 +123,8 @@ export interface SyncBackend {
   /** Write the row only if the cloud's still has the stamp `seen` (null: no row yet). Merged keys save this way. */
   swap?(row: SyncRow, seen: string | null): PromiseLike<"ok" | "conflict" | Outcome>;
   stamps?(keys: string[]): PromiseLike<{ data: Pick<SyncRow, "key" | "updated_at">[] | null; error: unknown }>;
+  /** Every row's key and stamp, no data: the first pull then reads the data of only the rows this device lacks. */
+  stampsAll?(): PromiseLike<{ data: Pick<SyncRow, "key" | "updated_at">[] | null; error: unknown }>;
 }
 
 // Unpatched storage calls: the engine's own reads and writes must not re-queue.
@@ -459,10 +464,35 @@ export function createCloudSync(
     }
   };
 
+  // A row stamped as this device last took or sent it, with nothing unsent here, already holds the cloud's data, so
+  // its copy here stands in for the download and the same rules run on it (14 Nov: the whole read was ~4 MB and 1.5 s
+  // on Leo's account, every load). A new device or a long gap reads everything in one go.
+  const readRows = async (): Promise<{ data: SyncRow[] | null; error: unknown }> => {
+    if (!backend.stampsAll) return backend.pull();
+    const stamps = await backend.stampsAll();
+    if (stamps.error || !stamps.data) return { data: null, error: stamps.error ?? new Error("no stamps") };
+    const unsent = new Set([...pending, ...sending, ...readJson<string[]>(storage, pendingKey, [])]);
+    const rows: SyncRow[] = [];
+    const need = new Set<string>();
+    for (const s of stamps.data) {
+      const local = storage.getItem(s.key);
+      if (local !== null && meta[s.key] && ms(meta[s.key]) === ms(s.updated_at) && !unsent.has(s.key)) rows.push({ ...s, data: local });
+      else need.add(s.key);
+    }
+    if (need.size > DELTA_MAX || (need.size && need.size === stamps.data.length)) return backend.pull();
+    const keys = [...need];
+    const reads = await Promise.all(Array.from({ length: Math.ceil(keys.length / DELTA_CHUNK) }, (_, i) => backend.pull(keys.slice(i * DELTA_CHUNK, (i + 1) * DELTA_CHUNK))));
+    for (const r of reads) {
+      if (r.error || !r.data) return { data: null, error: r.error ?? new Error("no rows") };
+      rows.push(...r.data.filter((row) => need.has(row.key)));
+    }
+    return { data: rows, error: null };
+  };
+
   const pull = async (): Promise<boolean> => {
     let rows: SyncRow[];
     try {
-      const { data, error } = await backend.pull();
+      const { data, error } = await readRows();
       if (error || !data) return false;
       rows = data;
     } catch {
@@ -585,8 +615,8 @@ export function createCloudSync(
 const PAGE_ROWS = 1000;
 
 /** Every row of a read, a page at a time in key order, each page after the last key, until a short page. */
-async function paged(page: (after: string | null) => PromiseLike<{ data: SyncRow[] | null; error: unknown }>): Promise<{ data: SyncRow[] | null; error: unknown }> {
-  const all: SyncRow[] = [];
+async function paged<T extends { key: string }>(page: (after: string | null) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<{ data: T[] | null; error: unknown }> {
+  const all: T[] = [];
   for (let after: string | null = null; ;) {
     const { data, error } = await page(after);
     if (error || !data) return { data: null, error: error ?? new Error("no rows") };
@@ -614,6 +644,10 @@ export function supabaseBackend(userId: string): SyncBackend {
       ),
     remove: (keys) => table().delete().eq("user_id", userId).in("key", keys),
     stamps: (keys) => table().select("key,updated_at").eq("user_id", userId).in("key", keys),
+    stampsAll: () => paged((after) => {
+      const q = table().select("key,updated_at").eq("user_id", userId);
+      return (after === null ? q : q.gt("key", after)).order("key").limit(PAGE_ROWS);
+    }),
     pullLike: (prefixes) => pages(() => base().or(prefixes.map((p) => `key.like.${p}*`).join(","))),
     swap: async (row, seen) => {
       if (seen === null) {

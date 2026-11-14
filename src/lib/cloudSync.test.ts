@@ -1054,3 +1054,123 @@ describe("what a user would lose or get back at the edges of sync", () => {
     expect(changed).toEqual([LIST]);
   });
 });
+
+describe("the first pull reads only the rows this device lacks", () => {
+  const PLAIN = (n: string) => `content-studio-dplain${n}-${ME}`;
+  const LIST = `content-studio-mdelta-${ME}`;
+  registerSyncMerge("content-studio-mdelta-", listMerger());
+  const list = (...ids: string[]) => JSON.stringify(ids.map((id) => ({ id })));
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-15T10:00:00.000Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  // The fake table with the stamps read the real one has, recording each data read and reading only the keys asked.
+  function stamping(rows: SyncRow[]) {
+    const f = fakeBackend(rows);
+    const reads: (string[] | "all")[] = [];
+    const pull = f.backend.pull;
+    f.backend.pull = async (keys) => {
+      reads.push(keys ? [...keys].sort() : "all");
+      const r = await pull(keys);
+      return keys && r.data ? { ...r, data: r.data.filter((row) => keys.includes(row.key)) } : r;
+    };
+    f.backend.stampsAll = async () => ({ data: [...f.table.values()].map(({ key, updated_at }) => ({ key, updated_at })), error: null });
+    return { ...f, reads };
+  }
+  const copy = (s: MemoryStorage) => {
+    const c = new MemoryStorage();
+    for (let i = 0; i < s.length; i++) c.setItem(s.key(i)!, s.getItem(s.key(i)!)!);
+    return c;
+  };
+  const dump = (s: MemoryStorage) => Object.fromEntries(Array.from({ length: s.length }, (_, i) => [s.key(i)!, s.getItem(s.key(i)!)]).sort());
+  const tableOf = (t: Map<string, SyncRow>) => Object.fromEntries([...t.entries()].sort());
+
+  // A laptop synced, then a phone changed some rows, removed one and added to the list, then the laptop came back
+  // with an edit it never sent: the laptop's storage and the cloud's rows at that point.
+  async function history() {
+    const cloud = fakeBackend();
+    const laptop = new MemoryStorage();
+    const a = createCloudSync(ME, laptop, cloud.backend);
+    await a.start();
+    for (const n of ["a", "b", "c", "d"]) write(laptop, a, PLAIN(n), `${n}1`);
+    write(laptop, a, LIST, list("x"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    await a.stop();
+
+    vi.setSystemTime(new Date("2026-09-15T11:00:00.000Z"));
+    const phone = new MemoryStorage();
+    const b = createCloudSync(ME, phone, cloud.backend);
+    await b.start();
+    write(phone, b, PLAIN("b"), "b2 from the phone");
+    write(phone, b, LIST, list("x", "y"));
+    phone.removeItem(PLAIN("c"));
+    b.noteWrite(PLAIN("c"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    await b.stop();
+
+    vi.setSystemTime(new Date("2026-09-15T12:00:00.000Z"));
+    const again = createCloudSync(ME, laptop, fakeBackend([...cloud.table.values()]).backend);
+    write(laptop, again, PLAIN("d"), "d2 unsent from the laptop");
+    vi.clearAllTimers(); // the tab closes before it sends
+    return { laptop, rows: [...cloud.table.values()] };
+  }
+
+  it("downloads the changed rows and the unsent one, and none of the rows it already holds", async () => {
+    const { laptop, rows } = await history();
+    const cloud = stamping(rows);
+    await createCloudSync(ME, laptop, cloud.backend).start();
+    expect(cloud.reads).toEqual([[LIST, PLAIN("b"), PLAIN("d"), `content-studio-tombstones-${ME}`].sort()]);
+    expect(laptop.getItem(PLAIN("a"))).toBe("a1");
+    expect(laptop.getItem(PLAIN("b"))).toBe("b2 from the phone");
+    expect(laptop.getItem(PLAIN("c"))).toBeNull();
+    expect(laptop.getItem(PLAIN("d"))).toBe("d2 unsent from the laptop");
+  });
+
+  it("ends exactly where a whole read ends, on this device and in the cloud", async () => {
+    const { laptop, rows } = await history();
+    const whole = { storage: copy(laptop), cloud: fakeBackend(rows) };
+    const delta = { storage: copy(laptop), cloud: stamping(rows) };
+    await createCloudSync(ME, whole.storage, whole.cloud.backend).start();
+    await createCloudSync(ME, delta.storage, delta.cloud.backend).start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(dump(delta.storage)).toEqual(dump(whole.storage));
+    expect(tableOf(delta.cloud.table)).toEqual(tableOf(whole.cloud.table));
+    expect(JSON.parse(delta.storage.getItem(LIST)!).map((x: { id: string }) => x.id)).toEqual(["x", "y"]);
+  });
+
+  it("reads everything in one go on a device that holds nothing", async () => {
+    const rows = Array.from({ length: 5 }, (_, i) => ({ key: PLAIN(String(i)), data: `v${i}`, updated_at: OLD }));
+    const cloud = stamping(rows);
+    const storage = new MemoryStorage();
+    await createCloudSync(ME, storage, cloud.backend).start();
+    expect(cloud.reads).toEqual(["all"]);
+    expect(storage.getItem(PLAIN("4"))).toBe("v4");
+  });
+
+  it("asks for at most 40 rows at a time", async () => {
+    const storage = new MemoryStorage();
+    const rows = Array.from({ length: 100 }, (_, i) => ({ key: PLAIN(String(i).padStart(3, "0")), data: `v${i}`, updated_at: NEW }));
+    // this device holds every row, each taken before the cloud's copy changed
+    rows.forEach((r) => storage.setItem(r.key, "older"));
+    // and one it already holds as the cloud does
+    storage.setItem(PLAIN("same"), "same");
+    storage.setItem("cs-sync-meta", JSON.stringify({ ...Object.fromEntries(rows.map((r) => [r.key, OLD])), [PLAIN("same")]: NEW }));
+    const cloud = stamping([...rows, { key: PLAIN("same"), data: "same", updated_at: NEW }]);
+    await createCloudSync(ME, storage, cloud.backend).start();
+    expect(cloud.reads.map((r) => (r === "all" ? r : r.length))).toEqual([40, 40, 20]);
+    expect(storage.getItem(PLAIN("099"))).toBe("v99");
+  });
+
+  it("fails the pull, to try again, when the stamps can't be read", async () => {
+    const cloud = stamping([{ key: PLAIN("a"), data: "a1", updated_at: OLD }]);
+    cloud.backend.stampsAll = async () => ({ data: null, error: { message: "offline" } });
+    const storage = new MemoryStorage();
+    const sync = createCloudSync(ME, storage, cloud.backend);
+    await sync.start();
+    expect(sync.pulled()).toBe(false);
+    expect(cloud.reads).toEqual([]);
+  });
+});
