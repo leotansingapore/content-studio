@@ -175,6 +175,20 @@ describe("buildLibrary", () => {
     expect(byKey(made, "g:im9").source).toBe("From Singlife, 40 days running");
   });
 
+  it("keeps the source's picture and author for the Original inset, on posts, slideshows and videos, and none without a picture", () => {
+    const src = (cover?: string) => ({ key: "top:1", kind: "top-post" as const, author: "@mrbrown", remixedAt: "", ...(cover ? { cover } : {}) });
+    const made = build({
+      drafts: [draft("rx", { source: src("https://cdn.example.com/a.jpg") }), draft("plain", { source: src() })],
+      slideshows: [show("shx", { source: src("/covers/b.jpg") })],
+      projects: [project("px", { source: { ...src("https://cdn.example.com/c.jpg"), author: undefined } })],
+    });
+    expect(byKey(made, "d:rx").original).toEqual({ cover: "https://cdn.example.com/a.jpg", by: "@mrbrown" });
+    expect(byKey(made, "s:shx").original).toEqual({ cover: "/covers/b.jpg", by: "@mrbrown" });
+    expect(byKey(made, "v:px").original).toEqual({ cover: "https://cdn.example.com/c.jpg", by: "" });
+    expect(byKey(made, "d:plain").original).toBeUndefined();
+    expect(byKey(items, "d:t1").original).toBeUndefined();
+  });
+
   it("gives a tied draft its carousel slide, slideshow or video thumb and name", () => {
     expect(byKey(items, "d:t2").thumb).toEqual({ kind: "slide", carouselId: "d:t2" });
     expect(byKey(items, "d:ss").thumb).toEqual({ kind: "show", showId: "sh1" });

@@ -49,6 +49,8 @@ export interface LibraryItem {
   kind: string;
   /** What it was remixed from: "From a TikTok video by @handle". */
   source?: string;
+  /** The post it was remixed from, when that has a picture: drawn small in the card's corner (Fastlane's Original). */
+  original?: { cover: string; by: string };
   thumb?:
     | { kind: "slide"; carouselId: string }
     | { kind: "show"; showId: string }
@@ -119,6 +121,9 @@ const sourceLine = (s?: RemixSource) => {
   }
 };
 
+/** The source's picture and author for the card's Original inset; none without a picture. */
+const originalOf = (s?: RemixSource) => (s?.cover ? { original: { cover: s.cover, by: s.author ?? "" } } : {});
+
 // a Design's post opens in Design: the carousel maker would rebuild it as text slides
 // an /image design's post opens in Image, where its picture is
 export const draftHref = (d: Pick<DraftEntry, "id" | "format">, show?: Pick<Slideshow, "id">, car?: Pick<SavedCarousel, "id">, design?: Pick<DesignDoc, "id">, image?: Pick<ImageDesign, "id">): string => {
@@ -151,6 +156,7 @@ function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project
     format,
     kind: design ? "Design" : show ? "Slideshow" : FORMAT_LABELS[format],
     ...(d.source ? sourceLine(d.source) : show?.source ? sourceLine(show.source) : image?.source ? { source: `From ${image.source.label}` } : {}),
+    ...originalOf(d.source ?? show?.source),
     status,
     title: clip(d.hook?.trim() || firstLine(d.draft) || project?.name || show?.title || car?.title || (image ? imageTitle(image) : "") || "Untitled"),
     words: [d.hook, d.draft, d.firstComment, car && carouselWords(car), show && slideWords(show), project?.name, project?.caption, design && designWords(design), ...(image ? Object.values(image.words) : [])].filter(Boolean).join("\n"),
@@ -234,6 +240,7 @@ export function buildLibrary(i: {
         format: "carousel",
         kind: "Slideshow",
         ...sourceLine(s.source),
+        ...originalOf(s.source),
         status: "ready",
         title: clip(s.title),
         words: slideWords(s),
@@ -247,6 +254,8 @@ export function buildLibrary(i: {
         key: `v:${p.id}`,
         format: "video",
         kind: "Video",
+        ...sourceLine(p.source),
+        ...originalOf(p.source),
         status: "ready",
         title: clip(p.name || "Video"),
         words: [p.name, p.caption].filter(Boolean).join("\n"),

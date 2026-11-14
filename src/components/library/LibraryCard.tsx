@@ -75,6 +75,7 @@ function LibraryCard({ item, sources, picked, onPick, onAddToSet, onRemoveFromSe
           <LibraryThumb item={item} sources={sources} seen={seen} />
         </div>
         {tools}
+        {item.original && <Original o={item.original} />}
       </div>
       <div className="min-w-0 space-y-0.5">
         {/* Fastlane's card: where it came from, "Kind · title" on one line, then when it goes out */}
@@ -126,6 +127,24 @@ function LibraryCard({ item, sources, picked, onPick, onAddToSet, onRemoveFromSe
         </label>
       )}
     </article>
+  );
+}
+
+/** The post it was remixed from, small in the thumb's top corner; nothing once its picture fails to load. */
+function Original({ o }: { o: NonNullable<LibraryItem["original"]> }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) return null;
+  const label = `Remixed from ${o.by || "another post"}`;
+  return (
+    <img
+      src={o.cover}
+      alt={label}
+      title={label}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setBroken(true)}
+      className="pointer-events-none absolute right-1.5 top-1.5 z-10 aspect-[4/5] w-1/4 min-w-8 rounded-md border-2 border-background bg-muted object-cover shadow-md"
+    />
   );
 }
 

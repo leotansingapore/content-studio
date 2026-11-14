@@ -52,6 +52,13 @@ describe("a Library card", () => {
     expect(html(<LibraryCard item={item()} sources={sources} />)).not.toContain("Add to set");
   });
 
+  it("shows the post it was remixed from small in the corner, named for a screen reader, and nothing without one", () => {
+    const out = html(<LibraryCard item={item({ original: { cover: "https://cdn.example.com/a.jpg", by: "@kuehqueen" } })} sources={sources} />);
+    expect(out).toMatch(/<img src="https:\/\/cdn.example.com\/a.jpg" alt="Remixed from @kuehqueen"[^>]*class="[^"]*absolute right-1.5 top-1.5/);
+    expect(html(<LibraryCard item={item({ original: { cover: "/c.jpg", by: "" } })} sources={sources} />)).toContain('alt="Remixed from another post"');
+    expect(html(<LibraryCard item={item()} sources={sources} />)).not.toContain("Remixed from");
+  });
+
   it("keeps a failure's Try again in words, on every screen", () => {
     const out = html(<LibraryCard item={item({ status: "failed", note: "Zernio couldn't post it.", retryHref: "/drafts?status=scheduled", scheduleHref: undefined })} sources={sources} />);
     expect(out).toMatch(/<a[^>]*class="relative z-10[^"]*"[^>]*href="\/drafts\?status=scheduled"[^>]*>Try again<\/a>|<a[^>]*href="\/drafts\?status=scheduled"[^>]*class="relative z-10[^"]*"[^>]*>Try again<\/a>/);
