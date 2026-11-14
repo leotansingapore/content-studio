@@ -222,6 +222,19 @@ describe("Profile's Avoid and Product claims", () => {
   });
 });
 
+describe("Profile's Proof", () => {
+  it("Reviews and Stock and dates are facts with a lead, 20 each, and the facts typed on /voice are its Figures", () => {
+    addFact(UID, "48 cafes use it", at(0));
+    for (let i = 0; i < 20; i++) expect(addFactOf(UID, "review", `review ${i}`, at(1 + i)).ok).toBe(true);
+    expect(addFactOf(UID, "review", "one more")).toEqual({ ok: false, error: "20 is the most. Remove one to add another." });
+    expect(addFactOf(UID, "stock", "New menu from 1 December", at(30)).ok).toBe(true);
+    expect(proofFacts(loadFacts(UID)).map((f) => f.text)).toEqual(["48 cafes use it"]);
+    expect(factsOf(UID, "stock")).toMatchObject([{ text: "New menu from 1 December" }]);
+    expect(memoryLine(UID, "posts", 5000)).toContain(`${FACTS_LEAD}48 cafes use it; Review: review 0;`);
+    expect(memoryLine(UID, "posts", 5000)).toContain("; Stock or date: New menu from 1 December");
+  });
+});
+
 describe("Profile's current promotion", () => {
   it("is the first fact while it runs, and drops out after its last day by itself", () => {
     store.set(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#1E3A8A", name: "", handle: "", promo: { text: "20% off your first month", until: "2026-11-30" } }));

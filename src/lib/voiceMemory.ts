@@ -103,8 +103,13 @@ const learningCap = (text: string) => {
 };
 const sameKind = (text: string) => (l: Learning) => ruleKind(l.text) === ruleKind(text);
 
-// Profile's Product claims are facts with a lead the same way, 30 of them beside the 20 facts typed on /voice.
-export const FACT_KINDS: Record<"claim", { lead: string; max?: number }> = { claim: { lead: "Claim: ", max: 30 } };
+// Profile's Product claims, and Proof's Reviews and Stock and dates, are facts with a lead the same way, each list with
+// its own cap beside the 20 facts typed on /voice (Proof's Figures, which older facts are).
+export const FACT_KINDS: Record<"claim" | "review" | "stock", { lead: string; max?: number }> = {
+  claim: { lead: "Claim: ", max: 30 },
+  review: { lead: "Review: ", max: 20 },
+  stock: { lead: "Stock or date: ", max: 20 },
+};
 export type FactKind = keyof typeof FACT_KINDS;
 const FACT_KIND_IDS = Object.keys(FACT_KINDS) as FactKind[];
 /** The Profile list a fact belongs to, from its lead; null for a fact typed on /voice. */
@@ -119,7 +124,7 @@ const factCap = (text: string) => {
   return g === "proof" ? MAX_FACTS : FACT_KINDS[g].max!;
 };
 const sameGroup = (text: string) => (f: Fact) => factGroup(f.text) === factGroup(text);
-/** The facts /voice lists and MAX_FACTS caps: all but the Profile's own-capped lists. */
+/** The facts /voice lists and MAX_FACTS caps (Proof's Figures): all but the Profile's own-capped lists. */
 export const proofFacts = (rows: Fact[]) => rows.filter((f) => factGroup(f.text) === "proof");
 
 // ---------- facts ----------

@@ -17,7 +17,8 @@ import { loadProducts } from "@/lib/products";
 import { ownBrandName } from "@/lib/remixBrand";
 import { adviserBrand } from "@/lib/profession";
 import {
-  FACT_CHARS, FACT_KINDS, LEARNING_CHARS, MAX_FACTS, RULES, addFactOf, addRule, dayWords, factsOf, fullLine, onMemoryChanged, rulesOf, setFactOff, setLearningOff,
+  FACT_CHARS, FACT_KINDS, LEARNING_CHARS, MAX_FACTS, RULES, addFact, addFactOf, addRule, dayWords, factsOf, fullLine, isOn, loadFacts, onMemoryChanged, proofFacts, rulesOf,
+  setFactOff, setLearningOff,
   type FactKind, type RuleKind,
 } from "@/lib/voiceMemory";
 
@@ -148,7 +149,7 @@ export function ToneLists({ uid }: { uid: string }) {
   );
 }
 
-/** One of the Profile's fact lists (Product claims): its rows, Add and Remove. */
+/** One of the Profile's fact lists (Product claims, Reviews, Stock and dates): its rows, Add and Remove. */
 export function FactList({ uid, kind, id, label, hint, placeholder }: { uid: string; kind: FactKind; id: string; label: string; hint?: ReactNode; placeholder: string }) {
   const rows = useMemoryRead(() => factsOf(uid, kind), [uid, kind]);
   const removed = useRemove();
@@ -426,5 +427,29 @@ export function NamesSection({ uid }: { uid: string }) {
         )}
       </div>
     </section>
+  );
+}
+
+/** Proof's Figures: the facts typed on /voice, with no lead (voiceMemory proofFacts). */
+function FigureList({ uid }: { uid: string }) {
+  const rows = useMemoryRead(() => proofFacts(loadFacts(uid)).filter(isOn).map((f) => ({ id: f.id, text: f.text })), [uid]);
+  const removed = useRemove();
+  return (
+    <CountedList id="figures" label="Figures" rows={rows} max={MAX_FACTS} chars={FACT_CHARS} placeholder={adviserBrand(uid) ? "12 years as an adviser" : "48 cafes use it"}
+      add={(t) => { const r = addFact(uid, t); return "error" in r ? r.error : null; }}
+      remove={(id) => removed((off) => setFactOff(uid, id, off))} />
+  );
+}
+
+/** Fastlane's Proof: Reviews, Figures and Stock and dates, the facts the writers may print (memoryLine). An adviser's
+ * brand gets no Reviews list, as it is never offered a testimonial (remix decision 12). */
+export function ProofLists({ uid }: { uid: string }) {
+  return (
+    <div className={GROUP_CARD}>
+      <p className="px-4 py-3 text-xs text-muted-foreground">Real words and numbers the AI may print. It never invents a review, a figure or a date.</p>
+      {!adviserBrand(uid) && <FactList uid={uid} kind="review" id="reviews" label="Reviews" placeholder={'"Books closed by the 5th, every month." Mei, cafe owner'} />}
+      <FigureList uid={uid} />
+      <FactList uid={uid} kind="stock" id="stock" label="Stock and dates" placeholder="New menu from 1 December" />
+    </div>
   );
 }

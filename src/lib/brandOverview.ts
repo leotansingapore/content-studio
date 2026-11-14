@@ -113,13 +113,12 @@ export function brandOverview(i: OverviewInput): OverviewGroup[] {
         { id: "topics", label: "Topics", value: "", chips: pos?.topics ?? [], to: "/plan", add: "Add your topics", edit: "topics" },
       ],
     },
-    ...(i.leo
-      ? [{
-        id: "proof",
-        title: "Proof",
-        rows: [{ id: "proof", label: "Real words and numbers", value: t(i.proof), to: "/brand/products#script-product", add: "Add proof", edit: "proof" as const }],
-      }]
-      : []),
+    // Proof's Reviews, Figures and Stock and dates are lists drawn under it for everyone (ProfileLists ProofLists)
+    {
+      id: "proof",
+      title: "Proof",
+      rows: i.leo ? [{ id: "proof", label: "For scripts", value: t(i.proof), to: "/brand/products#script-product", add: "Add proof", edit: "proof" as const }] : [],
+    },
     {
       id: "look",
       title: "Look",
