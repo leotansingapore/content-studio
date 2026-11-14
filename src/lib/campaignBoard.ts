@@ -3,7 +3,7 @@
 // and every slide or script beat can be read on one screen. Pure: nothing here reads storage.
 
 import { postSlides, postText } from "@/lib/campaignActions";
-import { campaignStatus, type Campaign, type CampaignPost } from "@/lib/campaigns";
+import { BRIEF_FORMATS, campaignStatus, type Campaign, type CampaignPost } from "@/lib/campaigns";
 import { addDays, keyToDate } from "@/lib/dueDates";
 
 export interface BoardWeek {
@@ -68,7 +68,7 @@ export function frames(p: CampaignPost): Frame[] {
   if (!p.hook) return [];
   if (p.format === "carousel") return postSlides(p).map((s, i) => ({ label: `Slide ${i + 1}`, text: [s.title, s.body].filter(Boolean).join("\n") }));
   if (p.format === "short-video" || p.format === "ai-video") return p.script?.trim() ? scriptBlocks(p.script) : [{ label: "HOOK", text: p.hook }];
-  if (p.format === "slideshow" || p.format === "wall") {
+  if (BRIEF_FORMATS.includes(p.format)) {
     return [{ label: "Hook", text: p.hook }, ...(p.brief ?? "").split("\n").filter((l) => l.trim()).map((l, i) => ({ label: `Beat ${i + 1}`, text: l.trim() }))];
   }
   return [{ label: "Post", text: postText(p) }];

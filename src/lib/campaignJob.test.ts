@@ -126,6 +126,12 @@ describe("startDrafting", () => {
     expect(line()).toContain(" How they talk about it: I want to see who I need to call.");
   });
 
+  it("asks the writer for a green screen as a slideshow's points and a video hook as a wall's words (it knows only its six formats)", () => {
+    const c = campaign();
+    const posts = [{ ...c.posts[0], format: "green-screen" as const }, { ...c.posts[1], format: "video-hook" as const }, c.posts[2]];
+    expect(job.campaignRequest(UID, c, posts).posts.map((p) => p.format)).toEqual(["slideshow", "wall", c.posts[2].format]);
+  });
+
   it("tells the writer to leave the business's name out only when Post choices says never", () => {
     const c = campaign();
     expect(job.campaignRequest(UID, c, c.posts.slice(0, 1))).not.toHaveProperty("mention");

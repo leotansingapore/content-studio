@@ -7,7 +7,7 @@
 import { planContextFor } from "@/lib/angleSuggest";
 import { audienceLine, loadAudiences } from "@/lib/audiences";
 import { applyBrandRules, avoidList } from "@/lib/brandRules";
-import { getCampaign, loadCampaigns, saveCampaigns, type Campaign, type CampaignPost } from "@/lib/campaigns";
+import { getCampaign, loadCampaigns, saveCampaigns, type Campaign, type CampaignFormat, type CampaignPost } from "@/lib/campaigns";
 import { loadBrand } from "@/lib/carousel";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { hookFormula } from "@/lib/hookFormulas";
@@ -63,6 +63,12 @@ const withPosts = (c: Campaign, patches: Record<number, Partial<CampaignPost>>):
 });
 const each = (batch: CampaignPost[], patch: Partial<CampaignPost>) => Object.fromEntries(batch.map((p) => [p.n, patch]));
 
+/**
+ * The shape the writer (idea-dump mode campaign) writes a format in: a green screen's points are a slideshow's (a cover
+ * hook and one point per line, the list behind the person), a video hook's words a wall's (a short hook and a brief).
+ */
+export const WRITTEN_AS: Partial<Record<CampaignFormat, CampaignFormat>> = { "green-screen": "slideshow", "video-hook": "wall" };
+
 /** idea-dump's body for one batch: decision 13's context with the campaign's audience, goal and platforms. */
 export function campaignRequest(userId: string, c: Campaign, batch: CampaignPost[]) {
   const saved = loadAudiences(userId).find((a) => a.id === c.audience);
@@ -75,7 +81,7 @@ export function campaignRequest(userId: string, c: Campaign, batch: CampaignPost
       return {
         n: p.n,
         angle: { title: angle?.title ?? "", line: angle?.line ?? "" },
-        format: p.format,
+        format: WRITTEN_AS[p.format] ?? p.format,
         stage: p.stage,
         ...(f ? { formula: { name: f.name, template: f.template } } : {}),
         ctaType: p.ctaType,

@@ -60,6 +60,8 @@ export interface HookDemoAsk {
   demo: DemoRef;
   /** play mine: the adviser's own hook clip, in memory only. */
   mine?: { file: Blob; seconds: number } | null;
+  /** The post it is made for (a campaign's video hook): the editor's Save to your post updates it. */
+  draftId?: string;
 }
 
 export interface HookSet {
@@ -105,6 +107,11 @@ const JOIN_LABEL = "Putting your hook and demo together";
 const DEMO_KEY = "cs-make-hook-demo-file";
 /** Every demo file key this device holds, so one left by a closed tab is still cleared. */
 const DEMO_FILES = "cs-make-hook-demo-files";
+
+/** A demo saved on /brand as the run takes it: played from its window's start for the window's length. */
+export const savedDemoRef = (d: { key: string; name: string; start: number; end: number }): DemoRef => ({
+  key: d.key, name: d.name, seconds: Math.round((d.end - d.start) * 100) / 100, ...(d.start > 0 ? { start: d.start } : {}),
+});
 
 /** The words a hook set belongs to: a post's key, else the typed topic. */
 export const hooksFor = (a: Pick<HookDemoAsk, "source" | "topic">) => (a.source ? a.source.key : a.topic.trim().toLowerCase());
@@ -333,7 +340,7 @@ export async function makeHookDemo(userId: string, ask: HookDemoAsk): Promise<vo
       length = (await mediaLength(first)) || clip.duration || STOCK_HOOK_SECONDS;
     }
     const plan = joinPlan(ask.play === "mine" ? "mine" : "stock", length, ask.demo.seconds, ask.demo.start);
-    const extra = hookExtra(hook, plan, ask.source, flags);
+    const extra = { ...hookExtra(hook, plan, ask.source, flags), ...(ask.draftId ? { draftId: ask.draftId } : {}) };
     mine({ state: "joining" });
     // only a join still running waits: a video the editor hasn't picked up yet (a paid avatar) moves aside, never overwritten
     while (currentJoin()?.state === "running") await sleep(1000);
@@ -355,7 +362,7 @@ async function paidHook(id: number, userId: string, ask: HookDemoAsk, hook: stri
   const crumple = ask.play === "crumple";
   const plan = joinPlan(ask.play, crumple ? CRUMPLE_SECONDS : SPOKEN_HOOK_SECONDS, ask.demo.seconds, ask.demo.start);
   const demo = plan.takes[1];
-  const extra = hookExtra(hook, plan, ask.source, flags, ask.play);
+  const extra = { ...hookExtra(hook, plan, ask.source, flags, ask.play), ...(ask.draftId ? { draftId: ask.draftId } : {}) };
   const mine = patcher(id);
   // checked again right before paying: a video started elsewhere while the hooks were written
   const blocked = paidClipBlock();

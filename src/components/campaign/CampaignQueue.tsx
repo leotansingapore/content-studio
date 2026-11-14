@@ -21,13 +21,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { STILL_MAKING, aiBusy, pendingAvatar } from "@/lib/aiVideo";
 import {
-  AI_BUSY, AI_WAITING, SHOW_BUSY, SHORT_SCRIPT, SWAP_CAP_LINE, SWAP_MADE_LINE, WALL_BUSY, WRITING_LINE, droppedHook, editPost, isSwapping, makePost, makerOf,
+  AI_BUSY, AI_WAITING, HOOK_BUSY, NO_DEMO, SHOW_BUSY, SHORT_SCRIPT, SWAP_CAP_LINE, SWAP_MADE_LINE, WALL_BUSY, WRITING_LINE, droppedHook, editPost, isSwapping, makePost, makerOf,
   onActions, postSlides, postText, resumeMakes, savedWho, showDropLine, skipPost, swapPost, VIDEO_WORDS_LINE, videoCaption, videoPriceOf, videoUnderway, waitingFor,
   whenText, type MakeOutcome,
 } from "@/lib/campaignActions";
 import { boardCounts, countsText, scriptBlocks } from "@/lib/campaignBoard";
 import { FAILED_POST, PAUSED_LINE, retryFailed } from "@/lib/campaignJob";
-import { dayOf, FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignFormat, type CampaignPost, type QueueAction } from "@/lib/campaigns";
+import { BRIEF_FORMATS, dayOf, FREE_FORMATS, keyAction, nextToReview, videosLeft, type Campaign, type CampaignFormat, type CampaignPost, type QueueAction } from "@/lib/campaigns";
 import { FORMAT_HINT, FORMAT_NAME, shortDay } from "@/lib/campaignWizard";
 import { scanCompliance } from "@/lib/compliance";
 import { keyToDate, timeLabel } from "@/lib/dueDates";
@@ -45,6 +45,8 @@ import { dropTalk, goOnAtPrice, onTalkJob, talkBusy, talkJob } from "@/lib/talki
 import { useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import { onWallJob, stepText as wallStep, wallBusy, wallJob } from "@/lib/wallJob";
+import { demoVideos } from "@/lib/demoVideos";
+import { hookDemoBusy, hookDemoJob, onHookDemo, stepText as hookStep } from "@/lib/hookDemoJob";
 import { DAILY_LIMITS } from "../../../supabase/functions/_shared/usageCaps.ts";
 
 const BIG = "h-11 sm:h-10";
@@ -61,7 +63,7 @@ const STATE_WORD: Record<CampaignPost["state"], string> = {
 type Words = Pick<CampaignPost, "hook" | "body" | "script" | "brief">;
 /** The fields Edit opens: the hook and the body, the script, or the brief. */
 const editFields = (f: CampaignPost["format"]): (keyof Words)[] =>
-  f === "short-video" || f === "ai-video" ? ["hook", "script"] : f === "slideshow" || f === "wall" ? ["hook", "brief"] : ["hook", "body"];
+  f === "short-video" || f === "ai-video" ? ["hook", "script"] : BRIEF_FORMATS.includes(f) ? ["hook", "brief"] : ["hook", "body"];
 const editKey = (campaignId: string, n: number) => `cs-campaign-edit-${campaignId}-${n}`;
 function loadEdit(campaignId: string, n: number): Words | null {
   try {
@@ -141,7 +143,7 @@ export default function CampaignQueue({ userId, campaign: c, angle, ads }: { use
   const { toast } = useToast();
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
-    const offs = [onActions(redraw), onSlideshowJob(redraw), onWallJob(redraw), onTalkJob(redraw)];
+    const offs = [onActions(redraw), onSlideshowJob(redraw), onWallJob(redraw), onTalkJob(redraw), onHookDemo(redraw)];
     return () => offs.forEach((off) => off());
   }, []);
   const [view, setView] = useUrlState<"one" | "grid">("view", "one", { allowed: ["one", "grid"] });
@@ -231,6 +233,8 @@ export default function CampaignQueue({ userId, campaign: c, angle, ads }: { use
     if (!p.hook || !(p.state === "ready" || p.state === "making")) return WRITING_LINE;
     if (p.format === "slideshow" && slideshowBusy()) return SHOW_BUSY;
     if (p.format === "wall" && wallBusy("wall")) return WALL_BUSY;
+    if (p.format === "video-hook" && hookDemoBusy()) return HOOK_BUSY;
+    if (p.format === "video-hook" && !demoVideos(userId).length) return NO_DEMO;
     if (p.format === "ai-video" && waitingFor(c, p)) return aiBusy() || talkBusy() ? AI_BUSY : null;
     // with Ask each time Make only hands the script to the editor, which checks today's limits at its own Make
     if (p.format === "ai-video" && savedWho(userId)) {
@@ -324,7 +328,7 @@ export default function CampaignQueue({ userId, campaign: c, angle, ads }: { use
   const jobs = c.posts.flatMap((p) => {
     const m = makerOf(c.id, p.n);
     if (!m) return [];
-    const step = m === "slideshow" ? showStep(slideshowJob() ?? { state: "writing", done: 0, of: 0 }) : m === "wall" ? wallStep(wallJob() ?? { state: "writing" }) : talkJob()?.step;
+    const step = m === "slideshow" ? showStep(slideshowJob() ?? { state: "writing", done: 0, of: 0 }) : m === "wall" ? wallStep(wallJob() ?? { state: "writing" }) : m === "hook" ? hookStep(hookDemoJob() ?? { state: "finding" }) : talkJob()?.step;
     return [{ p, step: step || "Making it..." }];
   });
 
@@ -476,7 +480,11 @@ export default function CampaignQueue({ userId, campaign: c, angle, ads }: { use
             <>
               {p.format === "slideshow"
                 ? `A slideshow from this hook and brief, with ${c.pictures === "mine" ? "your own photos" : "stock photos"}. The slides are written when you press Make.`
-                : "A wall of text on a stock clip, from this hook and brief. The words are written when you press Make."}{" "}
+                : p.format === "green-screen"
+                  ? "You, or a presenter, in front of this hook and its points. Make opens the green screen maker with them filled in, to pick your video or a presenter."
+                  : p.format === "video-hook"
+                    ? `This hook over 3 seconds of stock b-roll, then your demo video${demoVideos(userId).length ? "" : ". Add a demo video on Brand first"}.`
+                    : "A wall of text on a stock clip, from this hook and brief. The words are written when you press Make."}{" "}
               <PriceChip feature="remix-make" left={left("remix-make")} />
             </>,
           )}
@@ -518,12 +526,12 @@ export default function CampaignQueue({ userId, campaign: c, angle, ads }: { use
           ) : (
             <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
               <CircleNotchIcon className="h-4 w-4 animate-spin" aria-hidden />
-              {(maker === "slideshow" ? showStep(slideshowJob() ?? { state: "writing", done: 0, of: 0 }) : maker === "wall" ? wallStep(wallJob() ?? { state: "writing" }) : tj?.step) || "Making it..."}
+              {(maker === "slideshow" ? showStep(slideshowJob() ?? { state: "writing", done: 0, of: 0 }) : maker === "wall" ? wallStep(wallJob() ?? { state: "writing" }) : maker === "hook" ? hookStep(hookDemoJob() ?? { state: "finding" }) : tj?.step) || "Making it..."}
             </p>
           )
         )}
         {p.state === "made" && (p.made?.kind === "video"
-          ? band(p.format === "wall" ? "Made. Open it in the editor to check the words and export." : "Made. Open it in the editor to add captions and export.", links.edit(), "Open in editor")
+          ? band(p.format === "wall" || p.format === "video-hook" ? "Made. Open it in the editor to check the words and export." : "Made. Open it in the editor to add captions and export.", links.edit(), "Open in editor")
           : band(`On your calendar for ${whenText(p)}.`, links.calendar({ post: p.draftId }), "Open in All posts"))}
         {p.state === "skipped" && <p role="status" className="text-sm">Skipped. Press Skip again to bring it back.</p>}
         {p.error && (p.state === "ready" || (p.state === "making" && !maker)) && <p role="status" className={`text-sm ${p.error === STILL_MAKING ? "text-muted-foreground" : "text-warning"}`}>{p.error}</p>}
@@ -673,7 +681,7 @@ export default function CampaignQueue({ userId, campaign: c, angle, ads }: { use
               <p className={LABEL}>Caption | {platformName(c.platforms[0] ?? "linkedin")}</p>
               <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">
                 {cur.format === "ai-video" ? videoCaption(cur)
-                  : cur.format === "slideshow" || cur.format === "wall"
+                  : cur.format === "slideshow" || cur.format === "wall" // their makers write the caption; a green screen or video hook posts these words
                     ? madeCaption(userId, cur, show) || (cur.state === "made" ? "Open it in the editor to see the caption." : "The caption is written when you press Make.")
                     : text}
               </p>

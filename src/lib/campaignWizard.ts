@@ -46,6 +46,8 @@ export const FORMAT_NAME: Record<CampaignFormat, string> = {
   "short-video": "Short video script",
   slideshow: "Slideshow",
   wall: "Wall of text",
+  "green-screen": "Green screen",
+  "video-hook": "Video hook",
   "ai-video": "AI video",
 };
 export const FORMAT_HINT: Record<CampaignFormat, string> = {
@@ -54,6 +56,8 @@ export const FORMAT_HINT: Record<CampaignFormat, string> = {
   "short-video": "you film it",
   slideshow: "words on photos, made at Make",
   wall: "one bold claim on a clip, made at Make",
+  "green-screen": "your points behind you or a presenter",
+  "video-hook": "3s hook on b-roll, then your demo",
   "ai-video": "no filming",
 };
 

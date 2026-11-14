@@ -101,11 +101,12 @@ export async function behindFromDemo(d: { key: string; name: string }): Promise<
 }
 
 /** What the editor opens with: the backdrop and the stand in the 9:16 frame, on its face tab, with this format's toast. */
-export function greenExtra(o: { backdrop: Backdrop; stand: Stand; caption?: string; note?: string; source?: RemixSource | null }): JoinExtra {
+export function greenExtra(o: { backdrop: Backdrop; stand: Stand; caption?: string; note?: string; source?: RemixSource | null; draftId?: string }): JoinExtra {
   return {
     settings: { backdrop: o.backdrop, stand: o.stand, aspect: "9:16" },
     tab: "face",
     toast: GREEN_TOAST,
+    ...(o.draftId ? { draftId: o.draftId } : {}),
     ...(o.caption ? { caption: o.caption } : {}),
     ...(o.note ? { note: o.note } : {}),
     ...(o.source ? { source: { ...o.source, remixedAt: new Date().toISOString() } } : {}),
@@ -213,6 +214,8 @@ export interface GreenAsk {
   mine: File | null;
   /** The presenter's run: the talking head page's script, look, setting, voice and length. */
   talk: Pick<TalkAsk, "text" | "look" | "setting" | "voice" | "length">;
+  /** The post it is made for (?draft=, a campaign's green screen): the editor's Save to your post updates it. */
+  draftId?: string;
 }
 
 export type GreenState = "writing" | "written" | "drawing" | "joining" | "talking" | "priced" | "done" | "failed";
@@ -348,7 +351,7 @@ export async function startGreen(userId: string, a: GreenAsk): Promise<void> {
     return fail({ error: BEHIND_GONE, gone: true });
   }
 
-  const extra = greenExtra({ backdrop: backdropOf(a.behind, key), stand: a.stand, caption: said.caption, note: noteOf(a.source, said.flags), source: a.source });
+  const extra = greenExtra({ backdrop: backdropOf(a.behind, key), stand: a.stand, caption: said.caption, note: noteOf(a.source, said.flags), source: a.source, draftId: a.draftId });
   if (a.who === "mine") {
     if (!a.mine) return fail({ error: "Pick a video of you first." });
     mine(id, { state: "joining", step: JOINING });
@@ -356,7 +359,7 @@ export async function startGreen(userId: string, a: GreenAsk): Promise<void> {
     return mine(id, { state: "done", step: "" });
   }
   mine(id, { state: "talking", step: "" });
-  const t: TalkAsk = { source: a.source, text: a.talk.text, who: "presenter", photo: null, look: a.talk.look, setting: a.talk.setting, voice: a.talk.voice, length: a.talk.length, mention: a.mention };
+  const t: TalkAsk = { source: a.source, text: a.talk.text, who: "presenter", photo: null, look: a.talk.look, setting: a.talk.setting, voice: a.talk.voice, length: a.talk.length, mention: a.mention, ...(a.draftId ? { draftId: a.draftId } : {}) };
   follow(id, greenAdd(extra), () => void startTalk(userId, t));
 }
 

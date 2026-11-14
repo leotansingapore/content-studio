@@ -496,6 +496,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /make/talking-head | voice | Leo only. alice, lily, george, eric, matilda, sarah, liam (the voices in supabase/functions/text-voice/logic.ts) | a saved presenter's own voice, else one that fits who speaks, starting from the last one picked on this device | replace | /make/talking-head?voice=george |
 | /make/talking-head | more | Leo only. open: More settings unfolded (voice, and a new presenter's look and setting) | shut | replace | /make/talking-head?who=presenter&more=open |
 | /make/green-screen | who | Leo only. mine (your video), presenter (an AI presenter) | mine | replace | /make/green-screen?who=presenter |
+| /make/green-screen | draft | Leo only. a My posts entry's id (a campaign's green screen post): what is made saves back to that post in the editor | none | (read as it is) | /make/green-screen?draft=cmp_c-lq3k9z_4 |
 | /make/green-screen | behind | Leo only. notes, demo, picture | notes | replace | /make/green-screen?behind=demo |
 | /make/green-screen | stand | Leo only. bottom, corner | bottom | replace | /make/green-screen?stand=corner |
 | /make/green-screen | setting | Leo only. with who=presenter: office, car, kitchen, couch, cafe (as /make/talking-head) | the last one picked on this device, else office | replace | /make/green-screen?who=presenter&setting=car |
@@ -621,7 +622,8 @@ who keeps today's page. Same rules as above: built in src/lib/links.ts, defaults
 | /campaigns/<id> | boards | Leo only, with view=grid. 1: Storyboards, every slide, script beat and brief of every post in a row | covers | replace | /campaigns/c-lq3k9z?view=grid&boards=1 |
 | /campaigns/<id> | swap | Leo only. format: the format picker open beside the post shown (a written draft only) | closed | push | /campaigns/c-lq3k9z?post=4&swap=format |
 | /campaigns/<id> | angle | Leo only. an angle's id: the queue filtered to it and its chip outlined; an unknown id shows every angle | every angle | replace | /campaigns/c-lq3k9z?angle=ang-2 |
-| /campaigns/<id> | configure | Leo only. 1: the campaign settings panel open under the header (name, pace, length) | closed | push | /campaigns/c-lq3k9z?configure=1 |
+| /campaigns/<id> | configure | Leo only. 1: the campaign settings sheet open from the right (name, pace, length, post times, accounts, angles, ads, audience, post choices, a message to the agent) | closed | push | /campaigns/c-lq3k9z?configure=1 |
+| /campaigns/<id> | launch | Leo only, a campaign not launched. 1: the Launch dialog (accounts and post times, the first 14 posts, what goes and what waits) | closed | push | /campaigns/c-lq3k9z?launch=1 |
 | /campaigns/<id> | #queue | Leo only. scrolls to the review queue | top | (anchor) | /campaigns/c-lq3k9z?post=4#queue |
 | /campaigns/<id> | ads | Leo only, a campaign with ads. all: the ads group open on its grid (Ad 1 to Ad 10); send: the grid plus Send the ads to AdLauncher, with its count and done state. An ad's Edit opens /image?image=<its design> | the group folded | replace | /campaigns/c-lq3k9z?ads=all |
 | /campaigns/<id> | sending | Leo only, with ads=send. a made ad's number: Run as an ad open over the campaign for that ad, with the campaign's budget, days and landing page filled in; an ad that is a draft or needs an edit opens nothing | closed | replace | /campaigns/c-lq3k9z?ads=send&sending=2 |

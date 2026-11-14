@@ -22,8 +22,10 @@ import { scoped } from "@/lib/profiles";
 import { sourceKey } from "@/lib/remixSource";
 import { BREAKOUT_RATIO, median } from "../../supabase/functions/_shared/socialAudit.ts";
 
-export type CampaignFormat = "text-post" | "carousel" | "short-video" | "slideshow" | "wall" | "ai-video";
+export type CampaignFormat = "text-post" | "carousel" | "short-video" | "slideshow" | "wall" | "green-screen" | "video-hook" | "ai-video";
 export const FREE_FORMATS: CampaignFormat[] = ["text-post", "carousel", "short-video"];
+/** Written as a hook and a brief, then made by a Studio maker at Make (one remix make on the price table each). */
+export const BRIEF_FORMATS: CampaignFormat[] = ["slideshow", "wall", "green-screen", "video-hook"];
 export type PostState = "waiting" | "drafting" | "ready" | "failed" | "making" | "made" | "skipped";
 
 export interface CampaignPost {
@@ -406,7 +408,7 @@ export interface CampaignCost {
   /** Free-format posts not yet made, being made or skipped. */
   free: number;
   /** Posts a maker makes at Make, not yet made, being made or skipped. */
-  made: { slideshows: number; walls: number; videos: number };
+  made: { slideshows: number; walls: number; greens: number; hooks: number; videos: number };
   /** What those makes come to, in US$ to the cent: REMIX_MAKE per slideshow or wall, each video's own estimate. */
   usd: number;
   /** Each AI video's estimate in US$, in post order: the price campaignCost is given, AI_VIDEO by default. */
@@ -430,8 +432,8 @@ export function campaignCost(
   // a post being made has spent its uses (a paid AI video still at Higgsfield) or shows its own price check
   const open = c.posts.filter((p) => p.state !== "made" && p.state !== "skipped" && p.state !== "making");
   const count = (f: CampaignFormat) => open.filter((p) => p.format === f).length;
-  const made = { slideshows: count("slideshow"), walls: count("wall"), videos: count("ai-video") };
-  const remix = made.slideshows + made.walls;
+  const made = { slideshows: count("slideshow"), walls: count("wall"), greens: count("green-screen"), hooks: count("video-hook"), videos: count("ai-video") };
+  const remix = made.slideshows + made.walls + made.greens + made.hooks;
   const videoUsd = open.filter((p) => p.format === "ai-video").map((p) => videoPrice(p).usd);
   return {
     free: open.filter((p) => FREE_FORMATS.includes(p.format)).length,

@@ -26,15 +26,16 @@ const later = (n: number) => `${n === 1 ? "It" : `The ${n}`} can be made after 8
 
 /** The big figure, the line under it, and the lines naming what is paid and what today's limits cover. */
 export function costLines(c: Pick<Campaign, "posts">, cost: CampaignCost): { big: string; sub: string; lines: string[] } {
-  const { slideshows, walls, videos } = cost.made;
-  const remix = slideshows + walls;
+  const { slideshows, walls, greens, hooks, videos } = cost.made;
+  const remix = slideshows + walls + greens + hooks;
   if (!remix && !videos) {
     const paidMade = c.posts.some((p) => !FREE_FORMATS.includes(p.format) && p.state === "made");
     return { big: "Free", sub: `Every post ${paidMade ? "left" : "here"} costs nothing to make.`, lines: [] };
   }
   const what: string[] = [];
   if (cost.free) what.push(`${plural(cost.free, "free post")}.`);
-  const remixName = listJoin([...(slideshows ? [plural(slideshows, "slideshow")] : []), ...(walls ? [plural(walls, "wall of text", "walls of text")] : [])]);
+  const named: [number, string, string][] = [[slideshows, "slideshow", "slideshows"], [walls, "wall of text", "walls of text"], [greens, "green screen", "green screens"], [hooks, "video hook", "video hooks"]];
+  const remixName = listJoin(named.filter(([n]) => n).map(([n, one, many]) => plural(n, one, many)));
   if (remix) what.push(`${remixName} at ${lower(priceText(REMIX_MAKE))}${remix === 1 ? "" : " each"}, from today's remix limit.`);
   if (videos) {
     // each video is priced from its own script (live-p5dog day 3): one figure when they match, else what they come to
@@ -53,7 +54,8 @@ export function costLines(c: Pick<Campaign, "posts">, cost: CampaignCost): { big
       else if (cv === 0) lines.push(`No AI videos left today. ${later(videos)}`);
       else lines.push(`Today's limit covers ${cv} of the ${videos} AI videos. The other ${videos - cv} can be made after 8am Singapore time.`);
     }
-    const name = slideshows && walls ? "slideshows and walls" : slideshows ? "slideshows" : "walls of text";
+    const kinds = named.filter(([n]) => n).map(([, , many]) => many);
+    const name = kinds.length === 1 ? kinds[0] : kinds.length === 2 && slideshows && walls ? "slideshows and walls" : "posts made at Make";
     if (remix && cr !== null && cr < remix) {
       lines.push(cr === 0 ? `Today's remix limit is used. ${later(remix)}` : `Today's remix limit covers ${cr} of the ${remix} ${name}. The other ${remix - cr} can be made after 8am Singapore time.`);
     }

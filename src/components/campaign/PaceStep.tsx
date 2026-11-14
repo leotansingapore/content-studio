@@ -1,8 +1,9 @@
 // The campaign wizard's step 4 (plan-campaign, Leo only): what gets made and how often. Formats are chips (text
-// post, carousel and short video script cost nothing to make; a slideshow or a wall of text is one remix make at
-// Make; an AI video is priced from the table), the length a 1 to 8 week stepper, the pace four radios, and a live
+// post, carousel and short video script cost nothing to make; a slideshow, wall of text, green screen or video hook
+// is one remix make at Make; an AI video is priced from the table), the length a 1 to 8 week stepper, the pace four radios, and a live
 // summary under them. The wizard page draws the step's header, Back and Confirm.
 
+import { Link } from "react-router-dom";
 import { MinusIcon, PlusIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { AI_VIDEO, type Campaign, type CampaignFormat } from "@/lib/campaigns";
@@ -43,6 +44,8 @@ export default function PaceStep(p: {
   onPictures: (p: Campaign["pictures"]) => void;
   /** Media holds photos: a slideshow may use them. */
   hasMedia: boolean;
+  /** Brand holds a demo video: a video hook plays it after the hook. */
+  hasDemo: boolean;
   /** Who speaks in an AI video, in words. */
   who: string;
   summary: string[];
@@ -65,6 +68,11 @@ export default function PaceStep(p: {
             </button>
           ))}
         </div>
+        {on("video-hook") && !p.hasDemo && (
+          <p className="text-sm text-warning">
+            A video hook plays your demo after the hook. <Link to="/brand/demo-videos" className="font-medium underline-offset-2 hover:underline">Add a demo video</Link> before you make one.
+          </p>
+        )}
         {on("slideshow") && p.hasMedia && (
           <div className="space-y-1.5 pt-1">
             <p id="pictures-q" className="text-sm font-medium">Slideshow pictures</p>

@@ -38,7 +38,7 @@ import {
 } from "@/lib/hookDemo";
 import {
   hookDemoBusy, hookDemoJob, hookSet, hooksFailure, hooksFor, hooksWriting, keepOnlyDemo, loadDemo, makeHookDemo, newDemoKey, onHookDemo,
-  pendingDemo, pendingDemoKey, pendingHook, repickDemo, resumeHookDemo, saveDemo, stepText, writeHooks, type DemoRef, type HookDemoAsk,
+  pendingDemo, pendingDemoKey, pendingHook, repickDemo, resumeHookDemo, saveDemo, savedDemoRef, stepText, writeHooks, type DemoRef, type HookDemoAsk,
 } from "@/lib/hookDemoJob";
 import { links } from "@/lib/links";
 import { mediaLength } from "@/lib/longAudio";
@@ -58,7 +58,7 @@ const UNREADABLE = "Couldn't read that video. Try an MP4 or MOV.";
 const HOOK_WAITING = "Your last hook clip is paid for and waiting. Finish it at no cost first.";
 
 /** A saved demo as this page plays it: its window's start and length. */
-const savedRef = (d: DemoVideo): DemoRef => ({ key: d.key, name: d.name, seconds: Math.round((d.end - d.start) * 100) / 100, ...(d.start > 0 ? { start: d.start } : {}) });
+const savedRef = (d: DemoVideo): DemoRef => savedDemoRef(d);
 
 /** Redraws on every change to the run, the hooks, and any AI video (one running or waiting stops a spoken hook). */
 function useHookDemo(): void {

@@ -17,7 +17,7 @@ import { presenterVoice } from "@/lib/presenters";
 import { applyBrandRules, avoidList } from "@/lib/brandRules";
 import { campaignRequest, startDrafting } from "@/lib/campaignJob";
 import { cancelSent, sendIfLaunched } from "@/lib/campaignLaunch";
-import { AI_VIDEO, dayOf, dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignFormat, type CampaignPost } from "@/lib/campaigns";
+import { AI_VIDEO, BRIEF_FORMATS, dayOf, dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignFormat, type CampaignPost } from "@/lib/campaigns";
 import { FORMAT_NAME, shortDay } from "@/lib/campaignWizard";
 import { loadBrand } from "@/lib/carousel";
 import { keyToDate, scheduleAt, timeLabel } from "@/lib/dueDates";
@@ -34,6 +34,9 @@ import { priceOf, sumPrices, type Price } from "@/lib/prices";
 import { asTopic, defaultWho, scriptEstimate, speakerOf, speakers, wordCount, type TalkWho } from "@/lib/talkingHead";
 import { onTalkJob, resumeTalk, startTalk, talkBusy, talkJob } from "@/lib/talkingHeadJob";
 import { onWallJob, startWall, wallBusy, wallJob, FINISH_FAILED as WALL_FAILED } from "@/lib/wallJob";
+import { demoVideos } from "@/lib/demoVideos";
+import { loadTyped as loadGreenTyped, saveTyped as saveGreenTyped } from "@/lib/greenScreen";
+import { hookDemoBusy, hookDemoJob, makeHookDemo, onHookDemo, savedDemoRef, JOIN_FAILED as HOOK_FAILED } from "@/lib/hookDemoJob";
 import type { WrittenPost } from "../../supabase/functions/idea-dump/logic.ts";
 import { speakingWords } from "../../supabase/functions/remix/logic.ts";
 import { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps.ts";
@@ -51,6 +54,8 @@ export const SWAP_CAP_LINE = `You've used all ${DAILY_LIMITS["campaign-swap"]} s
 export const SHOW_BUSY = "Another slideshow is being made. Wait for it to finish.";
 export const WALL_BUSY = "Another wall of text is being made. Wait for it to finish.";
 export const AI_BUSY = "Another AI video is being made. Wait for it to finish.";
+export const HOOK_BUSY = "Another video hook is being made. Wait for it to finish.";
+export const NO_DEMO = "A video hook plays your demo after the hook. Add a demo video on Brand > Demo videos first.";
 export const AI_WAITING = "Another AI video is still being made. Make this one once it's in the editor.";
 export const VIDEO_FAILED = "The AI video could not be made.";
 export const STOPPED_LINE = "This make stopped before it finished. Press Make to try again.";
@@ -70,7 +75,7 @@ export const whenText = (p: Pick<CampaignPost, "day" | "time">) => `${shortDay(k
 /** The words that go out: a script as it is spoken, a slideshow's or wall's hook and brief, else hook, body and call to action. */
 export function postText(p: Pick<CampaignPost, "format" | (typeof FIELDS)[number]>): string {
   if (p.format === "short-video" || p.format === "ai-video") return (p.script ?? "").trim();
-  const middle = p.format === "slideshow" || p.format === "wall" ? p.brief : p.body;
+  const middle = BRIEF_FORMATS.includes(p.format) ? p.brief : p.body;
   return [p.hook, middle, p.cta].map((t) => t?.trim()).filter(Boolean).join("\n\n");
 }
 
@@ -118,7 +123,7 @@ export function showDropLine(userId: string): string | null {
 
 // ---- What runs in this tab -------------------------------------------------------------
 
-export type Maker = "slideshow" | "wall" | "talk";
+export type Maker = "slideshow" | "wall" | "hook" | "talk";
 const making = new Map<string, Maker>();
 const swapping = new Set<string>();
 const listeners = new Set<() => void>();
@@ -178,6 +183,8 @@ async function makeOne(userId: string, campaignId: string, n: number, now: Date)
   if (FREE_FORMATS.includes(p.format)) return makeNow(userId, c, p, now);
   if (p.format === "slideshow") return makeShow(userId, c, p, now);
   if (p.format === "wall") return makeWall(userId, c, p, now);
+  if (p.format === "video-hook") return makeHook(userId, c, p, now);
+  if (p.format === "green-screen") return makeGreen(userId, c, p, now);
   return makeVideo(userId, c, p, now);
 }
 
@@ -272,6 +279,59 @@ async function makeWall(userId: string, c: Campaign, p: CampaignPost, now: Date)
       resolve(settle(userId, c, p, d.id, false, WALL_BUSY, "wall of text"));
     }
   });
+}
+
+/**
+ * A video hook (/make/hook-demo's maker, played "stock"): the post's hook over 3 s of stock b-roll, then the brand's
+ * newest saved demo, joined into a scheduled short-video draft the editor's Save to your post updates (as a wall's).
+ */
+async function makeHook(userId: string, c: Campaign, p: CampaignPost, now: Date): Promise<MakeOutcome> {
+  const demo = demoVideos(userId)[0];
+  if (!demo) return { ok: false, error: NO_DEMO };
+  if (hookDemoBusy()) return { ok: false, error: HOOK_BUSY };
+  const d = postDraft(userId, c, p, now);
+  writeDraft(userId, d);
+  if (!updatePost(userId, c.id, p.n, { state: "making", draftId: d.id, error: undefined })) {
+    dropDraft(userId, d.id);
+    return { ok: false, error: SAVE_LINE };
+  }
+  const k = keyOf(c.id, p.n);
+  busy(k, "hook");
+  return new Promise((resolve) => {
+    let id: number | undefined;
+    const off = onHookDemo(() => {
+      const j = hookDemoJob();
+      if (id === undefined || (j && j.id === id && j.state !== "done" && j.state !== "failed")) return;
+      off();
+      busy(k, null);
+      resolve(settle(userId, c, p, d.id, j?.id === id && j.state === "done", (j?.id === id && j.error) || HOOK_FAILED, "video hook"));
+    });
+    void makeHookDemo(userId, { source: null, topic: p.hook ?? "", mention: mentionFor(userId), play: "stock", hook: p.hook ?? "", demo: savedDemoRef(demo), draftId: d.id });
+    const j = hookDemoJob();
+    if (j?.ask.draftId === d.id) id = j.id;
+    else {
+      off();
+      busy(k, null);
+      resolve(settle(userId, c, p, d.id, false, HOOK_BUSY, "video hook"));
+    }
+  });
+}
+
+/**
+ * A green screen needs the person: their own video or a presenter, picked on the maker's page. Make puts the post on
+ * the calendar (as Ask each time does for an AI video), fills the maker's list with the hook and points, and opens
+ * /make/green-screen on the draft, so what it makes saves back to this post.
+ */
+function makeGreen(userId: string, c: Campaign, p: CampaignPost, now: Date): MakeOutcome {
+  const made = makeNow(userId, c, p, now);
+  if (!made.ok) return made;
+  saveGreenTyped(userId, { ...loadGreenTyped(userId), title: p.hook ?? "", items: (p.brief ?? "").split("\n").map((l) => l.trim()).filter(Boolean) });
+  const draft = draftIdOf(c.id, p.n);
+  return {
+    ...made,
+    toast: `Post ${p.n} is on your calendar for ${whenText(p)}. Pick your video or a presenter to make the green screen.`,
+    open: links.makeFormat("green-screen", { draft, mention: mentionFor(userId) ? undefined : "no" }),
+  };
 }
 
 /** The brand's saved "Who appears" when it can speak now (your face while it is on, or a presenter); null is Ask each time. */

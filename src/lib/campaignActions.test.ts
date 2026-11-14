@@ -26,7 +26,7 @@ const fake = vi.hoisted(() => {
       },
     };
   };
-  return { show: store(), wall: store(), talk: store(), seq: 0, ai: { busy: false, pending: null as unknown }, who: "me", presenters: [] as unknown[], fn: null as unknown as ReturnType<typeof vi.fn> };
+  return { show: store(), wall: store(), talk: store(), hook: store(), demos: [] as unknown[], seq: 0, ai: { busy: false, pending: null as unknown }, who: "me", presenters: [] as unknown[], fn: null as unknown as ReturnType<typeof vi.fn> };
 });
 const busyIn = (j: { state: string } | null, states: string[]) => !!j && states.includes(j.state);
 const startSlideshow = vi.hoisted(() => vi.fn());
@@ -34,6 +34,7 @@ const startWall = vi.hoisted(() => vi.fn());
 const startTalk = vi.hoisted(() => vi.fn());
 const resumeTalk = vi.hoisted(() => vi.fn());
 const startDrafting = vi.hoisted(() => vi.fn());
+const makeHookDemo = vi.hoisted(() => vi.fn());
 const fn = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("./edgeFn")>()), callFn: fn }));
@@ -62,6 +63,14 @@ vi.mock("@/lib/aiVideo", async (orig) => ({ ...(await orig<typeof import("./aiVi
 // the brand's "Who appears": "me" with a face saved and on, or "ask" (Ask each time)
 vi.mock("@/lib/talkingHead", async (orig) => ({ ...(await orig<typeof import("./talkingHead")>()), speakers: () => ({ face: { id: "f1" }, presenters: fake.presenters, who: fake.who }) }));
 vi.mock("@/lib/campaignJob", async (orig) => ({ ...(await orig<typeof import("./campaignJob")>()), startDrafting }));
+vi.mock("@/lib/hookDemoJob", async (orig) => ({
+  ...(await orig<typeof import("./hookDemoJob")>()),
+  makeHookDemo,
+  hookDemoJob: () => fake.hook.job,
+  hookDemoBusy: () => busyIn(fake.hook.job, ["writing", "finding", "clip", "joining"]),
+  onHookDemo: (l: () => void) => fake.hook.on(l as never),
+}));
+vi.mock("@/lib/demoVideos", async (orig) => ({ ...(await orig<typeof import("./demoVideos")>()), demoVideos: () => fake.demos }));
 
 import { saveAudience } from "./audiences";
 import { AI_VIDEO, angleCounts, campaignCost, getCampaign, saveCampaigns, type Campaign, type CampaignPost } from "./campaigns";
@@ -121,6 +130,11 @@ beforeEach(async () => {
   fake.show.reset();
   fake.wall.reset();
   fake.talk.reset();
+  fake.hook.reset();
+  fake.demos = [];
+  makeHookDemo.mockReset().mockImplementation(async (_: string, ask: unknown) => {
+    fake.hook.set({ id: ++fake.seq, state: "finding", ask });
+  });
   fake.ai = { busy: false, pending: null };
   fake.who = "me";
   fake.presenters = [];
@@ -333,6 +347,57 @@ describe("makePost, a wall of text", () => {
     expect(await made).toEqual({ ok: false, error: "No stock clip fits these words." });
     expect(getDraftById(UID, "cmp_c-1_5")).toBeNull();
     expect(the(5)).toMatchObject({ state: "ready", error: "No stock clip fits these words." });
+  });
+});
+
+describe("makePost, a video hook", () => {
+  const DEMO = { key: "cvid-1", name: "App demo", start: 2, end: 14.5, shows: "", flags: [], seconds: 20, width: 720, height: 1280 };
+  it("plays the hook over stock b-roll, then the brand's saved demo, into the post's scheduled draft", async () => {
+    fake.demos = [DEMO];
+    seed([post(5, { format: "video-hook", hook: "Stop chasing lunch orders", brief: "One link, everyone picks", body: undefined })]);
+    const made = act.makePost(UID, "c-1", 5, NOW);
+    await tick();
+    expect(makeHookDemo.mock.calls[0][1]).toEqual({
+      source: null, topic: "Stop chasing lunch orders", mention: true, play: "stock", hook: "Stop chasing lunch orders",
+      demo: { key: "cvid-1", name: "App demo", seconds: 12.5, start: 2 }, draftId: "cmp_c-1_5",
+    });
+    expect(getDraftById(UID, "cmp_c-1_5")).toMatchObject({ status: "scheduled", format: "short-video" });
+    expect(act.makerOf("c-1", 5)).toBe("hook");
+    fake.hook.patch({ state: "joining" });
+    expect(the(5).state).toBe("making");
+    fake.hook.patch({ state: "done" });
+    expect(await made).toMatchObject({ ok: true, toast: "Post 5's video hook is in the editor. Check it and export it there." });
+    expect(the(5)).toMatchObject({ state: "made", made: { kind: "video", id: "cmp_c-1_5" } });
+  });
+
+  it("says to add a demo first when the brand has none, and makes nothing", async () => {
+    seed([post(5, { format: "video-hook", brief: "x" })]);
+    expect(await act.makePost(UID, "c-1", 5, NOW)).toEqual({ ok: false, error: act.NO_DEMO });
+    expect(makeHookDemo).not.toHaveBeenCalled();
+    expect(getDraftById(UID, "cmp_c-1_5")).toBeNull();
+  });
+
+  it("takes its draft off the calendar when no clip fits", async () => {
+    fake.demos = [DEMO];
+    seed([post(5, { format: "video-hook", brief: "x" })]);
+    const made = act.makePost(UID, "c-1", 5, NOW);
+    await tick();
+    fake.hook.patch({ state: "failed", error: "No stock clip fits this hook. Try another hook or say it yourself." });
+    expect(await made).toEqual({ ok: false, error: "No stock clip fits this hook. Try another hook or say it yourself." });
+    expect(getDraftById(UID, "cmp_c-1_5")).toBeNull();
+    expect(the(5).state).toBe("ready");
+  });
+});
+
+describe("makePost, a green screen", () => {
+  it("puts the post on the calendar, fills the maker's list with its hook and points, and opens the maker on the draft", async () => {
+    seed([post(5, { format: "green-screen", hook: "Three things HR forgets at year end", brief: "Leave balances\nBirthday lunches\nThe gift budget", body: undefined })]);
+    const out = await act.makePost(UID, "c-1", 5, NOW);
+    expect(out).toMatchObject({ ok: true, open: "/make/green-screen?draft=cmp_c-1_5" });
+    expect(getDraftById(UID, "cmp_c-1_5")).toMatchObject({ status: "scheduled", format: "short-video" });
+    const { loadTyped } = await import("./greenScreen");
+    expect(loadTyped(UID)).toMatchObject({ title: "Three things HR forgets at year end", items: ["Leave balances", "Birthday lunches", "The gift budget"] });
+    expect(the(5).state).toBe("made");
   });
 });
 

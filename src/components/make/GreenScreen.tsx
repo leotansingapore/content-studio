@@ -3,7 +3,8 @@
 // on its face tab with Behind you and Where you stand already set. The run is src/lib/greenScreen.ts (outside React, so
 // leaving the page keeps it going; a paid presenter video resumes at no cost after a reload).
 //
-// URL (docs/deep-links.md): source=<RemixSource key> (the list is written from it), mention=no, who=presenter,
+// URL (docs/deep-links.md): source=<RemixSource key> (the list is written from it), mention=no, draft=<post id> (the
+// post it is made for, a campaign's green screen, read as it is), who=presenter,
 // behind=demo|picture, stand=corner, and for a presenter the talking head page's setting, length, voice and more=open
 // (its More settings unfolded), all replace. Nothing makes on arrival: the presenter costs more than US$1, and the green screen has no Also make link.
 // Device: cs-make-green-screen-<scoped uid> keeps the typed note and the demo or picture picked; the presenter's script
@@ -252,6 +253,8 @@ export default function GreenScreen({ userId, source }: { userId: string; source
     pick,
     mine: mine?.file ?? null,
     talk: { text: said.script, look: said.look, setting, voice, length },
+    // ?draft=: a campaign's post this green screen is made for; the editor's Save to your post updates it
+    ...(params.get("draft") ? { draftId: params.get("draft")! } : {}),
   });
   const makeIt = () => {
     if (reason || greenBusy()) return;

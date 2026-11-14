@@ -141,7 +141,7 @@ describe("campaignCost", () => {
   it("12 posts with 4 AI videos: 8 free and US$11.08 for the videos", () => {
     const cost = campaignCost(withVideos(), { video: 2, remix: 30 });
     expect(cost.free).toBe(8);
-    expect(cost.made).toEqual({ slideshows: 0, walls: 0, videos: 4 });
+    expect(cost.made).toEqual({ slideshows: 0, walls: 0, greens: 0, hooks: 0, videos: 4 });
     expect(cost.usd).toBe(11.08);
   });
 
@@ -169,11 +169,19 @@ describe("campaignCost", () => {
     expect(campaignCost(withVideos(), { video: null, remix: 5 }).covers.videos).toBeNull();
   });
 
+  it("prices a green screen and a video hook at one remix make each, from the price table", () => {
+    const formats: CampaignFormat[] = ["green-screen", "video-hook", "video-hook", "text-post"];
+    const cost = campaignCost(campaign({ posts: formats.map((format, i) => post(i + 1, { format })) }), { video: 1, remix: 2 });
+    expect(cost.made).toEqual({ slideshows: 0, walls: 0, greens: 1, hooks: 2, videos: 0 });
+    expect(cost).toMatchObject({ free: 1, usd: Math.round(3 * REMIX_MAKE.usd * 100) / 100 });
+    expect(cost.covers.remix).toBe(2);
+  });
+
   it("prices slideshows and walls at one remix make each, covered by remix uses left", () => {
     const formats: CampaignFormat[] = ["slideshow", "wall", "ai-video", "slideshow"];
     const c = campaign({ posts: formats.map((format, i) => post(i + 1, { format })) });
     const cost = campaignCost(c, { video: 1, remix: 1 });
-    expect(cost.made).toEqual({ slideshows: 2, walls: 1, videos: 1 });
+    expect(cost.made).toEqual({ slideshows: 2, walls: 1, greens: 0, hooks: 0, videos: 1 });
     expect(cost.free).toBe(0);
     expect(cost.usd).toBe(Math.round((3 * REMIX_MAKE.usd + AI_VIDEO.usd) * 100) / 100);
     expect(cost.covers).toEqual({ remix: 1, videos: 1, picks: null });

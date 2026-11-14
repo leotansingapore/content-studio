@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { SlideThumb } from "@/components/slideshow/SlideCanvas";
 import { postSlides, videoPriceOf } from "@/lib/campaignActions";
 import { boardCounts, boardWeeks, frames, STATE_CHIP } from "@/lib/campaignBoard";
-import { REMIX_MAKE, type Campaign, type CampaignPost } from "@/lib/campaigns";
+import { BRIEF_FORMATS, REMIX_MAKE, type Campaign, type CampaignPost } from "@/lib/campaigns";
 import { FORMAT_NAME, shortDay, usd } from "@/lib/campaignWizard";
 import { DEFAULT_BRAND, loadBrand } from "@/lib/carousel";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
@@ -58,7 +58,7 @@ export default function AllPosts({ userId, campaign: c, posts, to }: { userId: s
   const [boards, setBoards] = useUrlState<"" | "1">("boards", "", { allowed: ["1"] });
   const all = boards === "1";
   const weeks = useMemo(
-    () => boardWeeks(c, posts, (p) => (p.format === "ai-video" ? videoPriceOf(userId, p).usd : p.format === "slideshow" || p.format === "wall" ? REMIX_MAKE.usd : 0)),
+    () => boardWeeks(c, posts, (p) => (p.format === "ai-video" ? videoPriceOf(userId, p).usd : BRIEF_FORMATS.includes(p.format) ? REMIX_MAKE.usd : 0)),
     [c, posts, userId],
   );
   // every carousel's slides, drawn once per set of words

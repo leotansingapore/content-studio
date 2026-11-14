@@ -33,6 +33,7 @@ import { upcomingMonday } from "@/lib/contentPlan";
 import { loadGoals } from "@/lib/goals";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
+import { demoVideos } from "@/lib/demoVideos";
 import { isPositioningUsable, loadPositioning, type PlanPlatform } from "@/lib/positioning";
 import { platformName } from "@/lib/socialConnect";
 import { defaultWho, speakerOf, speakers } from "@/lib/talkingHead";
@@ -82,6 +83,7 @@ function Wizard({ userId }: { userId: string }) {
   const [added, setAdded] = useState<Campaign | null>(null);
   const usesLeft = useUsesLeft(adding);
   const hasMedia = useMemo(() => loadMedia(userId).length > 0, [userId]);
+  const hasDemo = useMemo(() => demoVideos(userId).length > 0, [userId]);
   const who = useMemo(() => whoLine(userId), [userId]);
 
   const save = (next: WizardWork) => {
@@ -266,7 +268,7 @@ function Wizard({ userId }: { userId: string }) {
         step,
         <PaceStep formats={work.formats} onFormats={(formats) => save({ ...work, formats })} weeks={work.weeks} onWeeks={(weeks) => save({ ...work, weeks })}
           perWeek={perWeek} onPerWeek={(n) => save({ ...work, perWeek: n })} pictures={hasMedia ? work.pictures : "stock"} onPictures={(p) => save({ ...work, pictures: p })}
-          hasMedia={hasMedia} who={who} summary={summaryLines(posts, work.weeks, whereNames, cost)} />,
+          hasMedia={hasMedia} hasDemo={hasDemo} who={who} summary={summaryLines(posts, work.weeks, whereNames, cost)} />,
         footer(step, formatLine(work.formats), () => confirm(confirmed({ ...work, perWeek }, "pace"))),
       );
     }
