@@ -9,7 +9,7 @@ import { callFn } from "@/lib/edgeFn";
 import { deleteFile, getFile } from "@/lib/deviceFiles";
 import { getDraftById, loadDrafts, setDraftAttached } from "@/lib/draftHistory";
 import { loadBrand } from "@/lib/carousel";
-import { addMedia, storePicture } from "@/lib/mediaLibrary";
+import { AI_FOLDER, addMedia, markAiFiles, storePicture } from "@/lib/mediaLibrary";
 import { leoUser } from "@/lib/useLeoOnly";
 import { memoryLine } from "@/lib/voiceMemory";
 import { scoped } from "@/lib/profiles";
@@ -39,7 +39,7 @@ export interface ImageJob {
   attached?: { draft: string; key: string };
 }
 
-export const AI_FOLDER = "AI images";
+export { AI_FOLDER };
 const POLL_MS = 2500;
 const GIVE_UP_MS = 4 * 60_000;
 const PENDING = "cs-ai-image-making-"; // this device only, on purpose: the token is no use elsewhere
@@ -182,6 +182,7 @@ const attachPicture = async (userId: string, draft: string, pic: Blob, replace?:
   const now = entry?.attached ?? [];
   if (!entry || (replace ? !now.includes(replace) : now.length > 0)) return undefined;
   const { key } = await storePicture(pic);
+  markAiFiles([key]);
   setDraftAttached(userId, draft, replace ? now.map((k) => (k === replace ? key : k)) : [key]);
   if (replace && !loadDrafts(userId).some((d) => d.attached?.includes(replace))) void deleteFile(replace).catch(() => {});
   return { draft, key };
@@ -240,6 +241,7 @@ async function finish(userId: string, scope: string, { token, prompt, name, fix,
     const blob = bare === true ? raw : await withLogo(userId, raw);
     // kept whole, never cut: a photo ad comes from ai-image at its 4:5 already
     const pic = await storePicture(blob);
+    markAiFiles([pic.key]);
     const saved = fix ? `${name} (fixed)`.slice(0, 80) : name;
     addMedia(userId, {
       key: pic.key, name: saved, folder: AI_FOLDER, alt: (fix ? `${prompt} Fixed: ${fix}` : prompt).slice(0, 250),

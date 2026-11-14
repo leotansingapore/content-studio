@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addMedia, applySort, filterMedia, foldersOf, loadMedia, mediaKinds, mediaRoom, removeMedia, updateMedia, type MediaItem } from "@/lib/mediaLibrary";
+import { AI_FOLDER, addMedia, anyAiFile, applySort, filterMedia, foldersOf, loadMedia, markAiFiles, mediaKinds, mediaRoom, removeMedia, updateMedia, type MediaItem } from "@/lib/mediaLibrary";
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -160,5 +160,22 @@ describe("media library", () => {
     expect(kept.credit).toEqual(credit);
     expect(evil.credit).toEqual({ by: "X", byUrl: "", url: "" });
     expect(noName.credit).toBeUndefined();
+  });
+});
+
+describe("AI-made files (the Made with AI label's preset)", () => {
+  it("knows a file ai-image made, marked as it was made or kept in Media's AI images, and nothing else", () => {
+    expect(anyAiFile("u1", ["cimg-aaaaaa1", undefined])).toBe(false);
+    markAiFiles(["cimg-aaaaaa1"]);
+    expect(anyAiFile("u1", [undefined, "cimg-aaaaaa1"])).toBe(true);
+    expect(anyAiFile("u1", ["cimg-bbbbbb2"])).toBe(false);
+    // made before the marks: Media's AI images folder; an upload in any other folder is not AI-made
+    addMedia("u1", item("cimg-bbbbbb2", { folder: AI_FOLDER }));
+    addMedia("u1", item("cimg-cccccc3", { folder: "Office" }));
+    expect(anyAiFile("u1", ["cimg-cccccc3", "cimg-bbbbbb2"])).toBe(true);
+    expect(anyAiFile("u1", ["cimg-cccccc3"])).toBe(false);
+    expect(anyAiFile("u1", [])).toBe(false);
+    // this device's, like the files: never under a synced content-studio- key
+    expect([...store.keys()].filter((k) => k.startsWith("content-studio-"))).toEqual([]);
   });
 });

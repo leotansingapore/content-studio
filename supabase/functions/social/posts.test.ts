@@ -424,6 +424,56 @@ describe("each network's own options (publish-per-network, Leo only)", () => {
   });
 });
 
+// Field names and where they sit from zernio.com/openapi.json (read 2026-11-14): each is flat on the entry's
+// platformSpecificData (InstagramPlatformData/FacebookPlatformData.isAiGenerated, TikTokPlatformData.videoMadeWithAi,
+// YouTubePlatformData.containsSyntheticMedia); LinkedIn and Threads have none. TikTok business photo posts refuse it.
+describe("the Made with AI label (Leo only)", () => {
+  const FB = "65000000000000000000a006";
+  const TH = "65000000000000000000a007";
+  const tiktok = { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false };
+  const data = (i: ScheduleInput, platform: string, id = IG) => (postBody(i, [{ _id: id, platform }]).platforms as { platformSpecificData?: Record<string, unknown> }[])[0].platformSpecificData;
+  const ai = (extra: Partial<ScheduleInput> = {}) => input({ aiMade: true, ...extra });
+
+  it("absent or anything but true sends today's body byte for byte; true adds the label", () => {
+    const body = { clientKey: KEY, content: "hi", scheduledFor: LATER, mediaUrls: [MP4], tiktok, youtube: { title: "Hi", visibility: "public" } };
+    const all = [{ _id: IG, platform: "instagram" }, { _id: FB, platform: "facebook" }, { _id: TT, platform: "tiktok" }, { _id: YT, platform: "youtube" }, { _id: LI, platform: "linkedin" }];
+    const sent = (extra: Record<string, unknown>) => JSON.stringify(postBody((checkSchedule({ ...body, ...extra }, NOW) as { value: ScheduleInput }).value, all, NOW));
+    const today = sent({});
+    expect((checkSchedule(body, NOW) as { value: ScheduleInput }).value).not.toHaveProperty("aiMade");
+    for (const v of [false, "true", 1, null, undefined, {}]) expect(sent({ aiMade: v }), String(v)).toBe(today);
+    expect(sent({ aiMade: true })).not.toBe(today);
+  });
+
+  it("puts each network's own field on its entry, flat", () => {
+    expect(data(ai(), "instagram")).toEqual({ isAiGenerated: true });
+    expect(data(ai({ mediaUrls: [MP4], instagram: { placement: "story" } }), "instagram")).toEqual({ contentType: "story", isAiGenerated: true });
+    expect(data(ai({ mediaUrls: [MP4] }), "youtube", YT)).toEqual({ visibility: "public", madeForKids: false, containsSyntheticMedia: true });
+    expect(data(ai({ mediaUrls: [MP4], tiktok }), "tiktok", TT)).toEqual({ ...tiktok, contentPreviewConfirmed: true, expressConsentGiven: true, videoMadeWithAi: true });
+    // no field on LinkedIn or Threads: their entries stay as today's
+    expect(data(ai(), "linkedin", LI)).toBeUndefined();
+    expect(data(ai({ mediaUrls: [] }), "threads", TH)).toBeUndefined();
+  });
+
+  it("only where the network labels it: Facebook Reels and video Stories, TikTok direct videos", () => {
+    expect(data(ai({ mediaUrls: [MP4], facebook: { placement: "reel" } }), "facebook", FB)).toEqual({ contentType: "reel", isAiGenerated: true });
+    expect(data(ai({ mediaUrls: [MP4], facebook: { placement: "story" } }), "facebook", FB)).toEqual({ contentType: "story", isAiGenerated: true });
+    expect(data(ai({ facebook: { placement: "story" } }), "facebook", FB)).toEqual({ contentType: "story" });
+    expect(data(ai({ mediaUrls: [MP4] }), "facebook", FB)).toBeUndefined();
+    // a TikTok photo post with it is refused at creation; an inbox draft's disclosure is set in TikTok's editor
+    expect(data(ai({ tiktok }), "tiktok", TT)).not.toHaveProperty("videoMadeWithAi");
+    const inbox = data(ai({ mediaUrls: [MP4], tiktok: { ...tiktok, mode: "inbox" } }), "tiktok", TT)!;
+    expect(JSON.stringify(inbox)).not.toContain("MadeWithAi");
+  });
+
+  it("is dropped for a caller off NORTH_STAR_USERS before anything is checked", () => {
+    const body = { action: "schedule", profileId: "me", accountIds: [IG], clientKey: KEY, content: "hi", scheduledFor: LATER, mediaUrls: [PNG], aiMade: true };
+    const off = parsePostRequest(body, NOW, false) as { ok: true; req: { input: ScheduleInput } };
+    expect(off.req.input).toEqual(input({ content: "hi" }));
+    expect(parsePostRequest(body, NOW)).toEqual(off);
+    expect(parsePostRequest(body, NOW, true)).toMatchObject({ ok: true, req: { input: { aiMade: true } } });
+  });
+});
+
 // The ladder's rung 1: Zernio's own checks, nothing saved. Fixtures copy
 // https://docs.zernio.com/posts/create-post.mdx (dryRun: TikTok only, 200 { dryRun: true, canPublish, tiktok: [one verdict
 // per entry] }; the verdict's fields beyond "a per-account go/no-go and a reason" are not documented, so accountId,

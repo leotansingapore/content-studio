@@ -240,6 +240,23 @@ describe("pause, resume and posts made while running", () => {
     const out = await L.sendIfLaunched(UID, "c-1", 3, NOW);
     expect(out).toEqual({ sent: 1, failed: [] });
     expect(z.schedule.mock.calls[0][1]).toMatchObject({ accountIds: ["li", "ig"], mediaUrls: ["https://cdn.example/0.png", "https://cdn.example/1.png"] });
+    // no AI picture on it: no Made with AI label, so the request is today's
+    expect(z.schedule.mock.calls[0][1]).not.toHaveProperty("aiMade");
+  });
+
+  it("a slideshow with an AI picture goes with the Made with AI label", async () => {
+    const show = { kind: "slideshow" as const, id: "ss-1" };
+    const posts = POSTS.map((p) => (p.n === 3 ? { ...p, format: "slideshow" as const, made: show } : p));
+    expect(saveCampaigns(UID, [campaign({ posts, launchedAt: "2026-11-20T00:00:00.000Z" })])).toBeNull();
+    saveDrafts(UID, posts.filter((p) => p.draftId).map((p) => draftOf(p)));
+    const { blankSlideshow, saveSlideshow } = await import("./slideshow");
+    const { markAiFiles } = await import("./mediaLibrary");
+    markAiFiles(["cimg-aipic01"]);
+    const blank = blankSlideshow({}, new Date(NOW));
+    saveSlideshow(UID, { ...blank, id: "ss-1", title: "Lunch", slides: blank.slides.map((s, i) => (i === 1 ? { ...s, image: "cimg-aipic01" } : s)) });
+    z.pngs.mockResolvedValue([{ file: new Blob(["a"]), name: "1.png", type: "image/png" }, { file: new Blob(["b"]), name: "2.png", type: "image/png" }]);
+    expect(await L.sendIfLaunched(UID, "c-1", 3, NOW)).toEqual({ sent: 1, failed: [] });
+    expect(z.schedule.mock.calls[0][1]).toMatchObject({ accountIds: ["li", "ig"], aiMade: true });
   });
 });
 

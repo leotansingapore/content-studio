@@ -11,7 +11,7 @@
 import { applyBrandRules } from "@/lib/brandRules";
 import { loadBrand } from "@/lib/carousel";
 import { EdgeError, callFn } from "@/lib/edgeFn";
-import { loadMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
+import { loadMedia, markAiFiles, storePicture, type MediaItem } from "@/lib/mediaLibrary";
 import { stripDashes } from "@/lib/plainText";
 import { scoped } from "@/lib/profiles";
 import { boxStyleOf, textStyleFor } from "@/lib/postChoices";
@@ -395,7 +395,10 @@ async function landed(token: string): Promise<Picture | null> {
     if (s.state === "failed") return null;
     if (s.state === "done") {
       const res = await fetch(s.url);
-      return res.ok ? { image: (await storePicture(await res.blob())).key } : null;
+      if (!res.ok) return null;
+      const { key } = await storePicture(await res.blob());
+      markAiFiles([key]);
+      return { image: key };
     }
   }
   return null;

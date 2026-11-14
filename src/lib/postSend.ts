@@ -11,6 +11,8 @@ import { createCanvasMeasure, svgToPng } from "@/lib/carouselRender";
 import { getFile } from "@/lib/deviceFiles";
 import { setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
+import { anyAiFile } from "@/lib/mediaLibrary";
+import type { Slideshow } from "@/lib/slideshow";
 
 /** The draft's own carousel slides as SVGs, drawn the way Carousel draws them, in its design and size. */
 export async function carouselSvgs(userId: string, c: SavedCarousel): Promise<string[]> {
@@ -37,6 +39,19 @@ export async function carouselSvgs(userId: string, c: SavedCarousel): Promise<st
       ),
     ),
   );
+}
+
+/**
+ * The Made with AI label's preset (Leo only): on when a picture going out is AI-made (anyAiFile: ai-image made it),
+ * off for an upload, a stock photo, a layout or a file picked by hand. An AI video is a file picked by hand by the time
+ * it is posted, so it starts off too, and the person ticks it.
+ */
+export function aiMadePreset(userId: string, from: { carousel?: SavedCarousel | null; slideshow?: Slideshow | null; files?: (string | undefined)[] }): boolean {
+  return anyAiFile(userId, [
+    ...(from.carousel?.slides ?? []).map((s) => s.image),
+    ...(from.slideshow?.slides ?? []).flatMap((s) => [s.image, ...(s.cells ?? []).map((c) => c?.image)]),
+    ...(from.files ?? []),
+  ]);
 }
 
 /** One slide as the PNG Zernio gets (a 4:5 one exactly as before). */
@@ -72,7 +87,7 @@ export async function sendScheduled(
   userId: string,
   profileId: string,
   draftId: string,
-  o: { key: string; accountIds: string[]; content: string; media: MediaFile[]; at: string; tz: string; by?: "launch" },
+  o: { key: string; accountIds: string[]; content: string; media: MediaFile[]; at: string; tz: string; by?: "launch"; aiMade?: boolean },
 ): Promise<PostView> {
   const zone = o.tz === TIMEZONE ? {} : { tz: o.tz };
   setDraftZernio(userId, draftId, { key: o.key, ...zone, ...(o.by ? { by: o.by } : {}) });
@@ -81,7 +96,7 @@ export async function sendScheduled(
     userId,
     profileId,
     draftId,
-    { accountIds: o.accountIds, clientKey: o.key, content: o.content, mediaUrls, scheduledFor: o.at, ...(zone.tz ? { timezone: zone.tz } : {}) },
+    { accountIds: o.accountIds, clientKey: o.key, content: o.content, mediaUrls, scheduledFor: o.at, ...(zone.tz ? { timezone: zone.tz } : {}), ...(o.aiMade ? { aiMade: true } : {}) },
     o.at,
     o.tz,
   );

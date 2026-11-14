@@ -1,6 +1,6 @@
 // The schedule steps (publish-schedule, publish-tiktok, publish-per-network; Leo only): Post it for me in three steps,
 // rendered by PostItForMePanel in place of today's panel. A carousel's slides are drawn first ("Preparing slides n/total"),
-// then Where (networks, accounts, the TikTok mode, the media), When (its day, the next open slot, a picked time, now)
+// then Where (networks, accounts, the TikTok mode, the media and its Made with AI label), When (its day, the next open slot, a picked time, now)
 // and Caption (a tab per network, the first comment, the score). Nothing posts until the last step's button; its
 // receipt is the finished screen and an Activity row. ?step= and ?network= are this component's (replace); the host
 // opens and closes it. The server checks every id and field again (supabase/functions/social/posts.ts).
@@ -31,7 +31,9 @@ import { applyView } from "@/lib/useZernioOutbox";
 import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { localDateKey, scheduleTime } from "@/lib/dueDates";
-import { carouselSvgs, keepSchedule, logPost, slidePng } from "@/lib/postSend";
+import { aiMadePreset, carouselSvgs, keepSchedule, logPost, slidePng } from "@/lib/postSend";
+import { loadImages } from "@/lib/images";
+import { SECOND_PICTURE } from "@/lib/imageLayout";
 import { links, SCHEDULE_STEPS } from "@/lib/links";
 import { brandRulesLine } from "@/lib/brandRules";
 import { writePlatformCaptions, type CaptionPlatform } from "@/lib/platformCaptions";
@@ -83,7 +85,7 @@ import {
   type Step,
   type StepForm,
 } from "@/lib/autoPost";
-import type { ScheduleInput, TikTokInput } from "../../supabase/functions/social/posts.ts";
+import { aiLabelField, type ScheduleInput, type TikTokInput } from "../../supabase/functions/social/posts.ts";
 
 // ---- Post it for me's media and Activity rows (shared with today's panel in PostItForMe.tsx; the non-UI parts live in src/lib/postSend.ts) ----
 
@@ -192,6 +194,10 @@ export function ScheduleSteps({
   const [prep, setPrep] = useState<{ done: number; total: number } | null>(carousel ? { done: 0, total: carousel.slides.length } : null);
   const [mode, setMode] = useState<MediaMode>(draft.attached?.length ? "files" : carousel ? "carousel" : slideshow ? "slideshow" : importLink ? "import" : "files");
   const [files, setFiles] = useState<MediaFile[]>([]);
+  // files picked here rather than attached in Write: where they came from can't be told
+  const [handPicked, setHandPicked] = useState(false);
+  // the Made with AI label as ticked here; null follows the preset (aiMadePreset)
+  const [aiTick, setAiTick] = useState<boolean | null>(null);
   const [step, setStepState] = useState<Step | null>(null);
   const [when, setWhen] = useState<When | null>(null);
   const [pickDay, setPickDay] = useState("");
@@ -331,6 +337,15 @@ export function ScheduleSteps({
     : [];
   const media: Media = { pictures: mediaUrls.filter((u) => mediaKind(u) === "image").length, videos: mediaUrls.filter((u) => mediaKind(u) === "video").length };
   const video = media.videos > 0;
+  // the Made with AI label: on for AI-made pictures (a design's own picture counts, behind its attached PNG), changeable here
+  const aiPreset = useMemo(() => {
+    if (mode === "carousel" || mode === "pdf") return aiMadePreset(userId, { carousel });
+    if (mode === "slideshow") return aiMadePreset(userId, { slideshow });
+    if (mode !== "files" || handPicked) return false;
+    const design = loadImages(userId).find((i) => i.draftId === draft.id);
+    return aiMadePreset(userId, { files: [...(draft.attached ?? []), design?.pictureKey, design?.words[SECOND_PICTURE]] });
+  }, [userId, mode, handPicked, carousel, slideshow, draft.id, attachedSig]);
+  const aiMade = aiTick ?? aiPreset;
 
   const tiktokId = tabs.includes("tiktok") ? picksOf("tiktok")[0] : undefined;
   const tiktokAccount = accounts.find((a) => a.id === tiktokId);
@@ -374,6 +389,8 @@ export function ScheduleSteps({
       : tiktok.privacyLevel
         ? { ...tiktok, mode: "direct" }
         : null;
+  // the ticked networks that put the label on this post, as the server decides it
+  const aiShows = tabs.filter((p) => aiLabelField({ mediaUrls, tiktok: tiktokInput, aiMade: true, ...networkFields(tabs, versions, media) } as ScheduleInput, p)).map(platformName);
 
   const day = draft.scheduledFor?.slice(0, 10) ?? "";
   const dayTime = scheduleTime(draft.scheduledFor) ?? "09:00";
@@ -526,6 +543,7 @@ export function ScheduleSteps({
   const pickFiles = (list: FileList | null) => {
     if (!list?.length) return;
     setFiles([...list].map((f) => ({ file: f, name: f.name, type: fileType(f) ?? f.type })));
+    setHandPicked(true);
     setError("");
   };
 
@@ -659,6 +677,7 @@ export function ScheduleSteps({
           ...(tabs.includes("youtube") ? { youtube: { title: ytTitle.trim(), visibility: "public" as const } } : {}),
           ...(mode === "pdf" && pdfOk ? { documentTitle: carousel?.title.trim() || "Carousel" } : {}),
           ...networkFields(tabs, versions, media),
+          ...(aiMade ? { aiMade: true } : {}),
         };
         // on its day at the minute Zernio holds, then the link (keepSchedule); a send now comes back with seconds. The
         // host hears of the post on Done, so a page that hides the panel once the draft has a post keeps this screen
@@ -928,6 +947,13 @@ export function ScheduleSteps({
                       </p>
                     ))}
                   </div>
+                )}
+                {tabs.length > 0 && mediaUrls.length > 0 && (
+                  <label className={`flex min-h-9 flex-wrap items-center gap-x-2 ${TOUCH}`}>
+                    <input type="checkbox" checked={aiMade} onChange={(e) => setAiTick(e.target.checked)} className="h-4 w-4 accent-primary" />
+                    <span className="font-semibold text-foreground">Made with AI label</span>
+                    <span className="text-muted-foreground">{aiShows.length ? `${andList(aiShows)} ${aiShows.length === 1 ? "shows" : "show"} it on this post.` : "None of these networks labels this post."}</span>
+                  </label>
                 )}
               </fieldset>
             </>

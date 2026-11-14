@@ -2,9 +2,10 @@
 // (src/lib/postChoices.ts). Any sign-in; each change saves at once and says so. A row shows only where this sign-in
 // has a maker that reads it: Your influencers is Leo's (saved presenters are), and it needs a presenter picked as
 // the brand's Who appears on /people. Language (Leo's, as on Brand kit: the kit's postLang) and Post labels (what a post
-// says about AI and ads, and where each is set) follow, each with its own Settings tile: #language and #labels scroll to
-// them. Nothing here is a view or filter, so the page has no URL params.
-import { useEffect, useRef, useState, type ReactNode } from "react";
+// says about AI and ads, and where each is set; for Leo, what each network shows for the Made with AI label Post it for
+// me sends) follow, each with its own Settings tile: #language and #labels scroll to them. Nothing here is a view or
+// filter, so the page has no URL params.
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { links, type PostLang } from "@/lib/links";
 import { DISCLOSURES } from "@/lib/plainText";
@@ -57,6 +58,19 @@ export const POST_LABELS = [
   { what: "TikTok's ad label", how: "A slideshow campaign that posts straight to your profile can say it promotes your business or is a paid partnership.", to: "/design/campaigns", go: "Slideshow campaigns" },
   { what: "Made with AI label", how: "Not sent with a post yet. Set it in the network's own app." },
 ] as const;
+/** Leo's Made with AI label, sent with a post (social posts.ts aiLabelField), and what each network shows for it. */
+export const AI_LABEL = {
+  what: "Made with AI label",
+  how: "On for AI-made media, off for real footage and photos. Post it for me sets it, and you can change it on each post.",
+  networks: [
+    ["Instagram", "An AI info label on feed posts, Reels, Stories and carousels."],
+    ["Facebook", "An AI info label on Reels and video Stories."],
+    ["TikTok", "An AI-generated label on videos only. Add it in TikTok for photo posts and inbox drafts."],
+    ["YouTube", "Tells YouTube the video has altered or synthetic content. YouTube may add a label."],
+    ["LinkedIn", "LinkedIn has no AI label."],
+    ["Threads", "Threads has no AI label."],
+  ],
+} as const;
 
 function Choices({ userId, leo }: { userId: string; leo: boolean }) {
   const [c, setC] = useState<PostChoices>(() => loadPostChoices(userId));
@@ -180,13 +194,23 @@ function Choices({ userId, leo }: { userId: string; leo: boolean }) {
         </Row>
       )}
 
-      <Row id="pc-labels" title="Post labels" hint="What a post says about AI and ads. Nothing is added unless you pick it.">
+      <Row id="pc-labels" title="Post labels" hint={leo ? "What a post says about AI and ads." : "What a post says about AI and ads. Nothing is added unless you pick it."}>
         <ul className="divide-y divide-border/60">
-          {POST_LABELS.map((l) => (
+          {POST_LABELS.map((l) => (leo && l.what === AI_LABEL.what ? AI_LABEL : l)).map((l) => (
             <li key={l.what} className="flex flex-wrap items-center justify-between gap-x-4 py-2 first:pt-0 last:pb-0">
               <div className="min-w-0 flex-1 basis-56">
                 <p className="text-sm font-medium text-foreground">{l.what}</p>
                 <p className="text-xs text-muted-foreground">{l.how}</p>
+                {"networks" in l && (
+                  <dl className="mt-2 grid gap-x-3 gap-y-1 text-xs sm:grid-cols-[5.5rem_1fr]">
+                    {l.networks.map(([name, shows]) => (
+                      <Fragment key={name}>
+                        <dt className="font-medium text-foreground">{name}</dt>
+                        <dd className="text-muted-foreground">{shows}</dd>
+                      </Fragment>
+                    ))}
+                  </dl>
+                )}
               </div>
               {"to" in l && <Link to={l.to} className={GO}>{l.go}</Link>}
             </li>

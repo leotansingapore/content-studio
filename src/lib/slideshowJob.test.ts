@@ -16,6 +16,7 @@ vi.mock("@/lib/slideshowDraw", async (orig) => ({ ...(await orig<typeof import("
 
 import { EdgeError } from "./edgeFn";
 import { links } from "./links";
+import { anyAiFile } from "./mediaLibrary";
 import type { MakeResponse } from "./remix";
 import type { RemixSource } from "./remixSource";
 import { frameHeight, loadSlideshows } from "./slideshow";
@@ -463,6 +464,8 @@ describe("AI pictures in one look", () => {
     expect(made[1]).toMatchObject({ fill: "#1D4ED8" });
     expect(made[1].image).toBeUndefined();
     expect(made[2].image).toMatch(/^cimg-/);
+    // marked AI-made, so Post it for me presets the Made with AI label
+    expect(anyAiFile(UID, [made[2].image])).toBe(true);
     // no stock search and no Jev pick for AI pictures
     expect(stock.search).not.toHaveBeenCalled();
     expect(j.note).toBeUndefined();

@@ -24,7 +24,7 @@ import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgToPng } from "@/lib/carouselRender";
 import { hasComplianceErrors, scanCompliance } from "@/lib/compliance";
 import { draftStatus, loadDrafts, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
-import { carouselSvgs, logPost, sendScheduled, slidePng } from "@/lib/postSend";
+import { aiMadePreset, carouselSvgs, logPost, sendScheduled, slidePng } from "@/lib/postSend";
 import { activeProfileId } from "@/lib/profiles";
 import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
@@ -138,19 +138,22 @@ async function readAccounts(profileId: string, fresh: boolean): Promise<AccountV
   return accounts;
 }
 
-/** The post's pictures: a slideshow's slides, a saved carousel's (the person's edits), else its slides drawn from its words as /carousel draws them. */
-async function mediaFor(userId: string, p: CampaignPost, d: DraftEntry): Promise<MediaFile[]> {
-  if (carries(p) !== "pictures") return [];
+/**
+ * The post's pictures: a slideshow's slides, a saved carousel's (the person's edits), else its slides drawn from its
+ * words as /carousel draws them; and the Made with AI label's preset for them (aiMadePreset).
+ */
+async function mediaFor(userId: string, p: CampaignPost, d: DraftEntry): Promise<{ media: MediaFile[]; aiMade: boolean }> {
+  if (carries(p) !== "pictures") return { media: [], aiMade: false };
   if (p.made?.kind === "slideshow") {
     const show = loadSlideshows(userId).find((s) => s.id === p.made?.id);
     if (!show) throw new Error("Its slideshow is gone from Slideshows.");
-    return slideshowPngs(userId, show);
+    return { media: await slideshowPngs(userId, show), aiMade: aiMadePreset(userId, { slideshow: show }) };
   }
   const saved = loadCarousels(userId).find((x) => x.draftId === d.id);
   const out: MediaFile[] = [];
   if (saved) {
     for (const svg of await carouselSvgs(userId, saved)) out.push({ file: await slidePng(saved, svg), name: "slide.png", type: "image/png" });
-    return out;
+    return { media: out, aiMade: aiMadePreset(userId, { carousel: saved }) };
   }
   const brand = loadBrand(userId) ?? DEFAULT_BRAND;
   const measure = createCanvasMeasure();
@@ -158,7 +161,7 @@ async function mediaFor(userId: string, p: CampaignPost, d: DraftEntry): Promise
   for (const [i, s] of slides.entries()) {
     out.push({ file: await svgToPng(renderSvg(layoutSlide({ title: s.title, body: s.body, index: i, total: slides.length, brand }, measure))), name: "slide.png", type: "image/png" });
   }
-  return out;
+  return { media: out, aiMade: false };
 }
 
 export interface SendResult { sent: number; failed: { n: number; error: string }[] }
@@ -180,7 +183,7 @@ async function sendOne(userId: string, c: Campaign, it: LaunchItem, accounts: Ac
     failed.add(it.n);
   };
   try {
-    const media = await mediaFor(userId, p, d);
+    const { media, aiMade } = await mediaFor(userId, p, d);
     // read again after the slides: while they rendered the post may have gone by hand, from another tab, or come off
     // the calendar. From this read to the key saved on the draft (sendScheduled's first step) nothing is awaited.
     const fresh = () => {
@@ -198,7 +201,7 @@ async function sendOne(userId: string, c: Campaign, it: LaunchItem, accounts: Ac
     }
     // an earlier try that never heard back (here or in another tab) goes again with its own key, so it never posts twice
     const key = cur.zernio && !cur.zernio.postId ? cur.zernio.key : crypto.randomUUID();
-    const post = await sendScheduled(userId, profileId, d.id, { key, accountIds: it.accountIds, content: it.content, media, at: it.at, tz: it.tz, by: "launch" });
+    const post = await sendScheduled(userId, profileId, d.id, { key, accountIds: it.accountIds, content: it.content, media, at: it.at, tz: it.tz, by: "launch", aiMade });
     const kept = loadDrafts(userId).some((x) => x.id === d.id);
     // paused, deleted, or Undo took the post off the calendar while it went up: it comes off Zernio too
     if (!kept || !live(userId, c.id)) {

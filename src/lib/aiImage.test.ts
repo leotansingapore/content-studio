@@ -12,12 +12,14 @@ vi.mock("@/lib/draftHistory", () => ({
 vi.mock("@/lib/deviceFiles", () => ({ deleteFile: vi.fn(async () => {}), getFile: vi.fn(async () => new Blob(["kept"])) }));
 vi.mock("@/lib/mediaLibrary", async (actual) => ({
   centerCrop: (await actual<typeof import("@/lib/mediaLibrary")>()).centerCrop,
+  AI_FOLDER: (await actual<typeof import("@/lib/mediaLibrary")>()).AI_FOLDER,
   addMedia: vi.fn(),
+  markAiFiles: vi.fn(),
   storePicture: vi.fn(async () => ({ key: "pic-1", url: "data:image/png;base64,x", width: 1080, height: 1440 })),
 }));
 
 import { callFn } from "@/lib/edgeFn";
-import { addMedia, storePicture } from "@/lib/mediaLibrary";
+import { addMedia, markAiFiles, storePicture } from "@/lib/mediaLibrary";
 import { deleteFile } from "@/lib/deviceFiles";
 import { attachImageTo, autoImage, brandLine, fixImage, imageJob, logoBox, makeImage, onImageJob, resumeImage } from "./aiImage";
 import { MAX_PROMPT } from "../../supabase/functions/ai-image/logic";
@@ -98,6 +100,8 @@ describe("a picture Write makes on its own for a post", () => {
     expect(addMedia).toHaveBeenCalledWith("u1", expect.objectContaining({ key: "pic-1", folder: "AI images" }));
     expect(drafts.list).toEqual([{ id: "d1", attached: ["pic-2"] }]);
     expect(imageJob()).toMatchObject({ state: "done", mediaKey: "pic-1", attached: { draft: "d1", key: "pic-2" } });
+    // both copies are marked AI-made, for the Made with AI label's preset
+    expect(vi.mocked(markAiFiles).mock.calls.flat(2)).toEqual(expect.arrayContaining(["pic-1", "pic-2"]));
   });
 
   it("swaps the post's picture for the fixed one and drops the old copy", async () => {

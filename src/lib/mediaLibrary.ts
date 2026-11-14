@@ -202,6 +202,38 @@ export function foldersOf(list: MediaItem[]): string[] {
   return [...new Set(list.map((m) => m.folder).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
 
+/** Media's folder for the pictures ai-image makes (aiImage.ts). */
+export const AI_FOLDER = "AI images";
+// Device files ai-image made, newest first, for the Made with AI label's preset: this device only, like the files.
+const AI_FILES = "cs-ai-files";
+const AI_FILES_MAX = 1000;
+
+function aiFiles(): string[] {
+  try {
+    const v = JSON.parse(store()?.getItem(AI_FILES) ?? "[]");
+    return Array.isArray(v) ? v.filter((k): k is string => typeof k === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Marks device files ai-image made, wherever they are kept (Media, a post's attachment, a slideshow's slide). */
+export function markAiFiles(keys: string[]): void {
+  try {
+    store()?.setItem(AI_FILES, JSON.stringify([...new Set([...keys, ...aiFiles()])].slice(0, AI_FILES_MAX)));
+  } catch {
+    // storage full: the label starts off for this file, and the person can still tick it
+  }
+}
+
+/** True when any of these device files is AI-made: marked as it was made, or (made before the marks) in Media's AI images. */
+export function anyAiFile(userId: string, keys: (string | undefined)[]): boolean {
+  const ks = keys.filter((k): k is string => !!k);
+  if (!ks.length) return false;
+  const ai = new Set([...aiFiles(), ...loadMedia(userId).filter((m) => m.folder === AI_FOLDER).map((m) => m.key)]);
+  return ks.some((k) => ai.has(k));
+}
+
 /** Resizes a picture to at most `maxWidth` wide, keeps it on this device and returns its key and a data URL to draw. */
 /** The middle of a w x h picture at `ratio` (width / height). */
 export function centerCrop(w: number, h: number, ratio: number): { x: number; y: number; w: number; h: number } {

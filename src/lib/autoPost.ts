@@ -143,6 +143,8 @@ export interface ScheduleRequest {
   youtube?: { title: string; visibility: "public" | "unlisted" | "private" };
   /** A Threads thread (Leo only): 2 to 10 posts, Threads accounts only; content is its first post. */
   thread?: string[];
+  /** The Made with AI label (Leo only); sent only when on. */
+  aiMade?: boolean;
   /** The title LinkedIn shows on a PDF document (Leo only); sent with a PDF. */
   documentTitle?: string;
 }

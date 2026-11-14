@@ -137,6 +137,8 @@ export interface ScheduleInput {
   instagram?: InstagramInput;
   facebook?: FacebookInput;
   linkedin?: LinkedInInput;
+  /** The Made with AI label (Leo only): kept only when true, so a body without it reads as today's (aiLabelField). */
+  aiMade?: boolean;
 }
 
 /** A thread's posts, the first the root. Zernio's ThreadsPlatformData.threadItems (zernio.com/openapi.json, read 2026-10-21). */
@@ -244,7 +246,7 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
   }
   const nets = networkOptions(b);
   if ("error" in nets) return nets;
-  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, ...(zone.value ? { timezone: zone.value } : {}), firstComment, tiktok, youtube, ...(thread ? { thread } : {}), ...(documentTitle ? { documentTitle } : {}), ...nets.value } };
+  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, ...(zone.value ? { timezone: zone.value } : {}), firstComment, tiktok, youtube, ...(thread ? { thread } : {}), ...(documentTitle ? { documentTitle } : {}), ...nets.value, ...(b.aiMade === true ? { aiMade: true } : {}) } };
 }
 
 const obj = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : null);
@@ -316,6 +318,22 @@ export function platformProblem(input: ScheduleInput, platforms: string[]): stri
   return null;
 }
 
+/**
+ * The field that puts the network's own Made with AI label on this entry, or null: none asked, no label there, or one
+ * Zernio refuses (zernio.com/openapi.json, read 2026-11-14). LinkedIn and Threads have no such field.
+ */
+export function aiLabelField(input: ScheduleInput, platform: string): string | null {
+  if (!input.aiMade) return null;
+  const video = input.mediaUrls.some((u) => mediaKind(u) === "video");
+  if (platform === "instagram") return "isAiGenerated";
+  // Facebook labels a Reel or a video Story; anywhere else Zernio takes the flag with a warning and no label
+  if (platform === "facebook") return input.facebook?.placement === "reel" || (input.facebook?.placement === "story" && video) ? "isAiGenerated" : null;
+  // a direct photo post with it is refused at creation, and a draft's disclosure is set in TikTok's editor
+  if (platform === "tiktok") return video && input.tiktok?.mode !== "inbox" ? "videoMadeWithAi" : null;
+  if (platform === "youtube") return "containsSyntheticMedia";
+  return null;
+}
+
 /** The settings Zernio takes on one platform's entry, or null for none. */
 function platformData(input: ScheduleInput, platform: string): Record<string, unknown> | null {
   const video = input.mediaUrls.some((u) => mediaKind(u) === "video");
@@ -363,6 +381,9 @@ function platformData(input: ScheduleInput, platform: string): Record<string, un
   // a PDF goes as a document; LinkedIn requires its title (zernio.com/openapi.json LinkedInPlatformData, read 2026-10-21)
   if (platform === "linkedin" && input.documentTitle && input.mediaUrls.some(isPdf)) data.documentTitle = input.documentTitle;
   if (input.firstComment && FIRST_COMMENT_PLATFORMS.includes(platform)) data.firstComment = input.firstComment;
+  // flat on the entry for each network, TikTok's direct post included (inbox drafts never get it)
+  const ai = aiLabelField(input, platform);
+  if (ai) data[ai] = true;
   return Object.keys(data).length ? data : null;
 }
 
@@ -416,7 +437,7 @@ export function checkUpload(raw: Record<string, unknown>): Checked<UploadFile> {
 
 /** A schedule body without what only NORTH_STAR_USERS may send: ignored, not refused, so today's posts never change (decision 3). */
 function todays(b: Record<string, unknown>): Record<string, unknown> {
-  const { instagram: _ig, facebook: _fb, linkedin: _li, ...rest } = b;
+  const { instagram: _ig, facebook: _fb, linkedin: _li, aiMade: _ai, ...rest } = b;
   return rest.tiktok && typeof rest.tiktok === "object" ? { ...rest, tiktok: { ...rest.tiktok, mode: undefined } } : rest;
 }
 
