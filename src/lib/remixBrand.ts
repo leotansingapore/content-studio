@@ -1,6 +1,6 @@
 // What a remix wears (docs/north-star/items/remix-your-brand.md): the switches the sheet's For row remembers per
-// brand, and the one brand block each make call carries, built from the brand kit, positioning, Your market and the
-// coach profile of the brand open now.
+// brand, and the one brand block each make call carries, built from the brand kit, positioning, Your market, the
+// coach profile and the memory line of the brand open now.
 
 import { brandOffers, brandRulesLine } from "@/lib/brandRules";
 import { loadBrand } from "@/lib/carousel";
@@ -10,6 +10,7 @@ import { loadPositioning } from "@/lib/positioning";
 import { professionFor } from "@/lib/profession";
 import { DEFAULT_PROFILE_ID, activeProfile, activeProfileId, scoped } from "@/lib/profiles";
 import { VOICE_IDS, type VoiceId } from "@/lib/textVoice";
+import { memoryLine } from "@/lib/voiceMemory";
 import type { BrandPack, Speaker } from "../../supabase/functions/remix/logic.ts";
 
 export interface RemixPrefs {
@@ -101,6 +102,8 @@ export function brandPack(userId: string, o: { platform: string; mention: boolea
   const mention = o.mention && name !== "";
   const offer = mention && o.offer && offerNames(userId).includes(o.offer) ? { name: o.offer } : null;
   const profession = professionFor(userId);
+  // the memory line every writer gets (facts, claims, the live promotion, Do, Don't and Avoid); remix writes words, so "posts"
+  const memory = memoryLine(userId, "posts");
   return {
     name,
     oneLiner: p?.oneLiner.trim() ?? "",
@@ -113,6 +116,8 @@ export function brandPack(userId: string, o: { platform: string; mention: boolea
     speaker: o.speaker ?? speakerFor(userId),
     // "What do you do?": the writer names the work and drops the adviser framing; left out for an adviser or nothing set
     ...(profession ? { profession } : {}),
+    // left out when there is none, so the make's prompt is today's
+    ...(memory ? { memory } : {}),
   };
 }
 

@@ -861,3 +861,42 @@ describe("a make with a hook formula (remix-variations)", () => {
     expect(used()).toBe(1);
   });
 });
+
+describe("the brand's memory line (brand.memory)", () => {
+  const MEMORY = "ABOUT ME, FROM WHAT I HAVE TOLD YOU (follow these unless MY BRAND RULES say otherwise):\n- Facts you may state about me (state no other facts, numbers, awards or results about me): Claim: Saves 2 hours a week\n- Keep doing or avoid: Avoid: momentum; Do: Speak plainly";
+  const d = dogfood("017-remix.json");
+  const withMemory = { ...d.request, brand: { ...d.request.brand, memory: MEMORY } };
+  // the fixed post of the first test above: ActivityTracker named once, "momentum" in its hook
+  const once = { ...d.answer.result, body: d.answer.result.body.replace("ActivityTracker brings", "One app brings") };
+  const clean = { ...once, hook: once.hook.replace("momentum", "pipeline") };
+
+  it("reaches the writer's prompt and Jev's facts, and sends an Avoid word back once inside the same use", async () => {
+    openai.mode = "queue";
+    openai.answers = [once, clean];
+    const r = await send(withMemory);
+    expect(r.status).toBe(200);
+    expect(r.body.result.hook).toContain("pipeline");
+    expect(openai.calls).toBe(2);
+    expect(openai.sent[0].messages[0].content).toContain(MEMORY);
+    expect(openai.sent[1].messages.at(-1)!.content).toContain(`These are on the brand's Avoid list and must not appear anywhere: "momentum".`);
+    expect(jev.states.find((s) => "post" in s)!.facts).toContain(MEMORY);
+    expect(used()).toBe(1);
+  });
+
+  it("refuses a remix that still uses an Avoid word after the fixing pass, keeping the use since both answers were billed", async () => {
+    openai.mode = "queue";
+    openai.answers = [once, once];
+    expect(await send(withMemory)).toMatchObject({ status: 422, body: { code: "refused", error: `That remix used "momentum", which is on your Avoid list. Try again.` } });
+    expect(openai.calls).toBe(2);
+    expect(used()).toBe(1);
+  });
+
+  it("checks nothing and sends today's prompt when there is no memory", async () => {
+    openai.mode = "queue";
+    openai.answers = [once];
+    const r = await send(d.request);
+    expect(r.status).toBe(200);
+    expect(openai.calls).toBe(1);
+    expect(openai.sent[0].messages[0].content).not.toContain("ABOUT ME");
+  });
+});

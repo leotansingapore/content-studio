@@ -290,7 +290,15 @@ export interface BrandPack {
   speaker: Speaker;
   /** A person's work ("What do you do?", professionOf); absent for an adviser, a business or an older app, who get today's prompts. */
   profession?: string;
+  /**
+   * The brand's memory line every writer gets (src/lib/voiceMemory.ts memoryLine: facts, claims, the live promotion,
+   * Do, Don't and Avoid), at most MAX_MEMORY; absent when none, which gives today's prompts.
+   */
+  memory?: string;
 }
+
+/** idea-dump's and video-assist's cap on the same line. */
+export const MAX_MEMORY = 1500;
 
 /** A product as an ad make sends it: what the app calls it (productLabel), what it is and who it's for. */
 export interface AdProduct {
@@ -551,6 +559,7 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
   // hooks and ad versions write formulas of their own
   const formula = as !== "hooks" && as !== "ads" && formulaRule(r.formula) ? (r.formula as string) : undefined;
   const product = as === "image" && isStaticLayout(shape.layout) ? parseProduct(r.product) : undefined;
+  const memory = blockText(b.memory, MAX_MEMORY);
   return {
     ok: true,
     value: {
@@ -573,6 +582,7 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
         rules: line(b.rules, 1500),
         speaker,
         ...(speaker === "person" && professionOf(b.profession) ? { profession: professionOf(b.profession) } : {}),
+        ...(memory ? { memory } : {}),
       },
       teardown: { hookPattern: line(t.hookPattern, 200) || undefined, beats: list(t.beats, 8, 200), dontReuse: list(t.dontReuse, 12, 80) },
       fit: verdict ? { verdict, reasons: (Array.isArray(f.reasons) ? f.reasons : []).filter((x): x is FitReason => FIT_REASONS.includes(x as FitReason)) } : undefined,
@@ -1378,6 +1388,8 @@ function brandLines(b: BrandPack): string[] {
     b.offer ? `End by pointing to ${b.offer.name}. Do not state a price or promise a result.${b.offer.brief ? ` About it: ${b.offer.brief}` : ""}` : "",
     FACTS_ONLY[b.speaker],
     b.rules,
+    // after the brand rules, as every other writer gets it
+    b.memory,
   ];
   return ["", b.speaker === "business" ? "The business:" : "The adviser:", ...lines.filter(Boolean)];
 }
@@ -2006,7 +2018,7 @@ export const slideNumbers = (slides: { title: string }[]) =>
   });
 
 export interface MakeProblem {
-  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length" | "cut" | "number" | "copy" | "edit" | "same";
+  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length" | "cut" | "number" | "copy" | "edit" | "same" | "avoid";
   /** Sent back to the model for the one fixing pass. */
   fix: string;
   /** The refusal the adviser reads when the fix fails too. The use is kept: the model answered (only 502/503 refund). */
@@ -2322,9 +2334,42 @@ export function editLength(r: MadeResult, req: Pick<MakeRequest, "edit">): strin
   ].join("\n");
 }
 
-/** The format's own checks after writing: the slideshow's, the wall's, the other formats' (textProblem), then phase 3's and the edit's. */
+const KEEP_LEAD = "- Keep doing or avoid: ";
+const AVOID_LEAD = "Avoid: ";
+
+/**
+ * The Avoid items in the brand's memory line (src/lib/voiceMemory.ts: "Avoid: " learnings on the keep line), as typed.
+ * shortcut: items are split on "; " as memoryLine joins them, so a phrase holding "; " is checked up to it; send a list if one ever does.
+ */
+export function avoidOf(memory: string | undefined): string[] {
+  const keep = (memory ?? "").split("\n").find((l) => l.startsWith(KEEP_LEAD));
+  if (!keep) return [];
+  return keep.slice(KEEP_LEAD.length).split("; ").filter((i) => i.startsWith(AVOID_LEAD)).map((i) => i.slice(AVOID_LEAD.length).trim()).filter(Boolean);
+}
+
+/** Which of `words` are in the text: whole words or phrases, any case, any spacing between a phrase's words (the app's findWords). */
+export function wordsFound(text: string, words: string[]): string[] {
+  return words.filter((w) => {
+    const body = w.split(/\s+/).filter(Boolean).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+    return !!body && new RegExp(`(?:^|[^\\p{L}\\p{N}])${body}(?=$|[^\\p{L}\\p{N}])`, "iu").test(text);
+  });
+}
+
+/** Words on the brand's Avoid list in what a reader sees: one fixing pass, then a refusal that keeps the use, as every format check. */
+export function avoidProblem(r: MadeResult, req: Pick<MakeRequest, "brand">): MakeProblem | null {
+  const hit = wordsFound(textFields(r).join("\n"), avoidOf(req.brand.memory));
+  if (!hit.length) return null;
+  const said = hit.map((w) => `"${w}"`).join(", ");
+  return {
+    kind: "avoid",
+    fix: `These are on the brand's Avoid list and must not appear anywhere: ${said}. Return the whole JSON object again without them, saying the same thing in other words.${r.as === "edit" ? " Keep every [[k]] marker in its line and in its order." : ""}`,
+    error: `That remix used ${said}, which ${hit.length === 1 ? "is" : "are"} on your Avoid list. Try again.`,
+  };
+}
+
+/** The format's own checks after writing: the slideshow's, the wall's, the other formats' (textProblem), then phase 3's, the edit's and the Avoid list. */
 export const makeProblem = (r: MadeResult, req: Pick<MakeRequest, "brand" | "brandAt" | "source" | "seconds" | "words" | "edit">) =>
-  slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req) ?? hooksProblem(r) ?? editProblem(r, req);
+  slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req) ?? hooksProblem(r) ?? editProblem(r, req) ?? avoidProblem(r, req);
 
 /** The words a reader sees: not hashtags, search terms, picture prompts or filming notes. */
 export function textFields(r: MadeResult): string[] {
@@ -2385,13 +2430,14 @@ export function makeQuestions(speaker: Speaker, profession?: string) {
  * the audience, brandLines), then the facts sent, each left out when the facts already hold it. Facts alone flagged all
  * 8 makes of the wave 1 live check (21 Oct) for a brand with none saved, for restating its own one-liner.
  */
-export function jevFacts(b: Pick<BrandPack, "oneLiner" | "audience" | "offer" | "facts">): string {
+export function jevFacts(b: Pick<BrandPack, "oneLiner" | "audience" | "offer" | "facts" | "memory">): string {
   const own: [string, string][] = [
     ["What they do", b.oneLiner],
     ["What they offer", b.offer ? [b.offer.name, b.offer.brief].filter(Boolean).join(": ") : ""],
     ["Who they serve", b.audience],
   ];
-  return [...own.filter(([, v]) => v && !b.facts.includes(v)).map(([k, v]) => `- ${k}: ${v}`), b.facts].filter(Boolean).join("\n");
+  // the memory line's facts, claims and promotion are given to the writer too, so using them is never invented
+  return [...own.filter(([, v]) => v && !b.facts.includes(v)).map(([k, v]) => `- ${k}: ${v}`), b.facts, b.memory].filter(Boolean).join("\n");
 }
 
 /** proposal: from the spec; set from the first 50 remixes by reading every answer between 0.3 and 0.7. */

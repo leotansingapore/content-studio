@@ -4,6 +4,8 @@ vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_URL: "", SUPABASE_ANON
 
 import { addProfile, setActiveProfile } from "./profiles";
 import { brandName, brandPack, forSummary, loadRemixPrefs, ownBrandName, saveRemixPrefs, speakerFor } from "./remixBrand";
+import { memoryLine } from "./voiceMemory";
+import { avoidOf, buildMakePrompt, parseMakeRequest } from "../../supabase/functions/remix/logic.ts";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -87,6 +89,24 @@ describe("brandPack", () => {
     const pack = brandPack(UID, { platform: "linkedin", mention: true, offer: null });
     expect(pack).toMatchObject({ name: "", mention: false, offer: null });
     expect(brandName(UID)).toBe("your business");
+  });
+
+  it("carries the memory line every writer gets, in the shape the remix reads, and none when nothing is saved", () => {
+    kit(UID, { name: "Jane Tan" });
+    expect(brandPack(UID, { platform: "instagram", mention: true, offer: null })).not.toHaveProperty("memory");
+    const at = "2026-11-01T00:00:00.000Z";
+    set(`content-studio-facts-${UID}`, [{ id: "f1", text: "Claim: Saves 2 hours a week", createdAt: at }]);
+    set(`content-studio-learnings-${UID}`, [
+      { id: "l1", text: "Avoid: game-changer", scope: "all", source: "typed", createdAt: at },
+      { id: "l2", text: "Don't: Promise returns", scope: "all", source: "typed", createdAt: at },
+    ]);
+    const pack = brandPack(UID, { platform: "instagram", mention: true, offer: null });
+    expect(pack.memory).toBe(memoryLine(UID, "posts"));
+    expect(pack.memory).toContain("Claim: Saves 2 hours a week");
+    const r = parseMakeRequest({ mode: "make", as: "post", topic: "Busy weeks", brand: pack });
+    if (r.ok === false) throw new Error(r.error);
+    expect(avoidOf(r.value.brand.memory)).toEqual(["game-changer"]);
+    expect(buildMakePrompt(r.value).system).toContain(pack.memory);
   });
 
   it("leaves the offer out with mention off, and drops one the kit no longer has", () => {
