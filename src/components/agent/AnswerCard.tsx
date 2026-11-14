@@ -1,8 +1,9 @@
 // A ready answer in the agent's thread (agentAnswers.ts), in the MADE block's frame: a tag, then what was asked for.
 // Trending: up to 5 niche posts, then Formats taking off (up to 3 templates), each with its picture, why it is trending,
-// Remix (a new chat with the post attached, or the format's page) and Hide (gone for this brand here and in Studio). Best post: its numbers, when it went out and Make another like it. Angles: the
-// wizard's price and uses left before Suggest spends, then the angles and Plan a campaign with these. Each empty
-// state names the one page that fixes it.
+// Remix (a new chat with the post attached, or the format's page) and Hide (gone for this brand here and in Studio).
+// Best post: its numbers, when it went out and Make another like it. Angles: the up to 2 audiences with the fewest,
+// one press with the combined price and uses left, then each audience's angles ticked, Add to it, and Plan a campaign
+// with these. Each empty state names the one page that fixes it.
 
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
@@ -11,13 +12,15 @@ import PriceChip from "@/components/PriceChip";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
-import { seedWizard, suggestAngles, anotherLikeIt, type Answer, type TrendRow } from "@/lib/agentAnswers";
+import {
+  addAngles, anotherLikeIt, fullLine, groupsOf, pickedLine, roomFor, seedWizard, suggestAngles, type AngleGroup, type Answer, type TrendRow,
+} from "@/lib/agentAnswers";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { SUGGEST_COUNT, jobKey, onSuggest, suggestJob, suggestVersion } from "@/lib/angleSuggest";
 import { brandFacts } from "@/lib/competitors";
 import { links } from "@/lib/links";
 import { hideItem, loadNiche, onNicheChanged, unhideItem } from "@/lib/nicheFeed";
-import { reasonText } from "@/lib/prices";
+import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { dayMonth } from "@/lib/remixSource";
 import { platformName } from "@/lib/socialConnect";
 
@@ -154,58 +157,118 @@ function Best({ answer }: { answer: Extract<Answer, { kind: "best" }> }) {
   );
 }
 
+function AngleGroupView({ userId, threadId, msgId, g, suggesting }: { userId: string; threadId: string; msgId: string; g: AngleGroup; suggesting: boolean }) {
+  const [off, setOff] = useState<Set<number>>(() => new Set());
+  const angles = g.angles ?? [];
+  const picked = angles.filter((_, i) => !off.has(i));
+  const room = roomFor(userId, g.id);
+  const over = !g.added && picked.length > room;
+  const flip = (i: number) => setOff((o) => (o.delete(i) ? new Set(o) : new Set(o).add(i)));
+  return (
+    <section aria-label={`Angles for ${g.name}`} className="space-y-2 p-4">
+      <h3 className="break-words text-sm font-semibold">{g.name}</h3>
+      {g.added ? (
+        <>
+          <p className="text-sm text-success" role="status">
+            {`Added ${g.added.length} ${g.added.length === 1 ? "angle" : "angles"} to ${g.name}.`}
+          </p>
+          <ol className="space-y-1 text-sm">
+            {g.added.map((a, i) => (
+              <li key={i} className="break-words">{a.title}</li>
+            ))}
+          </ol>
+          <Button asChild size="sm" className="h-11 sm:h-9">
+            <Link to={links.campaignNew({ audience: g.id, step: "angles" })} onClick={() => seedWizard(userId, g.id, g.added!)}>
+              Plan a campaign with these
+            </Link>
+          </Button>
+        </>
+      ) : angles.length ? (
+        <>
+          <ul className="space-y-1">
+            {angles.map((a, i) => (
+              <li key={i} className="flex gap-2">
+                <label className="-m-1.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center">
+                  <input type="checkbox" className="h-5 w-5 accent-primary" checked={!off.has(i)} onChange={() => flip(i)} aria-label={`Add ${a.title}`} />
+                </label>
+                <div className="min-w-0 flex-1 pt-1 text-sm">
+                  <span className="break-words font-medium">{a.title}</span>
+                  {a.line && <span className="block break-words text-muted-foreground">{a.line}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <Button type="button" size="sm" className="h-auto min-h-11 max-w-full whitespace-normal text-left sm:min-h-9" disabled={!picked.length || over} onClick={() => addAngles(userId, threadId, msgId, g.id, picked)}>
+            Add to {g.name}
+          </Button>
+          {over && <p className="text-xs text-destructive">{fullLine(g.name, room)}</p>}
+        </>
+      ) : suggesting ? (
+        <p className="text-sm text-muted-foreground">{`Writing ${SUGGEST_COUNT} angles. This takes a few seconds.`}</p>
+      ) : null}
+      {g.error && !suggesting && (
+        <p className="text-xs text-destructive" role="alert">
+          {g.error}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function Angles({ userId, threadId, msgId, answer }: { userId: string; threadId: string; msgId: string; answer: Extract<Answer, { kind: "angles" }> }) {
   useSyncExternalStore(onSuggest, suggestVersion);
   const job = suggestJob();
-  const aud = answer.audience;
-  const suggesting = !!aud && job.state === "suggesting" && job.key === jobKey(userId, aud.id);
+  const groups = groupsOf(answer);
+  const running = (g: AngleGroup) => job.state === "suggesting" && job.key === jobKey(userId, g.id);
+  const busy = groups.some(running);
+  // waiting on the press: never suggested, or its last try failed
+  const todo = groups.filter((g) => !g.angles?.length && !g.added);
   const left = useUsesLeft(job.state === "suggesting")("campaign-angles");
+  const uses = Math.max(1, todo.length);
+  const why = [pickedLine(groups), ...(answer.full ?? []).map((name) => fullLine(name, 0))].filter(Boolean).join(" ");
   return (
     <section aria-label="New angles" className={BOX}>
       <header className={HEAD}>
         <span className={`${TAG} text-primary`}>ANGLES</span>
-        {aud && <span className="min-w-0 truncate text-[11px] text-muted-foreground">For {aud.name}</span>}
+        {groups.length > 0 && <span className="min-w-0 truncate text-[11px] text-muted-foreground">{groups.length === 1 ? `For ${groups[0].name}` : `For ${groups.length} audiences`}</span>}
       </header>
-      {!aud ? (
+      {!groups.length ? (
         <p className="px-4 py-3 text-sm text-muted-foreground">
-          Angles are written for someone. Add who you talk to first.{" "}
-          <Link to={links.audiences()} className={LINK}>
-            Add an audience
-          </Link>
-        </p>
-      ) : answer.angles?.length ? (
-        <div className="space-y-3 p-4">
-          <ol className="space-y-2">
-            {answer.angles.map((a, i) => (
-              <li key={i} className="text-sm">
-                <span className="font-medium">{a.title}</span>
-                {a.line && <span className="block break-words text-muted-foreground">{a.line}</span>}
-              </li>
-            ))}
-          </ol>
-          <Button asChild size="sm" className="h-11 sm:h-9">
-            <Link to={links.campaignNew({ audience: aud.id, step: "angles" })} onClick={() => seedWizard(userId, aud.id, answer.angles!)}>
-              Plan a campaign with these
-            </Link>
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-2 p-4">
-          <p className="text-sm text-muted-foreground">
-            {suggesting ? `Writing ${SUGGEST_COUNT} angles for ${aud.name}. This takes a few seconds.` : `${SUGGEST_COUNT} angles from your positioning and what ${aud.name} care about.`}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Button type="button" size="sm" className="h-11 sm:h-9" disabled={job.state === "suggesting" || left === 0} onClick={() => void suggestAngles(userId, threadId, msgId)}>
-              {suggesting ? "Suggesting..." : `Suggest ${SUGGEST_COUNT} angles`}
-            </Button>
-            <PriceChip feature="campaign-angles" left={left} />
-          </div>
-          {reasonText({ left, leo: true }) && <p className="text-xs text-destructive">{reasonText({ left, leo: true })}</p>}
-          {answer.error && !suggesting && (
-            <p className="text-xs text-destructive" role="alert">
-              {answer.error}
-            </p>
+          {answer.full?.length ? (
+            why
+          ) : (
+            <>
+              Angles are written for someone. Add who you talk to first.{" "}
+              <Link to={links.audiences()} className={LINK}>
+                Add an audience
+              </Link>
+            </>
           )}
+        </p>
+      ) : (
+        <div className="divide-y divide-border/60">
+          {(todo.length > 0 || busy) && (
+            <div className="space-y-2 p-4">
+              {why && <p className="text-sm text-muted-foreground">{why}</p>}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Button type="button" size="sm" className="h-11 sm:h-9" disabled={job.state === "suggesting" || !todo.length || left === 0 || (left !== null && left < uses)} onClick={() => void suggestAngles(userId, threadId, msgId)}>
+                  {busy ? "Suggesting..." : `Suggest ${SUGGEST_COUNT} angles${todo.length > 1 ? " each" : ""}`}
+                </Button>
+                {todo.length > 0 && <PriceChip price={sumPrices(...todo.map(() => priceOf("campaign-angles")))} left={left} uses={uses} />}
+              </div>
+              {reasonText({ left, uses }) && <p className="text-xs text-destructive">{reasonText({ left, uses })}</p>}
+              {answer.error && !busy && (
+                <p className="text-xs text-destructive" role="alert">
+                  {answer.error}
+                </p>
+              )}
+            </div>
+          )}
+          {groups
+            .filter((g) => g.angles?.length || g.added || g.error || running(g))
+            .map((g) => (
+              <AngleGroupView key={g.id} userId={userId} threadId={threadId} msgId={msgId} g={g} suggesting={running(g)} />
+            ))}
         </div>
       )}
     </section>

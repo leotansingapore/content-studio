@@ -865,7 +865,7 @@ describe("ready answers", () => {
     id = await say("/trending", null);
     expect(last(id).answer?.kind).toBe("trending");
     id = await say("Find new angles", null);
-    expect(last(id).answer).toEqual({ kind: "angles", audience: null });
+    expect(last(id).answer).toEqual({ kind: "angles", groups: [], full: [] });
     expect(jev.bodies).toEqual([]);
     expect(fake.calls).toEqual([]);
     await say("Which post did best this month?", null);

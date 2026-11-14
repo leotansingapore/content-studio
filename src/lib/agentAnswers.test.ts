@@ -19,10 +19,13 @@ vi.mock("@/lib/edgeFn", async () => {
   };
 });
 
-import { anglesAnswer, answerOf, bestAnswer, seedWizard, suggestAngles, trendingAnswer, BUSY_LINE } from "@/lib/agentAnswers";
-import { loadWork, startSuggest } from "@/lib/angleSuggest";
+import {
+  addAngles, anglesAnswer, answerOf, bestAnswer, fullLine, groupsOf, pickedLine, roomFor, seedWizard, suggestAngles, trendingAnswer, BUSY_LINE, type Answer,
+} from "@/lib/agentAnswers";
+import { MAX_PER_AUDIENCE, anglesFor, confirmAngles } from "@/lib/angles";
+import { loadWork, startSuggest, stepRows } from "@/lib/angleSuggest";
 import { newMsg, newThread, loadThreads } from "@/lib/agentThreads";
-import { saveAudience } from "@/lib/audiences";
+import { loadAudiences, saveAudience } from "@/lib/audiences";
 import { saveBrand } from "@/lib/carousel";
 import { saveDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { FORMAT_TRENDS } from "@/lib/formatTrends";
@@ -122,47 +125,114 @@ describe("best post", () => {
 });
 
 describe("angles", () => {
+  const audience = (name: string, saved = 0) => {
+    const r = saveAudience(UID, { name, who: `${name} who order lunch`, cares: ["lunch"] });
+    if (r.ok === false) throw new Error(r.error);
+    const id = loadAudiences(UID).find((x) => x.name === name)!.id;
+    if (saved) confirmAngles(UID, id, Array.from({ length: saved }, (_, k) => ({ title: `${name} saved ${k}`, line: "", origin: "suggested" as const })));
+    return id;
+  };
   const ask = () => {
-    saveAudience(UID, { name: "Office admins", who: "Admins who order lunch for the team", cares: ["lunch"] });
     const a = anglesAnswer(UID);
     const t = newThread(UID, [newMsg("user", { text: "Find new angles" }), newMsg("agent", { answer: a })]);
     if (t.ok === false) throw new Error(t.error);
     return { a, thread: t.item.id, msg: t.item.messages[1].id };
   };
-  const answerIn = (thread: string, msg: string) => loadThreads(UID).find((t) => t.id === thread)!.messages.find((m) => m.id === msg)!.answer;
+  const answerIn = (thread: string, msg: string) => loadThreads(UID).find((t) => t.id === thread)!.messages.find((m) => m.id === msg)!.answer as Extract<Answer, { kind: "angles" }>;
+  const five = (p: string) => ({ angles: [1, 2, 3, 4, 5].map((n) => ({ title: `${p} ${n}`, line: `Line ${n}` })) });
 
   it("has no audience until the brand has one, and spends nothing until the press", () => {
-    expect(anglesAnswer(UID)).toEqual({ kind: "angles", audience: null });
+    expect(anglesAnswer(UID)).toEqual({ kind: "angles", groups: [], full: [] });
+    audience("Office admins");
     const { a } = ask();
-    expect(a).toMatchObject({ kind: "angles", audience: { name: "Office admins" } });
+    expect(a).toMatchObject({ kind: "angles", groups: [{ name: "Office admins", saved: 0 }] });
     expect(fn.calls).toEqual([]);
   });
 
-  it("the press writes the wizard's angles into the message and into that audience's wizard rows", async () => {
-    const { a, thread, msg } = ask();
-    const audience = a.kind === "angles" ? a.audience! : null;
-    fn.answers.push({ angles: [1, 2, 3, 4, 5].map((n) => ({ title: `Angle ${n}`, line: `Line ${n}` })) });
+  it("picks the 2 audiences with the fewest saved angles and says why in one line", () => {
+    audience("First-time parents", 4);
+    audience("Office admins and HR");
+    audience("Retirees", 1);
+    const a = anglesAnswer(UID);
+    if (a.kind !== "angles") throw new Error("kind");
+    expect(a.groups!.map((g) => [g.name, g.saved])).toEqual([["Office admins and HR", 0], ["Retirees", 1]]);
+    expect(pickedLine(a.groups!)).toBe("Office admins and HR has none yet. Retirees has 1.");
+  });
+
+  it("skips an audience at its most and says so", () => {
+    audience("Retirees", MAX_PER_AUDIENCE);
+    audience("Office admins");
+    const a = anglesAnswer(UID);
+    if (a.kind !== "angles") throw new Error("kind");
+    expect(a.groups!.map((g) => g.name)).toEqual(["Office admins"]);
+    expect(a.full).toEqual(["Retirees"]);
+    expect(fullLine("Retirees", 0)).toBe(`Retirees already has ${MAX_PER_AUDIENCE} angles, the most it keeps.`);
+  });
+
+  it("one press suggests for each audience, writing each one's angles into the message", async () => {
+    audience("Office admins");
+    audience("Retirees");
+    const { thread, msg } = ask();
+    fn.answers.push(five("First"), five("Second"));
     await suggestAngles(UID, thread, msg);
-    expect(fn.calls).toEqual(["idea-dump"]);
-    expect(answerIn(thread, msg)).toMatchObject({ angles: [1, 2, 3, 4, 5].map((n) => ({ title: `Angle ${n}`, line: `Line ${n}` })) });
-    expect(loadWork(UID, audience!.id)?.map((r) => r.title)).toEqual(["Angle 1", "Angle 2", "Angle 3", "Angle 4", "Angle 5"]);
-    // Plan a campaign with these on another tab: the rows come back, ticked, without doubling here
-    seedWizard(UID, audience!.id, [{ title: "Angle 1", line: "Line 1" }]);
-    expect(loadWork(UID, audience!.id)).toHaveLength(5);
-    session.clear();
-    vi.resetModules();
-    const fresh = await import("@/lib/angleSuggest");
-    const again = await import("@/lib/agentAnswers");
-    again.seedWizard(UID, audience!.id, [{ title: "Angle 1", line: "Line 1" }, { title: "Angle 2", line: "Line 2" }]);
-    expect(fresh.loadWork(UID, audience!.id)?.map((r) => [r.title, r.picked])).toEqual([["Angle 1", true], ["Angle 2", true]]);
+    expect(fn.calls).toEqual(["idea-dump", "idea-dump"]);
+    const groups = answerIn(thread, msg).groups!;
+    // a tie keeps the audiences' own order
+    expect(groups.map((g) => g.name)).toEqual(loadAudiences(UID).map((x) => x.name));
+    expect(groups.map((g) => g.angles?.map((x) => x.title))).toEqual([1, 2].map((k) => [1, 2, 3, 4, 5].map((n) => `${k === 1 ? "First" : "Second"} ${n}`)));
+    // nothing saved until Add
+    expect(anglesFor(UID, loadAudiences(UID)[0].id)).toEqual([]);
+  });
+
+  it("Add saves the ticked angles to that audience, says how many, and Plan ticks them in the wizard once", async () => {
+    const id = audience("Office admins");
+    const { thread, msg } = ask();
+    fn.answers.push(five("Admins"));
+    await suggestAngles(UID, thread, msg);
+    const got = answerIn(thread, msg).groups![0].angles!;
+    expect(loadWork(UID, id)).toHaveLength(5);
+    expect(addAngles(UID, thread, msg, id, got.slice(0, 3))).toBeNull();
+    expect(anglesFor(UID, id).map((x) => x.title).sort()).toEqual(["Admins 1", "Admins 2", "Admins 3"]);
+    const g = answerIn(thread, msg).groups![0];
+    expect(g.added!.map((x) => x.title)).toEqual(["Admins 1", "Admins 2", "Admins 3"]);
+    expect(g.added!.every((x) => x.id)).toBe(true);
+    // the wizard's rows for them go: they are saved now
+    expect(loadWork(UID, id)).toBeNull();
+    seedWizard(UID, id, g.added!);
+    const rows = stepRows(anglesFor(UID, id), loadWork(UID, id));
+    expect(rows.map((r) => [r.title, r.picked])).toEqual(expect.arrayContaining([["Admins 1", true], ["Admins 2", true], ["Admins 3", true]]));
+    expect(rows).toHaveLength(3);
+  });
+
+  it("Add refuses what would take an audience past its most, saving nothing", async () => {
+    const id = audience("Office admins", MAX_PER_AUDIENCE - 2);
+    const { thread, msg } = ask();
+    fn.answers.push(five("Admins"));
+    await suggestAngles(UID, thread, msg);
+    const got = answerIn(thread, msg).groups![0].angles!;
+    expect(roomFor(UID, id)).toBe(2);
+    expect(addAngles(UID, thread, msg, id, got)).toBe(fullLine("Office admins", 2));
+    expect(anglesFor(UID, id)).toHaveLength(MAX_PER_AUDIENCE - 2);
+    expect(answerIn(thread, msg).groups![0]).toMatchObject({ error: fullLine("Office admins", 2) });
+    expect(addAngles(UID, thread, msg, id, got.slice(0, 2))).toBeNull();
+    expect(anglesFor(UID, id)).toHaveLength(MAX_PER_AUDIENCE);
+  });
+
+  it("an answer from before 14 Nov still plans with its angles, as new rows ticked, without doubling", async () => {
+    const id = audience("Office admins");
+    seedWizard(UID, id, [{ title: "Angle 1", line: "Line 1" }]);
+    seedWizard(UID, id, [{ title: "Angle 1", line: "Line 1" }, { title: "Angle 2", line: "Line 2" }]);
+    expect(loadWork(UID, id)?.map((r) => [r.title, r.picked])).toEqual([["Angle 2", true], ["Angle 1", true]]);
+    expect(groupsOf({ kind: "angles", audience: { id, name: "Office admins" }, angles: [{ title: "A", line: "" }] })).toEqual([{ id, name: "Office admins", saved: -1, angles: [{ title: "A", line: "" }] }]);
   });
 
   it("a refused call says why in the chat's words, and a job already running is not doubled", async () => {
+    audience("Office admins");
     const { thread, msg } = ask();
     const { EdgeError } = await import("@/lib/edgeFn");
     fn.answers.push(new (EdgeError as unknown as new (m: string, s: number) => Error)("capped", 429));
     await suggestAngles(UID, thread, msg);
-    expect(answerIn(thread, msg)).toMatchObject({ error: "You've used all 10 angle suggestions for today. It resets at 8am Singapore time." });
+    expect(answerIn(thread, msg).groups![0]).toMatchObject({ error: "You've used all 10 angle suggestions for today. It resets at 8am Singapore time." });
     const other = { id: "au-x", name: "Other", who: "", cares: [], says: "" };
     fn.answers.push(new Promise(() => {}));
     void startSuggest(UID, other);
