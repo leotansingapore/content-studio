@@ -17,7 +17,7 @@ import { useScrollToHash, useUrlItem } from "@/lib/urlState";
 import { activeProfile } from "@/lib/profiles";
 import { KIT_FEEDS, cachedKit } from "@/lib/brandKitFeed";
 import { NextGap, ProfileGroups } from "@/components/brand/ProfileRows";
-import { PromoSection, RulesSection, ToneLists } from "@/components/brand/ProfileLists";
+import { NamesSection, PromoSection, RulesSection, ToneLists } from "@/components/brand/ProfileLists";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
 import { adviserBrand } from "@/lib/profession";
 import type { ThemeOutlet } from "@/lib/theme";
@@ -149,6 +149,7 @@ export default function PlaybookPage() {
             extra={{ tone: <ToneLists uid={uid} /> }} />
           <RulesSection uid={uid} />
           <PromoSection uid={uid} />
+          <NamesSection uid={uid} />
           {groups.some((g) => g.id === "on-file") && (
             <ProfileGroups groups={groups.filter((g) => g.id === "on-file")} uid={uid} openId={editing} next={after} onOpen={openRow} onClose={closeRow} onSaved={redraw} />
           )}

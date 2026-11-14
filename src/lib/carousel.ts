@@ -662,6 +662,8 @@ export interface CarouselBrand {
   legal?: string[];
   /** The offer on now (Brand > Profile > Current promotion), in the brand's words, and its last day (YYYY-MM-DD). */
   promo?: { text: string; until?: string };
+  /** How the brand's own names are said (Brand > Profile): each name and the respelling text-to-speech gets (sayNames.ts). */
+  say?: { name: string; say: string }[];
   // North star phase 4 (Leo only): the fields below are read and written only on Leo's sign-ins.
   /** The brand's site, an http or https origin (brand-from-website), and when it was last read (ISO). */
   website?: string;
@@ -702,6 +704,8 @@ export const MAX_AVOID_CHARS = 400;
 export const MAX_LEGAL = 30;
 export const MAX_LEGAL_CHARS = 200;
 export const MAX_PROMO_CHARS = 200;
+export const MAX_SAY = 20;
+export const MAX_SAY_CHARS = 60;
 export const MAX_WEBSITE_CHARS = 200;
 export const MAX_PALETTE = 3;
 export const MAX_PALETTE_NAME = 20;
@@ -810,6 +814,15 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
       ? r.legal.flatMap((l) => (typeof l === "string" && l.trim() ? [l.trim().slice(0, MAX_LEGAL_CHARS)] : [])).slice(0, MAX_LEGAL)
       : fallback.legal,
     promo: "promo" in r ? promoOf(r.promo) : fallback.promo,
+    say: Array.isArray(r.say)
+      ? objects(r.say)
+          .flatMap((n) => {
+            const name = typeof n.name === "string" ? n.name.trim().slice(0, MAX_SAY_CHARS) : "";
+            const say = typeof n.say === "string" ? n.say.trim().slice(0, MAX_SAY_CHARS) : "";
+            return name && say ? [{ name, say }] : [];
+          })
+          .slice(0, MAX_SAY)
+      : fallback.say,
     website: typeof r.website === "string" ? webOrigin(r.website) : fallback.website,
     websiteReadAt: typeof r.websiteReadAt === "string" ? isoTime(r.websiteReadAt) : fallback.websiteReadAt,
     palette: Array.isArray(r.palette)

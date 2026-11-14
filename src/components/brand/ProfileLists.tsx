@@ -3,7 +3,7 @@
 // to the brand kit for what code adds (legal lines), so nothing here is sent anywhere new. Remove has Undo, as /voice.
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { PlusIcon, XIcon } from "@phosphor-icons/react";
+import { CheckIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,9 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { NO_ROOM, kitOf } from "@/components/brand/profileSave";
 import { guidelineLines } from "@/lib/brandRules";
-import { MAX_LEGAL, MAX_LEGAL_CHARS, MAX_PROMO_CHARS, livePromo, localDay, saveBrand } from "@/lib/carousel";
+import { MAX_LEGAL, MAX_LEGAL_CHARS, MAX_PROMO_CHARS, MAX_SAY, MAX_SAY_CHARS, livePromo, localDay, saveBrand } from "@/lib/carousel";
+import { loadProducts } from "@/lib/products";
+import { ownBrandName } from "@/lib/remixBrand";
 import { adviserBrand } from "@/lib/profession";
 import {
   FACT_CHARS, FACT_KINDS, LEARNING_CHARS, MAX_FACTS, RULES, addFactOf, addRule, dayWords, factsOf, fullLine, onMemoryChanged, rulesOf, setFactOff, setLearningOff,
@@ -371,6 +373,58 @@ export function PromoSection({ uid }: { uid: string }) {
           <p aria-live="polite" className={`text-xs ${error ? "text-destructive" : status.startsWith("On") ? "text-success" : "text-muted-foreground"}`}>{error || status}</p>
         </div>
       </form>
+    </section>
+  );
+}
+
+/** The names a voice may say: the brand's own and each product it sells, once each. */
+export function sayableNames(uid: string): string[] {
+  const seen = new Set<string>();
+  return [ownBrandName(uid), ...loadProducts(uid).items.filter((p) => p.use).map((p) => p.name)]
+    .map((n) => n.trim())
+    .filter((n) => n && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase()))
+    .slice(0, MAX_SAY);
+}
+
+function NameRow({ name, saved, onSave }: { name: string; saved?: string; onSave: (say: string) => void }) {
+  const [v, setV] = useState(saved ?? name);
+  const checked = saved !== undefined && v.trim() === saved;
+  return (
+    <li className="px-4 py-3 sm:flex sm:items-center sm:gap-4">
+      <span className="block text-sm font-medium text-foreground [overflow-wrap:anywhere] sm:w-40 sm:shrink-0">{name}</span>
+      <form onSubmit={(e) => (e.preventDefault(), v.trim() && onSave(v.trim()))} className="mt-2 flex min-w-0 flex-1 items-center gap-2 sm:mt-0">
+        <Input aria-label={`How ${name} is said`} value={v} maxLength={MAX_SAY_CHARS} onChange={(e) => setV(e.target.value)} className={`min-w-0 flex-1 ${TOUCH}`} />
+        {checked ? (
+          <span className="inline-flex h-9 shrink-0 items-center gap-1 px-2 text-sm font-medium text-success"><CheckIcon className="h-4 w-4" aria-hidden /> Checked</span>
+        ) : (
+          <Button type="submit" variant="outline" size="sm" disabled={!v.trim()} className={`h-9 shrink-0 ${TOUCH}`}>{v.trim() === name ? "Yes" : "Save"}</Button>
+        )}
+      </form>
+    </li>
+  );
+}
+
+/** Fastlane's How Senna says your names: a respelling per name, which only text-to-speech gets (sayNames.ts). */
+export function NamesSection({ uid }: { uid: string }) {
+  const names = sayableNames(uid);
+  const [say, setSay] = useState(() => kitOf(uid).say ?? []);
+  const save = (name: string, v: string) => {
+    saveBrand(uid, { ...kitOf(uid), say: [...(kitOf(uid).say ?? []).filter((n) => n.name !== name), { name, say: v }] });
+    setSay(kitOf(uid).say ?? []);
+  };
+  return (
+    <section id="names" aria-labelledby="names-title" className="scroll-mt-20 space-y-2">
+      <h2 id="names-title" className={GROUP_H2}>How your names are said</h2>
+      <div className={GROUP_CARD}>
+        <p className="px-4 py-3 text-xs text-muted-foreground">Videos with a voice say each name this way. Check it, or spell it the way it sounds.</p>
+        {names.length ? (
+          <ul className="divide-y divide-border/60">
+            {names.map((n) => <NameRow key={n} name={n} saved={say.find((s) => s.name === n)?.say} onSave={(v) => save(n, v)} />)}
+          </ul>
+        ) : (
+          <p className="px-4 py-3 text-sm text-muted-foreground">Add your name under Identity first.</p>
+        )}
+      </div>
     </section>
   );
 }

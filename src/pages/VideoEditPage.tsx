@@ -49,6 +49,7 @@ import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { scanCompliance } from "@/lib/compliance";
 import { stripDashes } from "@/lib/recruit";
 import { loadBrand } from "@/lib/carousel";
+import { sayNames, unsayWords } from "@/lib/sayNames";
 import { tagLinks, withSignOff } from "@/lib/plainText";
 import { checkLimits, strayLinks } from "@/lib/platformCounters";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
@@ -3673,16 +3674,18 @@ async function translateVersion(userId: string, b: VersionBase, lang: PostLang):
 }
 
 /** The new voice with its word times: the dub for a language (times spread over each line's span), else text-voice. */
-async function versionVoice(next: Version, voice: VoiceId, text: string): Promise<{ mp3: Blob; said: Word[]; spans?: ({ s: number; e: number } | null)[] }> {
+async function versionVoice(userId: string, next: Version, voice: VoiceId, text: string): Promise<{ mp3: Blob; said: Word[]; spans?: ({ s: number; e: number } | null)[] }> {
   if (next.change === "lang" && next.lang !== "en") {
     const { audio, spans } = await speakDub(next.lines, voice, next.lang);
     return { mp3: audio, said: spanWords(next.lines, spans), spans };
   }
-  const r = await callFn<{ audio?: string; words?: Word[] } | Blob>("text-voice", { text, voice, timestamps: true }, VOICE_FAILED);
+  // the brand's names respelt for the voice, and put back in the word times the captions are made from
+  const say = loadBrand(userId)?.say;
+  const r = await callFn<{ audio?: string; words?: Word[] } | Blob>("text-voice", { text: sayNames(text, say), voice, timestamps: true }, VOICE_FAILED);
   if (r instanceof Blob) return { mp3: r, said: [] };
   const bytes = Uint8Array.from(atob(r?.audio ?? ""), (c) => c.charCodeAt(0));
   if (bytes.length < 1000) throw new Error("The voiceover came back empty. Try again.");
-  return { mp3: new Blob([bytes], { type: "audio/mpeg" }), said: Array.isArray(r?.words) ? r.words : [] };
+  return { mp3: new Blob([bytes], { type: "audio/mpeg" }), said: Array.isArray(r?.words) ? unsayWords(r.words, say) : [] };
 }
 
 /** The base's settings for a version on new words: what was cut, trimmed or measured on the old take is dropped. */
@@ -3755,7 +3758,7 @@ async function faceVersion(userId: string, b: VersionBase, next: Version, a: Ver
     if (!r) throw new Error("That version says the same as this video. Pick another.");
     run = r;
     step("making the voiceover");
-    const v = await versionVoice(next, voiceId, r.text);
+    const v = await versionVoice(userId, next, voiceId, r.text);
     const cut = await sliceVoiceover(v.mp3);
     const said = v.said.length ? v.said : scriptWords(r.text, cut.seconds);
     const texts = v.spans ? textsFromSpans(v.spans, next.lines, cut.slices, next.lang) : wordsIn(said, cut.slices);
@@ -3776,7 +3779,7 @@ async function faceVersion(userId: string, b: VersionBase, next: Version, a: Ver
 async function noFaceVersion(userId: string, b: VersionBase, next: Version, step: (s: string) => void): Promise<number> {
   const voiceId = b.project.ai?.voiceId ?? b.base.voice;
   step("making the voiceover");
-  const v = await versionVoice(next, voiceId, spoken(next));
+  const v = await versionVoice(userId, next, voiceId, spoken(next));
   const seconds = await audioSeconds(v.mp3).catch(() => v.said.at(-1)?.e ?? b.project.duration);
   const said = v.said.length ? v.said : scriptWords(spoken(next), seconds);
   step("finding the cutaways");

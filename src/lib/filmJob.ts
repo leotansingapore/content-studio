@@ -13,6 +13,7 @@
 // The music renders in sound.worker.ts (src/lib/film), cached by soundKey, so a text edit never re-renders it.
 
 import { DEFAULT_BRAND, loadBrand } from "@/lib/carousel";
+import { sayNames } from "@/lib/sayNames";
 import { leoBrandFont, loadBrandFont } from "@/lib/brandFont";
 import { draftIdOf } from "@/lib/campaignActions";
 import { updatePost } from "@/lib/campaigns";
@@ -479,7 +480,9 @@ export async function voiceFilm(userId: string, filmId: string): Promise<boolean
   emit();
   try {
     const voiceId = loadRemixPrefs(userId).voice;
-    const r = await callFn<{ audio: string; spans: ({ s: number; e: number } | null)[] }>("text-voice", { mode: "lines", lines: lines.map((l) => l[1]), voice: voiceId }, VOICE_FAILED);
+    // the brand's names respelt for the voice only; each line's words on screen stay as written
+    const say = loadBrand(userId)?.say;
+    const r = await callFn<{ audio: string; spans: ({ s: number; e: number } | null)[] }>("text-voice", { mode: "lines", lines: lines.map((l) => sayNames(l[1], say)), voice: voiceId }, VOICE_FAILED);
     if (!r?.audio) throw new Error(VOICE_FAILED);
     const key = `film-voice-${filmId}-${Date.now().toString(36)}`;
     await putFile(key, new Blob([fromBase64(r.audio)], { type: "audio/mpeg" }));

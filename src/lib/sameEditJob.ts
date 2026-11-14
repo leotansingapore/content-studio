@@ -19,6 +19,7 @@
 import { aiBusy, aiJob, makeAvatar, onAiJob, pendingAvatar, resumeAvatar, sliceVoiceover, type Voiceover } from "@/lib/aiVideo";
 import { stockIdOf } from "@/lib/autoBroll";
 import { loadBrand } from "@/lib/carousel";
+import { sayNames, unsayWords } from "@/lib/sayNames";
 import { newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import {
@@ -668,7 +669,9 @@ export async function startMake(userId: string, a: MakeAsk, params: Record<strin
   let mp3: Blob;
   let words: Word[];
   try {
-    const r = await callFn<{ audio?: string; words?: Word[] } | Blob>("text-voice", { text: spoken(version), voice: a.voice, timestamps: true }, VOICE_FAILED);
+    // the brand's names respelt for the voice, and put back in the word times the captions are made from
+    const say = loadBrand(userId)?.say;
+    const r = await callFn<{ audio?: string; words?: Word[] } | Blob>("text-voice", { text: sayNames(spoken(version), say), voice: a.voice, timestamps: true }, VOICE_FAILED);
     if (r instanceof Blob) {
       // shortcut: a voice with no word times (text-voice answered plain MP3) lays every event by its share of the beat
       mp3 = r;
@@ -676,7 +679,7 @@ export async function startMake(userId: string, a: MakeAsk, params: Record<strin
     } else {
       const bytes = Uint8Array.from(atob(r?.audio ?? ""), (c) => c.charCodeAt(0));
       mp3 = new Blob([bytes], { type: "audio/mpeg" });
-      words = Array.isArray(r?.words) ? r.words : [];
+      words = Array.isArray(r?.words) ? unsayWords(r.words, say) : [];
     }
     if (mp3.size < 1000) throw new Error("The voiceover came back empty. Try again.");
   } catch (e) {
