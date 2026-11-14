@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardCounts, boardWeeks, countsText, coverKeys, frames, plannedByDay } from "./campaignBoard";
+import { boardCounts, boardWeeks, countsText, coverKeys, frames, notLaunchedLine, plannedByDay } from "./campaignBoard";
 import type { CampaignPost } from "./campaigns";
 
 const post = (n: number, day: string, o: Partial<CampaignPost> = {}): CampaignPost => ({
@@ -75,6 +75,16 @@ describe("the calendar's campaign drafts", () => {
     ]);
     expect([...by.keys()].sort()).toEqual(["2026-11-16", "2026-11-18"]);
     expect(by.get("2026-11-16")?.map((x) => `${x.c.id}:${x.p.n}`)).toEqual(["c1:1", "c2:1"]);
+  });
+});
+
+describe("the calendar's line over campaigns not launched", () => {
+  it("names each one not launched, and leaves out launched, Ads only and done ones", () => {
+    const c = (name: string, o: Record<string, unknown> = {}) => ({ name, posts: [post(1, "2026-11-20")], ...o });
+    expect(notLaunchedLine([c("Young families | November")], "2026-11-14")).toBe("Young families | November has not launched. Its posts sit on the days they would go out.");
+    expect(notLaunchedLine([c("A"), c("B"), c("C")], "2026-11-14")).toBe("A, B and C have not launched. Their posts sit on the days they would go out.");
+    expect(notLaunchedLine([c("A"), c("B", { launchedAt: "2026-11-13T00:00:00Z" })], "2026-11-14")).toBe("A has not launched. Its posts sit on the days they would go out.");
+    expect(notLaunchedLine([c("Ads", { runs: "ads", posts: [] }), c("Done", { posts: [post(1, "2026-11-01", { state: "made" })] })], "2026-11-14")).toBeNull();
   });
 });
 

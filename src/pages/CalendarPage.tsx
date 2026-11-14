@@ -30,9 +30,9 @@ import { activeProfile, applyBrandLink, type Profile } from "@/lib/profiles";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import { commentChannelPost, readChannelReviews, shownStatus, skipChannelPost, type ChannelReviews } from "@/lib/channelReviews";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { plannedByDay, type PlannedPost } from "@/lib/campaignBoard";
+import { notLaunchedLine, plannedByDay, type PlannedPost } from "@/lib/campaignBoard";
+import { DraftTile, draftWords, slideUrls } from "@/components/campaign/AllPosts";
 import { loadCampaigns, onCampaignsChanged } from "@/lib/campaigns";
-import { FORMAT_NAME } from "@/lib/campaignWizard";
 import { loadPlan, planDraftId, planSlotWriteUrl, type ContentPlan } from "@/lib/contentPlan";
 import { links } from "@/lib/links";
 import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate, withParam } from "@/lib/urlState";
@@ -1192,6 +1192,7 @@ export default function CalendarPage() {
   // A post on the month or week grid: drag it to another day, tap it for its controls.
   const chip = (e: DraftEntry, roomy: boolean) => {
     const posted = draftStatus(e) === "posted";
+    const tile = madeTiles.get(e.id);
     const late = !posted && (e.scheduledFor ?? "").slice(0, 10) < todayKey;
     const time = posted ? null : scheduleTime(e.scheduledFor);
     return (
@@ -1215,7 +1216,22 @@ export default function CalendarPage() {
           dragging === e.id ? "opacity-40" : ""
         } ${selectedId === e.id && !selectedGhost ? "ring-2 ring-primary" : ""}`}
       >
-        {roomy ? (
+        {tile && !posted ? (
+          // a made campaign post (Fastlane's calendar card): its small picture, time, the start of its hook, and Made
+          <span className="flex min-w-0 items-center gap-1">
+            {smallPicture(tile, roomy)}
+            <span className="min-w-0 flex-1">
+              <span className={roomy ? "line-clamp-2" : "block truncate"}>
+                {!roomy && autoChip(e, true)}
+                {time && <span className="font-semibold">{timeLabel(time)} </span>}
+                {titleOf(e)}
+              </span>
+              {!roomy && <span className="block text-[9px] leading-tight opacity-80">Made</span>}
+              {roomy && e.zernio?.postId && <span className="mt-1 block">{autoChip(e)}</span>}
+            </span>
+            {roomy && <span className="shrink-0 text-[10px] opacity-80">Made</span>}
+          </span>
+        ) : roomy ? (
           <>
             <span className="block text-[10px] opacity-80">
               {e.repeat && <RepeatIcon className="mr-1 inline h-2.5 w-2.5 align-[-1px]" aria-label="Repeats" />}
@@ -1353,22 +1369,46 @@ export default function CalendarPage() {
     </p>
   );
 
-  // Leo's campaigns' posts not made yet, on their days: a dashed chip, since nothing is on the calendar until its Make
+  // Leo's campaigns' posts not made yet, on their days: a dashed chip with its time, the start of its hook and
+  // Planned, since nothing is on the calendar until its Make (Fastlane's Campaigns > Calendar)
   const [campaignTick, setCampaignTick] = useState(0);
   useEffect(() => onCampaignsChanged(() => setCampaignTick((n) => n + 1)), []);
-  const planned = useMemo(() => (leo && userId ? plannedByDay(loadCampaigns(userId)) : new Map<string, PlannedPost[]>()), [leo, userId, campaignTick]);
+  const campaigns = useMemo(() => (leo && userId ? loadCampaigns(userId) : []), [leo, userId, campaignTick]);
+  const planned = useMemo(() => (campaigns.length ? plannedByDay(campaigns) : new Map<string, PlannedPost[]>()), [campaigns]);
+  const notLaunched = notLaunchedLine(campaigns, todayKey);
+  // a made campaign post's small picture: a carousel's first slide drawn from its words, else its words as a tile
+  const madeTiles = useMemo(() => {
+    const out = new Map<string, { words: string; slide?: string }>();
+    for (const c of campaigns) for (const p of c.posts) if (p.state === "made" && p.draftId) out.set(p.draftId, { words: draftWords(p), slide: p.format === "carousel" ? slideUrls(userId!, p)[0] : undefined });
+    return out;
+  }, [campaigns, userId]);
+  const smallPicture = (tile: { words: string; slide?: string }, roomy: boolean) => (
+    <span aria-hidden className={`relative block shrink-0 overflow-hidden rounded-[3px] border border-border/60 bg-muted aspect-[4/5] ${roomy ? "w-7" : "w-3"}`}>
+      <span className={`absolute left-0 top-0 block origin-top-left ${roomy ? "h-[571%] w-[571%] scale-[0.175]" : "h-[1333%] w-[1333%] scale-[0.075]"}`}>
+        <DraftTile words={tile.words} slide={tile.slide} />
+      </span>
+    </span>
+  );
   const plannedChips = (key: string, roomy: boolean) => {
     const list = planned.get(key) ?? [];
     const shown = roomy ? list : list.slice(0, 2);
     return (
       <>
         {shown.map(({ c, p }) => (
-          <Link key={`${c.id}-${p.n}`} to={links.campaign(c.id, { post: p.n, section: "queue" })} title={`${c.name}: ${p.hook ?? "waiting to be written"}`}
+          <Link key={`${c.id}-${p.n}`} to={links.campaign(c.id, { post: p.n, section: "queue" })} title={`${c.name}: ${p.hook ?? "waiting to be written"} (Planned)`}
             className={`flex w-full items-center gap-1 rounded border border-dashed border-border px-1.5 font-medium text-muted-foreground hover:border-primary/50 hover:text-foreground ${roomy ? "min-h-11 py-1.5 text-xs sm:min-h-0 sm:py-1 sm:text-[11px]" : "py-0.5 text-[10px]"}`}>
-            <span className={roomy ? "[overflow-wrap:anywhere]" : "truncate"}>Draft: {roomy && p.hook ? p.hook : FORMAT_NAME[p.format]}</span>
+            {/* the grid's narrow cells put the status under the words, so the hook keeps the room */}
+            <span className={`min-w-0 flex-1 ${roomy ? "[overflow-wrap:anywhere]" : ""}`}>
+              <span className={roomy ? "" : "block truncate"}>
+                {p.time && <span className="font-semibold">{timeLabel(p.time)} </span>}
+                {draftWords(p)}
+              </span>
+              {!roomy && <span className="block text-[9px] leading-tight opacity-80">Planned</span>}
+            </span>
+            {roomy && <span className="shrink-0 text-[10px] opacity-80">Planned</span>}
           </Link>
         ))}
-        {list.length > shown.length && <p className="text-[10px] text-muted-foreground">+{list.length - shown.length} more drafts</p>}
+        {list.length > shown.length && <p className="text-[10px] text-muted-foreground">+{list.length - shown.length} more planned</p>}
       </>
     );
   };
@@ -1507,7 +1547,7 @@ export default function CalendarPage() {
     "bg-muted-foreground/60": "Team post",
     "bg-success": "Posted",
     "border border-muted-foreground": "Note",
-    "border border-dashed border-muted-foreground": "Campaign draft",
+    "border border-dashed border-muted-foreground": "Planned campaign post",
     "bg-destructive": "Holiday",
   };
 
@@ -2224,6 +2264,8 @@ export default function CalendarPage() {
               {overdue.map((d) => postRow(d, d.scheduledFor!.slice(0, 10)))}
             </section>
           )}
+
+          {notLaunched && view !== "upcoming" && <p role="status" className="text-sm text-muted-foreground">{notLaunched}</p>}
 
           {view === "month" && (
             <Card className="overflow-hidden border-border/60 shadow-card">

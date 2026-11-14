@@ -3,7 +3,7 @@
 // and every slide or script beat can be read on one screen. Pure: nothing here reads storage.
 
 import { postSlides, postText } from "@/lib/campaignActions";
-import type { Campaign, CampaignPost } from "@/lib/campaigns";
+import { campaignStatus, type Campaign, type CampaignPost } from "@/lib/campaigns";
 import { addDays, keyToDate } from "@/lib/dueDates";
 
 export interface BoardWeek {
@@ -81,6 +81,17 @@ export function plannedByDay(campaigns: Pick<Campaign, "id" | "name" | "posts">[
   const out = new Map<string, PlannedPost[]>();
   for (const c of campaigns) for (const p of c.posts) if (toMake(p)) out.set(p.day, [...(out.get(p.day) ?? []), { c: { id: c.id, name: c.name }, p }]);
   return out;
+}
+
+/**
+ * The calendar's line over campaigns that haven't launched, or null: "<name> has not launched. Its posts sit on the
+ * days they would go out." (names joined when several). Ads only and done campaigns put nothing on the calendar to explain.
+ */
+export function notLaunchedLine(campaigns: Pick<Campaign, "name" | "posts" | "runs" | "launchedAt">[], today: string): string | null {
+  const names = campaigns.filter((c) => !c.launchedAt && c.runs !== "ads" && c.posts.length && campaignStatus(c, today) !== "done").map((c) => c.name);
+  if (!names.length) return null;
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return names.length === 1 ? `${list} has not launched. Its posts sit on the days they would go out.` : `${list} have not launched. Their posts sit on the days they would go out.`;
 }
 
 /**
