@@ -16,7 +16,7 @@ vi.mock("@/lib/useLeoOnly", () => ({ useLeoUser: () => ({ id: "u-leo", email: "l
 vi.mock("@/lib/agentRun", () => ({ send: (_u: string, _t: string | null, text: string, o?: unknown) => (fx.sent.push(text), fx.opts.push(o), fx.id), turnOf: () => null }));
 vi.mock("@/lib/agentWork", () => ({ workOf: () => ({ waiting: [], making: [], made: [] }) }));
 vi.mock("@/components/agent/AgentThread", () => ({ default: (p: { threadId: unknown; ask: unknown }) => (fx.thread.push({ threadId: p.threadId, ask: p.ask }), null), useThreads: () => [] }));
-vi.mock("@/components/agent/WorkPanel", () => ({ default: () => null }));
+vi.mock("@/components/agent/WorkPanel", () => ({ default: () => null, NeedsYou: () => null }));
 vi.mock("@/components/agent/ThreadList", () => ({ default: () => null }));
 vi.mock("@/components/CopyLinkButton", () => ({ default: () => null }));
 

@@ -1,12 +1,13 @@
 // "Your work" beside the agent's chat (Fastlane's chat page, 11 Nov walk; docs/fastlane-nav-gap.md): three counters
 // (needs you, in flight, made) and three lists, Waiting on your yes, Making and Made, read from the chats themselves
 // (agentWork.ts). Every row opens its card or result in its chat. Beside the chat from xl up, where Hide is remembered
-// on this device; below that the page opens it as a sheet (?panel=work, `sheet`).
+// on this device; below that the page opens it as a sheet (?panel=work, `sheet`). Wherever it hides behind a button,
+// the button carries the count that needs you (NeedsYou), as Fastlane's "7 need you".
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckIcon, CaretRightIcon, HandIcon, CircleNotchIcon, XIcon, type Icon as IconType } from "@phosphor-icons/react";
 import { turnOf } from "@/lib/agentRun";
-import { workCounters, workOf, type WorkItem } from "@/lib/agentWork";
+import { needsYou, workCounters, workOf, type WorkItem } from "@/lib/agentWork";
 import type { AgentThread } from "@/lib/agentThreads";
 import { links } from "@/lib/links";
 import { ago } from "@/lib/slideshow";
@@ -44,6 +45,12 @@ function Rows({ items, icon: Icon, spin, sub }: { items: WorkItem[]; icon: IconT
   );
 }
 
+/** The count on the button Your work hides behind (Fastlane's "7 need you"): the cards waiting on a yes, none at 0. */
+export function NeedsYou({ n }: { n: number }) {
+  if (!n) return null;
+  return <span className="rounded-full bg-primary px-1.5 text-[11px] font-semibold tabular-nums text-primary-foreground">{needsYou(n)}</span>;
+}
+
 export default function WorkPanel({ threads, sheet, onClose }: { threads: AgentThread[]; sheet?: boolean; onClose?: () => void }) {
   const [hidden, setHidden] = useState(readHidden);
   const toggle = (next: boolean) => {
@@ -54,13 +61,13 @@ export default function WorkPanel({ threads, sheet, onClose }: { threads: AgentT
       // a blocked store still hides it for now
     }
   };
+  const work = workOf(threads);
   if (hidden && !sheet)
     return (
-      <button type="button" onClick={() => toggle(false)} className="hidden h-9 shrink-0 self-start rounded-lg border border-border/70 px-3 text-sm text-muted-foreground hover:text-foreground xl:mr-5 xl:mt-6 xl:block">
-        Your work
+      <button type="button" onClick={() => toggle(false)} className="hidden h-9 shrink-0 items-center gap-1.5 self-start rounded-lg border border-border/70 px-3 text-sm text-muted-foreground hover:text-foreground xl:mr-5 xl:mt-6 xl:inline-flex">
+        Your work <NeedsYou n={work.waiting.length} />
       </button>
     );
-  const work = workOf(threads);
   const [needs, flight, made] = workCounters(work);
   // the live step of a make this tab is running; a job another device runs reads Making
   const step = (i: WorkItem) => {

@@ -17,7 +17,7 @@ import MakePicker from "@/components/agent/MakePicker";
 import MakerPanel, { panelPath } from "@/components/agent/MakerPanel";
 import SkillQuestions from "@/components/agent/SkillQuestions";
 import ThreadList from "@/components/agent/ThreadList";
-import WorkPanel from "@/components/agent/WorkPanel";
+import WorkPanel, { NeedsYou } from "@/components/agent/WorkPanel";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { send, turnOf } from "@/lib/agentRun";
@@ -260,8 +260,7 @@ function Agent({ userId, email, threadId }: { userId: string; email: string; thr
             {CAPABILITIES_ASK}
           </Button>
           <Button type="button" variant="outline" onClick={() => openPanel("work")} className="h-11 shrink-0 gap-1.5 sm:h-9 xl:hidden">
-            Your work
-            {waiting > 0 && <span className="rounded-full bg-primary px-1.5 text-[11px] font-semibold tabular-nums text-primary-foreground" aria-label={`${waiting} waiting on your yes`}>{waiting}</span>}
+            Your work <NeedsYou n={waiting} />
           </Button>
           {thread && <CopyLinkButton path={links.agent({ thread: thread.id })} />}
         </header>

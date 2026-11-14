@@ -59,9 +59,11 @@ export function workOf(threads: AgentThread[]): { waiting: WorkItem[]; making: W
 }
 
 const n = (count: number, one: string, many = one) => `${count} ${count === 1 ? one : many}`;
+/** "2 need you", "1 needs you", "Nothing needs you": the first counter, and the count on the button Your work hides behind. */
+export const needsYou = (count: number) => (count ? n(count, "needs you", "need you") : "Nothing needs you");
 /** The three counters: "2 need you", "Nothing in flight", "20 made". */
 export const workCounters = (w: ReturnType<typeof workOf>): [string, string, string] => [
-  w.waiting.length ? n(w.waiting.length, "needs you", "need you") : "Nothing needs you",
+  needsYou(w.waiting.length),
   w.making.length ? `${w.making.length} in flight` : "Nothing in flight",
   w.made.length ? `${w.made.length} made` : "Nothing made yet",
 ];
