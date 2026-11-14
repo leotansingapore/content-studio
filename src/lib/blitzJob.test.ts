@@ -21,6 +21,8 @@ vi.mock("@/lib/remix", async (orig) => ({ ...(await orig<typeof import("./remix"
 import { DEAD_LINE, DEFAULT_MIX, deckDay, loadBlitz, saveBlitz, usedKeyOf, type BlitzCard } from "./blitz";
 import { alsoMake, blitzBusy, keepCard, loadPools, nothingToDraw, retryCard, skipCard, startDeck, undoKeep, whyEmpty } from "./blitzJob";
 import { FORMAT_TRENDS } from "./formatTrends";
+import { saveBrand } from "./carousel";
+import { FINANCE_MAX, formatItemId, hideItem } from "./nicheFeed";
 import { DEFAULT_CHOICES, savePostChoices } from "./postChoices";
 import { loadDrafts } from "./draftHistory";
 import { EdgeError } from "./edgeFn";
@@ -235,6 +237,20 @@ describe("a brand with competitors tracked, no ads, no winners and no ideas", ()
     expect(FORMAT_TRENDS.items.length).toBeGreaterThan(0);
     expect(loadPools(UID, later).trends).toHaveLength(FORMAT_TRENDS.items.length);
     expect(nothingToDraw(UID, later)).toBe(false);
+  });
+
+  it("never deals a brand that isn't an adviser's a personal finance or hidden template; an adviser's gets them all", () => {
+    const finance = FORMAT_TRENDS.items.filter((t) => (t.finance ?? 1) >= FINANCE_MAX).map((t) => t.id);
+    // the bundled drop has some, or this proves nothing
+    expect(finance.length).toBeGreaterThan(0);
+    saveBrand(UID, { color: "#1E3A8A", name: "Tok Tok Kueh", handle: "", profession: "kueh shop" });
+    const ids = loadPools(UID).trends.map((t) => t.id);
+    expect(ids.length).toBe(FORMAT_TRENDS.items.length - finance.length);
+    for (const id of finance) expect(ids).not.toContain(id);
+    hideItem(UID, formatItemId(ids[0]));
+    expect(loadPools(UID).trends.map((t) => t.id)).not.toContain(ids[0]);
+    saveBrand(UID, { color: "#1E3A8A", name: "Mei Plans", handle: "" });
+    expect(loadPools(UID).trends).toHaveLength(FORMAT_TRENDS.items.length - 1);
   });
 
   it("says what is missing once Trends is switched off, and never to add a competitor", () => {

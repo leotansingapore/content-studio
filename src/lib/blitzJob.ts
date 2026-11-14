@@ -12,7 +12,7 @@ import { loadCompetitors } from "@/lib/competitors";
 import { deleteDraft, draftsChanged, loadDrafts, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { EdgeError } from "@/lib/edgeFn";
 import { clearFormatJob, setFormatJob } from "@/lib/formatJob";
-import { FORMAT_TRENDS } from "@/lib/formatTrends";
+import { formatTrendsFor } from "@/lib/nicheFeed";
 import { mentionFor } from "@/lib/postChoices";
 import { arrange, genIdeas, loadIdeas, loadPoolStores, poolIdeas } from "@/lib/ideasInbox";
 import { links } from "@/lib/links";
@@ -48,8 +48,9 @@ export function loadPools(userId: string, now = new Date()): Pools {
   // shortlisted ideas first, then the inbox
   const ideas = [...arrange(all, ideasState.status, { tab: "shortlist" }), ...arrange(all, ideasState.status, { tab: "inbox" })].map((i) => ({ title: i.title, angle: i.angle, from: i.from }));
   // the whole latest drop, however old: /trends hides a drop past 21 days because it says "this week", but a format's
-  // shape still remixes, and without it a brand with no ads, winners or ideas has no deck at all
-  return { ads, trends: FORMAT_TRENDS.items, winners: findWinners(loadDrafts(userId), now.getTime(), loadWinners(userId).handled), ideas };
+  // shape still remixes, and without it a brand with no ads, winners or ideas has no deck at all. Less what this brand
+  // hid and, on a brand that isn't an adviser's, personal finance (the trending answer's and Studio's filter)
+  return { ads, trends: formatTrendsFor(userId), winners: findWinners(loadDrafts(userId), now.getTime(), loadWinners(userId).handled), ideas };
 }
 
 /** Has nothing to draw on today: no source switched on with anything in it, and no ideas. */
