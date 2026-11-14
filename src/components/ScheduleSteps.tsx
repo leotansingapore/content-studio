@@ -21,9 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { hasComplianceErrors, scanCompliance } from "@/lib/compliance";
 import { activeProfileId } from "@/lib/profiles";
 import { SOCIAL_PLATFORMS, connectLink, defaultAccount, isNotEnabled, loadSocialDefaults, platformName, saveConnectReturn, socialStatus, type AccountView, type SocialPlatform } from "@/lib/socialConnect";
-import { DEFAULT_BRAND, loadBrand, loadCarousels, slugify, type SavedCarousel } from "@/lib/carousel";
-import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
-import { createCanvasMeasure, svgToJpeg, svgToPng } from "@/lib/carouselRender";
+import { loadBrand, loadCarousels, slugify, type SavedCarousel } from "@/lib/carousel";
+import { svgToJpeg } from "@/lib/carouselRender";
 import { SLIDE_SIZES, slideImage } from "@/lib/carouselDesigns";
 import { buildPdf } from "@/lib/pdf";
 import { getFile } from "@/lib/deviceFiles";
@@ -32,7 +31,7 @@ import { applyView } from "@/lib/useZernioOutbox";
 import { loadSlideshows } from "@/lib/slideshow";
 import { slideshowPngs } from "@/lib/slideshowDraw";
 import { localDateKey, scheduleTime } from "@/lib/dueDates";
-import { logActivity } from "@/lib/activity";
+import { carouselSvgs, keepSchedule, logPost, slidePng } from "@/lib/postSend";
 import { links, SCHEDULE_STEPS } from "@/lib/links";
 import { brandRulesLine } from "@/lib/brandRules";
 import { writePlatformCaptions, type CaptionPlatform } from "@/lib/platformCaptions";
@@ -65,12 +64,10 @@ import {
   cancelPost,
   fileProblem,
   fileType,
-  linkFromView,
   mediaKind,
   postText,
   readPost,
   renderEach,
-  schedulePost,
   stepProblem,
   stepToOpen,
   tiktokInfo,
@@ -88,37 +85,9 @@ import {
 } from "@/lib/autoPost";
 import type { ScheduleInput, TikTokInput } from "../../supabase/functions/social/posts.ts";
 
-// ---- Post it for me's media and Activity rows (shared with today's panel in PostItForMe.tsx) ----
+// ---- Post it for me's media and Activity rows (shared with today's panel in PostItForMe.tsx; the non-UI parts live in src/lib/postSend.ts) ----
 
-/** The draft's own carousel slides as SVGs, drawn the way Carousel draws them, in its design and size. */
-export async function carouselSvgs(userId: string, c: SavedCarousel): Promise<string[]> {
-  const brand = loadBrand(userId) ?? DEFAULT_BRAND;
-  const measure = createCanvasMeasure();
-  const pictures: Record<string, string> = {};
-  for (const s of c.slides) {
-    if (!s.image || pictures[s.image]) continue;
-    const blob = await getFile(s.image).catch(() => undefined);
-    if (blob) {
-      pictures[s.image] = await new Promise<string>((resolve) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result));
-        r.onerror = () => resolve("");
-        r.readAsDataURL(blob);
-      });
-    }
-  }
-  return c.slides.map((s, i) =>
-    renderSvg(
-      layoutSlide(
-        { title: s.title, body: s.body, index: i, total: c.slides.length, brand, image: s.image ? pictures[s.image] || undefined : undefined, align: c.align, scale: c.scale, font: c.font, paper: c.paper, design: c.design, size: c.size },
-        measure,
-      ),
-    ),
-  );
-}
-
-/** One slide as the PNG Zernio gets (a 4:5 one exactly as before). */
-export const slidePng = (c: SavedCarousel, svg: string): Promise<Blob> => (c.size ? slideImage(svg, c.size, "image/png") : svgToPng(svg));
+export { carouselSvgs, logPost, slidePng };
 
 /** The draft's own carousel as one PDF, a LinkedIn document (Leo only). */
 export async function carouselPdf(userId: string, c: SavedCarousel): Promise<MediaFile> {
@@ -129,13 +98,6 @@ export async function carouselPdf(userId: string, c: SavedCarousel): Promise<Med
     pages.push({ jpeg, width, height });
   }
   return { file: new Blob([buildPdf(pages)], { type: PDF_TYPE }), name: `${slugify(c.title)}.pdf`, type: PDF_TYPE };
-}
-
-/** One Activity row about the post: Leo's sessions only, since logActivity does nothing until his session turns it on. */
-export function logPost(userId: string, d: DraftEntry, title: (name: string) => string, detail?: string) {
-  const hook = d.hook.replace(/\s+/g, " ").trim() || "Untitled";
-  const name = `"${hook.length > 70 ? `${hook.slice(0, 67).trimEnd()}...` : hook}"`;
-  logActivity(userId, { who: "you", kind: "post", title: title(name), ...(detail ? { detail } : {}), link: links.calendar({ post: d.id }) });
 }
 
 // ---- the steps ----
@@ -698,13 +660,10 @@ export function ScheduleSteps({
           ...(mode === "pdf" && pdfOk ? { documentTitle: carousel?.title.trim() || "Carousel" } : {}),
           ...networkFields(tabs, versions, media),
         };
-        ({ post } = await schedulePost(profileId, req));
-        const failed = post.status === "failed" ? (post.platforms.find((p) => p.error)?.error ?? "Zernio couldn't post it.") : null;
-        // on its day at the minute Zernio holds, as the calendar and My posts read a scheduled post; set before the link,
-        // so the save that adds the link changes no time and queues no move (a send now comes back with seconds)
-        if (!failed) setDraftStatus(userId, draft.id, "scheduled", wallIn(post.scheduledFor || at || new Date().toISOString()));
-        // the host hears of the post on Done, so a page that hides the panel once the draft has a post keeps this screen
-        setDraftZernio(userId, draft.id, linkFromView(key.current, post));
+        // on its day at the minute Zernio holds, then the link (keepSchedule); a send now comes back with seconds. The
+        // host hears of the post on Done, so a page that hides the panel once the draft has a post keeps this screen
+        let failed: string | null;
+        ({ post, failed } = await keepSchedule(userId, profileId, draft.id, req, at));
         if (failed) {
           setFailedPost(post.id);
           throw new Error(tiktokReason(failed));

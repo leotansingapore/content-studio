@@ -1,5 +1,6 @@
 // The review queue's actions (plan-review-queue, Leo only), outside React so a Make or a Swap keeps going when the
-// page is left. Make never posts (Post it for me stays its own press): it puts the post on the calendar as a
+// page is left. Make never posts by itself (Post it for me, or the campaign's Launch, does; a launched campaign sends
+// what is made from then on, src/lib/campaignLaunch.ts): it puts the post on the calendar as a
 // scheduled My posts entry cmp_<campaign>_<n> at its day and time. A text post, carousel or short video script is
 // made at once (/carousel?draft= rebuilds the same slides from the same words, so no carousel is saved). A slideshow
 // runs the slideshow maker from the hook and brief and schedules what it made. A wall of text and an AI video leave
@@ -15,6 +16,7 @@ import { loadAudiences } from "@/lib/audiences";
 import { presenterVoice } from "@/lib/presenters";
 import { applyBrandRules, avoidList } from "@/lib/brandRules";
 import { campaignRequest, startDrafting } from "@/lib/campaignJob";
+import { cancelSent, sendIfLaunched } from "@/lib/campaignLaunch";
 import { AI_VIDEO, dayOf, dropsPostedDraft, FREE_FORMATS, getCampaign, updatePost, type Campaign, type CampaignFormat, type CampaignPost } from "@/lib/campaigns";
 import { FORMAT_NAME, shortDay } from "@/lib/campaignWizard";
 import { loadBrand } from "@/lib/carousel";
@@ -162,7 +164,14 @@ const dropDraft = (userId: string, id: string) => {
 
 // ---- Make ----------------------------------------------------------------------------
 
+/** Make, then (while its campaign is launched and not paused) the made post goes to Zernio as Launch sends it. */
 export async function makePost(userId: string, campaignId: string, n: number, now = new Date()): Promise<MakeOutcome> {
+  const out = await makeOne(userId, campaignId, n, now);
+  if (out.ok) void sendIfLaunched(userId, campaignId, n).catch(() => undefined);
+  return out;
+}
+
+async function makeOne(userId: string, campaignId: string, n: number, now: Date): Promise<MakeOutcome> {
   const { c, p } = find(userId, campaignId, n);
   const no = notMakeable(campaignId, p);
   if (no || !c || !p) return { ok: false, error: no ?? GONE_LINE };
@@ -388,6 +397,7 @@ export function resumeMakes(userId: string, campaignId: string): Promise<MakeOut
 export function undoMake(userId: string, campaignId: string, n: number): string | null {
   const { p } = find(userId, campaignId, n);
   if (!p || p.state !== "made") return null;
+  cancelSent(userId, p.draftId ?? draftIdOf(campaignId, n));
   dropDraft(userId, p.draftId ?? draftIdOf(campaignId, n));
   return updatePost(userId, campaignId, n, { state: "ready", draftId: undefined, made: undefined, error: undefined }) ? null : SAVE_LINE;
 }

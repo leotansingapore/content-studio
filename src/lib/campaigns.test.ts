@@ -210,6 +210,9 @@ describe("campaignStatus", () => {
     expect(campaignStatus(c(["made", "ready", "ready"]), "2026-11-02")).toBe("running");
     expect(campaignStatus(c(["made", "made", "skipped"]), "2026-11-03")).toBe("running");
   });
+  it("running once launched, though nothing is made", () => {
+    expect(campaignStatus({ ...c(["ready", "ready"]), launchedAt: "2026-10-30T01:00:00Z" }, "2026-10-30")).toBe("running");
+  });
   it("done when every post is made or skipped and the last day has passed", () => {
     expect(campaignStatus(c(["made", "made", "skipped"]), "2026-11-04")).toBe("done");
     expect(campaignStatus(c(["made", "ready", "skipped"]), "2026-11-04")).toBe("running");

@@ -1,4 +1,5 @@
 // One campaign (/campaigns/:id, Leo's sign-ins only; docs/north-star/items/plan-campaign-page.md): the header with
+// Launch campaign (?launch=1: the dialog, then src/lib/campaignLaunch.ts; once launched, Pause or Resume),
 // Configure (?configure=1: the settings sheet from the right, ConfigurePanel), Rename and Delete (Undo), the paused and finished states, then, in
 // Fastlane's order, the review queue under #queue (Review, or All posts with the ads group first), the ads group under
 // the deck in Review (?ads=all, ?ads=send; src/components/campaign/AdsGroup.tsx), and the cost, where and goal panels
@@ -12,6 +13,7 @@ import { DotsThreeIcon, SlidersHorizontalIcon } from "@phosphor-icons/react";
 import AdsGroup from "@/components/campaign/AdsGroup";
 import CampaignQueue from "@/components/campaign/CampaignQueue";
 import ConfigurePanel from "@/components/campaign/ConfigurePanel";
+import LaunchDialog from "@/components/campaign/LaunchDialog";
 import CostPanel from "@/components/campaign/CostPanel";
 import GoalPanel from "@/components/campaign/GoalPanel";
 import WherePanel from "@/components/campaign/WherePanel";
@@ -22,6 +24,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { adsMade } from "@/lib/campaignAds";
 import { draftingOf, onCampaignJob, PAUSED_LINE, startDrafting } from "@/lib/campaignJob";
+import { launchCampaign, pauseCampaign, type LaunchOutcome } from "@/lib/campaignLaunch";
 import {
   type Campaign, campaignStatus, deleteCampaign, getCampaign, loadCampaigns, onCampaignsChanged, restoreCampaign, saveCampaigns,
 } from "@/lib/campaigns";
@@ -82,6 +85,8 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
   }, [menu]);
   const [renaming, setRenaming] = useState(false);
   const [configure, openConfigure, closeConfigure] = useUrlItem("configure");
+  const [launchOpen, openLaunch, closeLaunch] = useUrlItem("launch");
+  const [switching, setSwitching] = useState<"pause" | "resume" | null>(null);
   const grid = useSearchParams()[0].get("view") === "grid";
   const cancelled = useRef(false);
 
@@ -101,6 +106,37 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
   const paused = c.waitUntil && Date.now() < Date.parse(c.waitUntil) ? PAUSED_LINE : draftingOf(c.id)?.paused;
   const finished = c.posts.length > 0 && c.posts.every((p) => p.state === "made" || p.state === "skipped");
   const ads = c.ads?.length ? <AdsGroup userId={userId} campaign={c} /> : null;
+
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  /** What Launch or Resume did, as a toast: what went to the accounts, and the first reason any could not. */
+  const launched = (out: LaunchOutcome, again: boolean) => {
+    if ("error" in out) return toast({ title: out.error, variant: "destructive" });
+    const head = again ? "Running again." : "Launched.";
+    const went = c.accountIds?.length
+      ? out.sent ? `${plural(out.sent, "post is", "posts are")} scheduled on your accounts.` : "Posts go to your accounts as you make them."
+      : "Each made post is on your calendar on its day.";
+    const failed = out.failed.length ? ` ${plural(out.failed.length, "post", "posts")} could not be scheduled: ${out.failed[0].error}` : "";
+    toast({ title: head, description: `${went}${failed}`, ...(out.failed.length ? { variant: "destructive" as const } : {}) });
+  };
+  const pause = async () => {
+    setSwitching("pause");
+    const out = await pauseCampaign(userId, c.id);
+    setSwitching(null);
+    if ("error" in out) return toast({ title: out.error, variant: "destructive" });
+    toast({
+      title: "Paused.",
+      description: [
+        out.cancelled ? `${plural(out.cancelled, "scheduled post", "scheduled posts")} came off your accounts. Resume sends ${out.cancelled === 1 ? "it" : "them"} again.` : "Nothing new goes out until you resume.",
+        out.failed ? `${plural(out.failed, "post", "posts")} could not be taken off. Cancel ${out.failed === 1 ? "it" : "them"} from the post.` : "",
+      ].filter(Boolean).join(" "),
+    });
+  };
+  const resume = async () => {
+    setSwitching("resume");
+    const out = await launchCampaign(userId, c.id);
+    setSwitching(null);
+    launched(out, true);
+  };
 
   const rename = (value: string) => {
     setRenaming(false);
@@ -171,6 +207,19 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
             <span className={`${CHIP} ${status === "running" ? "border-primary/40 bg-primary/10 text-primary" : status === "done" ? "border-success/40 bg-success/10 text-success" : "bg-muted/50"}`}>
               {STATUS[status]}
             </span>
+            {c.runs !== "ads" && c.posts.length > 0 && status !== "done" && (
+              !c.launchedAt ? (
+                <Button className={BIG} onClick={() => openLaunch("1")}>Launch campaign</Button>
+              ) : c.pausedAt ? (
+                <Button className={`${BIG} gap-1.5`} disabled={!!switching} onClick={() => void resume()}>
+                  {switching === "resume" ? "Resuming..." : "Resume"}
+                </Button>
+              ) : (
+                <Button variant="outline" className={BIG} disabled={!!switching} onClick={() => void pause()}>
+                  {switching === "pause" ? "Pausing..." : "Pause"}
+                </Button>
+              )
+            )}
             <Button variant="ghost" className={`${BIG} gap-1.5 ${configure === "1" ? "bg-accent" : ""}`} aria-expanded={configure === "1"} aria-controls="configure"
               onClick={() => (configure === "1" ? closeConfigure() : openConfigure("1"))}>
               <SlidersHorizontalIcon className="h-4 w-4" aria-hidden /> Configure
@@ -209,6 +258,16 @@ function CampaignView({ userId, id }: { userId: string; id: string }) {
       </div>
 
       {configure === "1" && <ConfigurePanel userId={userId} campaign={c} onClose={closeConfigure} />}
+      {launchOpen === "1" && !c.launchedAt && (
+        <LaunchDialog userId={userId} campaign={c} onClose={closeLaunch} onDone={(out) => {
+          if (out.ok) closeLaunch();
+          launched(out, false);
+        }} />
+      )}
+
+      {c.pausedAt && (
+        <p role="status" className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">Paused. Nothing new goes out until you resume.</p>
+      )}
 
       {paused && (
         <p role="status" className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">{paused}</p>

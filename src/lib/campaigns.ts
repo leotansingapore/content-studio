@@ -64,6 +64,8 @@ export interface Campaign {
   runs?: CampaignRuns; budget?: AdBudget; ads?: CampaignAd[];
   /** When Launch was pressed: made posts go out on their days from then on (src/lib/campaignLaunch.ts). */
   launchedAt?: string;
+  /** When Pause was pressed: its scheduled posts came off Zernio and nothing new goes until Resume clears it. */
+  pausedAt?: string;
 }
 
 export interface CampaignAsk {
@@ -359,13 +361,13 @@ export function replanCampaign(userId: string, c: Campaign, next: Pick<Campaign,
 export type CampaignStatus = "draft" | "running" | "done";
 
 /**
- * Done: every post made or skipped and the last post day before `today` (YYYY-MM-DD). Running: something made (a post,
- * or one of `adsMade` ads, which campaignAds reads from their designs). Else draft.
+ * Done: every post made or skipped and the last post day before `today` (YYYY-MM-DD). Running: launched, or something
+ * made (a post, or one of `adsMade` ads, which campaignAds reads from their designs). Else draft.
  */
-export function campaignStatus(c: Pick<Campaign, "posts">, today: string, adsMade = 0): CampaignStatus {
+export function campaignStatus(c: Pick<Campaign, "posts"> & { launchedAt?: string }, today: string, adsMade = 0): CampaignStatus {
   const last = c.posts.reduce((m, p) => (p.day > m ? p.day : m), "");
   if (c.posts.length && last < today && c.posts.every((p) => p.state === "made" || p.state === "skipped")) return "done";
-  return adsMade > 0 || c.posts.some((p) => p.state === "made") ? "running" : "draft";
+  return c.launchedAt || adsMade > 0 || c.posts.some((p) => p.state === "made") ? "running" : "draft";
 }
 
 /** Campaigns post from 5 accounts at most (the wizard's limit). */
