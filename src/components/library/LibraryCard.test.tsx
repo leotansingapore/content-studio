@@ -45,6 +45,13 @@ describe("a Library card", () => {
     expect(out).toContain("[@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11");
   });
 
+  it("carries Add to set with the hover tools, and Remove from set when a set is open", () => {
+    const out = html(<LibraryCard item={item()} sources={sources} onAddToSet={() => undefined} onRemoveFromSet={() => undefined} />);
+    expect(out).toMatch(/<button[^>]*aria-label="Add to set"/);
+    expect(out).toMatch(/<button[^>]*aria-label="Remove from set"/);
+    expect(html(<LibraryCard item={item()} sources={sources} />)).not.toContain("Add to set");
+  });
+
   it("keeps a failure's Try again in words, on every screen", () => {
     const out = html(<LibraryCard item={item({ status: "failed", note: "Zernio couldn't post it.", retryHref: "/drafts?status=scheduled", scheduleHref: undefined })} sources={sources} />);
     expect(out).toMatch(/<a[^>]*class="relative z-10[^"]*"[^>]*href="\/drafts\?status=scheduled"[^>]*>Try again<\/a>|<a[^>]*href="\/drafts\?status=scheduled"[^>]*class="relative z-10[^"]*"[^>]*>Try again<\/a>/);
@@ -64,7 +71,9 @@ describe("the Library page", () => {
     expect(formats).toEqual(["All formats", "Video", "Slides", "Image", "Text"]);
     // the status filter is one control that says what is chosen, not a second row of chips
     expect(header).toMatch(/<button[^>]*aria-label="Status"[^>]*>.*?All statuses/);
-    expect(out.match(/aria-pressed=/g)).toHaveLength(5);
+    // the five formats, then Sets
+    expect(out.match(/aria-pressed=/g)).toHaveLength(6);
+    expect(header.indexOf(">Sets")).toBeGreaterThan(header.indexOf(">Text"));
     const at = ['aria-label="Format"', 'aria-label="Search titles, words and captions"', 'aria-label="Status"', 'aria-label="Library view"'].map((x) => header.indexOf(x));
     expect(at.every((n) => n >= 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
@@ -103,6 +112,51 @@ describe("the Library page", () => {
     expect(out).toContain(">Done</button>");
     expect(out).toContain('aria-label="Select Three CPF myths"');
     expect(out).not.toContain("Upload your own");
+  });
+
+  describe("sets", () => {
+    const two = () => {
+      const local = brandDevice("u1");
+      const d = (id: string, hook: string) => ({ id, createdAt: "2026-11-10T00:00:00Z", hook, draft: "x", pillar: "", pillarDetail: "", audience: "", format: "text-post", platform: "linkedin", ctaType: "" });
+      local.setItem("content-studio-drafts-u1", JSON.stringify([d("p1", "Three CPF myths"), d("p2", "Why term beats whole life")]));
+      local.setItem("content-studio-sets-u1", JSON.stringify([{ id: "set-abcd", name: "Launch week", keys: ["d:p1", "d:gone"], createdAt: "" }, { id: "set-empty", name: "Later", keys: [], createdAt: "" }]));
+    };
+
+    it("lists each set at ?view=sets with its count, after a New set tile, each a link that opens it", () => {
+      two();
+      const out = html(<LibraryPage />, "/library?view=sets");
+      expect(out).toMatch(/aria-pressed="true"[^>]*>Sets/);
+      expect(out).toContain("New set");
+      // a key whose piece is gone is skipped
+      expect(out).toMatch(/<a[^>]*href="\/library\?set=set-abcd"[^>]*>.*?Launch week.*?1 item</);
+      expect(out).toMatch(/href="\/library\?set=set-empty"[^>]*>.*?Later.*?0 items</);
+      expect(out).not.toContain('aria-label="Search titles, words and captions"');
+    });
+
+    it("opens one at ?set=<id>: its items only, under its name with Rename, Delete set and the way back", () => {
+      two();
+      const out = html(<LibraryPage />, "/library?set=set-abcd");
+      expect(out).toContain(">Launch week</h2>");
+      expect(out).toMatch(/<a[^>]*href="\/library\?view=sets"[^>]*>.*?All sets<\/a>/);
+      expect(out).toContain(">Rename</button>");
+      expect(out).toContain(">Delete set</button>");
+      expect(out).toContain("Three CPF myths");
+      expect(out).not.toContain("Why term beats whole life");
+      expect(out).not.toContain("Upload your own");
+    });
+
+    it("says an empty set with one way to fill it, and a set that is gone with the way back", () => {
+      two();
+      expect(html(<LibraryPage />, "/library?set=set-empty")).toMatch(/Nothing in this set yet.*<a[^>]*href="\/library\?select=1"[^>]*>Add items<\/a>/);
+      expect(html(<LibraryPage />, "/library?set=set-zzzz")).toMatch(/That set is gone.*>All sets<\/button>/);
+    });
+
+    it("gives Select an Add to set, and Remove from set inside an open set", () => {
+      two();
+      expect(html(<LibraryPage />, "/library?select=1")).toMatch(/<button[^>]*disabled=""[^>]*>Add to set<\/button>/);
+      expect(html(<LibraryPage />, "/library?select=1")).not.toContain("Remove from set");
+      expect(html(<LibraryPage />, "/library?set=set-abcd&select=1")).toContain(">Remove from set</button>");
+    });
   });
 
   it("says an empty library in one heading, one sentence and one button, Create", () => {

@@ -138,6 +138,8 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | /library | q | search text over titles, post words, slide words, Design words and captions | empty | replace | /library?q=cpf |
 | /library | panel | making: the Making now sheet (from the bottom on a phone); its button shows while something is made or failed | closed | push | /library?panel=making |
 | /library | select | 1: Select, a checkbox on every card with Select all, Download, Delete (Undo) and Done; Escape or Done leaves it | off | push | /library?select=1 |
+| /library | view | sets: the sets (Sets chip), each with its first picture and count, and New set | the items | push | /library?view=sets |
+| /library | set | a set's id: its items only, with Rename, Delete set (Undo) and All sets; format, status and q still apply | none | push | /library?set=set-mwfx3k1q2ab |
 
 A link to an item that has not loaded yet keeps its param and opens when the data arrives; a link to an
 item that is gone opens the page without it and says so in one line ("That post is no longer here",

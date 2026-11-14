@@ -4,7 +4,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ClockIcon, ArrowSquareOutIcon, CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
+import { ClockIcon, ArrowSquareOutIcon, CheckIcon, CircleNotchIcon, FolderMinusIcon, FolderPlusIcon } from "@phosphor-icons/react";
 import CampaignPostLink from "@/components/campaign/CampaignPostLink";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import LibraryThumb, { useOnScreen, type ThumbSources } from "@/components/library/LibraryThumb";
@@ -22,8 +22,15 @@ const fileHere = (key: string) => {
   return onDevice.get(key)!;
 };
 
-/** `onPick` puts the card in Select: the whole card is its checkbox and opens nothing. */
-function LibraryCard({ item, sources, picked, onPick }: { item: LibraryItem; sources: ThumbSources; picked?: boolean; onPick?: () => void }) {
+/** `onPick` puts the card in Select: the whole card is its checkbox and opens nothing. The set buttons get the card's key. */
+function LibraryCard({ item, sources, picked, onPick, onAddToSet, onRemoveFromSet }: {
+  item: LibraryItem;
+  sources: ThumbSources;
+  picked?: boolean;
+  onPick?: () => void;
+  onAddToSet?: (key: string) => void;
+  onRemoveFromSet?: (key: string) => void;
+}) {
   const [ref, seen] = useOnScreen<HTMLDivElement>();
   const [here, setHere] = useState(true);
   useEffect(() => {
@@ -44,6 +51,16 @@ function LibraryCard({ item, sources, picked, onPick }: { item: LibraryItem; sou
       {item.scheduleHref && (
         <Button asChild size="sm" variant="secondary" className="h-7 px-2 text-xs shadow-sm">
           <Link to={item.scheduleHref}>Schedule</Link>
+        </Button>
+      )}
+      {onAddToSet && (
+        <Button size="sm" variant="secondary" aria-label="Add to set" title="Add to set" onClick={() => onAddToSet(item.key)} className="h-7 w-7 p-0 shadow-sm">
+          <FolderPlusIcon className="h-3.5 w-3.5" aria-hidden />
+        </Button>
+      )}
+      {onRemoveFromSet && (
+        <Button size="sm" variant="secondary" aria-label="Remove from set" title="Remove from set" onClick={() => onRemoveFromSet(item.key)} className="h-7 w-7 p-0 shadow-sm">
+          <FolderMinusIcon className="h-3.5 w-3.5" aria-hidden />
         </Button>
       )}
       <CopyLinkButton path={item.href} label={`Copy link to ${item.title}`.slice(0, 120)} className="h-7 w-7 rounded-md bg-secondary shadow-sm" />

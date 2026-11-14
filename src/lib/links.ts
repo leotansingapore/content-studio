@@ -609,9 +609,9 @@ export const links = {
   /** The slideshow editor (Leo only): s opens one (push); slide is 1-based; slide 1 and the Slide tab are left out; ask (phase 6) proposes a change, read once. */
   slideshow: (o: { s?: string; slide?: number; panel?: "text" | "overlay"; box?: string; view?: "original"; ask?: string } = {}) =>
     `/slideshow${qs({ s: o.s, slide: o.slide !== 1 && o.slide, panel: o.panel, box: o.box, view: o.view, ask: askText(o.ask) })}`,
-  /** Everything made: format, status and q replace; panel=making opens the Making now sheet on phones (push). */
-  library: (o: { format?: LibraryFormat; status?: LibraryStatus; q?: string; panel?: "making" } = {}) =>
-    `/library${qs({ format: o.format, status: o.status, q: o.q?.trim(), panel: o.panel })}`,
+  /** Everything made: format, status and q replace; panel=making opens the Making now sheet on phones (push); view=sets lists the sets, set=<id> opens one, select=1 turns on Select. */
+  library: (o: { format?: LibraryFormat; status?: LibraryStatus; q?: string; panel?: "making"; view?: "sets"; set?: string; select?: boolean } = {}) =>
+    `/library${qs({ format: o.format, status: o.status, q: o.q?.trim(), panel: o.panel, view: o.view, set: o.set, select: o.select && 1 })}`,
   /** A format's create page (Leo only but the `everyone` ones, src/data/formats.ts): source, from, mention=inside|no and the format's own params. Making on arrival is navigation state { go: true }, never a param. */
   makeFormat: (slug: string, p: Record<string, string | number | undefined> = {}) => `/make/${encodeURIComponent(slug)}${qs(p)}`,
   /** The format gallery (Leo only): tab=static (videos left out) and show=ready|needs (all left out) replace. */

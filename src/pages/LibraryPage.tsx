@@ -5,10 +5,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { BooksIcon, MagnifyingGlassIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
+import { BooksIcon, FolderSimpleIcon, MagnifyingGlassIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import LibraryCard from "@/components/library/LibraryCard";
 import LibraryChip from "@/components/library/LibraryChip";
 import LibraryHeader, { LibrarySearch, QUIET_SELECT, createHref } from "@/components/library/LibraryHeader";
+import { AddToSet, LIBRARY_GRID, SetBar, SetsGrid, setItems } from "@/components/library/LibrarySets";
 import { thumbSources, useFontsReady } from "@/components/library/LibraryThumb";
 import MakingNow, { useLibraryJobs } from "@/components/library/MakingNow";
 import { useZernioRefresh } from "@/components/PostItForMe";
@@ -33,6 +34,7 @@ import {
   type LibraryStatus,
 } from "@/lib/library";
 import { deleteItems, downloadItems } from "@/lib/libraryBulk";
+import { MAX_SETS, SETS_EVENT, addToSet, createSet, deleteSet, loadSets, removeFromSet, renameSet, restoreSet, type LibrarySet } from "@/lib/librarySets";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
 import { loadSlideshows, onSlideshowsChanged } from "@/lib/slideshow";
@@ -44,6 +46,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const FORMATS = ["all", ...LIBRARY_FORMATS] as const;
 const STATUSES = ["all", ...LIBRARY_STATUSES] as const;
+const VIEWS = ["", "sets"] as const;
 // Fastlane's order and words (All formats, Video, Slideshow, Image), with our text posts after them; Slides covers
 // carousels, slideshows and Designs. The address keeps ?format=carousel.
 const FORMAT_CHIPS: { value: (typeof FORMATS)[number]; label: string }[] = [
@@ -86,6 +89,20 @@ function Library({ userId, email }: { userId: string; email: string }) {
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Sets (Fastlane's): ?view=sets lists them, ?set=<id> opens one (both pushed)
+  const [view] = useUrlState<(typeof VIEWS)[number]>("view", "", { allowed: VIEWS });
+  const [setId] = useUrlItem("set");
+  const [sets, setSets] = useState(() => loadSets(userId));
+  useEffect(() => {
+    const read = () => setSets(loadSets(userId));
+    window.addEventListener(SETS_EVENT, read);
+    return () => window.removeEventListener(SETS_EVENT, read);
+  }, [userId]);
+  const openSet = setId ? sets.find((s) => s.id === setId) : undefined;
+  const showSets = view === "sets" && !setId;
+  // the keys Add to set is open for
+  const [adding, setAdding] = useState<string[] | null>(null);
+  const addOne = useCallback((key: string) => setAdding([key]), []);
   const { toast } = useToast();
   const update = useUrlUpdate();
   const fmt: LibraryFormat | null = format === "all" ? null : format;
@@ -110,7 +127,8 @@ function Library({ userId, email }: { userId: string; email: string }) {
   const fontsReady = useFontsReady(stores.slideshows.length > 0);
 
   const items = useMemo(() => buildLibrary({ ...stores, jobs, now: new Date() }), [stores, jobs]);
-  const scoped = useMemo(() => filterLibrary(items, { format: fmt, q }), [items, fmt, q]);
+  const inSet = useMemo(() => (openSet ? setItems(openSet, items) : items), [openSet, items]);
+  const scoped = useMemo(() => filterLibrary(inSet, { format: fmt, q }), [inSet, fmt, q]);
   const counts = countBy(scoped);
   const shown = st ? scoped.filter((i) => i.status === st) : scoped;
   const making = jobs.filter((j) => j.state === "working").length;
@@ -120,6 +138,49 @@ function Library({ userId, email }: { userId: string; email: string }) {
   const clear = () => {
     setText("");
     update({ format: null, status: null, q: null });
+  };
+
+  const toSets = (o: { set?: string } = {}) => update({ view: o.set ? null : "sets", set: o.set ?? null }, { push: true });
+  const newSet = (name: string, keys: string[] = []) => {
+    const set = createSet(userId, name, keys);
+    if (!set) toast({ title: "Couldn't make the set", description: `You can keep up to ${MAX_SETS} sets.`, variant: "destructive" });
+    return set;
+  };
+  const addTo = (set: LibrarySet, keys: string[]) => {
+    const added = addToSet(userId, set.id, keys);
+    setAdding(null);
+    toast({ title: added ? `${n(added, "item")} added to ${set.name}` : `Already in ${set.name}` });
+  };
+  const removeFrom = useCallback(
+    (keys: string[]) => {
+      if (!openSet) return;
+      removeFromSet(userId, openSet.id, keys);
+      setPicked(new Set());
+      toast({
+        title: `${n(keys.length, "item")} removed from ${openSet.name}`,
+        action: (
+          <ToastAction altText="Undo" onClick={() => addToSet(userId, openSet.id, keys)}>
+            Undo
+          </ToastAction>
+        ),
+      });
+    },
+    [openSet, userId, toast],
+  );
+  const removeOne = useCallback((key: string) => removeFrom([key]), [removeFrom]);
+  const dropSet = () => {
+    const gone = openSet && deleteSet(userId, openSet.id);
+    if (!gone) return;
+    update({ set: null, view: "sets" });
+    toast({
+      title: `${gone.set.name} deleted`,
+      description: "The items in it stay in your Library.",
+      action: (
+        <ToastAction altText="Undo" onClick={() => restoreSet(userId, gone)}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   // only what is on screen stays ticked: a filter or a delete drops the rest
@@ -180,19 +241,25 @@ function Library({ userId, email }: { userId: string; email: string }) {
         title="Library"
         left={
           items.length > 0 && (
-            <div role="group" aria-label="Format" className="flex gap-0.5">
-              {FORMAT_CHIPS.map((c) => (
-                <LibraryChip key={c.value} on={format === c.value} onClick={() => setFormat(c.value)}>
-                  {c.label}
-                </LibraryChip>
-              ))}
-            </div>
+            <>
+              <div role="group" aria-label="Format" className="flex gap-0.5">
+                {FORMAT_CHIPS.map((c) => (
+                  <LibraryChip key={c.value} on={!showSets && format === c.value} onClick={() => (showSets ? update({ view: null, format: c.value === "all" ? null : c.value }, { push: true }) : setFormat(c.value))}>
+                    {c.label}
+                  </LibraryChip>
+                ))}
+              </div>
+              <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-border" />
+              <LibraryChip on={showSets || !!setId} count={sets.length} onClick={() => (showSets ? update({ view: null }, { push: true }) : toSets())}>
+                Sets
+              </LibraryChip>
+            </>
           )
         }
       >
         {items.length > 0 || making + failedJobs > 0 ? (
           <>
-            {items.length > 0 && (
+            {items.length > 0 && !showSets && (
               <>
                 <LibrarySearch value={text} onChange={setText} label="Search titles, words and captions" />
                 <Select value={status} onValueChange={(v) => setStatus(v as (typeof STATUSES)[number])}>
@@ -209,7 +276,7 @@ function Library({ userId, email }: { userId: string; email: string }) {
                 </Select>
               </>
             )}
-            {items.length > 0 && !selecting && (
+            {items.length > 0 && !selecting && !showSets && (
               <Button size="sm" variant="ghost" onClick={() => startSelect("1")} className={`shrink-0 text-xs text-muted-foreground ${TOUCH}`}>
                 Select
               </Button>
@@ -225,7 +292,9 @@ function Library({ userId, email }: { userId: string; email: string }) {
         ) : null}
       </LibraryHeader>
 
-      {selecting && items.length > 0 && (
+      {openSet && <SetBar set={openSet} size={inSet.length} onRename={(name) => renameSet(userId, openSet.id, name)} onDelete={dropSet} />}
+
+      {selecting && items.length > 0 && !showSets && (
         <div role="toolbar" aria-label="Selected items" className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium tabular-nums" aria-live="polite">
             {chosen.length} selected
@@ -234,6 +303,14 @@ function Library({ userId, email }: { userId: string; email: string }) {
             {allPicked ? "Select none" : "Select all"}
           </Button>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            <Button size="sm" variant="outline" disabled={!chosen.length} onClick={() => setAdding(chosen.map((i) => i.key))} className={TOUCH}>
+              Add to set
+            </Button>
+            {openSet && (
+              <Button size="sm" variant="outline" disabled={!chosen.length} onClick={() => removeFrom(chosen.map((i) => i.key))} className={TOUCH}>
+                Remove from set
+              </Button>
+            )}
             <Button size="sm" variant="outline" disabled={!chosen.length || busy} onClick={() => void download()} className={TOUCH}>
               {busy ? "Downloading..." : "Download"}
             </Button>
@@ -247,7 +324,33 @@ function Library({ userId, email }: { userId: string; email: string }) {
         </div>
       )}
 
-      {items.length === 0 ? (
+      {showSets && items.length > 0 ? (
+        <SetsGrid sets={sets} items={items} sources={sources} onCreate={(name) => {
+            const set = newSet(name);
+            if (set) toSets({ set: set.id });
+          }}
+        />
+      ) : setId && !openSet && items.length > 0 ? (
+        <EmptyState
+          icon={FolderSimpleIcon}
+          title="That set is gone"
+          actions={
+            <Button variant="outline" onClick={() => toSets()} className={TOUCH}>
+              All sets
+            </Button>
+          }
+        />
+      ) : openSet && inSet.length === 0 ? (
+        <EmptyState
+          icon={FolderSimpleIcon}
+          title="Nothing in this set yet"
+          actions={
+            <Button asChild className={TOUCH}>
+              <Link to={links.library({ select: true })}>Add items</Link>
+            </Button>
+          }
+        />
+      ) : items.length === 0 ? (
         <EmptyState
           icon={BooksIcon}
           title="Nothing made yet"
@@ -270,10 +373,9 @@ function Library({ userId, email }: { userId: string; email: string }) {
           }
         />
       ) : (
-        // Fastlane's density: six portrait cards a row on a wide screen
-        <ul className="grid grid-cols-2 items-start gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+        <ul className={LIBRARY_GRID}>
           {/* a way in for a video of your own: Studio's Upload your own, the video editor */}
-          {!selecting && uploadFirst({ format: fmt, status: st, q }) && (
+          {!selecting && !openSet && uploadFirst({ format: fmt, status: st, q }) && (
             <li className="flex min-w-0">
               <Link
                 to={links.edit()}
@@ -286,21 +388,40 @@ function Library({ userId, email }: { userId: string; email: string }) {
           )}
           {shown.map((item) => (
             <li key={item.key} className="flex min-w-0">
-              <LibraryCard item={item} sources={sources} {...(selecting && pickable(item.key) ? { picked: picked.has(item.key), onPick: () => toggle(item.key) } : {})} />
+              <LibraryCard
+                item={item}
+                sources={sources}
+                {...(selecting && pickable(item.key) ? { picked: picked.has(item.key), onPick: () => toggle(item.key) } : {})}
+                {...(pickable(item.key) ? { onAddToSet: addOne, ...(openSet ? { onRemoveFromSet: removeOne } : {}) } : {})}
+              />
             </li>
           ))}
         </ul>
       )}
 
-      <MakingSheet open={panel === "making"} onClose={closePanel}>
+      <Sheet label="Making now" open={panel === "making"} onClose={closePanel}>
         <MakingNow items={items} jobs={jobs} />
-      </MakingSheet>
+      </Sheet>
+      <Sheet label="Add to set" open={!!adding} onClose={() => setAdding(null)}>
+        {adding && (
+          <AddToSet
+            size={adding.length}
+            sets={sets}
+            items={items}
+            onPick={(set) => addTo(set, adding)}
+            onCreate={(name) => {
+              const set = newSet(name);
+              if (set) addTo(set, adding);
+            }}
+          />
+        )}
+      </Sheet>
     </div>
   );
 }
 
-/** Making now: a sheet over the page (?panel=making, pushed, so Back closes it), from the bottom on a phone. */
-function MakingSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
+/** A sheet over the page, from the bottom on a phone: Making now (?panel=making, pushed, so Back closes it) and Add to set. */
+function Sheet({ label, open, onClose, children }: { label: string; open: boolean; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -311,7 +432,7 @@ function MakingSheet({ open, onClose, children }: { open: boolean; onClose: () =
   return (
     <dialog
       ref={ref}
-      aria-label="Making now"
+      aria-label={label}
       onClose={() => open && onClose()}
       onClick={(e) => e.target === e.currentTarget && onClose()}
       className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[80vh] w-full max-w-none rounded-t-2xl border-t border-border/70 bg-background p-0 shadow-xl backdrop:bg-foreground/40 sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-[28rem] sm:-translate-x-1/2 sm:rounded-2xl sm:border"
